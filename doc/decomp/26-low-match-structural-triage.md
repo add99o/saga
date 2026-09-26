@@ -125,3 +125,59 @@ gating, all three mode-save bits, completion/autosave, AI thresholds, coin
 mode precedence and resets, null players, end-menu timing, and draw gating.
 This is not a full gameplay run. The temporary harness is not a canonical
 repository test target.
+
+## Credits, icon animation, and particle scaling
+
+Baseline: `33650891`. Five more stubs are reconstructed without changing
+their source files' optimization settings.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `Credits_Load` | 0.87% | 39.10% |
+| `Credits_DrawPanel` | 3.00% | 99.91% |
+| `Credits_UpdateMenu` | 2.31% | 81.00% |
+| `UpdateIconWibble` | 3.09% | 99.71% |
+| `CreateScaledPARTEffect` | 2.98% | 58.41% |
+
+Overall fuzzy matching: **63.022400% → 63.094010%**. Eight scores improve,
+none regress, and no full matches are lost. Reintroducing the writable
+credits duration also improves `Credits_GetInfo` from 92.73% to 99.95%.
+
+- Credits entries and styles are both 24 bytes. The loader owns at most
+  1,000 entries, reads `stuff\\text\\english_credits.txt`, accepts the first
+  positive duration override while the duration is still its 120-second
+  default, and maintains per-style colour overrides. Title/name entries
+  share a row. The completion panel and skip/audio/fade state machine are
+  reconstructed from the same original TU.
+- The four icon angular velocities are a previously missing private `i32`
+  array. Each icon updates its own timer, consumes two random values on
+  expiry, and wraps its angle through an integer conversion. A normal
+  inline helper called for the four channels reproduces retail's structure;
+  a rolled loop scored only 23.77% against the object.
+- Particle scaling follows the parent type stored at `+0x174`, reuses the
+  closest active relative scale within retail's **1.1** tolerance, and clones
+  a free type otherwise. The source type's name is shortened to 12 characters
+  before its three-digit suffix. Slot zero is populated but its allocation
+  still returns the previous closest ID, exactly as retail does. The input
+  check accepts 128 despite the 128-element table; normal loaded IDs remain
+  below 128. This pre-existing binary edge case was not silently changed.
+- `Credits_DrawPanel` and `UpdateIconWibble` have the original instruction
+  structure; their remaining score differences are data/literal addresses.
+  Explicitly splitting the loader's initialization/search/colour and style
+  cases did not improve its score. The simpler, better-scoring form was kept.
+
+The target build and full linked report pass. A temporary 32-bit test harness
+compiled the same sources with the NDK and unchanged optimization settings;
+function/data sections were enabled only in the test objects so unrelated
+engine functions could be discarded at link time. Tests pass for credits
+loading, duration/colour overrides, paired rows, draw clipping, the 1,000-entry
+cap, allocation/parser failure, completion rendering, skip/audio/fade timing,
+icon random-call order and angle wrapping, and particle reuse/allocation.
+These are focused tests with mocked external services, not a full gameplay run.
+
+Further structural triage: retail `NuFrameEndBgLoadPS` and
+`UCStretchToCorners` exhibit unoptimized frame/temporary patterns while their
+current owners compile at `-O2`; no source churn or optimization override was
+attempted. `Push_UpdateHints` has eight unrolled retail player checks versus
+a rolled current loop. Resolve these provenance questions before spending
+another speculative matching pass on them.

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 63.0224,
+    "fuzzy_match_percent": 63.09401,
     "total_code": "4722419",
     "matched_code": "514791",
     "matched_code_percent": 10.901003,
@@ -50757,7 +50757,7 @@
           "address": 4828496,
           "offset": 3938528,
           "size": 1790,
-          "match_percent": 98.77541
+          "match_percent": 98.78723
         },
         {
           "name": "_ZL18CS_lowend_disthackP8nufpar_s",
@@ -68091,7 +68091,7 @@
           "address": 1333040,
           "offset": 443072,
           "size": 445,
-          "match_percent": 36.55357
+          "match_percent": 36.598213
         },
         {
           "name": "_Z22Text3DStringEncodeFontPhPtPv",
@@ -68657,7 +68657,7 @@
           "address": 5109952,
           "offset": 4219984,
           "size": 2516,
-          "match_percent": 0.872727
+          "match_percent": 39.103638
         },
         {
           "name": "_Z12Credits_InitP11WORLDINFO_s",
@@ -68673,7 +68673,7 @@
           "address": 5112592,
           "offset": 4222624,
           "size": 744,
-          "match_percent": 3.0
+          "match_percent": 99.9125
         },
         {
           "name": "_Z18Credits_UpdateMenuP6MENU_s",
@@ -68681,7 +68681,7 @@
           "address": 5113344,
           "offset": 4223376,
           "size": 835,
-          "match_percent": 2.307692
+          "match_percent": 81.0
         },
         {
           "name": "_Z15Credits_GetInfoPfPiS_",
@@ -68689,7 +68689,7 @@
           "address": 5114192,
           "offset": 4224224,
           "size": 74,
-          "match_percent": 92.72727
+          "match_percent": 99.954544
         }
       ]
     },
@@ -70102,7 +70102,7 @@
           "address": 1735600,
           "offset": 845632,
           "size": 689,
-          "match_percent": 3.088235
+          "match_percent": 99.70588
         },
         {
           "name": "_Z20InitStatusScreen_LSWP11WORLDINFO_sP14STATUSPACKET_s",
@@ -79444,7 +79444,7 @@
           "address": 4343168,
           "offset": 3453200,
           "size": 668,
-          "match_percent": 2.976191
+          "match_percent": 58.410713
         },
         {
           "name": "_Z14Particles_LoadP11WORLDINFO_sPPcii",

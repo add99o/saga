@@ -401,6 +401,9 @@ extern "C" void TerrainPlatformNewUpdate(void) {
 }
 extern "C" i32 PARTLookupTypePageOnly(char *, i32);
 extern "C" part_type_s part_types[128];
+extern "C" i32 part_types_used;
+extern "C" f32 partglobaltime;
+void edpartScaleType(i32 index, f32 scale);
 void *InitPartDebris(VARIPTR *buf, VARIPTR *, i32 capacity, i32 named_count, char **names, i32 page) {
     PARTDEBSYS_s *system = static_cast<PARTDEBSYS_s *>(BUFFER_ALLOC(buf, sizeof(PARTDEBSYS_s), 16));
     if (system == NULL)
@@ -574,9 +577,65 @@ extern "C" {
         return scaled_index;
     }
 
-    i32 CreateScaledPARTEffect(i32, f32) {
-        STUBBED();
-        return -1;
+    i32 CreateScaledPARTEffect(i32 effect_index, f32 requested_scale) {
+        // Retail uses this inclusive upper check; loaded type IDs are 0..127.
+        if (effect_index <= 0 || effect_index > 128 || part_types[effect_index].effect_ids[0] == -1) {
+            return -1;
+        }
+        if (part_types[effect_index].scale != 1.0f) {
+            // The final word identifies the original, unscaled type.
+            effect_index = part_types[effect_index].field_174;
+            if (part_types[effect_index].effect_ids[0] == -1) {
+                return -1;
+            }
+        }
+        if (requested_scale == 1.0f && effect_index != 0) {
+            return effect_index;
+        }
+        if (requested_scale < 0.01f) {
+            requested_scale = 0.01f;
+        }
+
+        i32 closest_index = effect_index;
+        f32 ratio = requested_scale / part_types[effect_index].scale;
+        f32 closest_distance = ratio <= 1.0f ? 1.0f - ratio : ratio - 1.0f;
+        for (i32 i = 0; i < 128; ++i) {
+            if (part_types[i].effect_ids[0] != -1 && part_types[i].field_174 == static_cast<u32>(effect_index)) {
+                ratio = requested_scale / part_types[i].scale;
+                f32 distance = ratio <= 1.0f ? 1.0f - ratio : ratio - 1.0f;
+                if (distance < closest_distance) {
+                    closest_index = i;
+                    closest_distance = distance;
+                }
+            }
+        }
+        if (closest_index != 0 && closest_distance < 1.1f) {
+            return closest_index;
+        }
+
+        for (i32 i = 0; i < 128; ++i) {
+            if (part_types[i].effect_ids[0] != -1) {
+                continue;
+            }
+            part_type_s *scaled = &part_types[i];
+            part_type_s *source = &part_types[effect_index];
+            *scaled = *source;
+            edpartScaleType(i, requested_scale);
+            scaled->last_used_time = partglobaltime;
+            scaled->scale = requested_scale;
+            scaled->field_174 = effect_index;
+            if (strlen(source->name) > 12) {
+                char shortened[16];
+                memcpy(shortened, source->name, strlen(source->name) + 1);
+                shortened[12] = '\0';
+                sprintf(scaled->name, "%s%03d", shortened, i);
+            } else {
+                sprintf(scaled->name, "%s%03d", source->name, i);
+            }
+            ++part_types_used;
+            return i != 0 ? i : closest_index;
+        }
+        return closest_index;
     }
 
     void CubeImpact(void) {

@@ -84,6 +84,7 @@ f32 STATUS_TITLE_Y = 0.5f;
 
 u16 hub_iconang[4] = {};
 static f32 hub_icontime[4] = {};
+static i32 hub_icondang[4] = {};
 STATUS_STAGE_s *StatusStages;
 f32 iconalphaoverride;
 f32 icon_y;
@@ -798,8 +799,20 @@ f32 StatusIconsOnOff(f32 progress) {
     return NuTrigTable[(static_cast<i32>(progress * 16384.0f) >> 1) & 0x7fff] * (STATSPOSY - STATSPOS2Y) + STATSPOS2Y;
 }
 
+static inline void UpdateIconWibbleAxis(i32 i) {
+    hub_icontime[i] -= FRAMETIME;
+    if (hub_icontime[i] <= 0.0f) {
+        hub_icondang[i] = static_cast<i32>(QRAND_FLOAT() * 262144.0f - 131072.0f);
+        hub_icontime[i] = QRAND_FLOAT() * 2.0f + 1.0f;
+    }
+    hub_iconang[i] = static_cast<u16>(static_cast<i32>(hub_iconang[i] + hub_icondang[i] * FRAMETIME));
+}
+
 void UpdateIconWibble() {
-    STUBBED();
+    UpdateIconWibbleAxis(0);
+    UpdateIconWibbleAxis(1);
+    UpdateIconWibbleAxis(2);
+    UpdateIconWibbleAxis(3);
 }
 
 void Prompt_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float elapsed) {
