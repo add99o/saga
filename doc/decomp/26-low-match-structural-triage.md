@@ -1235,3 +1235,64 @@ splines and checks lengths, cumulative distances, and untouched bytes.
 Both harnesses pass NDK-compiled 32-bit runs and 64-bit ASan/UBSan with
 normal global instrumentation. External file services are mocked; this
 does not constitute gameplay execution.
+
+## Nearest-obstacle return ABI and arrow rendering
+
+This batch raises linked fuzzy matching from **64.117065% to 64.148240%**:
+`GizObstacle_FindNearest` improves **1.98% → 60.98%**, and `RndrArrow`
+improves **2.20% → 99.53%**. These are the only changed function scores;
+there are no regressions or lost exact matches.
+
+The obstacle query's placeholder incorrectly returned `void`. Retail
+returns the selected `GIZOBSTACLE_s *`; its caller in `PushCode` tests the
+result and stores it in the game object's obstacle pointer at `0x788`.
+The corrected declaration is in `gizobstacles.h`. The existing `-O3` and
+symbol name are unchanged.
+
+The query captures the obstacle-array base, but reloads the unsigned
+16-bit count after callbacks. It filters by the full integer mode (`-1`
+is the wildcard), both enabled/visible progress bits, and the destroyed
+runtime bit. A non-null object parameter selects animated average positions
+when a set exists; the object itself is not dereferenced. Other candidates
+use their stored position. Selection is strictly below `1.0e9f`, so ties
+retain the first candidate and NaN distances never win. A null system
+returns null without writing the optional distance; an empty/nonmatching
+system writes the initial bound. As in retail, animated sets must produce
+an average position; the helper's return value is not a fallback selector.
+The current partial `PushCode` still lacks this retail caller path; this
+batch does not claim to reconstruct the surrounding push state machine.
+
+The first obstacle source form measured 60.778% in the object / 60.984%
+linked. A bounded raw-mask versus bitfield experiment generated the same
+995-byte function and score. GCC folds the two progress checks into one
+mask, unlike retail's two tests; remaining differences also involve loop
+unswitching and registers. No compiler or attribute workaround is retained.
+
+`RndrArrow` restores four zero-initialized vectors, the asymmetric arrow
+outline, one aspect-ratio snapshot, four in-place rotations, and separate
+scale/aspect/translation operations. It submits primitive type 1, format 5,
+no material, four colored vertices at z=0, and a final end call. Per-vertex
+resolution, stream pointer, and overbrightening state are read afresh.
+The existing typed color helper preserves alpha while halving RGB when
+required, without touching UV storage. The original `-O2` is preserved.
+
+Combined transform expressions initially produced 938 bytes / 73.702%
+object matching. Expressing the three transform passes separately, as in
+the retail schedule and nearby quad renderer, yields the original 890-byte
+size and 98.932% object / 99.534% linked matching. The remaining 19 linked
+instruction differences are color-calculation register/operand choices;
+they are not grounds for more speculative tuning.
+
+Verification: target/native builds and all five repository checks pass.
+The obstacle oracle passes 134,173 cases on NDK 32-bit and sanitized 64-bit
+builds: every progress/runtime byte combination, signed/full-width modes,
+strict/tied/NaN/infinite distances, count/base/flag/position mutations,
+optional output, and all 65,535 array entries. Its host harness disables
+ASan global instrumentation because otherwise unused callback tables keep
+the entire obstacle update subsystem linked; the obstacle arrays are heap
+allocated and heap/stack ASan plus UBSan remain enabled. The arrow oracle
+passes 262,584 cases on NDK 32-bit and full-global ASan/UBSan 64-bit builds:
+color-channel and overbrightening bytes, signed angles, floating boundaries,
+exact initialization/order, and callback mutations of resolution, aspect,
+rotated vectors, and stream cursors. Math/render services are mocked;
+no visual or gameplay execution is claimed.
