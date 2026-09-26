@@ -909,3 +909,50 @@ flag values, null/empty inputs, aliased outputs, strict ties and non-finite
 distances, wraparound, callback-modified counts/point arrays/fractions,
 finalization order, and 5,000 randomized cases. Geometry services are mocked;
 no gameplay execution or invalid-storage support is claimed.
+
+## WEIRDO animation dispatch
+
+Recovering `Animate_WEIRDO` raises its linked match from **1.60% to 58.80%**
+and aggregate fuzzy matching from **63.952187% to 63.965984%**. No other
+function scores change. The file retains `-O2`, and the three shared private
+animation helpers retain their existing local symbols and compiler-inferred
+calling conventions. This removes the last `STUBBED()` body in `gameanim.cpp`;
+the old comment promising restoration of local linkage after four missing
+callers was stale and has been corrected.
+
+The dispatcher preserves context-owned animation, ground/fall gates, jump
+priority, forced weapon idle, movement and idle variants, extra-action remaps,
+blend checking, and the final idle callback. Fall timing uses the animation
+selected after that callback. Saber sound is restricted to weapon IDs 101,
+103, 105, and 107; the imperial guard is excluded, the bodyguard has a separate
+loop, and the remaining sound depends on the dark-side model flag. Sound
+lookup is a separate statement before reading playback volume, matching the
+retail callback ordering. That correction improves object matching from
+54.31% to 58.52% and prevents an early volume snapshot. Separate lookup calls
+inside each sound branch score 57.27%, while explicit fall-path labels emit
+the same 58.52% code as the retained structured expression; both experiments
+were removed.
+
+Target/native builds and all five repository checks pass. NDK and ASan/UBSan
+64-bit harnesses pass for every signed 16-bit weapon ID and animation ID,
+both high-jump states, all signed 8-bit contexts with 256 weapon-idle flag
+combinations, callback mutations, non-finite movement/timer values, sound
+ordering, and 10,000 randomized cases. The test oracle follows the retail
+dispatcher and reuses the existing private helpers to test their integration;
+it does not independently re-validate those helpers. External animation and
+sound services are mocked; no gameplay run is claimed.
+
+### Deferred facing-push-block reconstruction
+
+`NearestFacingPushBlock` is another structural ABI issue: the retail function
+returns a `pushblock_s *`, while the current stub returns `void`. Retail gates
+on `LEGOCONTEXT_PUSH`, tests cardinal facing windows, scene visibility,
+vertical/lateral bounds and packed direction flags, then picks the strictly
+nearest candidate inside a squared-distance limit. Two provisional bodies
+compiled under the unchanged `pushblocks.cpp -O1` setting produce 1,360 and
+1,334 bytes versus 1,474 retail bytes and both score 0%. Capturing the bounds
+does not resolve the very different branch layout, folded angle ranges,
+duplicated early-return stores, or `0x40` versus `0x50` frame. Both code probes
+were removed before integration and are not behavior-validated. Investigate
+source/compiler provenance before repeating these trials; do not change the
+optimization setting or add matching-only attributes to force a score.
