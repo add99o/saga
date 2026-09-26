@@ -267,8 +267,8 @@ extern "C" bool TestForController();
 extern "C" void SmartTextEx(char *text, f32 x, f32 y, f32 z, f32 x_scale, f32 y_scale, f32 z_scale, u32 alignment,
                             u8 red, u8 green, u8 blue, f32 max_width, i32 max_lines, void *message_box,
                             i32 suppress_draw, u32 alpha);
-extern "C" void SmartText(char *text, f32 x, f32 y, f32 z, f32 x_scale, f32 y_scale, f32 z_scale, u32 alignment,
-                          u8 red, u8 green, u8 blue, f32 max_width, i32 max_lines);
+extern "C" void SmartText(char *text, f32 x, f32 y, f32 z, f32 x_scale, f32 y_scale, f32 z_scale, u32 alignment, u8 red,
+                          u8 green, u8 blue, f32 max_width, i32 max_lines);
 
 MENUFNINFO GameMenuInfo[LEGO_MENU_INFO_COUNT] = {
     {0, MenuEnterTitles, MenuDrawTitles, MenuUpdateTitles, NULL, -1, -1, 0},
@@ -864,7 +864,7 @@ static void MenuRefreshPauseCutTarget() {
     i32 level_flags = WORLD->current_level->flags;
     i32 skip_level = cut->skip_level;
     if ((level_flags & LEVEL_OUTRO) != 0 || (cut->flags & 0x20000) != 0 ||
-        (skip_level != -1 && (LDataList[skip_level].flags & LEVEL_UNKNOWN_FLAG_4) != 0)) {
+        (skip_level != -1 && (LDataList[skip_level].flags & LEVEL_STATUS) != 0)) {
         Area_FindStatusLevel(area, &pausecut_skip_to_level);
     } else if ((level_flags & LEVEL_INTRO) != 0) {
         LEVELDATA_s *level = Area_FindNextPlayLevel(WORLD->level_idx);
