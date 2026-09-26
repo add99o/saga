@@ -67,33 +67,32 @@ void NetRotator2::PredictValue(EdClass const *, void *, NetPredictor::PredictorT
     }
 }
 
-bool NetPredictor::AllowPush(EdClass const *object_class, void const *object, ReplicatorData &data, i32 force, i32) {
-    u32 *last_push = reinterpret_cast<u32 *>((reinterpret_cast<uintptr_t>(data.cursor) + 3) & ~3u);
-    u32 *failed_predictions = last_push + 1;
+i32 NetPredictor::AllowPush(EdClass const *object_class, void const *object, ReplicatorData &data, i32 force, i32) {
+    u32 *last_push = reinterpret_cast<u32 *>((reinterpret_cast<uintptr_t>(data.cursor) + 3) & ~uintptr_t(3));
+    data.cursor = reinterpret_cast<u8 *>(last_push + 1);
+    u32 *failed_predictions = reinterpret_cast<u32 *>((reinterpret_cast<uintptr_t>(data.cursor) + 3) & ~uintptr_t(3));
     data.cursor = reinterpret_cast<u8 *>(failed_predictions + 1);
 
     u32 now = UtilGetFrameStartTime();
+    i32 allowed = 0;
     if (force != 0) {
-        *last_push = now;
-        return true;
-    }
-    if (now - *last_push <= minimum_interval) {
-        return false;
-    }
-
-    ReplicatorData prediction_data = data;
-    if (DoPrediction(object_class, const_cast<void *>(object), prediction_data, 1) != 0) {
-        *failed_predictions = 0;
-        replication_group |= 1;
-    } else {
-        if (*failed_predictions > 2) {
-            return false;
+        allowed = 1;
+    } else if (now - *last_push > minimum_interval) {
+        ReplicatorData prediction_data = data;
+        if (DoPrediction(object_class, const_cast<void *>(object), prediction_data, 1) != 0) {
+            *failed_predictions = 0;
+            replication_group |= 1;
+            allowed = 1;
+        } else if (*failed_predictions <= 2) {
+            ++*failed_predictions;
+            replication_group &= ~1;
+            allowed = 1;
         }
-        ++*failed_predictions;
-        replication_group &= ~1;
     }
-    *last_push = now;
-    return true;
+    if (allowed) {
+        *last_push = now;
+    }
+    return allowed;
 }
 
 i32 NetPredictor::CheckPredictionError(EdClass const *, void *, float *actual, float *predicted, i32 count) {
@@ -401,7 +400,7 @@ void NetworkObject::Initialise(i32 guid, void *new_object, EdClass *new_class, N
     }
 }
 
-bool NetConstReplicator::AllowPush(EdClass const *, void const *, ReplicatorData &data, i32 force, i32) {
+i32 NetConstReplicator::AllowPush(EdClass const *, void const *, ReplicatorData &data, i32 force, i32) {
     u32 *last_push = reinterpret_cast<u32 *>((reinterpret_cast<uintptr_t>(data.cursor) + 3) & ~3u);
     data.cursor = reinterpret_cast<u8 *>(last_push + 1);
 
@@ -413,7 +412,7 @@ bool NetConstReplicator::AllowPush(EdClass const *, void const *, ReplicatorData
     return true;
 }
 
-bool NetSimpleReplicator::AllowPush(EdClass const *, void const *, ReplicatorData &data, i32 force, i32) {
+i32 NetSimpleReplicator::AllowPush(EdClass const *, void const *, ReplicatorData &data, i32 force, i32) {
     u32 *last_push = reinterpret_cast<u32 *>((reinterpret_cast<uintptr_t>(data.cursor) + 3) & ~3u);
     data.cursor = reinterpret_cast<u8 *>(last_push + 1);
 
@@ -425,8 +424,8 @@ bool NetSimpleReplicator::AllowPush(EdClass const *, void const *, ReplicatorDat
     return false;
 }
 
-bool NetChangedReplicator::AllowPush(EdClass const *object_class, void const *object, ReplicatorData &data, i32 force,
-                                     i32 skip_checksum) {
+i32 NetChangedReplicator::AllowPush(EdClass const *object_class, void const *object, ReplicatorData &data, i32 force,
+                                    i32 skip_checksum) {
     u32 checksum = 0xffffffffu;
     u32 *last_push = reinterpret_cast<u32 *>((reinterpret_cast<uintptr_t>(data.cursor) + 3) & ~3u);
     u32 *last_checksum = last_push + 1;
@@ -1515,25 +1514,29 @@ i32 NetworkObjectManager::SendPushMessage(NetMessage *message, NetPeerPush const
         return 1;
     }
     if (peer != NULL) {
-        if ((flags & 1) && push->stage != 1 && push->stage != 2) {
-            theNetwork.Send(*message, 3, *peer);
-        } else {
+        if ((flags & 1) == 0 || (push->stage >= 1 && push->stage <= 2)) {
             theNetwork.ReliableSend(*message, 3, *peer, NULL, 0);
+        } else {
+            theNetwork.Send(*message, 3, *peer);
         }
         return peer->vtable->get_available_messages(peer) > 15;
     }
     i32 available = 1;
-    for (i32 i = 0; i < 8; ++i) {
-        peer = const_cast<NetPeer *>(peer_push[i].peer);
-        if (peer != NULL && peer_push[i].stage == 3) {
-            if (flags & 1) {
-                theNetwork.Send(*message, 3, *peer);
-            } else {
-                theNetwork.ReliableSend(*message, 3, *peer, NULL, 0);
-            }
-            if (peer->vtable->get_available_messages(peer) <= 15) {
-                available = 0;
-            }
+    for (NetPeerPush *entry = peer_push; entry != peer_push + 8; ++entry) {
+        peer = const_cast<NetPeer *>(entry->peer);
+        if (peer == NULL) {
+            continue;
+        }
+        if (entry->stage != 3) {
+            continue;
+        }
+        if (flags & 1) {
+            theNetwork.Send(*message, 3, *peer);
+        } else {
+            theNetwork.ReliableSend(*message, 3, *peer, NULL, 0);
+        }
+        if (peer->vtable->get_available_messages(peer) <= 15) {
+            available = 0;
         }
     }
     return available;
