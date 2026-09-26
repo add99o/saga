@@ -19,6 +19,7 @@ struct BOLT_s;
 #include "nu2api/numath/numtx.h"
 
 struct GameObject_s;
+struct SIGNAL_s;
 struct GizForceLOSState_s {
     u32 words[396]; // 12 visibility bitset words followed by 384 update counters
 };
@@ -59,6 +60,7 @@ enum CHARACTER_CONTEXT : i8 {
     CHARACTER_CONTEXT_DOOMED = 0x2b,
     CHARACTER_CONTEXT_BUILD_IT = 0x2d,
     CHARACTER_CONTEXT_LINKED_OBJECT = 0x3b,
+    CHARACTER_CONTEXT_SIGNAL = 0x4c,
     CHARACTER_CONTEXT_NONE = -1,
 };
 
@@ -849,7 +851,10 @@ typedef struct GameObject_s {
         GameObject_s *takeover_entry_target;
     };
     GIZMOBLOWUP_s *blowup_target; // 0x0784
-    void *field_0x788;            // 0x0788
+    union {
+        void *field_0x788;
+        SIGNAL_s *signal_target;
+    }; // 0x0788
     union {
         u8 pad_78c[0x790 - 0x78c];
         i32 panel_use_request;

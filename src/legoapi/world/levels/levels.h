@@ -411,6 +411,7 @@ void DeathStarEscapeD_Update(struct WORLDINFO_s *);
 void DeathStarRescueB_Update(struct WORLDINFO_s *);
 void MosEisleyD_AlwaysUpdate(struct WORLDINFO_s *);
 void DeathStar2BattleD_Update(struct WORLDINFO_s *);
+GIZMOBLOWUP_s *DeathStar2BattleD_InZapRange(GameObject_s *object);
 void HothEscapeC_AlwaysUpdate(struct WORLDINFO_s *);
 void BountyHunterPursuitA_Init(struct WORLDINFO_s *);
 void BountyHunterPursuitB_Init(struct WORLDINFO_s *);

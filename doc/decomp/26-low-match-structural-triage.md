@@ -382,3 +382,71 @@ checks through an ordinary inline helper still had different cold-block
 placement (36.20%, 815 bytes versus retail 707). A ternary occupancy-change
 expression slightly helped one bonus level but hurt the other; the simpler
 XOR form is retained. These are not reasons to change optimization settings.
+
+## Signal occupancy, suit exchange, and Death Star lightning
+
+Baseline: `9cf24397`. Three further stubs are reconstructed at their existing
+`-O3` setting.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `Signals_Update` | 0.92% | 95.30% |
+| `Signal_MoveCode` | 1.87% | 33.40% |
+| `DeathStar2BattleD_Update` | 1.77% | 93.08% |
+
+Overall fuzzy matching: **63.422913% → 63.505257%**. Ten scores improve,
+two decrease, one reaches 100%, and no full matches are lost.
+
+- Signals consume one random value even while inactive. Active unused signals
+  copy `AddGameMsg_Default`, override the text/position/colour/flags fields,
+  and fade toward one. Used signals scan all eight players and retain their
+  in-use bit only for the matching character inside both geometric bounds;
+  their scale fades toward zero. Inactive signals clear the bit and scale
+  immediately. The squared proximity constant is `0x3efae14a`, reproduced by
+  `(0.6f + 0.1f) * (0.6f + 0.1f)`, not rounded to `0.49f`. Both comparisons
+  are strict and reject NaNs. The ordinary eight-element loop naturally
+  unrolls with the existing compiler settings.
+- Signal movement owns context `0x4c` and animation `0x96`. Missing animation
+  data advances the timer; present-but-not-playing animation data pauses it.
+  Exchange happens at the animation marker or completion, swaps the stored
+  suit pointers, replaces capability bits, and records the new suit among
+  the ten area suit bits. The old exchange bit is captured before
+  `StartEndOfJump`; the subsequent feedback test reads the possibly updated
+  bit. No inferred character reload or sound effect is added.
+- `GameObject + 0x788` gains a typed signal-pointer alias while retaining the
+  opaque alias and its offset assertion. This layout-neutral union changes
+  GCC alias analysis in existing consumers: `Grapple_LookAtPos` gains its
+  retail reloads and reaches 100%, and `GizGetBuildItPlayerPos` rises from
+  76.42% to 93.20%. Direct before/after inspection shows the two decreases
+  are one extra pointer reload in `MechTouchTaskPullLever::Update`
+  (62.44% → 61.60%) and two reordered independent loads/stores in
+  `Grapple_DrawLine` (54.44% → 54.41%), plus relocated data references.
+- Death Star lightning traverses player pointers without unrolling, enables
+  and positions each light halfway to the target, draws the beam, applies
+  feedback and disorientation, and preserves all four random draws per
+  affected player, including the otherwise unused first draw. A destroyed
+  inner shield suppresses that traversal and can emit a pickup on integer
+  timer transitions into multiples of three. Pickup direction uses cosine
+  for X and sine for Z; random pickup radius is 10–25. Global rumble is a
+  separate optional prelude and does not suppress either path.
+
+Bounded experiments: moving the signal fade-target initialization emitted
+identical code. Alternate suit-exchange branch/goto layouts scored worse;
+the straightforward conditional form is retained. The remaining suit score
+is principally a basic-block-placement problem, not a reason to add compiler
+attributes. Named Death Star temporaries and explicit colour assignments
+slightly improved its object comparison; its emitted size equals retail's
+1,136 bytes.
+
+Target and native builds pass. Focused tests link the NDK-compiled functions
+with external services mocked and also pass against 64-bit host objects.
+Coverage includes all eight signal/player slots, message-default preservation,
+strict geometry and NaN boundaries, 2,000 randomized occupancy frames, every
+signal-entry gate, animation/timer transitions, all ten suits and an external
+suit, capability replacement, single exchange, and feedback. Death Star tests
+cover all players, light/beam vectors, random consumption and threshold
+boundaries, missing/inactive shields, timer crossings (including negative
+times), pickup parameters, and the global-rumble prelude. The previous
+2,000-frame city/town pickup regression also passes. Tests use function/data
+sections only in temporary test objects; matching builds are unchanged. No
+full gameplay run was performed.

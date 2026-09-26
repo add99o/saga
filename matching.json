@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 63.422913,
+    "fuzzy_match_percent": 63.505257,
     "total_code": "4722419",
-    "matched_code": "514791",
-    "matched_code_percent": 10.901003,
+    "matched_code": "514860",
+    "matched_code_percent": 10.902464,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6201,
-    "matched_functions_percent": 46.07326,
+    "matched_functions": 6202,
+    "matched_functions_percent": 46.080692,
     "total_units": 1
   },
   "text": {
@@ -15724,7 +15724,7 @@
           "address": 4469408,
           "offset": 3579440,
           "size": 524,
-          "match_percent": 62.436974
+          "match_percent": 61.596638
         },
         {
           "name": "_ZN20MechTouchTaskBuildIt6UpdateEv",
@@ -54742,7 +54742,7 @@
           "address": 5037712,
           "offset": 4147744,
           "size": 1574,
-          "match_percent": 85.918564
+          "match_percent": 86.60912
         },
         {
           "name": "_Z22GizGetBuildItPlayerPosP12GameObject_sP7nuvec_sS2_",
@@ -54750,7 +54750,7 @@
           "address": 5039296,
           "offset": 4149328,
           "size": 792,
-          "match_percent": 76.416245
+          "match_percent": 93.20305
         },
         {
           "name": "_Z27GizBuildItPushAwayFromStartP12GameObject_sP12GIZBUILDIT_s",
@@ -58006,7 +58006,7 @@
           "address": 1904720,
           "offset": 1014752,
           "size": 1008,
-          "match_percent": 81.0237
+          "match_percent": 81.04739
         }
       ]
     },
@@ -58340,7 +58340,7 @@
           "address": 5068048,
           "offset": 4178080,
           "size": 642,
-          "match_percent": 54.44186
+          "match_percent": 54.40698
         },
         {
           "name": "_Z22Grapples_RegisterGizmoi",
@@ -58412,7 +58412,7 @@
           "address": 5075120,
           "offset": 4185152,
           "size": 69,
-          "match_percent": 67.5
+          "match_percent": 100.0
         }
       ]
     },
@@ -73090,7 +73090,7 @@
           "address": 1889968,
           "offset": 1000000,
           "size": 2426,
-          "match_percent": 0.924856
+          "match_percent": 95.302505
         },
         {
           "name": "_ZL17Signals_AddGizmosP10GIZMOSYS_siPvS1_",
@@ -73154,7 +73154,7 @@
           "address": 1894704,
           "offset": 1004736,
           "size": 378,
-          "match_percent": 98.578125
+          "match_percent": 98.65625
         },
         {
           "name": "_Z15Signal_MoveCodeP11WORLDINFO_sP12GameObject_s",
@@ -73162,7 +73162,7 @@
           "address": 1895088,
           "offset": 1005120,
           "size": 1027,
-          "match_percent": 1.866667
+          "match_percent": 33.404446
         },
         {
           "name": "_Z17SetTexAnimSignalsv",
@@ -73401,7 +73401,7 @@
           "address": 1949248,
           "offset": 1059280,
           "size": 719,
-          "match_percent": 26.120253
+          "match_percent": 30.22152
         },
         {
           "name": "_Z19Techno_FindOperatorPvPP9GAMEPAD_sPP12GameObject_s",
@@ -73798,7 +73798,7 @@
           "address": 1910608,
           "offset": 1020640,
           "size": 4982,
-          "match_percent": 19.040192
+          "match_percent": 19.959808
         },
         {
           "name": "_Z17ZipUps_UpdateHintP6HINT_s",
@@ -86137,7 +86137,7 @@
           "address": 2231760,
           "offset": 1341792,
           "size": 1136,
-          "match_percent": 1.772152
+          "match_percent": 93.08017
         },
         {
           "name": "_Z25DeathStar2BattleFire_InitP11WORLDINFO_s",

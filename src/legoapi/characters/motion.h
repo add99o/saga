@@ -112,6 +112,7 @@ u16 TurnRot(u16 current, u16 target, i32 speed, i32 *difference);
 u16 SeekRot(u16 current, u16 target, float rate);
 void SeekVec(NUVEC *result, NUVEC *current, NUVEC *target, float rate);
 void KeepPointOnScreen(NUVEC *position, NUVEC *velocity);
+void DisorientateCode(GameObject_s *object, NUVEC *limit, float range);
 void GameCam_NewShake(GAMECAMERA_s *camera, float amount, float duration, float speed);
 void GameCam_HitJudder(void);
 void GameCam_Reset(GAMECAMERA_s *camera);

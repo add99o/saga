@@ -1,6 +1,10 @@
 #include "gameapi/ai/aisys/aisys.h"
 #include "legoapi/actions/combat/hits.h"
 #include "legoapi/characters/core/character.h"
+#include "legoapi/characters/motion.h"
+#include "legoapi/core/input/gamepads.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
+#include "legoapi/render/core/rtl.h"
 #include "legoapi/world/level.h"
 #include "legoapi/render/core/terrain.h"
 #include "legoapi/render/light/surfaces.h"
@@ -15,6 +19,7 @@
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/audio/sfx.h"
 #include "nu2api/numath/nurand.h"
+#include "nu2api/numath/nutrig.h"
 #include "legoapi/core/input/qrand.h"
 i32 Player_HasInvincibility(GameObject_s *);
 void GameAudio_PlaySfxById(i32, NUVEC *, i32, i32);
@@ -796,7 +801,66 @@ void DeathStar2BattleD_Init(WORLDINFO_s *world) {
 }
 
 void DeathStar2BattleD_Update(WORLDINFO_s *) {
-    STUBBED();
+    if (LevFlag[0] != 0 && qrand() < 0x800) {
+        NewRumbleAllPlayers(QRAND_FLOAT(), 0.0f, 0, 0);
+    }
+
+    GIZMO *shield_gizmo = LevGizmo[7];
+    if (shield_gizmo != NULL) {
+        GIZMOBLOWUP_s *shield = static_cast<GIZMOBLOWUP_s *>(shield_gizmo->object);
+        if (shield != NULL && (shield->status_flags & 1) != 0) {
+            if (static_cast<i32>(AreaTimer.time_elapsed) % 3 == 0 &&
+                static_cast<i32>(AreaTimer.last_time_elapsed) % 3 != 0 &&
+                NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) < 0.5f) {
+                i32 angle = qrand();
+                NUVEC position = shield->mid_position;
+                NUVEC direction = {NU_COS_LUT(angle), 0.0f, NU_SIN_LUT(angle)};
+                f32 radius = NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) * 15.0f + 10.0f;
+                AddPickups(0, 0, 1, 0, &position, &direction, 3.0f, -1, radius, 2000000.0f, NULL, 1, 0, true);
+            }
+            return;
+        }
+    }
+
+    GameObject_s **players_end = Player + 8;
+    for (GameObject_s **player = Player; player != players_end; ++player) {
+        if (*player == NULL || (*player)->dynamic_light_id == -1) {
+            continue;
+        }
+        GIZMOBLOWUP_s *blowup = DeathStar2BattleD_InZapRange(*player);
+        if (blowup == NULL) {
+            continue;
+        }
+
+        NUVEC colour;
+        NUVEC position;
+        NUVEC delta;
+        rtlDynamicEnable((*player)->dynamic_light_id, 1);
+        f32 radius = NuVecDist(&blowup->mid_position, &(*player)->apiobj.collision_position, &delta) * 0.5f;
+        rtlDynamicSetRadii((*player)->dynamic_light_id, radius, radius + 5.0f);
+        qrand();
+        colour.x = 0.0f;
+        if (qrand() > 0x7fff) {
+            colour.y = 0.25f;
+            colour.z = 0.25f;
+        } else {
+            colour.y = 2.0f;
+            colour.z = 2.0f;
+        }
+        rtlDynamicSetColours((*player)->dynamic_light_id, &colour, NULL);
+        position.x = (*player)->apiobj.collision_position.x + delta.x * 0.5f;
+        position.y = (*player)->apiobj.collision_position.y + delta.y * 0.5f;
+        position.z = (*player)->apiobj.collision_position.z + delta.z * 0.5f;
+        rtlDynamicSetPos((*player)->dynamic_light_id, &position);
+        f32 length = NuVecDist(&(*player)->apiobj.collision_position, &blowup->mid_position, &delta);
+        NuLgtLaser(0, 1.0f, 1.0f, 0.01f, &blowup->mid_position, &delta, 0xff808040, 1.5f, length);
+        NewRumble((*player)->pad_gamepad->pad, QRAND_FLOAT() * 0.3f, 0);
+        if (qrand() < 0x1000) {
+            NewBuzzFrames((*player)->pad_gamepad->pad, 1, 0);
+        }
+        PlaySfx("ForceLightningLp", &(*player)->apiobj.collision_position);
+        DisorientateCode(*player, &blowup->mid_position, 225.0f);
+    }
 }
 
 GIZMOBLOWUP_s *DeathStar2BattleD_InZapRange(GameObject_s *object) {
