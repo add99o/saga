@@ -14,7 +14,9 @@
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/gizmos/traps/gizbombgen.h"
 #include "legoapi/gizmos/traps/gizforce.h"
+#include "legoapi/gizmos/traps/gizturrets.h"
 #include "legoapi/gizmo/base/gizmo.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/gizmo/base/GizBlowupObjectInterface.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
@@ -42,6 +44,7 @@
 #include "MechInputTouch/MechInputTouch_types.h"
 
 #include <string.h>
+#include <stdio.h>
 
 extern i32 dagobah_training;
 extern i32 obstacle_gizmotype_id;
@@ -1009,8 +1012,72 @@ struct ASTEROID_s {
 };
 DECOMP_ASSERT(sizeof(ASTEROID_s) == 0x18, "ASTEROID_s size");
 
+struct FINALASTEROID_s {
+    nuhspecial_s special;
+    GIZMOBLOWUP_s *blowups[8];
+    i16 blowup_count;
+    i16 rotation_speed_x;
+    i16 rotation_speed_y;
+    i16 rotation_speed_z;
+    i16 rotation_x;
+    i16 rotation_y;
+    i16 rotation_z;
+};
+DECOMP_ASSERT(sizeof(FINALASTEROID_s) == 0x3c, "final asteroid size");
+DECOMP_ASSERT(offsetof(FINALASTEROID_s, blowup_count) == 0x2c, "final asteroid blowup count offset");
+DECOMP_ASSERT(offsetof(FINALASTEROID_s, rotation_x) == 0x34, "final asteroid rotation offset");
+
+struct ASTEROIDCNETPACKET_s {
+    u16 rotation_x;
+    u16 rotation_y;
+    u16 rotation_z;
+    u16 reserved;
+};
+DECOMP_ASSERT(sizeof(ASTEROIDCNETPACKET_s) == 8, "asteroid C network packet size");
+
 i32 nasteroids;
 ASTEROID_s asteroids[128];
+FINALASTEROID_s finalAsteroid;
+ASTEROIDCNETPACKET_s *asteroidc_netpacket;
+static NUMTX *mtxOrig;
+GIZMOBLOWUP_s *classicBlowups[8];
+nuhspecial_s escape[8];
+GIZTURRET_s *StarDestroyerTurrets[16];
+static i32 lastPlaying;
+static i8 melee_wavePhase = -1;
+static f32 melee_waveDelay;
+static u8 drawLights;
+static f32 spotLightA_yrot[2];
+static f32 spotLightA_zrot[2];
+static f32 spotLightB_yrot[2] = {0.5f, 0.5f};
+static f32 spotLightB_zrot[2] = {0.5f, 0.5f};
+
+static void DrawFalconSpotLights(GameObject_s *object) {
+    if (static_cast<u8>(object->apiobj.field_0x27c) > 1 || object->id != id_MILLENNIUMFALCON ||
+        WORLD->lev_objs[0x127].active == 0)
+        return;
+    NUMTX matrix __attribute__((aligned(16)));
+    if (object->apiobj.character_model->points_of_interest[4] != NULL) {
+        matrix = object->joint_matrices[4];
+        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
+    }
+    spotLightA_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightA_yrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightA_yrot[object->apiobj.field_0x27c] -= 1.0f;
+    spotLightA_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightA_zrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightA_zrot[object->apiobj.field_0x27c] -= 1.0f;
+    if (object->apiobj.character_model->points_of_interest[5] != NULL) {
+        matrix = object->joint_matrices[5];
+        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
+    }
+    spotLightB_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightB_yrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightB_yrot[object->apiobj.field_0x27c] -= 1.0f;
+    spotLightB_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightB_zrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightB_zrot[object->apiobj.field_0x27c] -= 1.0f;
+}
 
 static void Asteroid_AddParts(GIZMOBLOWUP_s *blowup) {
     i32 special_indices[4] = {0, -1, -1, -1};
@@ -1160,20 +1227,98 @@ void AsteroidChaseA_Init(WORLDINFO_s *world) {
     NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
 }
 
-void AsteroidChaseB_Init(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseB_Init(WORLDINFO_s *world) {
+    NuSpecialFind(world->current_gscn, &LevHSpecial[0], "small_pop_bit1", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[1], "small_pop_bit2", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[2], "small_pop_bit3", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
+    memset(classicBlowups, 0, sizeof(classicBlowups));
+    i32 count = 0;
+    for (i32 index = 0; index < world->gizmo_blowup_count && count < 8; ++index) {
+        GIZMOBLOWUP_s *blowup = &world->gizmo_blowups[index];
+        if (NuStrIStr(blowup->name, "classic") != NULL) {
+            classicBlowups[count++] = blowup;
+        }
+    }
+    LevFlag[0] = 0;
+    LevArea[0] = AISysFindArea(WORLD->ai_sys, "In_Cave");
+    drawLights = 0;
+    LevTime[0] = 0.0f;
+    LevTime[1] = 0.0f;
+    spotLightA_yrot[1] = 0.0f;
+    spotLightA_yrot[0] = 0.0f;
+    spotLightA_zrot[1] = 0.0f;
+    spotLightA_zrot[0] = 0.0f;
+    spotLightB_yrot[1] = 0.5f;
+    spotLightB_yrot[0] = 0.5f;
+    spotLightB_zrot[1] = 0.5f;
+    spotLightB_zrot[0] = 0.5f;
 }
 
 void AsteroidChaseB_Draw(WORLDINFO_s *) {
-    STUBBED();
+    for (i32 index = 0; index < 2; ++index) {
+        if (drawLights != 0 && Player[index] != NULL) {
+            DrawFalconSpotLights(Player[index]);
+        }
+    }
 }
 
-void AsteroidChaseC_Init(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseC_Init(WORLDINFO_s *world) {
+    asteroidc_netpacket = static_cast<ASTEROIDCNETPACKET_s *>(SetLevelHack(8));
+    memset(&finalAsteroid, 0, sizeof(finalAsteroid));
+    NuSpecialFind(world->current_gscn, &LevHSpecial[0], "small_pop_bit1", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[1], "small_pop_bit2", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[2], "small_pop_bit3", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
+    NuSpecialFind(world->current_gscn, &finalAsteroid.special, "blockrock", 1);
+
+    finalAsteroid.rotation_speed_x = static_cast<i16>(4551.0f - qrand() / (65535.0f / (4551.0f * 2.0f) + 1.0f));
+    finalAsteroid.rotation_speed_y = static_cast<i16>(4551.0f - qrand() / (65535.0f / (4551.0f * 2.0f) + 1.0f));
+    finalAsteroid.rotation_speed_z = static_cast<i16>(4551.0f - qrand() / (65535.0f / (4551.0f * 2.0f) + 1.0f));
+    if (finalAsteroid.rotation_speed_x > -910 && finalAsteroid.rotation_speed_x < 910) {
+        finalAsteroid.rotation_speed_x = 0x555;
+    }
+    if (finalAsteroid.rotation_speed_y > -910 && finalAsteroid.rotation_speed_y < 910) {
+        finalAsteroid.rotation_speed_y = 0x555;
+    }
+    if (finalAsteroid.rotation_speed_z > -910 && finalAsteroid.rotation_speed_z < 910) {
+        finalAsteroid.rotation_speed_z = 0x555;
+    }
+
+    for (i32 index = 0; index < world->gizmo_blowup_count && finalAsteroid.blowup_count < 8; ++index) {
+        GIZMOBLOWUP_s *blowup = &world->gizmo_blowups[index];
+        if (NuStrIStr(blowup->name, "targ") != NULL) {
+            finalAsteroid.blowups[finalAsteroid.blowup_count++] = blowup;
+        }
+    }
 }
 
-void AsteroidChaseD_Init(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseD_Init(WORLDINFO_s *world) {
+    i16 targets = -1;
+    NuSpecialFind(vehicle_scene, &specialIcon, "Gun_Turret_icon", 1);
+    memset(escape, 0, sizeof(escape));
+    turretAliveCount = 0;
+    lastPlaying = 0;
+    NuSpecialFind(WORLD->current_gscn, &escape[0], "rebelcruiser2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[1], "transport3", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[2], "transport2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[4], "transport1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[5], "rebelcruiser1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[6], "transport4", 0);
+    char name[16];
+    for (i32 index = 0; index < 16; ++index) {
+        sprintf(name, "turret%d", index + 1);
+        GIZMO_s *gizmo = GizmoFindByName(world->gizmo_sys, turret_gizmotype_id, name);
+        if (gizmo != NULL) {
+            StarDestroyerTurrets[index] = static_cast<GIZTURRET_s *>(gizmo->object);
+        }
+        if (StarDestroyerTurrets[index] != NULL) {
+            StarDestroyerTurrets[index]->fire_interval = 0.5f;
+            ++turretAliveCount;
+        }
+    }
+    DrawMeleeTargetsNumber(&targets, &turretAliveCount, 1, 1, NULL);
+    melee_wavePhase = 0;
 }
 
 void AsteroidChaseA_Reset(WORLDINFO_s *world) {
@@ -1197,14 +1342,153 @@ void AsteroidChaseA_Update(WORLDINFO_s *) {
     Asteroids_Update();
 }
 
-void AsteroidChaseB_Update(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseB_Update(WORLDINFO_s *world) {
+    Asteroids_Update();
+    for (i32 index = 0; index < 4; ++index) {
+        GIZMOBLOWUP_s *blowup = classicBlowups[index];
+        if (blowup != NULL) {
+            const i32 mask = 1 << index;
+            if ((blowup->output_flags & 1) != 0) {
+                if ((LevFlag[0] & mask) == 0) {
+                    LevFlag[0] |= mask;
+                    AddMiscPickups(&blowup->position, -1, -1, 1);
+                }
+            } else if ((LevFlag[0] & mask) != 0) {
+                LevFlag[0] &= ~mask;
+            }
+        }
+    }
+    for (i32 index = 0; index < 2; ++index) {
+        GameObject_s *object = Player[index];
+        if (object == NULL || object->id != id_MILLENNIUMFALCON) {
+            LevTime[index] = 0.0f;
+        } else if (LevArea[0] != NULL &&
+                   (object->apiobj.ai_area_mask & (1 << (LevArea[0] - world->ai_sys->areas))) != 0) {
+            if (LevTime[index] >= 2.0f) {
+                LevTime[index] = 2.0f;
+                object->field_0x1054 |= 8;
+                DrawFalconSpotLights(object);
+                drawLights = 1;
+            } else {
+                LevTime[index] += FRAMETIME;
+            }
+        } else if (LevTime[index] > 0.0f) {
+            LevTime[index] -= FRAMETIME;
+        } else {
+            object->field_0x1054 &= ~8;
+            drawLights = 0;
+            LevTime[index] = 0.0f;
+        }
+    }
 }
 
 void AsteroidChaseC_Update(WORLDINFO_s *) {
-    STUBBED();
+    Asteroids_Update();
+    if (netclient == 0) {
+        finalAsteroid.rotation_x += static_cast<i16>(finalAsteroid.rotation_speed_x * FRAMETIME);
+        finalAsteroid.rotation_y += static_cast<i16>(finalAsteroid.rotation_speed_y * FRAMETIME);
+        finalAsteroid.rotation_z += static_cast<i16>(finalAsteroid.rotation_speed_z * FRAMETIME);
+        if (nethost != 0) {
+            asteroidc_netpacket->rotation_x = finalAsteroid.rotation_x;
+            asteroidc_netpacket->rotation_y = finalAsteroid.rotation_y;
+            asteroidc_netpacket->rotation_z = finalAsteroid.rotation_z;
+        }
+    } else {
+        finalAsteroid.rotation_x = SeekRot(finalAsteroid.rotation_x, asteroidc_netpacket->rotation_x, 7.0f);
+        finalAsteroid.rotation_y = SeekRot(finalAsteroid.rotation_y, asteroidc_netpacket->rotation_y, 7.0f);
+        finalAsteroid.rotation_z = SeekRot(finalAsteroid.rotation_z, asteroidc_netpacket->rotation_z, 7.0f);
+    }
+
+    mtxOrig = NuSpecialGetMtx(&finalAsteroid.special);
+    if (mtxOrig != NULL) {
+        NUMTX matrix = *mtxOrig;
+        NUVEC position;
+        NuMtxGetTranslation(&matrix, &position);
+        NuMtxRotateY(&matrix, finalAsteroid.rotation_y);
+        NuMtxPreRotateX(&matrix, finalAsteroid.rotation_x);
+        NuMtxPreRotateY(&matrix, finalAsteroid.rotation_z);
+        matrix.m30 = position.x;
+        matrix.m31 = position.y;
+        matrix.m32 = position.z;
+        NuSpecialSetDrawMtx(&finalAsteroid.special, &matrix);
+        NuSpecialUpdate(&finalAsteroid.special);
+    }
+
+    for (i32 index = 0; index < finalAsteroid.blowup_count; ++index) {
+        GIZMOBLOWUP_s *blowup = finalAsteroid.blowups[index];
+        if (blowup != NULL) {
+            blowup->field_0xf0 = finalAsteroid.rotation_x;
+            blowup->field_0xf2 = finalAsteroid.rotation_y;
+            blowup->field_0xf4 = finalAsteroid.rotation_z;
+            blowup->state_flags |= 1;
+            GizmoBlowupUpdateMatrix(blowup);
+        }
+    }
+}
+
+static inline void AsteroidChaseD_SetTurretTarget(i32 index, NUVEC *position) {
+    GIZTURRET_s *turret = StarDestroyerTurrets[index];
+    if (turret != NULL && turret->field_0xe4 == NULL) {
+        turret->field_0xe4 = position;
+        turret->field_0x12c = 2;
+    }
 }
 
 void AsteroidChaseD_Update(WORLDINFO_s *) {
-    STUBBED();
+    if (melee_wavePhase == 0 && MiniCutCam != 0) {
+        melee_wavePhase = 1;
+    }
+    NuSpecialFind(WORLD->current_gscn, &escape[0], "rebelcruiser2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[1], "transport3", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[2], "transport2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[4], "transport1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[5], "rebelcruiser1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[6], "transport4", 0);
+    NUVEC *position = NuSpecialGetDrawPos(&escape[6]);
+    for (i32 index = 0; index < 2; ++index) {
+        AsteroidChaseD_SetTurretTarget(index, position);
+    }
+    position = NuSpecialGetDrawPos(&escape[0]);
+    for (i32 index = 2; index < 6; ++index) {
+        AsteroidChaseD_SetTurretTarget(index, position);
+    }
+    position = NuSpecialGetDrawPos(&escape[1]);
+    for (i32 index = 6; index < 8; ++index) {
+        AsteroidChaseD_SetTurretTarget(index, position);
+    }
+    position = NuSpecialGetDrawPos(&escape[5]);
+    for (i32 index = 10; index < 14; ++index) {
+        AsteroidChaseD_SetTurretTarget(index, position);
+    }
+    position = NuSpecialGetDrawPos(&escape[4]);
+    for (i32 index = 14; index < 16; ++index) {
+        AsteroidChaseD_SetTurretTarget(index, position);
+    }
+    if (melee_wavePhase == 1 && MiniCutCam == 0) {
+        for (i32 index = 0; index < 16; ++index) {
+            if (StarDestroyerTurrets[index] != NULL) {
+                StarDestroyerTurrets[index]->fire_interval = 2.0f;
+            }
+        }
+        melee_wavePhase = 2;
+    }
+    for (i32 index = 0; index < 16; ++index) {
+        if (StarDestroyerTurrets[index] != NULL && (StarDestroyerTurrets[index]->flags & 0x20) != 0) {
+            --turretAliveCount;
+            StarDestroyerTurrets[index] = NULL;
+        }
+    }
+    if (melee_waveDelay > 0.0f) {
+        melee_waveDelay -= FRAMETIME;
+    }
+    if (turretAliveCount == 0 && netclient == 0) {
+        LevTime[0] += FRAMETIME;
+        if (melee_waveDelay <= 0.0f && LevTime[0] >= 12.0f) {
+            if (FreePlay != 0) {
+                GoToNewLevel(ASTEROIDCHASEA_LDATA->idx);
+            } else {
+                GoToNewLevel(ASTEROIDCHASEMITRO_LDATA->idx);
+            }
+        }
+    }
 }

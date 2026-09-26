@@ -181,3 +181,75 @@ current owners compile at `-O2`; no source churn or optimization override was
 attempted. `Push_UpdateHints` has eight unrolled retail player checks versus
 a rolled current loop. Resolve these provenance questions before spending
 another speculative matching pass on them.
+
+## Challenge rewards and asteroid levels
+
+Baseline: `4ce3464d`. Eight low-matching stubs are reconstructed, with the
+existing optimization settings unchanged.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `ChallangeCash_Update` | 2.49% | 70.88% |
+| `AsteroidChaseB_Init` | 4.00% | 99.49% |
+| `AsteroidChaseB_Draw` | 16.15% | 99.92% |
+| `AsteroidChaseB_Update` | 2.75% | 91.38% |
+| `AsteroidChaseC_Init` | 3.13% | 99.73% |
+| `AsteroidChaseC_Update` | 2.91% | 90.68% |
+| `AsteroidChaseD_Init` | 0.84% | 93.63% |
+| `AsteroidChaseD_Update` | 0.86% | 99.78% |
+
+Overall fuzzy matching: **63.094010% → 63.2454%**. Eleven scores improve,
+one decreases slightly, and no full matches are lost. `Asteroids_Reset`
+changes from 80.80% to 80.75%; a direct before/after disassembly comparison
+shows only local-data/literal references moving, not changed instructions or
+control flow.
+
+The useful structural correction in this batch is source ownership:
+`DrawFalconSpotLights` and its four private timer arrays were stranded in
+`render.cpp`, despite being used by the asteroid B initialization/update/draw
+group. They now live together in `episodeV.cpp`. Both effective Bazel compile
+actions use `-O3` and the same target options. Removing the now-unnecessary
+`__used__` retention attribute from this genuinely called static helper lets
+GCC infer retail's register argument automatically. No calling-convention
+attribute is introduced. The helper itself improves 97.87% → 99.93%, and its
+draw caller improves from an initial reconstruction at 90.92% to 99.92%.
+The helper body and its pre-existing local matrix alignment are unchanged.
+
+Other recovered contracts:
+
+- The final asteroid is a 60-byte record: one special, eight blowup pointers,
+  a signed 16-bit count, three signed rotation speeds, and three signed
+  rotations. Its network packet is eight bytes. Initialization caps target
+  collection at eight and replaces near-zero random speeds; clients seek the
+  host angles while the host advances and publishes them.
+- Asteroid B collects up to eight classic blowups but awards pickups for the
+  first four, once per destruction/reappearance cycle. Falcon lights wait
+  until the frame after the timer reaches two seconds and likewise clear
+  one frame after fading to zero. The signed 32-bit area-mask shift is kept
+  as observed rather than silently widened to a different 64-bit operation.
+- Asteroid D retains an old turret pointer when its named gizmo is missing,
+  but replaces it when a gizmo is found, even if the object is null. Fourteen
+  of the sixteen turrets receive escape-ship targets; indices 8 and 9 are
+  intentionally skipped. Existing targets are not overwritten. Destruction
+  decrements the counter once, clients do not advance the completion timer,
+  and story/free-play routes differ after twelve seconds.
+- Challenge rewards emit 50 coin messages only when crossing one second,
+  use three random calls per message, and stagger delays by 0.1 seconds.
+  The empty-queue check at 1.5 seconds precedes the burst check, so a large
+  initial timestep can skip the burst. Stage completion uses strict `>`.
+
+No attempt was made to force missing stack realignment in the challenge or
+asteroid C update functions. Asteroid D's initializer uses a single clear of
+the 96-byte escape array; retail redundantly clears pieces of that storage.
+These residual shapes are recorded instead of adding score-only attributes
+or redundant clearing solely for an instruction match.
+
+The target build and full linked report pass. A temporary focused 32-bit
+harness links the NDK-compiled source objects, with function/data sections
+enabled only for test dead stripping. Assertions pass for the 50-message
+reward burst, random-call order, message fields, queue/timing boundaries,
+stage advancement, asteroid B pickup/reset and spotlight draw/fade gates,
+asteroid C target cap/reinitialization, host/client rotation and translation
+preservation, and asteroid D missing/null turrets, target mapping, cutscene
+fire interval, one-time destruction, and both completion destinations.
+External services are mocked; this is not a full gameplay run.

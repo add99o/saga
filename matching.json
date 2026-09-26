@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 63.09401,
+    "fuzzy_match_percent": 63.245377,
     "total_code": "4722419",
     "matched_code": "514791",
     "matched_code_percent": 10.901003,
@@ -70198,7 +70198,7 @@
           "address": 2021008,
           "offset": 1131040,
           "size": 838,
-          "match_percent": 2.485207
+          "match_percent": 70.88166
         },
         {
           "name": "_Z14Coins_LSW_SkipP14STATUS_STAGE_sP14STATUSPACKET_s",
@@ -74955,14 +74955,6 @@
           "offset": 1224336,
           "size": 309,
           "match_percent": 87.02128
-        },
-        {
-          "name": "_ZL20DrawFalconSpotLightsP12GameObject_s",
-          "demangled_name": "DrawFalconSpotLights(GameObject_s*)",
-          "address": 2195760,
-          "offset": 1305792,
-          "size": 706,
-          "match_percent": 97.87334
         },
         {
           "name": "_Z12DrawHint_LSWP6HINT_si",
@@ -84477,7 +84469,7 @@
           "address": 2143152,
           "offset": 1253184,
           "size": 1044,
-          "match_percent": 99.73418
+          "match_percent": 99.75527
         },
         {
           "name": "_Z20KaminoE_CheckPlatHitP6BOLT_s",
@@ -85538,7 +85530,7 @@
           "address": 1359440,
           "offset": 469472,
           "size": 1612,
-          "match_percent": 75.38957
+          "match_percent": 75.573616
         },
         {
           "name": "_ZL17Asteroid_AddPartsP13GIZMOBLOWUP_s",
@@ -85562,7 +85554,15 @@
           "address": 2194880,
           "offset": 1304912,
           "size": 878,
-          "match_percent": 80.797356
+          "match_percent": 80.7533
+        },
+        {
+          "name": "_ZL20DrawFalconSpotLightsP12GameObject_s",
+          "demangled_name": "DrawFalconSpotLights(GameObject_s*)",
+          "address": 2195760,
+          "offset": 1305792,
+          "size": 706,
+          "match_percent": 99.92667
         },
         {
           "name": "_Z16HothEscapeA_InitP11WORLDINFO_s",
@@ -85698,7 +85698,7 @@
           "address": 2202928,
           "offset": 1312960,
           "size": 473,
-          "match_percent": 4.0
+          "match_percent": 99.48572
         },
         {
           "name": "_Z20AsteroidChaseB_ResetP11WORLDINFO_s",
@@ -85714,7 +85714,7 @@
           "address": 2203424,
           "offset": 1313456,
           "size": 997,
-          "match_percent": 2.75
+          "match_percent": 91.375
         },
         {
           "name": "_Z19AsteroidChaseB_DrawP11WORLDINFO_s",
@@ -85722,7 +85722,7 @@
           "address": 2204432,
           "offset": 1314464,
           "size": 101,
-          "match_percent": 16.153847
+          "match_percent": 99.92308
         },
         {
           "name": "_Z19AsteroidChaseC_InitP11WORLDINFO_s",
@@ -85730,7 +85730,7 @@
           "address": 2204544,
           "offset": 1314576,
           "size": 567,
-          "match_percent": 3.134328
+          "match_percent": 99.731346
         },
         {
           "name": "_Z20AsteroidChaseC_ResetP11WORLDINFO_s",
@@ -85746,7 +85746,7 @@
           "address": 2205136,
           "offset": 1315168,
           "size": 638,
-          "match_percent": 2.909091
+          "match_percent": 90.684845
         },
         {
           "name": "_Z19AsteroidChaseD_InitP11WORLDINFO_s",
@@ -85754,7 +85754,7 @@
           "address": 2205776,
           "offset": 1315808,
           "size": 2132,
-          "match_percent": 0.836653
+          "match_percent": 93.63347
         },
         {
           "name": "_Z21AsteroidChaseD_UpdateP11WORLDINFO_s",
@@ -85762,7 +85762,7 @@
           "address": 2207920,
           "offset": 1317952,
           "size": 2073,
-          "match_percent": 0.857143
+          "match_percent": 99.77755
         },
         {
           "name": "_Z20AsteroidChaseD_PanelP11WORLDINFO_s",

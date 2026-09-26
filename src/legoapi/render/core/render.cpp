@@ -4000,38 +4000,6 @@ static void DrawParaphernalia(GameObject_s *object) {
     }
 }
 
-static f32 spotLightA_yrot[2];
-static f32 spotLightA_zrot[2];
-static f32 spotLightB_yrot[2] = {0.5f, 0.5f};
-static f32 spotLightB_zrot[2] = {0.5f, 0.5f};
-
-static __used__ void DrawFalconSpotLights(GameObject_s *object) {
-    if (static_cast<u8>(object->apiobj.field_0x27c) > 1 || object->id != id_MILLENNIUMFALCON ||
-        WORLD->lev_objs[0x127].active == 0)
-        return;
-    NUMTX matrix __attribute__((aligned(16)));
-    if (object->apiobj.character_model->points_of_interest[4] != NULL) {
-        matrix = object->joint_matrices[4];
-        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
-    }
-    spotLightA_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightA_yrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightA_yrot[object->apiobj.field_0x27c] -= 1.0f;
-    spotLightA_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightA_zrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightA_zrot[object->apiobj.field_0x27c] -= 1.0f;
-    if (object->apiobj.character_model->points_of_interest[5] != NULL) {
-        matrix = object->joint_matrices[5];
-        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
-    }
-    spotLightB_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightB_yrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightB_yrot[object->apiobj.field_0x27c] -= 1.0f;
-    spotLightB_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightB_zrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightB_zrot[object->apiobj.field_0x27c] -= 1.0f;
-}
-
 static __used__ void DisplayListMaterialClipUpdate(nudisplayscene_s *scene) {
     if (scene == NULL || scene->mtls == NULL || scene->mtls[0] == NULL)
         return;
