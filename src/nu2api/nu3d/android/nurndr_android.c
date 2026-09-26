@@ -36,6 +36,7 @@
 #include "nu2api/nuandroid/ios_graphics.h"
 #include "nu2api/nucore/common.h"
 #include "nu2api/nucore/nuapi.h"
+#include "nu2api/nucore/numemory.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nuvec4.h"
 
@@ -344,23 +345,83 @@ void NuIOSDLGeom2DCallback(void *arg) {
 }
 
 void DumpAttributeBindings() {
-    STUBBED();
+    for (i32 index = 0; index <= 15; ++index) {
+        GLint enabled;
+        GLint buffer;
+        GLint size;
+        GLint stride;
+        GLint type;
+        GLint normalized;
+        void *pointer;
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+        if (enabled == 0) {
+            continue;
+        }
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+        glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
+    }
 }
 
-void MultilineDump(char const *) {
-    STUBBED();
+void MultilineDump(char const *text) {
+    char *newline = const_cast<char *>(text);
+    char *next = newline;
+    goto search;
+    do {
+        *newline = '\0';
+        *newline = '\n';
+        next = newline + 1;
+    search:
+        newline = strchr(newline + 1, '\n');
+    } while (newline != NULL);
 }
 
-void DumpShaderSource(u32) {
-    STUBBED();
+void DumpShaderSource(u32 shader) {
+    GLint sourceLength;
+    glGetShaderiv(shader, GL_SHADER_SOURCE_LENGTH, &sourceLength);
+    char *source = static_cast<char *>(NuMemoryGet()->GetThreadMem()->_BlockAlloc(sourceLength, 4, 1, "", 0));
+    glGetShaderSource(shader, sourceLength, NULL, source);
+
+    u32 shaderKey = 0;
+    for (i32 index = 0; static_cast<u32>(index) <= 1; ++index) {
+        NUSHADEROBJECT *object = NuShaderManagerGetShaderById(
+            reinterpret_cast<i16 *>(g_LastMtl)[index + 0xfa]);
+        if (object != NULL && (object->glsl.vertex_shader == shader || object->glsl.fragment_shader == shader)) {
+            shaderKey = object->glsl.base.key;
+            break;
+        }
+    }
+
+    MultilineDump(source);
+    NuMemoryGet()->GetThreadMem()->BlockFree(source, 0);
 }
 
-void DumpProgramSource(u32) {
-    STUBBED();
+void DumpProgramSource(u32 program) {
+    GLuint shaders[2];
+    GLsizei count;
+    glGetAttachedShaders(program, 2, &count, shaders);
+    for (i32 index = 0; index < count; ++index) {
+        DumpShaderSource(shaders[index]);
+    }
 }
 
-void DumpShaderAttributes(u32) {
-    STUBBED();
+void DumpShaderAttributes(u32 program) {
+    static char attributeName[256];
+    GLint count;
+    GLsizei size;
+    GLenum type;
+    glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
+    for (i32 index = 0; index < count; ++index) {
+        glGetActiveAttrib(program, index, sizeof(attributeName), NULL, &size, &type, attributeName);
+        GLint location = glGetAttribLocation(program, attributeName);
+        char *bracket = strchr(attributeName, '[');
+        if (bracket != NULL) {
+            *bracket = '\0';
+        }
+    }
 }
 
 // The original 0x2940a6 helper and its counter belong to this VAO family.
