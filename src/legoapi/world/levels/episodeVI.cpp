@@ -1,14 +1,17 @@
 #include "gameapi/ai/aisys/aisys.h"
 #include "legoapi/actions/combat/hits.h"
 #include "legoapi/characters/core/character.h"
+#include "legoapi/characters/core/players.h"
 #include "legoapi/characters/motion.h"
 #include "legoapi/core/input/gamepads.h"
+#include "legoapi/core/input/timer.h"
 #include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/render/core/rtl.h"
 #include "legoapi/world/level.h"
 #include "legoapi/render/core/terrain.h"
 #include "legoapi/render/light/surfaces.h"
 #include "legoapi/render/fx/parts.h"
+#include "legoapi/render/fx.h"
 #include "legoapi/render/fx/spline_position.h"
 #include "nu2api/nu3d/nulgtlaser.h"
 #include "legoapi/gizmos/traps/gizforce.h"
@@ -1814,11 +1817,66 @@ SPLINEPOS_s fireSplinePos;
 SPLINEPOS_s fireBackPos;
 f32 runningTotalPos;
 f32 fireSpeedScale;
+f32 fireDeltaPos;
+i32 fire_clip_dist = 1000;
 extern void (*LEGO_SET_SLOWDOWNFN)(GameObject_s *);
 void DeathStar2BattleFire_SetSlowDownMul(GameObject_s *object);
+void DeathStar2BattleFire_UpdateSlowDownMul(f32 dt);
+extern i32 objhitobj_nohurtsfx, objhitobj_noimpactsfx;
+extern "C" void AddVariableShotDebrisEffectTimed3(i32, NUVEC *, NUVEC *, i32, f32, NUMTX *, NUMTX *);
 
-void DeathStar2BattleFire_Draw(WORLDINFO_s *) {
-    STUBBED();
+void DeathStar2BattleFire_Draw(WORLDINFO_s *world) {
+    u16 yaw = 0;
+    u16 pitch = 0;
+    NUVEC point = v000;
+    NUMTX matrix;
+    NUVEC difference;
+    NUVEC average;
+    SPLINEPOS_s position;
+    if (Paused != 0)
+        return;
+
+    position = fireSplinePos;
+    while (position.normalized_position > 0.0f) {
+        NuMtxSetIdentity(&matrix);
+        PointAlongSpline(LevelCodeSpline[0], position.normalized_position, &point, &yaw, &pitch, 0);
+        Players_AveragePos(&average, NULL);
+        difference.x = average.x - position.position.x;
+        difference.y = average.y - position.position.y;
+        difference.z = average.z - position.position.z;
+        if (NuVecMagSqr(&difference) < fire_clip_dist)
+            AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[121].effect, &position.position, 33, FRAMETIME,
+                                              pitch, yaw, NULL);
+        MoveSplinePosition(&position, -40.0f);
+    }
+
+    position = fireBackPos;
+    while (position.normalized_position < fireSplinePos.normalized_position) {
+        NuMtxSetIdentity(&matrix);
+        PointAlongSpline(LevelCodeSpline[0], position.normalized_position, &point, &yaw, &pitch, 0);
+        Players_AveragePos(&average, NULL);
+        difference.x = average.x - position.position.x;
+        difference.y = average.y - position.position.y;
+        difference.z = average.z - position.position.z;
+        if (NuVecMagSqr(&difference) < fire_clip_dist)
+            AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[121].effect, &position.position, 67, FRAMETIME,
+                                              pitch, yaw, NULL);
+        MoveSplinePosition(&position, 40.0f);
+    }
+
+    position = fireBackPos;
+    while (position.normalized_position > 0.0f) {
+        NuMtxSetIdentity(&matrix);
+        PointAlongSpline(LevelCodeSpline[0], position.normalized_position, &point, &yaw, &pitch, 0);
+        Players_AveragePos(&average, NULL);
+        difference.x = average.x - position.position.x;
+        difference.y = average.y - position.position.y;
+        difference.z = average.z - position.position.z;
+        if (NuVecMagSqr(&difference) < fire_clip_dist)
+            AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[121].effect, &position.position, 33, FRAMETIME,
+                                              pitch, yaw, NULL);
+        MoveSplinePosition(&position, -40.0f);
+    }
 }
 
 void DeathStar2BattleFire_Init(WORLDINFO_s *world) {
@@ -1831,8 +1889,101 @@ void DeathStar2BattleFire_Init(WORLDINFO_s *world) {
     fireSpeedScale = 1.0f;
 }
 
-void DeathStar2BattleFire_Update(WORLDINFO_s *) {
-    STUBBED();
+void DeathStar2BattleFire_Update(WORLDINFO_s *world) {
+    u16 yaw = 0;
+    u16 pitch = 0;
+    NUVEC point = v000;
+    NUMTX matrix;
+    NUVEC difference;
+    DeathStar2BattleFire_UpdateSlowDownMul(FRAMETIME);
+    if (Player[0] != NULL)
+        fireDeltaPos =
+            1.25f * static_cast<GAMECHARACTERDATA *>(Player[0]->apiobj.character_data->field11_0x24)->run_speed;
+    else
+        fireDeltaPos = 30.0f;
+
+    f32 choice = NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) * 4.0f;
+    i32 effect;
+    if (choice < 1.0f)
+        effect = 33;
+    else if (choice < 2.0f)
+        effect = 48;
+    else if (choice < 3.0f)
+        effect = 35;
+    else
+        effect = 36;
+    f32 along = fireSplinePos.normalized_position;
+    along += NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) * 0.1f;
+    PointAlongSpline(LevelCodeSpline[0], along, &point, &yaw, &pitch, 0);
+    i16 y_rotation = qrand();
+    i16 z_rotation = qrand();
+    AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[effect].effect, &point, 90, FRAMETIME, z_rotation,
+                                      y_rotation, NULL);
+
+    NuMtxSetIdentity(&matrix);
+    PointAlongSpline(LevelCodeSpline[0], fireSplinePos.normalized_position, &point, &yaw, &pitch, 0);
+    NuMtxPreRotateY(&matrix, yaw);
+    NuMtxTranslate(&matrix, &fireSplinePos.position);
+    if (fireSplinePos.normalized_position < 1.0f)
+        NuSpecialSetDrawMtx(&LevHSpecial[0], &matrix);
+    else
+        NuSpecialSetVisibility(&LevHSpecial[0], 0);
+    if (fireBackPos.normalized_position <= 0.0f)
+        fireBackPos = fireSplinePos;
+
+    f32 nearest_distance = 1000000000.0f;
+    GameObject_s *nearest = NULL;
+    for (i32 index = 0; index < 8; ++index) {
+        if (Player[index] != NULL && (Player[index]->action_flags & 0x20) == 0) {
+            NuVecSub(&difference, &Player[index]->apiobj.position, &fireSplinePos.position);
+            NuVecRotateY(&difference, &difference, -static_cast<i32>(yaw));
+            if (difference.z < nearest_distance) {
+                nearest_distance = difference.z;
+                if (difference.z < 0.0f)
+                    nearest = Player[index];
+            }
+            if (difference.z < 0.0f) {
+                i32 no_hurt = objhitobj_nohurtsfx;
+                if (Player[index]->apiobj.field_0x287 != 0)
+                    fireSpeedScale = 0.2f;
+                // Retail emits at the nearest player found so far, then hits the current slot.
+                AddVariableShotDebrisEffectTimed3(world->debris_sys->entries[115].effect, &nearest->apiobj.position,
+                                                  &nearest->apiobj.velocity, 40, FRAMETIME, NULL, NULL);
+                if ((Player[index]->apiobj.field_0x1f4 & APIOBJECT_STATE_FLAG_IGNORE_DOORS) == 0) {
+                    objhitobj_nohurtsfx = 1;
+                    objhitobj_noimpactsfx = 1;
+                    ObjHitObj(NULL, Player[index], 1, 0, 0, 1);
+                    objhitobj_nohurtsfx = no_hurt;
+                }
+            }
+        }
+    }
+    if (fireSpeedScale < 1.0f && nearest == NULL)
+        fireSpeedScale += FRAMETIME / 3.0f;
+    else if (fireSpeedScale == 0.2f && nearest != NULL)
+        fireSpeedScale = 0.2f;
+    else if (nearest_distance > 10.0f)
+        fireSpeedScale = 1.75f;
+    else
+        fireSpeedScale = 1.0f;
+
+    if (WORLD->current_level == DEATHSTAR2BATTLEE_LDATA || LevelTimer.time_elapsed > 0.5f)
+        MoveSplinePosition(&fireSplinePos, fireDeltaPos * FRAMETIME * fireSpeedScale);
+    MoveSplinePosition(&fireBackPos, -(fireDeltaPos * FRAMETIME));
+    if (NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) > 0.95f) {
+        switch (static_cast<i32>(NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) * 3.0f)) {
+            case 1:
+                PlaySfx("explode_SDest", &fireSplinePos.position);
+                break;
+            case 2:
+                PlaySfx("explode_SDG", &fireSplinePos.position);
+                break;
+            default:
+                PlaySfx("exp_asteroid", &fireSplinePos.position);
+                break;
+        }
+    }
+    PlaySfx("env_lantern_lp", &fireSplinePos.position);
 }
 
 static f32 slowDownTimer[2];

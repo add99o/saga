@@ -656,3 +656,51 @@ It also checks 2,000 randomized occupancy frames. Geonosian tests exhaust all
 values, including negative, NaN, and infinity, plus animation changes made by
 the idle callback. Both test suites pass on 64-bit hosts with AddressSanitizer
 and UBSan. External services are mocked; no full gameplay run is claimed.
+
+## Death Star fire rendering and progression
+
+Baseline: `473319dc`; Episode VI remains `-O3`.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `DeathStar2BattleFire_Draw` | 1.60% | 94.22% |
+| `DeathStar2BattleFire_Update` | 0.42% | 99.41% |
+
+Overall fuzzy matching: **63.696384% → 63.824688%**, with four improved scores,
+one 0.0019-point decrease, and no full matches lost. The tiny
+`SetLevelSfxBits` decrease consists entirely of literal-address operands in
+`lea` instructions. The two other changed drawing scores improve incidentally.
+
+Draw recovers three independent passes over a local `SPLINEPOS_s`: backward
+from the fire front, forward from the rear to the front, then backward from the
+rear. Each pass steps 40 world units even when its particles are clipped. The
+clip global is **signed integer** `fire_clip_dist = 1000`, converted to float
+for a strict squared-distance comparison; it is not a floating configuration
+value. The point-along query supplies angles, while particle position comes
+from the local spline record. Pitch and yaw narrow to signed 16-bit arguments.
+The pauses, matrix initialization calls, and global spline preservation follow
+retail. The first source version has the exact 1,680-byte retail size; remaining
+differences mainly schedule independent call arguments differently.
+
+Update recovers `fireDeltaPos`, computed from player zero's run speed or a
+30-unit fallback, and preserves both random generators' consumption order.
+It updates the fire cube, seeds the rear spline when required, then checks all
+eight non-excluded player slots in fire-local coordinates. Negative longitudinal
+distance emits particles at the **nearest player found so far**, but damage is
+applied to the current slot. Controlled-player contact slows the fire. The
+hurt-sound suppression flag is saved before emission and restored after a hit;
+the impact-sound flag follows retail's one-shot hit behavior. The recovered
+0.2/1/1.75 speed decisions include gradual recovery without clamping its final
+step. Front movement has the level/startup-timer gate; rear movement is always
+backward at the unscaled base speed. Optional explosion audio precedes the
+continuous lantern sound. The first source version is 4,557 bytes versus
+retail's 4,549, with no matching-only attributes or assembly.
+
+Target/native builds and all five repository tests pass. Focused NDK and
+sanitized 64-bit host tests cover all three render passes, exact and NaN clip
+boundaries, integer-to-float rounding, signed angles, pause behavior, unchanged
+global splines, all player slots, nearest-emitter/current-victim separation,
+ignored damage, suppression-flag restoration, speed boundaries/recovery,
+startup/level movement gates, spline endpoints and NaNs, random/effect/sound
+boundaries, and 2,000 randomized player frames. External services are mocked;
+no full gameplay run is claimed.
