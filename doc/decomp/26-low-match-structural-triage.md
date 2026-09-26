@@ -838,3 +838,74 @@ lookup/secondary failures, compaction and inactive tails, preserved fields,
 narrowing, all 4,096 activity masks, NaNs/infinities/signed zero, callback
 reloads, and 3,000 randomized reset/update cases. Rendering and scene services
 are mocked; no gameplay execution is claimed.
+
+## Flight-spline evaluation and XZ intersection
+
+The spline batch raises linked fuzzy matching from **63.918064% to
+63.952187%**. Four functions improve, one caller score regresses slightly,
+and no 100% matches are lost. `render/fx/edsplines.cpp` keeps its existing
+`-O3`; no source moves, optimization overrides, or calling-convention
+attributes are introduced.
+
+| Function | Before | After |
+|---|---:|---:|
+| `CalcSplinePoint` | 1.73% | 53.31% |
+| `CalcSplinePointFromDist` | 8.89% | 99.98% |
+| `BezierLineEval` | 6.27% | 54.97% |
+| `EvaluateSplineXZIntersection` | 1.76% | 78.17% |
+
+`flightspline_s` was empty even though pod creation already accessed its
+fields through raw byte offsets. `FlightSpline_Init` establishes a `0x52c`
+stride: 64 four-float points, count at `0x400`, total distance at `0x410`,
+64 cumulative distances at `0x414`, and ID at `0x524`. The shared pod header
+now expresses those verified fields and keeps the remaining bytes opaque.
+The first `0xa580` bytes of `PODRACE_s` become 32 such records without moving
+the lap entries or changing the allocation size. Pod creation and startup
+use this shared type. The loader itself remains a stub.
+
+Point evaluation constructs normalized, ten-unit endpoint tangents, applies
+the retail cubic expression to XYZ, and linearly interpolates W. Its fraction
+is computed before the index clamp; the upper clamp is the point count, not
+count minus two. This retains the retail requirement for valid neighboring
+point storage rather than adding different endpoint or invalid-count behavior.
+Count and point data are reloaded after normalization callbacks where retail
+does so. Endpoint and normalization temporaries preserve their documented
+16-byte stack alignment. Snapshotting the outer control points and expressing
+the component operations directly improves object matching from 46.33% to
+52.45%; individual endpoint stores reach 53.21%. Remaining temporary-lifetime,
+frame, and register-allocation differences are left documented rather than
+forcing spills or altering compiler flags.
+
+Distance conversion uses the first cumulative distance strictly above the
+query, divides its interpolated index by the point count, and forwards one
+for distances at least the total length. If no interval matches, it forwards
+the unchanged query. Its linked score is 99.98%; the object-level differences
+are relocation references. Bézier evaluation preserves the four Bernstein
+weights, float operation grouping, input/output aliasing, and zero W.
+
+The XZ intersection query clears both output records before assigning their
+spline pointers and narrowed loop flags. Scan bounds use the full-width loop
+arguments. The first spline supplies `logical_count - 1` segments; the second
+supplies `logical_count`, including its closing segment even when not looping.
+Only strictly closer ordered distances replace the result; a zero-distance
+hit exits the inner scan, not the outer scan. Finalization measures each
+selected segment, scales its stored fraction, and calls `MoveSplinePosition`
+with `0.00001f`. Point stride is the retail hardcoded three-float size, not
+the spline's `pt_size` field. Conditional count expressions and shared
+fraction-local scope raise object matching from 73.95% to 78.03%.
+
+The typed pod caller changes from 36.43% to 36.29%. Before/after disassembly
+shows equivalent pointer arithmetic, an earlier load of spline length, and
+relocated constants; its function size remains 2,344 bytes. No behavior
+correction or optimization change was made to that caller.
+
+Target/native builds and all five repository checks pass. Focused NDK and
+ASan/UBSan 64-bit host harnesses pass for both spline subsystems. Evaluation
+tests cover counts 2 through 61, segment/fraction boundaries, output aliasing,
+normalization callback mutations, distance fallback, signed zero and
+non-finite coordinates, Bézier aliases/non-finite parameters, and 5,000
+randomized cases. Intersection tests cover counts -2 through 8, seven loop
+flag values, null/empty inputs, aliased outputs, strict ties and non-finite
+distances, wraparound, callback-modified counts/point arrays/fractions,
+finalization order, and 5,000 randomized cases. Geometry services are mocked;
+no gameplay execution or invalid-storage support is claimed.

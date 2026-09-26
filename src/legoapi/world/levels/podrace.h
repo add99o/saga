@@ -9,6 +9,24 @@ struct _vuv_s {
     float x, y, z, w;
 };
 
+// FlightSpline_Init uses this 0x52c-byte stride. The evaluator and pod
+// creation agree on the point array, count, total distance, and spline ID.
+struct flightspline_s {
+    _vuv_s points[64];
+    i32 point_count; // 0x400
+    u8 unknown_404[0x0c];
+    f32 length;                   // 0x410
+    f32 cumulative_distances[64]; // 0x414
+    u8 unknown_514[0x10];
+    i32 id; // 0x524
+    i32 unknown_528;
+};
+DECOMP_ASSERT(sizeof(flightspline_s) == 0x52c, "flight spline size");
+DECOMP_ASSERT(offsetof(flightspline_s, point_count) == 0x400, "flight spline point count offset");
+DECOMP_ASSERT(offsetof(flightspline_s, length) == 0x410, "flight spline length offset");
+DECOMP_ASSERT(offsetof(flightspline_s, cumulative_distances) == 0x414, "flight spline distance table offset");
+DECOMP_ASSERT(offsetof(flightspline_s, id) == 0x524, "flight spline ID offset");
+
 // One pod in the race state. Shared with the level-state allocator so host
 // allocations follow pointer-bearing fields instead of the target byte size.
 struct racepod_s {
@@ -32,7 +50,7 @@ using PODRACE_LAPENTRY_s = racepod_s;
 DECOMP_ASSERT(sizeof(racepod_s) == 0x98, "racepod layout");
 
 struct PODRACE_s {
-    char pad_0x0000[0xa580];
+    flightspline_s splines[32];
     PODRACE_LAPENTRY_s lap_entries[0x10];
     float lap_countdown;
     float mushroom_timer;

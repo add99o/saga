@@ -1114,10 +1114,10 @@ i32 Action_CreatePod(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char **
         return 1;
 
     i32 spline_index = 0;
-    flightspline_s *spline = (flightspline_s *)PodRace;
-    while (spline_index < 31 && *(i32 *)((u8 *)spline + 0x524) != spline_id) {
+    flightspline_s *spline = PodRace->splines;
+    while (spline_index < 31 && spline->id != spline_id) {
         spline_index++;
-        spline = (flightspline_s *)((u8 *)spline + 0x52c);
+        ++spline;
     }
 
     if (start < 0.0f)
@@ -1128,7 +1128,7 @@ i32 Action_CreatePod(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char **
         end = 0.0f;
     else if (end > 1.0f)
         end = 1.0f;
-    if (*(i32 *)((u8 *)spline + 0x400) == 0 || start == end)
+    if (spline->point_count == 0 || start == end)
         return 1;
 
     i32 slot = 0;
@@ -1140,7 +1140,7 @@ i32 Action_CreatePod(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char **
     pod->model_id = model_id;
     pod->next = (void *)1;
 
-    float spline_length = *(float *)((u8 *)spline + 0x410);
+    float spline_length = spline->length;
     float duration = time_factor * PodRace->prev_lap_display;
     pod->speed = duration > 0.0f ? ((end - start) * spline_length) / duration : 1.0f;
 
@@ -1404,7 +1404,7 @@ void PodRaceInit(WORLDINFO_s *world) {
             mines->mine_part = PARTLookupType("POD_MINE_PART");
         }
     } else {
-        FlightSpline_Init(world, (flightspline_s *)podrace, 0x20);
+        FlightSpline_Init(world, podrace->splines, 0x20);
     }
     PodKeyReset();
     ResetPodStuff();

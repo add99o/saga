@@ -3360,7 +3360,7 @@ DECOMP_ASSERT(sizeof(edcam_s) == 0x94, "edcam_s size");
 struct eduiitem_s;
 struct eduimenu_s;
 struct envelope_lookup {};
-struct flightspline_s {};
+struct flightspline_s;
 struct instNUGCUTLOOKAT_s {};
 struct instNUGCUTSCENE_s;
 struct mdct_lookup {};
