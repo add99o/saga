@@ -720,6 +720,37 @@ namespace nu2api {
 
 } // namespace nu2api
 
+extern "C" u8 uberShader2_md5[16];
+
+extern "C" void NuShaderObjectKeyGenerate4(u32 *key, i32 value, i32 variant) {
+    u8 block[0x68] = {};
+    block[0x14] = 1;
+    for (i32 i = 0; i < 8; ++i) {
+        block[0x0c + i] = uberShader2_md5[i];
+    }
+    block[0x04] = static_cast<u8>(value);
+    block[0x05] = static_cast<u8>(value >> 8);
+    block[0x06] = static_cast<u8>(value >> 16);
+    block[0x07] = static_cast<u8>(value >> 24);
+    block[0x08] = static_cast<u8>(variant & 0xf);
+    block[0x09] = static_cast<u8>(value);
+    block[0x0a] = static_cast<u8>(value >> 8);
+    block[0x0b] = static_cast<u8>(value >> 16);
+    *key = CRC16::hashInverse(block, sizeof(block)) << 16;
+    *key |= CRC16::hash(block, sizeof(block)) & 0xffff;
+}
+
+extern "C" void NuShaderObjectKeySetUberShaderHash(const u8 *hash) {
+    static u8 defaultHash16[16];
+    const u8 *source = hash;
+    if (source == NULL) {
+        source = defaultHash16;
+    }
+    for (i32 i = 0; i < 16; ++i) {
+        uberShader2_md5[i] = source[i];
+    }
+}
+
 namespace nu2api {
 
     // ---------------------------------------------------------------------------
