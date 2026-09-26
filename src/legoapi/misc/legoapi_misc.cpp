@@ -18,6 +18,8 @@
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numath/nuvec.h"
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -101,8 +103,15 @@ void GetNativeTextureFormatName(NUTEXFORMAT) {
     STUBBED();
 }
 
-void CatIToX(char *, i32) {
-    STUBBED();
+char *IToX(char *output, i32 value);
+char *I64ToX(char *output, i64 value);
+
+void CatIToX(char *text, i32 value) {
+    char *end = text;
+    while (*end != '\0') {
+        ++end;
+    }
+    *IToX(end, value) = '\0';
 }
 
 void DoInput(WORLDINFO_s *world) {
@@ -156,19 +165,41 @@ void DoInput(WORLDINFO_s *world) {
     }
 }
 
-void CatI64ToX(char *, i64) {
-    STUBBED();
+void CatI64ToX(char *text, i64 value) {
+    char *end = text;
+    while (*end != '\0') {
+        ++end;
+    }
+    *I64ToX(end, value) = '\0';
 }
 
-void DieRumble(GameObject_s *) {
-    STUBBED();
+void DieRumble(GameObject_s *object) {
+    if (object == NULL || static_cast<i8>(object->apiobj.field_0x1f8) >= 0)
+        return;
+    NewRumble(object->pad_gamepad->pad, 1.0f, 0);
+    NewBuzz(object->pad_gamepad->pad, 0.3f, 0);
 }
 
-void charToInt(char const *) {
-    STUBBED();
+i32 charToInt(char const *text) {
+    i32 length = static_cast<i32>(strlen(text));
+    i32 first = 0;
+    i32 sign = 1;
+    if (length > 0 && text[0] == '-') {
+        first = 1;
+        sign = -1;
+    }
+    i32 value = 0;
+    i32 multiplier = 1;
+    for (i32 index = length - 1; index >= first; --index) {
+        value += (text[index] - '0') * multiplier;
+        multiplier *= 10;
+    }
+    return value * sign;
 }
 
-static __used__ i32 _fseek64_wrap(__sFILE *, i64, i32) {
-    STUBBED();
-    return 0;
+static __used__ i32 _fseek64_wrap(__sFILE *file, i64 offset, i32 origin) {
+    if (file == NULL) {
+        return -1;
+    }
+    return fseek(file, static_cast<long>(offset), origin);
 }

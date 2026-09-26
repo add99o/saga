@@ -48,6 +48,8 @@ static f32 MissionIconX[20];
 extern i32 NextArea_FreePlay;
 extern char FS_LastFileName[64];
 extern char *FS_CurrentCursorPos;
+extern "C" i32 MenuASCancelFinished;
+extern f32 memcard_autosavecanceldelay;
 u8 FS_Active;
 void InitMission(MISSIONSYS *, i32);
 extern f32 ICONSIZE, ICONX, DROPINALPHA, HUB_EPISODETITLEY;
@@ -1490,8 +1492,15 @@ void MenuUpdateSaveConfirm(MENU_s *menu) {
     }
 }
 
-void MenuDrawAutoSaveCancel(MENU_s *) {
-    STUBBED();
+void Draw_AUTOSAVECANCEL();
+
+void MenuDrawAutoSaveCancel(MENU_s *menu) {
+    if (MenuASCancelFinished == 0) {
+        Draw_AUTOSAVECANCEL();
+        if (memcard_savefailed == 0) {
+            Draw_OK(menu);
+        }
+    }
 }
 
 void MenuDrawNotEnoughSpace(MENU_s *) {
@@ -1621,8 +1630,33 @@ void MenuEnterAutoSaveWarning(MENU_s *) {
     memcard_autosavedisabled = 0;
 }
 
-void MenuUpdateAutoSaveCancel(MENU_s *) {
-    STUBBED();
+void MenuUpdateAutoSaveCancel(MENU_s *menu) {
+    static u8 firstTimeIn = 1;
+    if (MenuASCancelFinished != 0) {
+        MenuASCancelFinished = 0;
+        BackupMenu();
+        return;
+    }
+    if (memcard_savefailed != 0) {
+        if (firstTimeIn != 0) {
+            firstTimeIn = 0;
+            memcard_autosavecanceldelay = 5.0f;
+            g_enableButtonPrompts = 0;
+            return;
+        }
+        if (memcard_autosavecanceldelay > 0.0f) {
+            return;
+        }
+        g_enableButtonPrompts = 1;
+        NewMenu(1000, -1, -1);
+        MenuASCancelFinished = 1;
+        firstTimeIn = 1;
+        memcard_autosavecanceldelay = 5.0f;
+    }
+    if (menu->confirm_pressed != 0 || menu->cancel_pressed != 0) {
+        MenuASCancelFinished = 1;
+        MenuSFX = MENUSFX_MENUSELECT;
+    }
 }
 
 void MenuUpdateNotEnoughSpace(MENU_s *menu) {
@@ -1694,8 +1728,14 @@ void MenuUpdateSelectControls(MENU_s *menu) {
     }
 }
 
-void MenuUpdateAutoSaveWarning(MENU_s *) {
-    STUBBED();
+void MenuUpdateAutoSaveWarning(MENU_s *menu) {
+    if (memcard_cardchanged != 0) {
+        BackupMenu();
+    }
+    if (menu->confirm_pressed != 0) {
+        MenuSFX = MENUSFX_MENUSELECT;
+        BackupMenuNoFn();
+    }
 }
 
 void MenuUpdateDoNotRemoveCard(MENU_s *menu) {
