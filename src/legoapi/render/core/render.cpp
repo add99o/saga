@@ -2009,12 +2009,15 @@ void DrawGameMessages() {
         u8 field_0xfd;
         u8 field_0xfe;
         u8 field_0xff;
-        u32 field_0x100;
-        u32 field_0x104;
+        void (*delay_fn)(GAMEMESSAGE_s *);
+        void (*tick_fn)(GAMEMESSAGE_s *);
         void (*update_fn)(GAMEMESSAGE_s *);
         void (*draw_fn)(GAMEMESSAGE_s *, NUVEC *, f32);
         void (*end_fn)(GAMEMESSAGE_s *);
     };
+    static_assert(sizeof(RENDER_MESSAGE) == sizeof(GAMEMESSAGE_s), "render message backing layout");
+    static_assert(offsetof(RENDER_MESSAGE, draw_fn) == offsetof(GAMEMESSAGE_s, draw_callback),
+                  "render message callback offset");
     extern GAMEMESSAGE_s GameMessage[128];
     extern i32 DrawPanel3DObjectNoAlpha(float, float, float, float, float, float, u16, u16, u16, nuhspecial_s *, i32);
 

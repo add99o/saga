@@ -364,15 +364,12 @@ struct ADDGAMEMSG {
         nuvec_s *extra_position;
         nuhspecial_s *special;
     }; // 0x28
-    u32 score;      // 0x2c
-    f32 field_0x30; // 0x30
-    f32 field_0x34; // 0x34
-    union {
-        f32 field_0x38;
-        void (*delay_fn)(GAMEMESSAGE_s *);
-    }; // 0x38
-    f32 field_0x3c;                     // 0x3c
-    void (*update_fn)(GAMEMESSAGE_s *); // 0x40
+    u32 score;                          // 0x2c
+    f32 field_0x30;                     // 0x30
+    f32 field_0x34;                     // 0x34
+    void (*delay_fn)(GAMEMESSAGE_s *);  // 0x38, called when the delay expires
+    void (*tick_fn)(GAMEMESSAGE_s *);   // 0x3c, called by UpdateGameMessages
+    void (*update_fn)(GAMEMESSAGE_s *); // 0x40, position adjustment during drawing
     void *field_0x44;                   // 0x44
     void (*end_fn)(GAMEMESSAGE_s *);    // 0x48
     i8 player_index;                    // 0x4c
@@ -382,6 +379,7 @@ struct ADDGAMEMSG {
 };
 DECOMP_ASSERT(sizeof(ADDGAMEMSG) == 0x50, "ADDGAMEMSG size");
 DECOMP_ASSERT(offsetof(ADDGAMEMSG, special) == 0x28, "game message special offset");
+DECOMP_ASSERT(offsetof(ADDGAMEMSG, tick_fn) == 0x3c, "game message tick callback offset");
 typedef ADDGAMEMSG ADDGAMEMSG_ALIGNED16 __attribute__((aligned(16)));
 struct PARTLIGHTSOURCE_s {
     u8 reserved_00[0x78];
@@ -1430,6 +1428,7 @@ struct GAMEMESSAGE_s {
     u16 icon;
     union {
         NUVEC color;
+        nuhspecial_s special; // model messages store a handle, not three float coordinates
         struct {
             u32 color1;
             u32 color2;
@@ -1451,8 +1450,8 @@ struct GAMEMESSAGE_s {
         u8 target_type;
     };
     u8 field_0xff;
-    u32 field_0x100;
-    u32 field_0x104;
+    void (*delay_fn)(GAMEMESSAGE_s *);
+    void (*tick_fn)(GAMEMESSAGE_s *);
     void (*update_fn)(GAMEMESSAGE_s *);
     void (*draw_callback)(GAMEMESSAGE_s *, NUVEC *, f32);
     void (*end_fn)(GAMEMESSAGE_s *);
@@ -1463,6 +1462,8 @@ DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, target_position) == 0x88, "game message ta
 DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, position) == 0x94, "game message current position offset");
 DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, rotation_y) == 0xe2, "game message rotation offset");
 DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, player_index) == 0xfd, "game message player index offset");
+DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, special) == 0xe8, "game message special storage offset");
+DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, tick_fn) == 0x104, "game message runtime tick callback offset");
 // Rumble state packet embedded in GAMEPAD_s (20 bytes; floats driven by
 // NuSound3UpdateRumble / UpdateRumble).
 struct RUMBLEPACKET {

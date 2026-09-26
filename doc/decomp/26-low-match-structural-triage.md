@@ -1099,3 +1099,83 @@ the helper change. All experiments were reverted, and no behavior-validation
 claim is made for them. Audit the shared intrusive-list representation and
 its callers together before revisiting this cluster; isolated source-shape
 churn or optimizing only one caller is not a useful next step.
+
+## Minikit collection, completion burst, and message ABI
+
+Recovering `CollectMinikit` raises its linked match from **3.04% to 68.65%**;
+`AddStatusMiniKitParts` rises from **0.77% to 73.41%**. Aggregate fuzzy
+matching rises from **64.009445% to 64.062720%**, retaining the source's
+`-O3` setting. Each body was compiled in one source-shape trial (67.93% and
+72.41% before linking). No exact matches are lost. The unchanged
+`CharMiniKit_Draw` improves by 1.06 points through register allocation;
+`MiniKit_LSW_Draw` loses 0.03 points through four register-operand changes.
+Both neighbors retain their previous sizes; their remaining before/after
+differences are relocated operands. These are not behavior changes.
+
+Collection requires resource slot **0xce**. It captures the save-slot index
+from `WORLD->level_sub_id`, constructs a model message with panel target,
+animation/end callbacks, and starts the panel display timer even if message
+allocation fails. Only a valid save-slot index with fewer than ten saved
+pieces records a name and narrowed level ID, increments the transient
+counts, and emits demo hints at counts one and ten. Retail accepts names of
+length eight, including the terminator temporarily overlapping the level
+field before that field is written; longer names become empty. The
+transient ten-entry array's valid-capacity precondition is preserved.
+Debris and pickup sound follow regardless of saved progress. Callback-time
+world/count changes are reloaded at the same points as retail.
+
+The completion burst snapshots three panel light colours/directions and
+ambient colour into the newly recovered, canonical **0x144-byte**
+`rtldata_s KitPartRTL`. Every enabled saved piece emits a particle and five
+coin messages, consuming exactly seventeen random values. The coin delay
+accumulates by 0.1 seconds across pieces, and only the first coin emits
+rumble and debris. Each message chooses its player after copying defaults,
+then reloads the current coin scale, resource, score, and duration. Panel Y
+and lighting are entry snapshots. Resource IDs retain signed 16-bit
+interpretation, allocation failures do not stop the sequence, and panel
+lights are restored even when no pieces are enabled. Existing `KitPart`
+ownership/linkage is not changed and no aligned-stack attribute is added.
+
+### Shared callback and special-handle representation
+
+The new collection callback exposed a structural bug in `ADDGAMEMSG`:
+offset **0x3c** is a per-tick function pointer, not a float. Its existing
+offset-0x40 callback is instead invoked during drawing. Retail
+`UpdateGameMessages` calls the stored tick pointer at runtime offset
+**0x104**, while the previous reconstruction passed it through a `u32`,
+truncating pointers on 64-bit hosts. Both delay and tick callbacks now have
+function-pointer types in the public, queue, and renderer layouts.
+
+Model messages also store a three-pointer special handle, previously copied
+as three floats. The shared union and queue copy now preserve that handle's
+full width. All existing `extra_position` callers were checked: they pass
+level-object special handles, not position vectors. Target offsets/sizes
+are asserted, and native-independent size/callback-offset assertions keep
+the queue and rendering views consistent. These shared repairs change no
+Android function scores; the target queue's instruction sequence is
+unchanged apart from relocated operands.
+
+Target/native builds and all five repository checks pass. Focused NDK
+32-bit and ASan/UBSan 64-bit tests pass for all resource/save bytes, ten
+transient slots, name-length boundaries, signed level narrowing, demo-count
+transitions, allocation outcomes, and service callback mutations. Completion
+tests cover all **1,024** enabled masks with eight mutation modes, random
+endpoints, five-message delay order, snapshot timing, and signed model IDs.
+The real queue tests cover full-width handle/callback round trips, all 128
+slots, delayed/tick/end dispatch, text/null-special cases, and rejected
+specials. A further integration harness executes the reconstructed
+collection, real queue insertion, minikit animation tick, completion, and
+expiry together. External engine services remain mocked; no gameplay run
+or complete host-rendering audit is claimed.
+
+### Deferred minikit counter completion
+
+`IncrementMinikitCounter` needs additional behavioral evidence before
+reconstruction. Its retail completion paths pass the local vector at
+`esp+0x58` to `AddGameMsgCount`, but the initial `Players_AveragePos` call
+fills `esp+0x4c` and no write to the later vector appears in the function.
+The camera offset uses a third vector at `esp+0x64`. Do not silently replace
+the uninitialized-position path with an assumed intended position, or add
+an uninitialized C++ read merely to imitate its stack shape. This pass
+inspected the full body and existing average-position helper; it leaves
+the stub unchanged pending caller/retail-runtime evidence.
