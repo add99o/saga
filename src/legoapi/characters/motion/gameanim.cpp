@@ -1186,14 +1186,14 @@ void Animate_GEONOSIAN(GameObject_s *object) {
 
     UpdateCharacterIdle(object);
     const i16 animation = packet.requested_animation;
+    f32 fall_timer = 0.0f;
     if (animation == CHARACTER_ANIMATION_FALL ||
         ((object->apiobj.character_data->model_flags & CHARACTER_MODEL_FLAG_HIGH_JUMP) != 0 &&
          (animation == CHARACTER_ANIMATION_FALL_VARIANT_40 || animation == CHARACTER_ANIMATION_FALL_VARIANT_75 ||
           animation == CHARACTER_ANIMATION_FALL_VARIANT_76))) {
-        object->fall_animation_timer += FRAMETIME;
-    } else {
-        object->fall_animation_timer = 0.0f;
+        fall_timer = object->fall_animation_timer + FRAMETIME;
     }
+    object->fall_animation_timer = fall_timer;
 }
 
 i32 GameAnimSet_Reset(GAMEANIMSET_s *set) {

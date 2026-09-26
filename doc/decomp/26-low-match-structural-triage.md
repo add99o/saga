@@ -587,3 +587,72 @@ A bounded `Push_UpdateHints` experiment was not retained: eight explicit calls
 to an ordinary inline predicate still differ in prologue and branch layout at
 the source's required `-O2` (0% versus the existing 0.50%). Changing optimization
 settings is not a permitted shortcut.
+
+## Sarlacc puzzle progression and Geonosian fall timer
+
+Baseline: `63f13577`. Episode VI remains `-O3`; `gameanim.cpp` remains `-O2`.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `SarlaccPitB_Update` | 0.39% | 51.34% |
+| `Animate_GEONOSIAN` | 0.60% | 54.32% |
+
+Overall fuzzy matching: **63.639454% → 63.696384%**, with four improved
+scores, one small decrease, and no full matches lost. The decreased
+`DeathStar2BattleD_Init` score (99.91% → 99.86%) is an equivalent exchange of
+two stack spill slots, plus literal references; direct before/after inspection
+shows no changed behavior. `SarlaccPitC_Update` and `SetLevelSfxBits` improve
+incidentally. The matching denominator is unchanged.
+
+The previously opaque Sarlacc fields at `+0x3cc` are sixteen byte panel states;
+`+0x3dd` is the phase, the next two signed bytes are selected panel indices,
+and `+0x3e0` is a floating timer. `+0x3fc` is a real position pointer, now
+pointer-width-aware on hosts. Reset's four-word clear becomes an equivalent
+fixed-size `memset` without changing its score. Recovered retail data globals
+are `sarlaccdiscotime = 40`, `discoheightseek = 2`, and `discoheight = 1.27`.
+
+Host progression clears sound edges, refreshes three AI messages, queries the
+special panel, and requires two completed build-its plus animation-set state
+2. Entering the disco area selects two distinct off panels. Both occupied
+panels latch on and select the next pair; exhausting the available panels
+enters completion and fills the panel states with the finish variant. The
+active packet byte changes on the following frame, as in retail. Every 2.5
+seconds without simultaneous occupancy, up to two lit panels revert to off.
+The first qualifying player in each eight-slot scan determines occupancy and
+whether the human-controlled character should request the companion's help.
+The distance test is strictly below `0.2f * 0.2f`, using object position rather
+than collision position, and requires both `0x1001` object flags and contact.
+
+The area bit uses the same signed-32-bit widening as the Rancor handler. Host
+updates publish five masks and ease the floor toward the target height; clients
+skip those decisions. Both paths animate the visible engine lump and call the
+shared display update. Losing readiness during the puzzle resets and continues
+through mask/display publication. Expiry or lost readiness during completed
+disco resets and returns immediately, leaving the old panel masks untouched
+for that frame. The initial no-panel/one-panel case retains retail's `-1`
+indices instead of silently adding a new completion transition.
+
+The first source reconstruction is 4,793 bytes versus retail's 4,747. Tests of
+an occupancy variable in the loop condition and of ending the loop by changing
+its index both produce 4,729 bytes but slightly worse object matching
+(50.86% versus 50.93%); neither is retained. Remaining differences are mainly
+block order, scratch allocation, and loop shape. No optimizer/calling-convention
+attributes or hand-written assembly were introduced.
+
+Geonosian's timer now selects a floating result and performs one final store,
+instead of distinct add/store and integer-zero-store source paths. Its
+animation predicates and call order are unchanged. Reordering the three
+high-jump animation alternatives gives no useful improvement, so their original
+source order is retained. The local helper's compiler-inferred register ABI
+remains intact.
+
+Target/native builds and all five repository tests pass. The actual NDK-built
+Sarlacc test covers all eight player slots, every init/display count and mask,
+4,096 area-index/area-mask combinations, exact distance/time thresholds,
+sound edges including bit 15, readiness/reset paths, companion hints, height
+clamps, completion timer NaNs, network-client preservation, and engine motion.
+It also checks 2,000 randomized occupancy frames. Geonosian tests exhaust all
+65,536 signed animation IDs with both high-jump flag states and seven timer
+values, including negative, NaN, and infinity, plus animation changes made by
+the idle callback. Both test suites pass on 64-bit hosts with AddressSanitizer
+and UBSan. External services are mocked; no full gameplay run is claimed.
