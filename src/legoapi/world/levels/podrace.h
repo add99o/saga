@@ -14,18 +14,28 @@ struct _vuv_s {
 struct flightspline_s {
     _vuv_s points[64];
     i32 point_count; // 0x400
-    u8 unknown_404[0x0c];
+    u8 unknown_404[4];
+    f32 field_0x408;
+    f32 field_0x40c;
     f32 length;                   // 0x410
     f32 cumulative_distances[64]; // 0x414
-    u8 unknown_514[0x10];
+    i32 field_0x514;
+    u8 unknown_518[4];
+    i32 field_0x51c;
+    i32 field_0x520;
     i32 id; // 0x524
     i32 unknown_528;
 };
 DECOMP_ASSERT(sizeof(flightspline_s) == 0x52c, "flight spline size");
 DECOMP_ASSERT(offsetof(flightspline_s, point_count) == 0x400, "flight spline point count offset");
+DECOMP_ASSERT(offsetof(flightspline_s, field_0x408) == 0x408, "flight spline first file parameter offset");
+DECOMP_ASSERT(offsetof(flightspline_s, field_0x40c) == 0x40c, "flight spline version two parameter offset");
 DECOMP_ASSERT(offsetof(flightspline_s, length) == 0x410, "flight spline length offset");
 DECOMP_ASSERT(offsetof(flightspline_s, cumulative_distances) == 0x414, "flight spline distance table offset");
 DECOMP_ASSERT(offsetof(flightspline_s, id) == 0x524, "flight spline ID offset");
+DECOMP_ASSERT(offsetof(flightspline_s, field_0x514) == 0x514, "flight spline version two integer offset");
+DECOMP_ASSERT(offsetof(flightspline_s, field_0x51c) == 0x51c, "flight spline version three parameter offset");
+DECOMP_ASSERT(offsetof(flightspline_s, field_0x520) == 0x520, "flight spline version three index offset");
 
 // One pod in the race state. Shared with the level-state allocator so host
 // allocations follow pointer-bearing fields instead of the target byte size.

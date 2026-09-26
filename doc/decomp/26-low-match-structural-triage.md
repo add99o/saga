@@ -1179,3 +1179,59 @@ the uninitialized-position path with an assumed intended position, or add
 an uninitialized C++ read merely to imitate its stack shape. This pass
 inspected the full body and existing average-position helper; it leaves
 the stub unchanged pending caller/retail-runtime evidence.
+
+## Versioned flight-spline loading
+
+`FlightSpline_Init` is reconstructed at the existing `-O3`, with its ordinary
+C++ linkage and signature unchanged. The linked match rises from **0.80% to
+84.71%**, taking the aggregate from **64.062720% to 64.117065%**. The report
+has nine improvements, no regressions, and no lost exact matches; the other
+eight improvements are below 0.004 percentage points each.
+
+The full retail body at `0x2389d0` establishes these distinct stages:
+
+- Append the mutable `FSP_Extension` (`".FSP"`) to the supplied world's
+  config path, select editor-file media 1, and leave all destination data
+  untouched if opening fails.
+- Read all spline records before computing or loading distances. Promote
+  the recovered float/integer fields at `0x408`, `0x40c`, `0x514`, `0x51c`,
+  and `0x520` into the canonical `flightspline_s`; retain unknown bytes at
+  `0x404` and `0x518`. The structure remains `0x52c` bytes.
+- Versions through 1 default the second float and first trailing integer
+  to zero; versions through 2 default the later pair to `-1` and the
+  record index. All versions read four floats per point and set `0x528`
+  to one.
+- Versions through 3 integrate backward from parameter 1 to 0, clamping
+  the last step. The step is `PODRACE_SPLINEINC` only when the current
+  global world's area matches non-null `PODRACE_ADATA`; otherwise it is
+  `0.01f`. These globals are re-read between math callbacks.
+- Version 4 consumes the serialized length but replaces it with ten
+  samples per point interval, storing accumulated lengths at `0x414`.
+  The literals are independently rounded `sample / 10.0f`, not repeated
+  additions of `0.1f`. Later versions read the length and table directly.
+- Clear only `point_count` in remaining destination slots, then close the
+  file. The capacity argument is not a file-count clamp, and a nonpositive
+  file count starts the clearing pass at zero. Retail trusts file/storage
+  sizes and valid evaluator inputs; no new clamping or input policy is
+  invented here.
+
+The first source shape scored 82.755% in the object. Keeping the version-4
+sample vectors alive across the point loop restores the retail copy after
+the tenth sample and reaches 84.187% in the object / 84.712% linked. GCC
+unrolls the ten-sample loop itself. No alignment, inlining, optimization,
+or calling-convention attributes were added. Remaining differences include
+stack allocation, register selection, and the legacy integration loop;
+they do not justify speculative tuning without new evidence.
+
+Verification: target and native builds and all five repository checks pass.
+An isolated harness replaces only the evaluator with a deterministic mock
+and checks 1,327 complete call/state traces against a retail-offset oracle:
+versions -1 through 6, failed opens, nonpositive file counts, zero and full
+point arrays, trailing-slot preservation, capacity below file count,
+127-byte config paths, pod/non-pod worlds, several integration steps,
+and file/math callbacks that change counts and world state. A separate
+84-case integration harness uses the real `CalcSplinePoint` on straight
+splines and checks lengths, cumulative distances, and untouched bytes.
+Both harnesses pass NDK-compiled 32-bit runs and 64-bit ASan/UBSan with
+normal global instrumentation. External file services are mocked; this
+does not constitute gameplay execution.

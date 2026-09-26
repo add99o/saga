@@ -1,5 +1,6 @@
 #include "decomp.h"
 #include "globals.h"
+#include "gameapi/edtools/edfile.h"
 #include "legoapi/characters/motion.h"
 #include "nu2api/numath/nufloat.h"
 #include "legoapi/legoapi_types.h"
@@ -8,6 +9,7 @@
 #include "legoapi/menus/screens/shop.h"
 #include "legoapi/world/world.h"
 #include "legoapi/world/levels/podrace.h"
+#include "legoapi/world/levels/levels.h"
 #include "nu2api/nu3d/nuspline.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nucore/nustring.h"
@@ -15,6 +17,7 @@
 #include "nu2api/numath/nutrig.h"
 
 #include <string.h>
+#include <stdio.h>
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -23,6 +26,11 @@ struct SHOPINPUT;
 
 // The original translation unit exports this internal counter under its unmangled C name.
 static i32 bezierline_depth asm("bezierline_depth");
+
+extern "C" {
+    char *FSP_Extension = ".FSP";
+    extern f32 PODRACE_SPLINEINC;
+}
 
 f32 BezierLineLength(VuVec &, VuVec &, VuVec &, VuVec &);
 
@@ -270,8 +278,98 @@ void PointAlongSpline(NUGSPLINE *spline, f32 along, NUVEC *position, u16 *angle,
     }
 }
 
-void FlightSpline_Init(WORLDINFO_s *, flightspline_s *, i32) {
-    STUBBED();
+void FlightSpline_Init(WORLDINFO_s *world, flightspline_s *splines, i32 capacity) {
+    char filename[256];
+    sprintf(filename, "%s%s", world->config_file, FSP_Extension);
+    EdFileSetMedia(1);
+    if (!EdFileOpen(filename, NUFILE_READ))
+        return;
+
+    const i32 version = EdFileReadInt();
+    const i32 count = EdFileReadInt();
+    // The file is trusted to fit the supplied storage, as in the retail loader.
+    for (i32 i = 0; i < count; ++i) {
+        flightspline_s *spline = &splines[i];
+        spline->point_count = EdFileReadInt();
+        spline->field_0x408 = EdFileReadFloat();
+        spline->id = EdFileReadInt();
+        spline->unknown_528 = 1;
+        if (version > 1) {
+            spline->field_0x40c = EdFileReadFloat();
+            spline->field_0x514 = EdFileReadInt();
+        } else {
+            spline->field_0x40c = 0.0f;
+            spline->field_0x514 = 0;
+        }
+        if (version > 2) {
+            spline->field_0x51c = EdFileReadInt();
+            spline->field_0x520 = EdFileReadInt();
+        } else {
+            spline->field_0x51c = -1;
+            spline->field_0x520 = i;
+        }
+        for (i32 point = 0; point < spline->point_count; ++point) {
+            spline->points[point].x = EdFileReadFloat();
+            spline->points[point].y = EdFileReadFloat();
+            spline->points[point].z = EdFileReadFloat();
+            spline->points[point].w = EdFileReadFloat();
+        }
+    }
+
+    i32 i;
+    if (version > 3) {
+        for (i = 0; i < count; ++i) {
+            flightspline_s *spline = &splines[i];
+            spline->length = EdFileReadFloat();
+            if (version == 4) {
+                f32 distance = 0.0f;
+                _vuv_s previous, current;
+                NUVEC difference;
+                for (i32 point = 0; point < spline->point_count; ++point) {
+                    CalcSplinePoint(spline, &previous, static_cast<f32>(point) / spline->point_count);
+                    for (i32 sample = 1; sample <= 10; ++sample) {
+                        CalcSplinePoint(spline, &current, (sample / 10.0f + point) / spline->point_count);
+                        difference.x = current.x - previous.x;
+                        difference.y = current.y - previous.y;
+                        difference.z = current.z - previous.z;
+                        distance += NuVecMag(&difference);
+                        previous = current;
+                    }
+                    spline->cumulative_distances[point] = distance;
+                }
+                spline->length = distance;
+            } else {
+                for (i32 point = 0; point < spline->point_count; ++point)
+                    spline->cumulative_distances[point] = EdFileReadFloat();
+            }
+        }
+    } else {
+        for (i = 0; i < count; ++i) {
+            flightspline_s *spline = &splines[i];
+            f32 distance = 0.0f;
+            if (spline->point_count != 0) {
+                _vuv_s current;
+                CalcSplinePoint(spline, &current, 1.0f);
+                f32 along = 1.0f;
+                do {
+                    const _vuv_s previous = current;
+                    if (PODRACE_ADATA != NULL && PODRACE_ADATA == WORLD->area)
+                        along -= PODRACE_SPLINEINC;
+                    else
+                        along -= 0.01f;
+                    if (along < 0.0f)
+                        along = 0.0f;
+                    CalcSplinePoint(spline, &current, along);
+                    NUVEC difference{current.x - previous.x, current.y - previous.y, current.z - previous.z};
+                    distance += NuVecMag(&difference);
+                } while (along > 0.0f);
+            }
+            spline->length = distance;
+        }
+    }
+    for (; i < capacity; ++i)
+        splines[i].point_count = 0;
+    EdFileClose();
 }
 
 i32 LineIntersectXY(NUVEC *, NUVEC *, NUVEC *, NUVEC *, NUVEC *, NUVEC *);
