@@ -4,6 +4,7 @@
 extern "C" {
     extern ADDPART_s Default_ADDPART;
     PART_s *AddPart(ADDPART_s *part);
+    PART_s *FindPart(NUVEC *position, i32 player, GameObject_s *owner);
     PART_s *HitParts(GameObject_s *owner, NUVEC *positions, i32 count, f32 radius, NUVEC *minimum, NUVEC *maximum,
                      u32 flags);
     void SetPartRTLSet(usize rtl_set);

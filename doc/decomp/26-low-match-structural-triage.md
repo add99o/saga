@@ -956,3 +956,85 @@ duplicated early-return stores, or `0x40` versus `0x50` frame. Both code probes
 were removed before integration and are not behavior-validated. Investigate
 source/compiler provenance before repeating these trials; do not change the
 optimization setting or add matching-only attributes to force a score.
+
+## Detonator movement and placement
+
+Recovering `Detonator_MoveCode` raises its linked match from **0.71% to
+37.05%**. Correcting `ThermalDetonator_MoveCode` raises it from **2.02% to
+32.18%**. Together they raise aggregate fuzzy matching from **63.965984% to
+63.996925%**.
+This removes the last stub in `detonator.cpp`, retaining its `-O2` setting,
+existing record layouts, and the canonical animation/antinode service ABIs.
+The only other report change is **-0.0019 points** for unchanged
+`SetLevelSfxBits`: its before/after disassembly has the same instruction
+sequence and size, with shifted string-relative operands. No exact matches
+are lost.
+
+The recovered state machine distinguishes tap-to-place/pick-up from
+hold-to-detonate, including the signed input latch and context gates. Holding
+selects the strictly oldest active record across all owners, starting with a
+finite `-1.0f` age limit. Both placement scans stop at three owned records;
+their first available slot may be an active record belonging to another
+object, not just an inactive one. Pickup preparation leaves destination Y
+untouched. An unfinished pickup whose animation timer expires deliberately
+falls through to placement after clearing its context. The animation-frame
+gates, antinode registration/removal, callback-visible target and rotation
+reloads, and attachment sound follow the retail order.
+
+Three bounded source-shape trials were measured: compact slot loops score
+31.52% in the object comparison; short-circuit slot visitors score 37.26%
+but emit an extra out-of-line helper call; separating the slot visit from
+its count test scores 36.81% and restores fully inlined scans. The latter is
+retained for its retail call structure (37.05% after linking). Remaining
+differences include push/pop versus frame-slot register saves, frame size,
+branch placement, and frame-pointer lifetimes. No matching-only attributes
+or optimization changes were used; defer further tuning until new evidence
+explains those structural differences.
+
+Target/native builds and all five repository checks pass. NDK 32-bit and
+ASan/UBSan 64-bit harnesses pass for all signed context values, all input
+latch bytes with finite/non-finite timer boundaries, all **59,049**
+inactive/owned/other-owned slot patterns, **10,000** randomized oldest-record
+selections, animation frame/timer/marker edge combinations, pickup and
+placement failures, and service callback mutations. These tests exercise the
+existing nearest-query and detonation helpers as part of the integration;
+external geometry, animation, audio, and antinode services are mocked. No
+retail gameplay run is claimed.
+
+The thermal routine previously used a hand-written particle scan with an
+invented draw-callback filter. Retail instead calls `FindPart(NULL, 0,
+object)`, now declared in its owning `parts.h`. The entry resource gate is
+slot **0xe9**, not the thrown model at **0xea**, and does not apply to an
+already-running throw animation. Entry preserves the movement request bit,
+resets the animation only when `AnimPlaying` succeeds, and clears the context
+completion bit after that callback. An unavailable frame freezes the timer;
+expiry requests the throw if not already completed; the no-clip event uses
+strictly less than half a second. Existing requests propagate to the context
+completion bit even when no new frame event fires. Young active particles
+also block repeat detonation for unordered ages, following the retail
+comparison. One reconstruction trial scores 31.91% before linking; further
+branch-layout tuning is deferred.
+
+The thermal harness additionally covers all signed contexts, all particle
+activity bytes, all weapon-state bytes and animation variants, resource-slot
+selection, no-frame freeze, completed/requested flag combinations,
+finite/non-finite age/frame/marker/timer boundaries, optional reset, and
+callback changes to context, model, animation, flags, and frame time. Both
+NDK and sanitized 64-bit runs pass, with particle lookup and other engine
+services mocked.
+
+### Additional low-score structural triage
+
+`DisplaySceneRndrSpecials` has an existing body but its current
+`render_stubs.cpp` compile command has no optimization option (therefore
+`-O0`), while the retail code shows optimized register/branch behavior.
+Resolve source ownership and compiler provenance before trying local
+expression changes. No source or build option was changed.
+
+`CollideBoltStarFighter` has a different blocker: its retail private ABI
+passes the bolt and fighter in EAX/EDX and returns an integer, while the
+current local stub returns `void` and its callers remain unreconstructed.
+The fighter type is also empty. Recover the shared fighter layout and real
+callers together so GCC can infer the private convention; do not add a
+calling-convention attribute to the isolated stub. This pass inspected the
+retail body but made no speculative source changes to that cluster.
