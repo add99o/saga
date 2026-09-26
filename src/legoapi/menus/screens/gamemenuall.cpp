@@ -30,6 +30,7 @@
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nufile/nufile.h"
 #include "nu2api/nucore/nustring.h"
+#include "nu2api/nucore/nupad.h"
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numath/nufloat.h"
 
@@ -45,6 +46,9 @@ static f32 MissionIconScale[20];
 static f32 MissionIconTargetX[20];
 static f32 MissionIconX[20];
 extern i32 NextArea_FreePlay;
+extern char FS_LastFileName[64];
+extern char *FS_CurrentCursorPos;
+u8 FS_Active;
 void InitMission(MISSIONSYS *, i32);
 extern f32 ICONSIZE, ICONX, DROPINALPHA, HUB_EPISODETITLEY;
 extern i16 tSELECT, tSELECTED, tSELECTING, tEXIT, tCANCEL;
@@ -506,8 +510,14 @@ void MenuUpdateSave(MENU_s *menu) {
     }
 }
 
-void ProcessFileSel(float, nupad_s *) {
-    STUBBED();
+extern "C" void FileSelKill(void);
+
+void ProcessFileSel(float elapsed, nupad_s *pad) {
+    ProcessFileSel3(elapsed, pad);
+    RenderFileSel();
+    if ((pad->digital_buttons & 0x10) != 0) {
+        FileSelKill();
+    }
 }
 
 void RenderFileSel3(i32) {
@@ -1565,8 +1575,16 @@ void MenuDrawDoNotRemoveCard(MENU_s *) {
     Draw_DONOTREMOVEMEMORYCARD();
 }
 
-void MenuEnterAutoSaveCancel(MENU_s *) {
-    STUBBED();
+extern "C" {
+i32 MenuASCancelFinished;
+}
+
+void MenuEnterAutoSaveCancel(MENU_s *menu) {
+    if (MenuASCancelFinished == 0) {
+        memcard_autosaveenabled = 0;
+        memcard_autosavedisabled = 0;
+        menu->last_row = 0;
+    }
 }
 
 void MenuUpdateDeleteConfirm(MENU_s *menu) {
@@ -1680,8 +1698,10 @@ void MenuUpdateAutoSaveWarning(MENU_s *) {
     STUBBED();
 }
 
-void MenuUpdateDoNotRemoveCard(MENU_s *) {
-    STUBBED();
+void MenuUpdateDoNotRemoveCard(MENU_s *menu) {
+    if (menu->menu_time > 2.0f && saveload_status == 1) {
+        BackupMenu();
+    }
 }
 
 extern "C" {
@@ -1988,7 +2008,8 @@ extern "C" {
     }
 
     void FileSelKill(void) {
-        STUBBED();
+        NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
+        FS_Active = 0;
     }
 
     void FlushMenuHighlights(eduimenu_s *menu) {

@@ -43,10 +43,6 @@ void refpack_init() {
     }
 }
 
-void ImplodeFReadMem(unsigned char *, i32) {
-    STUBBED();
-}
-
 void ImplodeMakeTree(i32, u16 *, unsigned char *, u16 *) {
     STUBBED();
 }

@@ -182,7 +182,7 @@ extern "C" {
 #ifdef __cplusplus
 }
 
-void NuHGobjRead(VARIPTR *buffer, char *path);
+nuhgobj_s *NuHGobjRead(VARIPTR *buffer, char *path);
 void NuHGobjEvalAnimBlend2Root_3(nugscn_s *object, ani3_animheader_s *animation_a, f32 time_a,
                                  ani3_animheader_s *animation_b, f32 time_b, f32 blend, i32 override_count,
                                  NUJOINTANIM_s *overrides, NUMTX *matrices, NUHGOBJROOTFN root_fn, void *root_data);

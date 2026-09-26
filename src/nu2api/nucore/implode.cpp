@@ -16,6 +16,7 @@ usize implode_origsize;
 usize implode_compsize;
 
 static i32 bytes_to_copy;
+static i32 inlen;
 
 static void decode_start() {
     ImplodeHufDecodeStart();
@@ -482,6 +483,15 @@ unsigned char ImplodeGetByteFromMem() {
 
 void ImplodePutByteToMem(unsigned char value) {
     *implode_outbuffer++ = value;
+}
+
+i32 ImplodeFReadMem(unsigned char *destination, i32 count) {
+    i32 bytes_read = count < inlen ? count : inlen;
+    memcpy(destination, implode_inbuffer, bytes_read);
+    implode_inbuffer += bytes_read;
+    implode_origsize += bytes_read;
+    inlen -= bytes_read;
+    return bytes_read;
 }
 
 void ImplodeError(char *msg, ...) {

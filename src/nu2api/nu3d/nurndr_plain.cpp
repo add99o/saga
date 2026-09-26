@@ -1414,9 +1414,6 @@ extern "C" nu2api::ShaderUniformRecord *NuShaderUniformGetByString(const char *n
     }
     return NULL;
 }
-static void NuTexGenTexture(void) {
-    STUBBED();
-}
 extern "C" void NuTextureBlendEffect(i32 arg0, i32 arg1, NUVEC4 *parameters) {
     currentScene.texture_blend_arg0 = arg0;
     currentScene.texture_blend_arg1 = arg1;
