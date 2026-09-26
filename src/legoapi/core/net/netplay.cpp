@@ -96,7 +96,6 @@ void ResetPlayerPacket(PLAYERPACKET_s *packet, CHARACTERDATA_s *) {
 }
 
 void FinishLoop_Network() {
-    STUBBED();
 }
 
 extern STATUSPACKET_s StatusPacket;
@@ -168,7 +167,6 @@ destination_selected:
 }
 
 i32 FinishStatusPacket_LSW(WORLDINFO_s *, STATUSPACKET_s *, i32) {
-    STUBBED();
     return 0;
 }
 

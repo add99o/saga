@@ -511,7 +511,6 @@ extern "C" void NuRndrEndShadowReceiveRender(void) {
     global_GobjIsShadowReceive = 0;
 }
 extern "C" i32 NuRndrGetCullDebug(void) {
-    STUBBED();
     return 0;
 }
 extern i32 global_frame_count;
@@ -1042,7 +1041,6 @@ extern "C" void NuRndrRectUV2di(i32 x, i32 y, i32 w, i32 h, f32 u0, f32 v0, f32 
     NuPrim2DEnd();
 }
 extern "C" void NuRndrSetCullDebug(void) {
-    STUBBED();
 }
 extern "C" {
     i32 NuRndrStopUpdate;

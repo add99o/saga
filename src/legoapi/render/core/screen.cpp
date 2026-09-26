@@ -37,7 +37,6 @@ void ClearScreen() {
 }
 
 void RenderQuads(i16 *) {
-    STUBBED();
 }
 
 void InitAlphaList() {

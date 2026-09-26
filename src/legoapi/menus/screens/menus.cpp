@@ -80,7 +80,6 @@ eduimenu_s *GetMenuActiveChild(eduimenu_s *menu) {
     return menu;
 }
 void ResizePauseScreenTexture(i32, i32) {
-    STUBBED();
 }
 
 i32 GetMenuID(void) {

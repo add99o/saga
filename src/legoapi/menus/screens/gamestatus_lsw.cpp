@@ -1011,9 +1011,7 @@ void TrueHero_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *packet) {
     NextStatusStage(packet);
 }
 
-i32 UpdateAchievements(STATUSPACKET_s *) {
-    STUBBED();
-    return 0;
+void UpdateAchievements(STATUSPACKET_s *) {
 }
 
 void DrawStatusScreen(WORLDINFO_s *) {
@@ -1224,7 +1222,6 @@ void TrueHero_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float el
 }
 
 i32 InitStatusScreen_LSW(WORLDINFO_s *, STATUSPACKET_s *) {
-    STUBBED();
     return 0;
 }
 
@@ -1628,7 +1625,6 @@ void BonusWin_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 curren
     }
 }
 void BonusWin_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *) {
-    STUBBED();
 }
 void BonusTime_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 current) {
     if (current == 0) {
@@ -1651,7 +1647,6 @@ void BonusTime_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 curre
     }
 }
 void BonusTime_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *) {
-    STUBBED();
 }
 void ChallangeCash_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 draw) {
     NUVEC position = {0.0f, -0.5f, 1.0f};
@@ -1675,7 +1670,6 @@ void ChallangeCash_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 draw)
     }
 }
 void ChallangeCash_Skip(STATUS_STAGE_s *, STATUSPACKET_s *) {
-    STUBBED();
 }
 void BonusWin_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float elapsed) {
     if (stage->field_0x14 == 0) {

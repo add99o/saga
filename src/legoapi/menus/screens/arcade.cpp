@@ -66,6 +66,5 @@ void Arcade_UpdateEndMenu(MENU_s *) {
 }
 
 i32 Arcade_BothPlayersActive() {
-    STUBBED();
     return true;
 }

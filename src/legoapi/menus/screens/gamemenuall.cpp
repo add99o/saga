@@ -2434,20 +2434,24 @@ extern "C" {
         return second->year - first->year;
     }
 
-    void cbCompateDirentByNameAsc(void) {
-        STUBBED();
+    i32 cbCompateDirentByNameAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
+        return NuStrCmp(reinterpret_cast<char *>(first) + 0x18, reinterpret_cast<char *>(second) + 0x18);
     }
 
-    void cbCompateDirentByNameDec(void) {
-        STUBBED();
+    i32 cbCompateDirentByNameDec(NUFILE_INFO *first, NUFILE_INFO *second) {
+        return NuStrCmp(reinterpret_cast<char *>(second) + 0x18, reinterpret_cast<char *>(first) + 0x18);
     }
 
-    void cbCompateDirentBySizeAsc(void) {
-        STUBBED();
+    i32 cbCompateDirentBySizeAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
+        const i32 first_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(first) + 4);
+        const i32 second_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(second) + 4);
+        return first_size < second_size ? -1 : (first_size > second_size);
     }
 
-    void cbCompateDirentBySizeDec(void) {
-        STUBBED();
+    i32 cbCompateDirentBySizeDec(NUFILE_INFO *first, NUFILE_INFO *second) {
+        const i32 first_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(first) + 4);
+        const i32 second_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(second) + 4);
+        return first_size < second_size ? 1 : (first_size <= second_size) - 1;
     }
 
     void cbTriggerSubMenu(eduimenu_s *menu, eduiitem_s *item, u32) {

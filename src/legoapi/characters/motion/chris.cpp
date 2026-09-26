@@ -391,7 +391,6 @@ void ChrisAllocLevelStuff(WORLDINFO_s *) {
 }
 
 i32 DidBoltHitChrisJobby(WORLDINFO_s *, BOLT_s *) {
-    STUBBED();
     return 0;
 }
 

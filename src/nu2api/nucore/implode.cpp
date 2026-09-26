@@ -138,7 +138,9 @@ extern "C" {
     }
 
     void ExplodeExit(void) {
-        STUBBED();
+        if (gExplodeInitialised != 0) {
+            gExplodeInitialised = 0;
+        }
     }
 
 } // extern "C"

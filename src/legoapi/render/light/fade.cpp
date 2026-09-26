@@ -24,6 +24,7 @@ FadeStill fadeStill;
 NUMTL *ScreenFadeMtl;
 NUMTL *FadeMtl2;
 NUMTL *FadeMtl;
+nugscn_s *FadeLoop_ObjScene;
 
 void FadeStillWipe::DrawFade() {
     if (wait_till_next_frame != 0)
@@ -235,8 +236,8 @@ void FadeLoop_DrawObj(float) {
     STUBBED();
 }
 
-void FadeLoop_UsingObj() {
-    STUBBED();
+i32 FadeLoop_UsingObj() {
+    return FadeLoop_ObjScene != NULL;
 }
 
 void CreateFadeMaterials() {

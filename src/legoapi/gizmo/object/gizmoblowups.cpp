@@ -454,7 +454,6 @@ i32 GizmoBlowupBlowup(GIZMOBLOWUP_s *blowup, i32 effects, i32 hit_type, i32 dama
 }
 
 void BlowupObjEmit_Stop(PART_s *) {
-    STUBBED();
 }
 
 GIZMOBLOWUPTYPE_s *GizmoBlowupTypeAdd(WORLDINFO_s *world, nuhspecial_s *special, i32 flags, i32 *result) {

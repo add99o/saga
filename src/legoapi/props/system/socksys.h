@@ -174,7 +174,21 @@ typedef struct SOCK {
         u32 unknown_110;
         u32 blend_count;
     }; // 0x110
-    u8 unknown_114[40]; // 0x114
+    union {
+        u8 unknown_114[40]; // 0x114
+        struct {
+            f32 camera_at_start_lift; // 0x114
+            f32 camera_at_start_distance; // 0x118
+            f32 camera_at_start_range; // 0x11c
+            f32 camera_at_start_tilt; // 0x120
+            f32 camera_at_start_tilt_rate; // 0x124
+            f32 camera_ray_tilt_distance; // 0x128
+            f32 camera_ray_tilt_height; // 0x12c
+            f32 manual_camera_max_x; // 0x130
+            f32 manual_camera_max_y; // 0x134
+            i32 terrain_camera_inactive; // 0x138
+        };
+    };
 } SOCK;
 
 DECOMP_ASSERT(offsetof(SOCK, looping) == 0x33, "SOCK loop flag offset");

@@ -1539,11 +1539,11 @@ void NuMusic::xAttenuation(nufpar_s *fpar) {
 }
 
 void NuMusic::GlobalParseErrorFn(nufpar_s *param_1) {
-    STUBBED();
+    (void)param_1;
 }
 
 void NuMusic::TrackParseErrorFn(nufpar_s *param_1) {
-    STUBBED();
+    (void)param_1;
 }
 
 void RegisterMusic(NUSOUND_FILENAME_INFO *files) {

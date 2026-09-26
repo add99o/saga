@@ -76,6 +76,10 @@ extern "C" {
 // program-side setter. Preserve its externally observable debug accesses.
 static volatile i32 capture_dlist;
 
+// The Android setter retains this BSS write even though the reader is not yet
+// reconstructed in this translation unit.
+static void *volatile CurrentInstSurfGeom;
+
 extern "C" void NuDisplayListCaptureBegin(void) {
     i32 request = capture_dlist;
     if (request) {
@@ -1248,6 +1252,10 @@ void NuDisplayListEndScene(void) {
 
 extern "C" void *DisplayListCreateFaceonTransformPS(VARIPTR *, NUMTX *, NUMTL *, void *);
 extern "C" void *DisplayListCreateGeomTransformPS(VARIPTR *, NUMTX *, NUMTL *, void *, void *);
+
+void NuDisplayListSetInstSurfGeom(void *geometry) {
+    CurrentInstSurfGeom = geometry;
+}
 
 void NuDisplayListCreate(nudisplayscene_s *raw_scene, variptr_u *buffer, variptr_u, i32 item_count, i32 material_count,
                          i32, i32, i32 sort_priority_count, i32, i32 allocate_materials) {

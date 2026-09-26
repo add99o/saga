@@ -23,6 +23,9 @@ void NuFParSetPos(NUFPAR *parser, NUFPARPOS *position) {
 #include "nu2api/nucore/nurdp.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nufile/nufile.h"
+#include "legoapi/props/system/socksys.h"
+
+extern "C" SOCK *sockpar_sock;
 
 struct SOCK;
 struct SOCKROT;
@@ -838,42 +841,42 @@ NUWCHAR NuGetWChar(NUFPAR *parser) {
     return c;
 }
 
-static __used__ void SockCamATSTDIST(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamATSTDIST(nufpar_s *parser, void *) {
+    sockpar_sock->camera_at_start_distance = NuFParGetFloat(parser);
 }
 
-static __used__ void SockCamATSTLIFT(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamATSTLIFT(nufpar_s *parser, void *) {
+    sockpar_sock->camera_at_start_lift = NuFParGetFloat(parser);
 }
 
-static __used__ void SockCamATSTTILT(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamATSTTILT(nufpar_s *parser, void *) {
+    sockpar_sock->camera_at_start_tilt = NuFParGetFloat(parser);
 }
 
-static __used__ void SockManCam_MAX_X(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockManCam_MAX_X(nufpar_s *parser, void *) {
+    sockpar_sock->manual_camera_max_x = NuFParGetFloat(parser);
 }
 
-static __used__ void SockManCam_MAX_Y(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockManCam_MAX_Y(nufpar_s *parser, void *) {
+    sockpar_sock->manual_camera_max_y = NuFParGetFloat(parser);
 }
 
-static __used__ void SockCamATSTCAMRANGE(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamATSTCAMRANGE(nufpar_s *parser, void *) {
+    sockpar_sock->camera_at_start_range = NuFParGetFloat(parser);
 }
 
-static __used__ void SockCamATSTTILTRATE(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamATSTTILTRATE(nufpar_s *parser, void *) {
+    sockpar_sock->camera_at_start_tilt_rate = NuFParGetFloat(parser);
 }
 
 static __used__ void SockTerrainCamInActive(nufpar_s *, void *) {
-    STUBBED();
+    sockpar_sock->terrain_camera_inactive = 1;
 }
 
-static __used__ void SockCamCAMERARAYTILTDIST(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamCAMERARAYTILTDIST(nufpar_s *parser, void *) {
+    sockpar_sock->camera_ray_tilt_distance = NuFParGetFloat(parser);
 }
 
-static __used__ void SockCamCAMERARAYTILTHEIGHT(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockCamCAMERARAYTILTHEIGHT(nufpar_s *parser, void *) {
+    sockpar_sock->camera_ray_tilt_height = NuFParGetFloat(parser);
 }

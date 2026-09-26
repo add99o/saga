@@ -14,7 +14,6 @@
 #include "nu2api/numath/nurand.h"
 
 extern "C" void NuShaderManagerForceShader(void) {
-    STUBBED();
 }
 
 extern "C" void *NuShaderManagerGetInstance(void) {
@@ -26,7 +25,6 @@ extern "C" f32 NuShaderManagerGetShininessFactor(void) {
 }
 
 extern "C" void NuShaderManagerLoadCompiledShaders(void) {
-    STUBBED();
 }
 
 extern "C" void NuShaderManagerSetShininessFactor(f32 shininess) {

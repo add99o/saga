@@ -455,7 +455,6 @@ extern "C" {
 }
 
 static __used__ void SockDataError() {
-    STUBBED();
 }
 
 static i32 RotDiff(u16 from, u16 to) {

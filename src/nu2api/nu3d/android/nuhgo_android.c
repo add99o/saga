@@ -14,8 +14,7 @@ extern "C" void NuHGobjPOILocalMtxFromIX(nuhgobj_s *object, u8 index, NUMTX *joi
     }
 }
 
-extern "C" void NuHGobjPOIMtxFromIX(void) {
-    STUBBED();
+extern "C" void NuHGobjPOIMtxFromIX(nuhgobj_s *, u8 index, NUMTX *, NUMTX *) {
 }
 
 extern "C" i32 NuHGobjRndr(nuhgobj_s *object, NUMTX *world_matrix, i32 render_count, i16 *render_indices) {

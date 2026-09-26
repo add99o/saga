@@ -167,7 +167,6 @@ void NuRndrGradRect2diZ(i32 x, i32 y, i32 width, i32 height, i32 *colours, numtl
 }
 
 void NuRndrRectUV2dNoScale(float, float, float, float, float, float, float, float, i32, numtl_s *) {
-    STUBBED();
 }
 
 void NuRndrCalcRandEllipsePos(nuvec4_s *position, numtx_s *matrix, nuvec_s *axes) {

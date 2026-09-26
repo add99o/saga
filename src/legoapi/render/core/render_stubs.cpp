@@ -77,8 +77,8 @@ extern "C" {
         }
     }
 
-    void FmvTimePS(void) {
-        STUBBED();
+    f32 FmvTimePS(void) {
+        return 0.0f;
     }
 
     void PerspectMidPoint(NUVEC *result, NUVEC *first, NUVEC *second, NUVEC *camera_position) {
