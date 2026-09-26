@@ -179,9 +179,8 @@ extern "C" {
         return NuInputDevicePS::IsConnectedPS(1);
     }
 
-    i32 Controller_Read(i32, u8 *left_x, u8 *left_y, u8 *right_x, u8 *right_y,
-                        u8 *left_trigger, u8 *right_trigger, u8 *button_a,
-                        u8 *button_b, u32 *buttons, u8 *motion, u32 *status) {
+    i32 Controller_Read(i32, u8 *left_x, u8 *left_y, u8 *right_x, u8 *right_y, u8 *left_trigger, u8 *right_trigger,
+                        u8 *button_a, u8 *button_b, u32 *buttons, u8 *motion, u32 *status) {
         if (Controller_IsConnected() == 0) {
             *left_x = 0x80;
             *left_y = 0x80;
@@ -287,42 +286,42 @@ void SpaceRumbleProcess() {
     f32 nearest = 35.0f;
     for (i32 i = 0; i < 12; ++i) {
         switch (i) {
-        case 0:
-        case 6:
-            ray.x = -35.0f;
-            ray.y = 0.0f;
-            ray.z = 0.0f;
-            break;
-        case 1:
-        case 7:
-            ray.x = 35.0f;
-            ray.y = 0.0f;
-            ray.z = 0.0f;
-            break;
-        case 2:
-        case 8:
-            ray.y = -35.0f;
-            ray.x = 0.0f;
-            ray.z = 0.0f;
-            break;
-        case 3:
-        case 9:
-            ray.y = 35.0f;
-            ray.x = 0.0f;
-            ray.z = 0.0f;
-            break;
-        case 4:
-        case 10:
-            ray.z = -35.0f;
-            ray.x = 0.0f;
-            ray.y = 0.0f;
-            break;
-        case 5:
-        case 11:
-            ray.z = 35.0f;
-            ray.x = 0.0f;
-            ray.y = 0.0f;
-            break;
+            case 0:
+            case 6:
+                ray.x = -35.0f;
+                ray.y = 0.0f;
+                ray.z = 0.0f;
+                break;
+            case 1:
+            case 7:
+                ray.x = 35.0f;
+                ray.y = 0.0f;
+                ray.z = 0.0f;
+                break;
+            case 2:
+            case 8:
+                ray.y = -35.0f;
+                ray.x = 0.0f;
+                ray.z = 0.0f;
+                break;
+            case 3:
+            case 9:
+                ray.y = 35.0f;
+                ray.x = 0.0f;
+                ray.z = 0.0f;
+                break;
+            case 4:
+            case 10:
+                ray.z = -35.0f;
+                ray.x = 0.0f;
+                ray.y = 0.0f;
+                break;
+            case 5:
+            case 11:
+                ray.z = 35.0f;
+                ray.x = 0.0f;
+                ray.y = 0.0f;
+                break;
         }
         if (i > 5) {
             NuVec4MtxTransformVU0(&ray, &ray, &matrix);
@@ -350,20 +349,31 @@ void SpaceRumbleProcess() {
     }
 }
 
+static inline void NewPlayerRumble(GameObject_s *object, f32 strength, f32 duration, f32 amount) {
+    if (object == NULL || static_cast<i8>(object->apiobj.flags_low) >= 0) {
+        return;
+    }
+    nupad_s *pad = object->pad_gamepad->pad;
+    if (pad != NULL) {
+        NuSound3AddRumble(pad, duration, static_cast<i32>(amount), 0, strength);
+    }
+}
+
 void NewRumbleAllPlayers(float strength, float duration, i32 frames, i32) {
     if (frames > 0) {
         f32 frame_duration = static_cast<f32>(frames) / DEFAULTFPS;
         if (frame_duration > duration)
             duration = frame_duration;
     }
-    for (i32 i = 0; i < 8; ++i) {
-        GameObject_s *object = Player[i];
-        if (object != NULL && (object->apiobj.flags_low & 0x80) != 0) {
-            nupad_s *pad = object->pad_gamepad->pad;
-            if (pad != NULL)
-                NuSound3AddRumble(pad, duration, static_cast<i32>(strength * 255.0f), 0, strength);
-        }
-    }
+    const f32 amount = strength * 255.0f;
+    NewPlayerRumble(Player[0], strength, duration, amount);
+    NewPlayerRumble(Player[1], strength, duration, amount);
+    NewPlayerRumble(Player[2], strength, duration, amount);
+    NewPlayerRumble(Player[3], strength, duration, amount);
+    NewPlayerRumble(Player[4], strength, duration, amount);
+    NewPlayerRumble(Player[5], strength, duration, amount);
+    NewPlayerRumble(Player[6], strength, duration, amount);
+    NewPlayerRumble(Player[7], strength, duration, amount);
 }
 
 i32 ObjLookingWithLeftStick(GameObject_s *object) {
@@ -396,19 +406,32 @@ void PerformPauseButtonStuff() {
     }
 
     const i32 menu_id = GetMenuID();
-    if (menu_id == 13) goto close_menu;
-    if (menu_id == 1) goto close_menu;
-    if (menu_id == 8) goto close_menu;
-    if (menu_id == 17) goto close_menu;
-    if ((menu_id & ~2) == 16) goto close_menu;
-    if (static_cast<u32>(menu_id - 14) <= 1) goto close_menu;
-    if (static_cast<u32>(menu_id - 20) <= 1) goto close_menu;
-    if (menu_id == 22) goto close_menu;
-    if (menu_id == 1000) goto close_menu;
-    if (menu_id == 33) goto close_menu;
-    if ((menu_id & ~8) == 1008) goto close_menu;
-    if (static_cast<u32>(menu_id - 1012) <= 1) goto close_menu;
-    if (menu_id == 1017) goto close_menu;
+    if (menu_id == 13)
+        goto close_menu;
+    if (menu_id == 1)
+        goto close_menu;
+    if (menu_id == 8)
+        goto close_menu;
+    if (menu_id == 17)
+        goto close_menu;
+    if ((menu_id & ~2) == 16)
+        goto close_menu;
+    if (static_cast<u32>(menu_id - 14) <= 1)
+        goto close_menu;
+    if (static_cast<u32>(menu_id - 20) <= 1)
+        goto close_menu;
+    if (menu_id == 22)
+        goto close_menu;
+    if (menu_id == 1000)
+        goto close_menu;
+    if (menu_id == 33)
+        goto close_menu;
+    if ((menu_id & ~8) == 1008)
+        goto close_menu;
+    if (static_cast<u32>(menu_id - 1012) <= 1)
+        goto close_menu;
+    if (menu_id == 1017)
+        goto close_menu;
     {
         MechInputTouchMainController *controller = MechSystems::Get()->active_main_controller;
         if (controller != NULL) {

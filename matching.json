@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 63.824688,
+    "fuzzy_match_percent": 63.847305,
     "total_code": "4722419",
     "matched_code": "515563",
     "matched_code_percent": 10.91735,
@@ -43579,7 +43579,7 @@
           "address": 1083584,
           "offset": 193616,
           "size": 868,
-          "match_percent": 0.0
+          "match_percent": 29.765217
         },
         {
           "name": "_Z11LSW_SetIndyi",
@@ -49456,7 +49456,7 @@
           "address": 4755936,
           "offset": 3865968,
           "size": 707,
-          "match_percent": 0.951515
+          "match_percent": 36.563637
         },
         {
           "name": "_Z13TakeHitRumbleP12GameObject_sf",
@@ -62639,7 +62639,7 @@
           "address": 1919840,
           "offset": 1029872,
           "size": 1899,
-          "match_percent": 0.983607
+          "match_percent": 30.370024
         },
         {
           "name": "_Z18Detonator_DetonateP11DETONATOR_s",

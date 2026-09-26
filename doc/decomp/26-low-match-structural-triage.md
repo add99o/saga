@@ -704,3 +704,63 @@ ignored damage, suppression-flag restoration, speed boundaries/recovery,
 startup/level movement gates, spline endpoints and NaNs, random/effect/sound
 boundaries, and 2,000 randomized player frames. External services are mocked;
 no full gameplay run is claimed.
+
+## Character loading, nearest detonators, and player rumble
+
+Baseline: `447c5d9c`. Character core remains `-O3`; detonators and gamepads
+remain `-O2`.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `UpdateCharacterLoad` | 0.00% | 29.77% |
+| `Detonator_FindNearest` | 0.98% | 30.37% |
+| `NewRumbleAllPlayers` | 0.95% | 36.56% |
+
+Overall fuzzy matching: **63.824688% → 63.847305%**. Only these three scores
+change; none regress and no full matches are lost.
+
+The character loader's integer-index store-pack loop expanded into eleven
+copies, making its body 1,698 bytes versus retail's 868. A typed pointer loop
+with a separate pack index restores traversal and reduces it to 962 bytes.
+The separate index avoids pointer-distance division before each store query.
+Fixed-character priority, low-end gates, callback reloads, capacity checks,
+collection filtering, and the random candidate calculation are unchanged.
+An alternate shared selection label and a value-terminated integer scan were
+tested separately and not retained. Remaining block/register differences are
+not a reason to change this file's optimization mode.
+
+`Detonator_FindNearest` returns a **`DETONATOR_s *`**, not `void`. Its previously
+opaque first twelve bytes are the logical `NUVEC position`; the render position
+at `+0xc` is not used for this search. The reconstructed query considers ten
+active slots in order, with separate owner-filtered and unrestricted paths.
+Zero radius uses a finite squared-distance limit of `1e9`; other radii are
+squared, including negative values. Strict comparisons preserve the first
+equal-distance entry and reject NaN distances. Ordinary inline calls recover
+the fixed-slot structure without adding a helper symbol or forced-inlining
+attribute. A compact loop is behaviorally correct but reaches only 4.03% in
+the object comparison; fixed-slot calls reach 30.18% (30.37% linked). The
+remaining differences include stack storage and branch scheduling.
+
+Player rumble likewise has eight explicit retail slot checks. Ordinary inline
+calls preserve null/controller-flag/pad gates, per-call integer conversion,
+duration selection, and the reload of later player slots after sound callbacks.
+The scaled floating amount is calculated once, as in retail. An early-return
+helper form produces the same score as its nested equivalent. No optimization
+or calling-convention attributes were added.
+
+`Prompt_LSW_Update` was investigated but left unchanged. Retail indexes the
+two activity bytes, tests the adjacent challenge/mission bytes together, and
+uses a shared post-scan selection path. Typed aliases alone leave its object
+score at 0%; bounded shared-loop variants reach only 10.37–14.59% while still
+changing frame and branch structure substantially. All prompt/header
+experiments were removed. Do not repeat them without new evidence about the
+remaining control-flow or compiler provenance.
+
+Target/native builds and all five repository checks pass. Focused NDK and
+sanitized 64-bit host tests cover character-loading gates and priorities,
+all store packs, callback mutations, and 5,000 randomized selections; every
+detonator activity mask, all owners/slots, strict radius and tie behavior,
+NaNs/infinities, unchanged source records, and 10,000 randomized queries;
+and every rumble slot mask, controller/pad gates, callback mutations,
+duration/rate boundaries and NaNs, and 5,000 randomized cases. Sound/loading
+services and the distance callback are mocked; no gameplay run is claimed.

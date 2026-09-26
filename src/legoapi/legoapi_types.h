@@ -1025,7 +1025,7 @@ struct ClassItem {
     EdRef *reference;
 };
 struct DETONATOR_s {
-    u8 field_0x00[0xc];
+    NUVEC position; // 0x00, logical position used by nearest-detonator queries
     NUVEC field_0x0c;
     NUVEC field_0x18;
     GameObject_s *object;

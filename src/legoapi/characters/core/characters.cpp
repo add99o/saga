@@ -1359,6 +1359,7 @@ void UpdateCharacterLoad() {
     i32 candidate = 0;
     i16 *fixed_candidate = NULL;
     i32 fixed_value = -1;
+    i32 pack_index = 0;
 
     if (id_BARMAN != -1 && APICharacterLoaded(id_BARMAN) == NULL) {
         fixed_candidate = &id_BARMAN;
@@ -1393,15 +1394,15 @@ void UpdateCharacterLoad() {
         goto queue_fixed_character;
     }
 
-    for (i32 pack = 0; pack < 11; ++pack) {
+    for (STOREPACK *pack = StorePack; pack != StorePack + 11; ++pack, ++pack_index) {
         if (g_lowEndLevelBehaviour != 0 && Hub_LowEnd_IconsInsteadOfModels != 0) {
             continue;
         }
-        if (Store_IsPackUnlocked(pack) != 0 || StorePack[pack].id == NULL) {
+        if (Store_IsPackUnlocked(pack_index) != 0 || pack->id == NULL) {
             continue;
         }
 
-        const i32 id = *StorePack[pack].id;
+        const i32 id = *pack->id;
         if (id != -1 && APICharacterLoaded(id) == NULL) {
             fixed_value = id;
             goto queue_fixed_value;
