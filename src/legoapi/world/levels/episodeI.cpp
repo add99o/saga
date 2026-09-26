@@ -27,6 +27,7 @@
 #include "legoapi/render/fx/parts.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/world/levels/levels.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/world/world_shared.h"
 #include "legoapi/world/world.h"
@@ -101,49 +102,7 @@ void CalcSplinePointFromDist(flightspline_s *, _vuv_s *, float);
 
 // --- File-local layout types -----------------------------------------------
 
-struct _vuv_s {
-    float x, y, z, w;
-};
-
-// One pod in the pod race state (0x98-byte stride). The first 0x40 bytes
-// are its current transform; the second position is used by race alignment.
-struct racepod_s {
-    NUMTX matrix;             // 0x00
-    _vuv_s previous_axis;     // 0x40
-    _vuv_s previous_position; // 0x50
-    char pad_0x60[0x10];      // 0x60
-    i32 pitch;                // 0x70
-    i32 yaw;                  // 0x74
-    i32 pad_0x78;             // 0x78
-    float speed;              // 0x7c
-    u32 *data;                // 0x80 (flightspline_s *)
-    float start;              // 0x84
-    i16 model_id;             // 0x88
-    i16 pad_0x8a;             // 0x8a
-    float distance;           // 0x8c
-    GameObject_s *object;     // 0x90
-    void *next;               // 0x94 (active marker)
-};
-using PODRACE_LAPENTRY_s = racepod_s;
-DECOMP_ASSERT(sizeof(racepod_s) == 0x98, "racepod layout");
 static void RacePodAlign(racepod_s *pod, _vuv_s *direction, float amount, i32 mode);
-
-// Per-level PodRace state block held at WORLDINFO.podrace (0x5120), 0xaf24
-// bytes total (size of the memset in PodRaceInit).
-struct PODRACE_s {
-    char pad_0x0000[0xa580];
-    PODRACE_LAPENTRY_s lap_entries[0x10]; // 0xa580 .. 0xaf00 (zeroed by PodRaceReset)
-    float lap_countdown;                  // 0xaf00
-    float mushroom_timer;                 // 0xaf04
-    float lap_display;                    // 0xaf08
-    float prev_lap_display;               // 0xaf0c
-    float max_lap_time;                   // 0xaf10
-    float lap_time_increment;             // 0xaf14
-    i32 lap_attempts_per_increment;       // 0xaf18
-    char pad_0xaf1c[0xaf20 - 0xaf1c];
-    u8 flags; // 0xaf20 bit1/bit0 cleared by PodRaceReset
-    char pad_0xaf21[0xaf24 - 0xaf21];
-};
 
 // Pacemaker display data stored at LevObjs[0] for the pacemaker object.
 struct PACEMAKERDATA_s {

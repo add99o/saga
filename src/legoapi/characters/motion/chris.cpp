@@ -1,6 +1,10 @@
 #include "decomp.h"
+#include "globals.h"
 #include "legoapi/items/collect/spacelevel.h"
+#include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
+#include "legoapi/props/system/socksys.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/world/world.h"
 #include "nu2api/numath/nurand.h"
 #include "nu2api/numath/nuvec4.h"
@@ -386,8 +390,25 @@ void ChrisAfterBurnerCam(nuvec_s *, nuvec_s *camera) {
     *camera = WORLD->space_level->camera_origin;
 }
 
-void ChrisAllocLevelStuff(WORLDINFO_s *) {
-    STUBBED();
+void ChrisAllocLevelStuff(WORLDINFO_s *world) {
+    world->has_level_specific_data = 1;
+    if (world->current_level == DOGFIGHTA_LDATA) {
+        world->space_level = static_cast<spacelevel_s *>(
+            GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, sizeof(spacelevel_s)));
+        spacelevel_s *space = world->space_level;
+        space->reset_buffer = space->unknown_5ce90;
+        space->reset_buffer_count = 256;
+        world->space_level->normalized_speed = 1.0f;
+        if (world->current_level == DOGFIGHTA_LDATA && world->sock_sys->sock[0].current_speed != 0.0f) {
+            world->space_level->normalized_speed = world->sock_sys->sock[0].current_speed / 11.0f;
+        }
+        world->space_level->unknown_62ef0 = 0;
+    } else if (world->current_level == PODRACEA_LDATA || world->current_level == PODRACEB_LDATA ||
+               world->current_level == PODRACEC_LDATA) {
+        world->podrace = GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, sizeof(PODRACE_s));
+    } else {
+        world->has_level_specific_data = 0;
+    }
 }
 
 i32 DidBoltHitChrisJobby(WORLDINFO_s *, BOLT_s *) {

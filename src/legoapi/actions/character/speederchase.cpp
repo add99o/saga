@@ -387,7 +387,7 @@ void ProcessCurrentSpeed(WORLDINFO_s *world, speedup_s *speedup) {
     world->sock_sys->sock[0].current_speed = vehicle_speed;
 
     if (world->current_level == DOGFIGHTA_LDATA && vehicle_speed != 0.0f) {
-        *reinterpret_cast<f32 *>(space->unknown_62ee4) = vehicle_speed / 11.0f;
+        space->normalized_speed = vehicle_speed / 11.0f;
     }
 }
 

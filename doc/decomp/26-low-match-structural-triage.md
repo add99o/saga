@@ -286,8 +286,9 @@ Recovered contracts:
   record's tail and routes story/free-play differently, then continues the
   camera-state setup as retail does.
 - Cleanup tests character **model flags at `+4`**, not the separate flags
-  at `+0x40`, and excludes AT-ATs and player objects. Dead/controlled wave
-  objects are removed and counted once, with the original pitch cue.
+  at `+0x40`, and excludes AT-ATs and player objects. Dead wave objects and
+  those with a nonzero owner-index byte are removed and counted once, with
+  the original pitch cue.
 - Wave three creates two antinodes using the completed spawn-loop index
   for both radii. The signed 32-bit exclusion-mask expression is retained.
   Do not replace either with a superficially more natural per-object value.
@@ -316,3 +317,68 @@ and masks, both final destinations, normal/low-end spawn limits, locator
 assignment, null holes, and locator/object allocation failures. These are
 not a full gameplay run. Function/data sections are enabled only in the
 temporary test object for dead stripping, not in matching builds.
+
+## Hoth panel, shared level allocation, and bonus pickups
+
+Baseline: `4ea624d4`. Four further stubs are reconstructed without changing
+optimization settings.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `HothBattleE_Panel` | 0.88% | 78.59% |
+| `ChrisAllocLevelStuff` | 6.27% | 99.97% |
+| `LegoCity_Update` | 0.98% | 57.66% |
+| `NewTown_Update` | 1.36% | 59.51% |
+
+Overall fuzzy matching: **63.328278% → 63.422913%**. Six scores improve and
+four decrease slightly; no full matches are lost. The three Cloud City
+handlers (`CloudCityTrapA_Update`, `CloudCityTrapB_Update`,
+`CloudCityTrapC_Panel`) and `DeathStar2BattleD_InZapRange` have only changed
+scratch-register load/test pairs and data/literal references in a direct
+before/after comparison. No behavior or control flow changes in those bodies.
+
+The allocator exposes an important missing contract: dogfight state reserves
+`0x63ef4` bytes, not the formerly described `0x62ef0` prefix. Its last known
+word at `+0x62ef0` is cleared; a further 4 KiB remains opaque. The recovered
+float at `+0x62ee4` is normalized speed, initialized to one and replaced by
+socket speed divided by eleven when nonzero. The 256-record reset arena is
+inside the allocation at `+0x5ce90`. No whole-block clear is added.
+
+The same allocator reserves a `0xaf24`-byte pod-race record for the three
+pod-race levels. `PODRACE_s` and its existing pointer-bearing lap records now
+live in a shared header so both allocation and initialization use the same
+`sizeof`, including on 64-bit hosts. The source definitions and target layout
+are unchanged. The world flag at `+0x511c` is named and asserted. Other levels
+clear that flag but leave the existing data pointer alone, as retail does.
+
+Hoth's panel uses local 16-entry target/defeated arrays and a persistent
+16-float alpha array. Waves one/two insert a row break after half-plus-one
+targets; wave three has one row; wave four places its AT-AT first, then probes,
+a separator, and AT-STs. Defeated targets seek alpha 0.4 by steps of 0.1;
+other entries reset to one. A mini cut suppresses all drawing. Clients forward
+the existing 88-byte packet's 12-entry arrays and count directly; the retail
+panel does not publish a host packet, so no inferred publication was added.
+
+The city/town updates scan all eight player slots for live vehicle objects
+with owner-index byte zero whose linked rider is in context `0x3b`. Occupancy is stored
+as **0/255**, not boolean 0/1. Only an occupancy change updates pickup groups,
+and pickups with runtime bit 8 are excluded. Occupancy is remembered even if
+the pickup array is null or empty; a missing world/system returns before
+changing that history. Lego City maps tractor/tauntaun/mooncar/towncar to
+groups 3/4/5/6; New Town maps tauntaun/firetruck/lifeboat to 2/3/4.
+
+Focused tests pass against the actual NDK objects for all Hoth panel rows,
+alpha transitions, cutscene suppression, client forwarding, allocation sizes
+and fields, zero/negative/NaN socket speeds, and all city/town player slots,
+eligibility gates, duplicate riders, entry/exit, absent pickup arrays, and
+2,000 randomized occupancy transitions. The allocator tests also pass with
+a 64-bit host object: space/pod-race allocations grow to 409344/45096 bytes
+from the target's 409332/44836 bytes. External services are mocked, and this
+is not a full gameplay run. The full target and native builds also pass.
+
+Additional bounded experiments were not retained: swapping GEONOSIAN fall
+animation tests did not recover its branch layout; expanding the eight rumble
+checks through an ordinary inline helper still had different cold-block
+placement (36.20%, 815 bytes versus retail 707). A ternary occupancy-change
+expression slightly helped one bonus level but hurt the other; the simpler
+XOR form is retained. These are not reasons to change optimization settings.

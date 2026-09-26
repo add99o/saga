@@ -684,6 +684,10 @@ extern "C" {
     extern i16 id_ATST;
     extern i16 id_SNOWMOB;
     extern i16 id_MOONCAR;
+    extern i16 id_TRACTOR;
+    extern i16 id_TOWNCAR;
+    extern i16 id_FIRETRUCK;
+    extern i16 id_LIFEBOAT;
     extern i16 id_MAPCAR;
     extern i16 id_ATAT;
     extern i16 id_REPUBLICGUNSHIP;

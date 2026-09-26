@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 63.328278,
+    "fuzzy_match_percent": 63.422913,
     "total_code": "4722419",
     "matched_code": "514791",
     "matched_code_percent": 10.901003,
@@ -47008,7 +47008,7 @@
           "address": 2339392,
           "offset": 1449424,
           "size": 322,
-          "match_percent": 6.268657
+          "match_percent": 99.970146
         },
         {
           "name": "_Z23ChrisExtraBoltCollisionP6BOLT_sP7nuvec_s",
@@ -85794,7 +85794,7 @@
           "address": 2210304,
           "offset": 1320336,
           "size": 312,
-          "match_percent": 99.986664
+          "match_percent": 99.58667
         },
         {
           "name": "_Z19CloudCityTrapB_InitP11WORLDINFO_s",
@@ -85810,7 +85810,7 @@
           "address": 2210880,
           "offset": 1320912,
           "size": 312,
-          "match_percent": 99.975
+          "match_percent": 99.6
         },
         {
           "name": "_Z20CloudCityTrapC_ResetP11WORLDINFO_s",
@@ -85834,7 +85834,7 @@
           "address": 2211792,
           "offset": 1321824,
           "size": 104,
-          "match_percent": 99.96774
+          "match_percent": 99.48387
         },
         {
           "name": "_Z21CloudCityEscapeA_InitP11WORLDINFO_s",
@@ -86034,7 +86034,7 @@
           "address": 2219440,
           "offset": 1329472,
           "size": 2403,
-          "match_percent": 0.882353
+          "match_percent": 78.59314
         },
         {
           "name": "_Z24isHothBattleWaveCreatureP12GameObject_s",
@@ -86129,7 +86129,7 @@
           "address": 2230784,
           "offset": 1340816,
           "size": 973,
-          "match_percent": 81.08032
+          "match_percent": 80.95984
         },
         {
           "name": "_Z24DeathStar2BattleD_UpdateP11WORLDINFO_s",
@@ -86193,7 +86193,7 @@
           "address": 2241200,
           "offset": 1351232,
           "size": 1046,
-          "match_percent": 99.10728
+          "match_percent": 99.72031
         },
         {
           "name": "_Z20EmperorFightA_UpdateP11WORLDINFO_s",
@@ -86393,7 +86393,7 @@
           "address": 2264736,
           "offset": 1374768,
           "size": 2241,
-          "match_percent": 0.983607
+          "match_percent": 57.65574
         },
         {
           "name": "_Z12SenateA_InitP11WORLDINFO_s",
@@ -86417,7 +86417,7 @@
           "address": 2267248,
           "offset": 1377280,
           "size": 285,
-          "match_percent": 92.26316
+          "match_percent": 95.0921
         },
         {
           "name": "_Z14NewTown_UpdateP11WORLDINFO_s",
@@ -86425,7 +86425,7 @@
           "address": 2267536,
           "offset": 1377568,
           "size": 1753,
-          "match_percent": 1.363636
+          "match_percent": 59.512627
         },
         {
           "name": "_Z17EndorBattleA_InitP11WORLDINFO_s",

@@ -527,8 +527,57 @@ void LegoCity_Reset(WORLDINFO_s *world) {
     }
 }
 
-void LegoCity_Update(WORLDINFO_s *) {
-    STUBBED();
+void LegoCity_Update(WORLDINFO_s *world) {
+    if (world == NULL || world->pickup_sys == NULL) {
+        return;
+    }
+    u8 onTractor = 0;
+    u8 onTaunTaun = 0;
+    u8 onMoonCar = 0;
+    u8 onTownCar = 0;
+    for (i32 index = 0; index < 8; ++index) {
+        GameObject_s *object = Player[index];
+        if (object != NULL && (object->apiobj.field_0x1f8 & 0x1000) != 0 && object->apiobj.field_0x287 == 0 &&
+            object->field_0xcc0 != NULL && object->field_0xcc0->character_context == CHARACTER_CONTEXT_LINKED_OBJECT) {
+            if (object->id == id_TRACTOR) {
+                onTractor = 0xff;
+            } else if (object->id == id_TAUNTAUN) {
+                onTaunTaun = 0xff;
+            } else if (object->id == id_MOONCAR) {
+                onMoonCar = 0xff;
+            } else if (object->id == id_TOWNCAR) {
+                onTownCar = 0xff;
+            }
+        }
+    }
+    u8 changed = (onTractor ^ prevOnTractor) | (onTaunTaun ^ prevOnTaunTaun) | (onMoonCar ^ prevOnMoonCar) |
+                 (onTownCar ^ prevOnTownCar);
+    prevOnTractor = onTractor;
+    prevOnTaunTaun = onTaunTaun;
+    prevOnMoonCar = onMoonCar;
+    prevOnTownCar = onTownCar;
+    if (changed == 0) {
+        return;
+    }
+    GIZMOPICKUP_s *pickup = world->pickup_sys->pickups;
+    for (i32 index = 0; pickup != NULL && index < world->pickup_sys->pickup_count; ++index, ++pickup) {
+        if ((pickup->runtime_flags & 8) == 0) {
+            switch (pickup->type_id) {
+                case 3:
+                    pickup->collected = onTractor;
+                    break;
+                case 4:
+                    pickup->collected = onTaunTaun;
+                    break;
+                case 5:
+                    pickup->collected = onMoonCar;
+                    break;
+                case 6:
+                    pickup->collected = onTownCar;
+                    break;
+            }
+        }
+    }
 }
 
 void SenateA_Init(WORLDINFO_s *world) {
@@ -604,8 +653,49 @@ void NewTown_Reset(WORLDINFO_s *world) {
     }
 }
 
-void NewTown_Update(WORLDINFO_s *) {
-    STUBBED();
+void NewTown_Update(WORLDINFO_s *world) {
+    if (world == NULL || world->pickup_sys == NULL) {
+        return;
+    }
+    u8 onTaunTaun = 0;
+    u8 onFireTruck = 0;
+    u8 onLifeBoat = 0;
+    for (i32 index = 0; index < 8; ++index) {
+        GameObject_s *object = Player[index];
+        if (object != NULL && (object->apiobj.field_0x1f8 & 0x1000) != 0 && object->apiobj.field_0x287 == 0 &&
+            object->field_0xcc0 != NULL && object->field_0xcc0->character_context == CHARACTER_CONTEXT_LINKED_OBJECT) {
+            if (object->id == id_TAUNTAUN) {
+                onTaunTaun = 0xff;
+            } else if (object->id == id_FIRETRUCK) {
+                onFireTruck = 0xff;
+            } else if (object->id == id_LIFEBOAT) {
+                onLifeBoat = 0xff;
+            }
+        }
+    }
+    u8 changed = (onTaunTaun ^ prevOnTaunTaun) | (onFireTruck ^ prevOnFireTruck) | (onLifeBoat ^ prevOnLifeBoat);
+    prevOnTaunTaun = onTaunTaun;
+    prevOnFireTruck = onFireTruck;
+    prevOnLifeBoat = onLifeBoat;
+    if (changed == 0) {
+        return;
+    }
+    GIZMOPICKUP_s *pickup = world->pickup_sys->pickups;
+    for (i32 index = 0; pickup != NULL && index < world->pickup_sys->pickup_count; ++index, ++pickup) {
+        if ((pickup->runtime_flags & 8) == 0) {
+            switch (pickup->type_id) {
+                case 2:
+                    pickup->collected = onTaunTaun;
+                    break;
+                case 3:
+                    pickup->collected = onFireTruck;
+                    break;
+                case 4:
+                    pickup->collected = onLifeBoat;
+                    break;
+            }
+        }
+    }
 }
 
 // ===========================================================================

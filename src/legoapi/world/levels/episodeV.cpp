@@ -89,7 +89,16 @@ extern "C" {
     HOTHBATTLE_MELEE_s melee;
     u8 dagobahA_nodesNeedUpdating = 1;
 }
-void *hothbattlee_netpacket;
+struct HOTHBATTLEE_NETPACKET_s {
+    i16 targets[12];
+    char defeated[12];
+    f32 alpha[12];
+    i32 count;
+};
+DECOMP_ASSERT(sizeof(HOTHBATTLEE_NETPACKET_s) == 0x58, "Hoth panel packet size");
+DECOMP_ASSERT(offsetof(HOTHBATTLEE_NETPACKET_s, alpha) == 0x24, "Hoth panel packet alpha offset");
+DECOMP_ASSERT(offsetof(HOTHBATTLEE_NETPACKET_s, count) == 0x54, "Hoth panel packet count offset");
+HOTHBATTLEE_NETPACKET_s *hothbattlee_netpacket;
 
 void DagobahA_Init(WORLDINFO_s *world) {
     LevGizForce[0] = GizForce_FindByName(world->giz_force_sys, "force3");
@@ -511,7 +520,7 @@ void HothBattleE_Init(WORLDINFO_s *world) {
     trooper_side[9] = 1;
     if (NuIOS_IsLowEndDevice() == 0)
         InitMiniSnowTroopers(world, 10, 32, 0);
-    memset(reinterpret_cast<u8 *>(&melee) + 0xc, 0, sizeof(melee) - 0xc);
+    memset(melee.waves, 0, sizeof(melee) - offsetof(HOTHBATTLE_MELEE_s, waves));
     HothBattle_Melee_init(&melee);
     i32 count = NuSpecialFind(world->current_gscn, &LevHSpecial[0], "minifig_1_1", 1);
     count += NuSpecialFind(world->current_gscn, &LevHSpecial[1], "minifig_1_2", 1);
@@ -523,7 +532,7 @@ void HothBattleE_Init(WORLDINFO_s *world) {
         hothtroopers = LevHSpecial;
     if (netclient == 0)
         HothBattle_ManageBackgroundCreatures();
-    hothbattlee_netpacket = SetLevelHack(0x58);
+    hothbattlee_netpacket = static_cast<HOTHBATTLEE_NETPACKET_s *>(SetLevelHack(sizeof(HOTHBATTLEE_NETPACKET_s)));
 }
 
 void HothEscapeA_Init(WORLDINFO_s *world) {
@@ -628,8 +637,67 @@ void HothBattleC_Reset(WORLDINFO_s *world) {
     GizmoSetVisibility(world->gizmo_sys, gizmo, 0, 1);
 }
 
+static f32 alpha[16];
+
 void HothBattleE_Panel(WORLDINFO_s *) {
-    STUBBED();
+    if (MiniCutCam != 0) {
+        return;
+    }
+    if (netclient != 0) {
+        DrawMeleeTargetsRows(hothbattlee_netpacket->targets, hothbattlee_netpacket->defeated,
+                             hothbattlee_netpacket->alpha, hothbattlee_netpacket->count);
+        return;
+    }
+
+    i16 targets[16];
+    char defeated[16];
+    i32 count = 0;
+    switch (melee.current_wave) {
+        case 1:
+        case 2:
+            for (i32 index = 0; index < melee.waves[0].initial_count; ++index) {
+                if (index == (melee.waves[0].initial_count >> 1) + 1) {
+                    targets[count] = -1;
+                    defeated[count] = 0;
+                    ++count;
+                }
+                targets[count] = melee.waves[0].character_id;
+                defeated[count] = index >= melee.waves[0].remaining_count;
+                ++count;
+            }
+            break;
+        case 3:
+            for (i32 index = 0; index < melee.waves[0].initial_count; ++index) {
+                targets[count] = melee.waves[0].character_id;
+                defeated[count] = index >= melee.waves[0].remaining_count;
+                ++count;
+            }
+            break;
+        case 4:
+            targets[count] = melee.waves[2].character_id;
+            defeated[count] = melee.waves[2].remaining_count == 0;
+            ++count;
+            for (i32 index = 0; index < melee.waves[0].initial_count; ++index) {
+                targets[count] = melee.waves[0].character_id;
+                defeated[count] = index >= melee.waves[0].remaining_count;
+                ++count;
+            }
+            targets[count++] = -1;
+            for (i32 index = 0; index < melee.waves[1].initial_count; ++index) {
+                targets[count] = melee.waves[1].character_id;
+                defeated[count] = index >= melee.waves[1].remaining_count;
+                ++count;
+            }
+            break;
+    }
+    for (i32 index = 0; index < count; ++index) {
+        if (targets[index] != -1 && defeated[index] != 0) {
+            alpha[index] = SeekLinearF(alpha[index], 0.4f, 0.1f);
+        } else {
+            alpha[index] = 1.0f;
+        }
+    }
+    DrawMeleeTargetsRows(targets, defeated, alpha, count);
 }
 
 void HothEscapeA_Reset(WORLDINFO_s *) {
