@@ -12,8 +12,17 @@ struct MENU_s;
 
 static f32 Arcade_NeedTwoPlayers_Scale = 1.0f;
 
-void Arcade_Kill(i32, i32) {
-    STUBBED();
+void Arcade_AIKilled(i32 player);
+void Arcade_PlayerKilled(i32 player, i32 reason);
+
+void Arcade_Kill(i32 player, i32 killer) {
+    if (Arcade != 0 && static_cast<u32>(player) <= 1) {
+        if (static_cast<u32>(killer) <= 1) {
+            Arcade_PlayerKilled(player, 0);
+        } else if (killer == -1) {
+            Arcade_AIKilled(player);
+        }
+    }
 }
 
 i32 Arcade_GetMode(u32 *flags) {

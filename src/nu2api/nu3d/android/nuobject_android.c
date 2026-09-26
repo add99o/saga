@@ -105,8 +105,13 @@ NUMTX *NuFadeObjAllocMtxs(i32 count) {
     return NULL;
 }
 
-void NuFadeSetFxCodeMtls(nugeom_s *, unsigned char *) {
-    STUBBED();
+i32 NuFadeSetFxCodeMtls(nugeom_s *geom, unsigned char *) {
+    i32 count = 1;
+    while (geom != NULL) {
+        geom = *reinterpret_cast<nugeom_s **>(geom);
+        count++;
+    }
+    return count;
 }
 
 void NuFadeObjFreeMtxs(NUMTX *matrices, i32 count) {

@@ -1991,8 +1991,12 @@ extern "C" {
         STUBBED();
     }
 
-    void FlushMenuHighlights(void) {
-        STUBBED();
+    void FlushMenuHighlights(eduimenu_s *menu) {
+        for (eduiitem_s *item = menu->first; item != NULL; item = item->next) {
+            if (item->type == 0) {
+                item->flags &= ~EDUI_ITEM_HIGHLIGHTED;
+            }
+        }
     }
 
     i32 MenuCurrentID(void) {

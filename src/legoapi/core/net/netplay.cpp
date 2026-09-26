@@ -18,8 +18,10 @@ struct nuqthdr_s;
 struct nunativegscene_s;
 struct SHOPINPUT;
 
-void GetClientMineInfo(nuvec_s **, u64 **, u64 **) {
-    STUBBED();
+void GetClientMineInfo(nuvec_s **positions, u64 **client_bits, u64 **pod_bits) {
+    *positions = reinterpret_cast<NUVEC *>(client_mines);
+    *client_bits = reinterpret_cast<u64 *>(reinterpret_cast<u8 *>(client_mines) + 0x300);
+    *pod_bits = reinterpret_cast<u64 *>(reinterpret_cast<u8 *>(client_mines) + 0x308);
 }
 
 extern void Player_ResetContexts(PLAYERPACKET_s *packet);

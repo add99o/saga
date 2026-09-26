@@ -464,8 +464,24 @@ void ImplodeFillBuf(i32 count) {
     implode_bitbuf |= subbitbuf >> (bitcount -= count);
 }
 
+void *ImplodePutI(void *destination, u32 value, i32 count) {
+    u8 *cursor = static_cast<u8 *>(destination);
+    while (count != 0) {
+        u32 byte = value;
+        *cursor = static_cast<u8>(byte);
+        cursor++;
+        value >>= 8;
+        count--;
+    }
+    return destination;
+}
+
 unsigned char ImplodeGetByteFromMem() {
     return *implode_inbuffer++;
+}
+
+void ImplodePutByteToMem(unsigned char value) {
+    *implode_outbuffer++ = value;
 }
 
 void ImplodeError(char *msg, ...) {
