@@ -8,9 +8,12 @@
 #include "legoapi/menus/screens/gamestructure.h"
 #include "legoapi/characters/core/character.h"
 #include "legoapi/core/config/cheat.h"
+#include "legoapi/misc/utilities.h"
 #include "legoapi/render/fx/parts.h"
 #include "legoapi/world/world.h"
 #include "legoapi/world/area.h"
+#include "legoapi/world/level.h"
+#include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/numtl.h"
@@ -212,8 +215,46 @@ void Customiser_LoadAccessories(CUSTOMISER *customiser, APICHARACTERMODELLIST_s 
     }
 }
 
-void Customiser_DrawAccessories(CUSTOMISER *, GameObject_s *, numtx_s *) {
-    STUBBED();
+void Customiser_DrawAccessories(CUSTOMISER *customiser, GameObject_s *object, numtx_s *matrices) {
+    const i32 joint = object->apiobj.character_data->player_config->helmet_locator;
+    if (customiser == NULL || joint == -1 || object->apiobj.character_model->points_of_interest[joint] == NULL)
+        return;
+
+    const i32 side = object->id != customiser->character_ids[0];
+    i32 next_category = 0;
+    CUSTOMPIECERESOURCE *next_resource = Accessory[side];
+    do {
+        CUSTOMPIECERESOURCE *resource = next_resource++;
+        const i32 category = next_category++;
+        if (customiser->piece_counts[category] <= 0 || category == 2)
+            continue;
+        if (category == 0) {
+            const i16 *pieces = side == 0 ? customiser->save->pieces : customiser->save->secondary_pieces;
+            if ((customiser->piece_sets[0][static_cast<u16>(pieces[0])].layer_flags & 0x20) != 0 ||
+                (customiser->piece_sets[1][static_cast<u16>(pieces[1])].layer_flags & 1) != 0 ||
+                object->field_0x108e != 0)
+                continue;
+        }
+
+        nuhspecial_s *special = &resource->special;
+        if (!NuSpecialExistsFn(special))
+            continue;
+
+        // Retail keeps both draw matrices on a 16-byte-aligned stack.
+        NUMTX_ALIGNED16 matrix;
+        NUMTX_ALIGNED16 reflection;
+        if (matrices != NULL)
+            matrix = matrices[joint];
+        else
+            matrix = object->joint_matrices[joint];
+        NuSpecialDrawAt(special, &matrix);
+        if (object->field_0x1088 != 0 && MatrixReflection(&matrix, object->field_0x1087, object->field_0x1020,
+                                                          WORLD->current_level->unknown_0cc, &reflection)) {
+            NuRndrStartReflectionRender(0);
+            NuSpecialDrawAt(special, &reflection);
+            NuRndrEndReflectionRender();
+        }
+    } while (next_category != 9);
 }
 
 void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object, i32 animation, i32 mode, float scale) {
@@ -263,8 +304,48 @@ void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object,
     }
 }
 
-void Customiser_DumpAccessories(CUSTOMISER *) {
-    STUBBED();
+static inline void Customiser_DumpAccessory(CUSTOMISER *customiser, i32 side, i32 category) {
+    if (customiser->categories[category]->name == NULL)
+        return;
+
+    CUSTOMPIECERESOURCE *resource = &Accessory[side][category];
+    if (resource->scene != NULL) {
+        NuGScnRemove(resource->scene);
+        resource->scene = NULL;
+    } else if (resource->texture_id != 0) {
+        NUMTL *material = resource->character_model->hierarchy->materials[resource->material_index];
+        material->tex_id = static_cast<i16>(resource->original_texture_id);
+        NuMtlUpdate(material);
+        NuTexDestroy(resource->texture_id);
+    }
+}
+
+void Customiser_DumpAccessories(CUSTOMISER *customiser) {
+    if (customiser == NULL || Customiser_AccessoriesLoaded != 1)
+        return;
+
+    if (apicharsys->playermodelids[customiser->character_ids[0]] != -1) {
+        Customiser_DumpAccessory(customiser, 0, 0);
+        Customiser_DumpAccessory(customiser, 0, 1);
+        Customiser_DumpAccessory(customiser, 0, 2);
+        Customiser_DumpAccessory(customiser, 0, 3);
+        Customiser_DumpAccessory(customiser, 0, 4);
+        Customiser_DumpAccessory(customiser, 0, 5);
+        Customiser_DumpAccessory(customiser, 0, 6);
+        Customiser_DumpAccessory(customiser, 0, 7);
+        Customiser_DumpAccessory(customiser, 0, 8);
+    }
+    if (apicharsys->playermodelids[customiser->character_ids[1]] != -1) {
+        Customiser_DumpAccessory(customiser, 1, 0);
+        Customiser_DumpAccessory(customiser, 1, 1);
+        Customiser_DumpAccessory(customiser, 1, 2);
+        Customiser_DumpAccessory(customiser, 1, 3);
+        Customiser_DumpAccessory(customiser, 1, 4);
+        Customiser_DumpAccessory(customiser, 1, 5);
+        Customiser_DumpAccessory(customiser, 1, 6);
+        Customiser_DumpAccessory(customiser, 1, 7);
+        Customiser_DumpAccessory(customiser, 1, 8);
+    }
 }
 
 void Customiser_LoadAll(CUSTOMISER *customiser, WORLDINFO_s *world) {

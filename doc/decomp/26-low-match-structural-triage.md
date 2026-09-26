@@ -764,3 +764,77 @@ NaNs/infinities, unchanged source records, and 10,000 randomized queries;
 and every rumble slot mask, controller/pad gates, callback mutations,
 duration/rate boundaries and NaNs, and 5,000 randomized cases. Sound/loading
 services and the distance callback are mocked; no gameplay run is claimed.
+
+## Customiser accessories and Anakin door state
+
+The next batch raises linked fuzzy matching from **63.847305% to 63.918064%**.
+Four functions improve, three scores regress, and no 100% matches are lost.
+Both source files retain `-O2`; `chris.cpp` also retains its existing
+`-fno-ipa-sra`. No source ownership or calling-convention changes are involved.
+
+| Function | Before | After |
+|---|---:|---:|
+| `Customiser_DumpAccessories` | 0.72% | 97.16% |
+| `Customiser_DrawAccessories` | 1.95% | 24.21% |
+| `ChrisAnakinCReset` | 1.36% | 76.78% |
+| `ChrisAnakinCUpdate` | 5.16% | 75.58% |
+
+Accessory cleanup uses the existing typed `Accessory[2][9]` resource array.
+The loaded flag must equal one, and only model-slot `-1` suppresses a side.
+Each named category either removes its scene and clears the scene pointer
+after the callback, or restores the original material texture, updates that
+material, and destroys the reloaded texture ID. Retail does not clear texture
+IDs or the loaded flag, and scene ownership takes precedence over texture
+ownership. Eighteen ordinary inline calls recover the fixed-slot structure;
+there is no forced inlining or additional emitted helper.
+
+Accessory drawing selects the helmet locator and character side once, then
+checks positive piece counts, category exclusions, helmet-layer flags, and
+special existence. Each matrix is copied after the existence callback;
+reflection state is read after the primary draw. The two matrix locals use
+the existing aligned type because retail explicitly realigns their stack.
+A post-increment resource cursor improves the object score from 18.50% to
+24.07%; the linked result is 24.21%. The remaining frame, saved-piece
+selection, and loop-scheduling differences are not solved by adding artificial
+padding or changing optimization.
+
+`AnakinC` was incorrectly typed as a `GameObject_s` pointer. Reset/update
+establish an array of twelve `0x140` door records, with four matrices, two
+special handles, translation state, activity, and a platform ID. The shared
+header now expresses that pointer-width-aware layout with target assertions.
+The existing volatile pointer and its unallocation behavior are preserved.
+`DoorSetupList` is recovered as fifteen `0x28` records; all string pairs and
+scalar payloads were compared against the linked retail table at `0x624b80`.
+Its last primary name is an empty string, not NULL. The reconstruction keeps
+that data and the retail caller contract: allocated storage and twelve
+successful door matches, or a null-name terminator supplied by the caller.
+It does not invent allocation or a new safety termination condition.
+
+Reset compacts successful lookups into those twelve slots. A failed secondary
+lookup leaves the old secondary flag untouched; a successful lookup narrows
+the existence result to 16 bits. The original/current matrices use chained
+assignment, matching the retail copy order. Returning directly from the
+null-name cleanup path raises object matching from 22.71% to 76.53%; changing
+the primary lookup from early-continue to nested form makes no difference.
+Update preserves inactive records, clamps ordered offsets to their minimum,
+transforms both door halves, and reloads callback-visible state. Explicit
+stores in the two clamp branches and a three-float position copy improve its
+object score from 7.60% to 75.15%, avoiding a compiler-generated SIMD select
+without changing floating-point semantics.
+
+`Customiser_AddPartAccessories` is unchanged in source but falls 0.66 points;
+before/after disassembly shows register allocation, instruction scheduling,
+and literal placement changes with unchanged operations. The `TrueHero` and
+`MiniKit` draw scores move by -0.0024 and -0.0017 points respectively from
+relocated references only. All three were reviewed; no gameplay correction
+was needed in those neighboring functions.
+
+Target/native builds and all five repository checks pass. Focused NDK and
+ASan/UBSan 64-bit host tests pass for both subsystems. Accessory tests cover
+all category masks, ownership combinations, character sides, model-slot
+sentinels, 16 locators, unsigned saved-piece indices, reflection order,
+callback mutations, and 5,000 randomized draw cases. Door tests cover
+lookup/secondary failures, compaction and inactive tails, preserved fields,
+narrowing, all 4,096 activity masks, NaNs/infinities/signed zero, callback
+reloads, and 3,000 randomized reset/update cases. Rendering and scene services
+are mocked; no gameplay execution is claimed.
