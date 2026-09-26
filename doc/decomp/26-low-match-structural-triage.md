@@ -62,3 +62,66 @@ check, and `git diff --check` pass. The symbol check reports no missing
 required symbols and no extra-symbol baseline drift. `matching.json` and
 the README badge were regenerated from the final linked library. No native,
 WASM, or gameplay execution was performed in this pass.
+
+## Arcade reconstruction batch
+
+Baseline: `5dd0ad35`. The nine remaining arcade stubs now implement the
+retail scoring, kill counters, coin thresholds, save progression, panel, and
+end-menu behavior. Definitions follow the original function order. The
+mobile `Arcade_BothPlayersActive` really is a constant true function; do not
+replace it with a speculative player-presence check.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `Arcade_AwardPoint` | 5.12% | 100% |
+| `Arcade_PlayerKilled` | 11.35% | 100% |
+| `Arcade_Kill` | 15.00% | 100% |
+| `Arcade_DrawEndMenu` | 10.50% | 100% |
+| `Arcade_UpdatePanel` | 9.55% | 99.93% |
+| `Arcade_DrawPanel` | 6.67% | 99.89% |
+| `Arcade_UpdateEndMenu` | 11.05% | 99.92% |
+| `Arcade_AIKilled` | 4.88% | 99.28% |
+| `Arcade_CoinCollected` | 4.47% | 99.35% |
+| `Blowup_Activate` | 0.13% | 17.28% |
+
+Structural findings:
+
+- The per-player kill arrays occupy `AreaGlobals + 0x24` and `+0x2c`.
+  Named array aliases preserve the old field names and layout assertions.
+- `Arcade_Score` is a separate two-word array from `Arcade_Points`.
+- The per-level mode mask is an eight-bit value. Keeping it as a `u32`
+  unnecessarily widens the test and introduces another saved register.
+- Player/AI/coin entry points reject unsigned player indices greater than
+  one. AI and coin thresholds use unsigned comparisons.
+- Three near-full panel/menu scores differ only in local data or literal
+  addresses. The scorer still penalizes these slightly. Do not spend a
+  source-reconstruction pass trying to fix them by moving constants or
+  changing the scoring metric.
+- The opponent expression `(player_index + 1) & 1` retains the retail mask
+  but emits `add` where retail uses `xor`. Equivalent XOR/complement forms
+  let GCC remove the mask and score slightly lower. No optimizer override
+  or instruction-forcing workaround was retained.
+
+`Blowup_Activate` now groups activation-only work and updates its flag fields
+directly. Two adjacent functions change only the scratch registers in one
+load/test pair each: `Blowup_SetVisibility` 99.57% → 99.24%, and
+`Blowup_AddGizmos` 87.93% → 87.58%. The complete batch remains net-positive:
+**62.977623% → 63.022400%**, with four new full fuzzy matches and none lost.
+
+Further unsuccessful experiments were reverted:
+
+- Debris collision Y-expression grouping, one-based loop traversal, ordered
+  lifetime gates, and cached sample times did not recover the retail loop
+  shape. A cached-time variant reached only 5.72% against an object file.
+- `refpack` explicit hash initialization, zero-length copy guards, and hash
+  update placement still scored 0%. Revisit only with new structural evidence.
+- Equivalent branch/arithmetic forms of `Player_HasDoubleBoltDamage_FromBolt`
+  and `InstantKillParts` generated the same instructions.
+
+Verification: target compilation and the complete linked report succeeded.
+A focused 32-bit harness linked the actual NDK-compiled arcade object and
+passed assertions for invalid player indices, disabled arcade, score/reset
+gating, all three mode-save bits, completion/autosave, AI thresholds, coin
+mode precedence and resets, null players, end-menu timing, and draw gating.
+This is not a full gameplay run. The temporary harness is not a canonical
+repository test target.

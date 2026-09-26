@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 62.977623,
+    "fuzzy_match_percent": 63.0224,
     "total_code": "4722419",
-    "matched_code": "513993",
-    "matched_code_percent": 10.884104,
+    "matched_code": "514791",
+    "matched_code_percent": 10.901003,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6197,
-    "matched_functions_percent": 46.04354,
+    "matched_functions": 6201,
+    "matched_functions_percent": 46.07326,
     "total_units": 1
   },
   "text": {
@@ -42550,7 +42550,7 @@
           "address": 1333968,
           "offset": 444000,
           "size": 12082,
-          "match_percent": 80.28935
+          "match_percent": 80.29128
         },
         {
           "name": "SOUND_SFXRequest_Table",
@@ -55092,7 +55092,7 @@
           "address": 4946160,
           "offset": 4056192,
           "size": 345,
-          "match_percent": 0.13253
+          "match_percent": 17.27711
         },
         {
           "name": "_ZL20Blowup_SetVisibilityP7GIZMO_si",
@@ -55100,7 +55100,7 @@
           "address": 4946512,
           "offset": 4056544,
           "size": 171,
-          "match_percent": 99.565216
+          "match_percent": 99.23913
         },
         {
           "name": "_ZL27Blowup_AllocateProgressDataP9variptr_uS0_",
@@ -55116,7 +55116,7 @@
           "address": 4946752,
           "offset": 4056784,
           "size": 142,
-          "match_percent": 87.93023
+          "match_percent": 87.5814
         },
         {
           "name": "_ZL20Blowup_StoreProgressPvS_S_",
@@ -68570,7 +68570,7 @@
           "address": 1730528,
           "offset": 840560,
           "size": 190,
-          "match_percent": 9.545455
+          "match_percent": 99.931816
         },
         {
           "name": "_Z16Arcade_DrawPaneli",
@@ -68578,7 +68578,7 @@
           "address": 1730720,
           "offset": 840752,
           "size": 327,
-          "match_percent": 6.666666
+          "match_percent": 99.888885
         },
         {
           "name": "_Z17Arcade_AwardPointiii",
@@ -68586,7 +68586,7 @@
           "address": 1731056,
           "offset": 841088,
           "size": 338,
-          "match_percent": 5.121951
+          "match_percent": 100.0
         },
         {
           "name": "_Z19Arcade_PlayerKilledii",
@@ -68594,7 +68594,7 @@
           "address": 1731408,
           "offset": 841440,
           "size": 149,
-          "match_percent": 11.351352
+          "match_percent": 100.0
         },
         {
           "name": "_Z15Arcade_AIKilledi",
@@ -68602,7 +68602,7 @@
           "address": 1731568,
           "offset": 841600,
           "size": 389,
-          "match_percent": 4.883721
+          "match_percent": 99.27907
         },
         {
           "name": "_Z20Arcade_CoinCollectediPjj",
@@ -68610,7 +68610,7 @@
           "address": 1731968,
           "offset": 842000,
           "size": 369,
-          "match_percent": 4.468085
+          "match_percent": 99.35107
         },
         {
           "name": "_Z11Arcade_Killii",
@@ -68618,7 +68618,7 @@
           "address": 1732352,
           "offset": 842384,
           "size": 102,
-          "match_percent": 15.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z20Arcade_UpdateEndMenuP6MENU_s",
@@ -68626,7 +68626,7 @@
           "address": 1732464,
           "offset": 842496,
           "size": 153,
-          "match_percent": 11.052631
+          "match_percent": 99.92105
         },
         {
           "name": "_Z18Arcade_DrawEndMenuP6MENU_s",
@@ -68634,7 +68634,7 @@
           "address": 1732624,
           "offset": 842656,
           "size": 209,
-          "match_percent": 10.5
+          "match_percent": 100.0
         }
       ]
     },

@@ -92,10 +92,20 @@ struct AREA_GLOBAL_VALUES {
     i32 field_0x18;
     i32 field_0x1c;
     i32 field_0x20;
-    i32 field_0x24;
-    i32 field_0x28;
-    i32 field_0x2c;
-    i32 field_0x30;
+    union {
+        struct {
+            i32 field_0x24;
+            i32 field_0x28;
+        };
+        u32 arcade_player_kills[2];
+    };
+    union {
+        struct {
+            i32 field_0x2c;
+            i32 field_0x30;
+        };
+        u32 arcade_ai_kills[2];
+    };
 };
 
 union AREA_GLOBALS {
@@ -104,6 +114,8 @@ union AREA_GLOBALS {
 };
 
 DECOMP_ASSERT(sizeof(AREA_GLOBALS) == 0x34, "AREA_GLOBALS size");
+DECOMP_ASSERT(offsetof(AREA_GLOBAL_VALUES, arcade_player_kills) == 0x24, "arcade player kills offset");
+DECOMP_ASSERT(offsetof(AREA_GLOBAL_VALUES, arcade_ai_kills) == 0x2c, "arcade AI kills offset");
 
 // ----------------------------------------------------------------------
 // Placeholder save-game / model-list structures.
