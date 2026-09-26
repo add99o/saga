@@ -253,3 +253,66 @@ asteroid C target cap/reinitialization, host/client rotation and translation
 preservation, and asteroid D missing/null turrets, target mapping, cutscene
 fire interval, one-time destruction, and both completion destinations.
 External services are mocked; this is not a full gameplay run.
+
+## Hoth wave controller and background creatures
+
+Baseline: `eef5a5a4`, after rebasing onto main's cutscene-flag correction
+(`2bdd275d`). Both remaining Hoth controller stubs are reconstructed at the
+existing `-O3` setting.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `HothBattleE_UpdateWave` | 0.59% | 82.54% |
+| `HothBattle_ManageBackgroundCreatures` | 0.99% | 71.58% |
+| `HothBattleE_Init` | 98.74% | 99.84% |
+
+Overall fuzzy matching: **63.2454% → 63.3283%**. Three scores improve and
+two decrease slightly; no full matches are lost. Direct before/after
+disassembly shows only moved data/literal references in
+`SpawnMeleeCreatureType` (56.79% → 56.77%), and those plus one scratch-register
+load/test change in `AsteroidChaseC_Init` (99.73% → 99.62%). Their behavior
+and control flow are unchanged.
+
+Recovered contracts:
+
+- The global melee timer is a float at `+8`, not the first word of wave
+  zero. Four 40-byte wave records start at `+0xc`; six background-creature
+  pointers start at `+0xac`. The complete record remains 200 bytes. Layout
+  assertions preserve all established accesses, while named fields expose
+  the transition state and initial, remaining, and active counts.
+- Wave changes wait five seconds except for the first wave, select normal
+  or low-end camera scripts, wait for the cutscene to begin and end, and
+  retry wave startup until it succeeds. Final-wave completion clears the
+  record's tail and routes story/free-play differently, then continues the
+  camera-state setup as retail does.
+- Cleanup tests character **model flags at `+4`**, not the separate flags
+  at `+0x40`, and excludes AT-ATs and player objects. Dead/controlled wave
+  objects are removed and counted once, with the original pitch cue.
+- Wave three creates two antinodes using the completed spawn-loop index
+  for both radii. The signed 32-bit exclusion-mask expression is retained.
+  Do not replace either with a superficially more natural per-object value.
+- Background spawning caps probes/AT-STs at 5/6 normally and 2/2 on low-end
+  devices, suppresses creature types already present in the wave, and
+  assigns each successful spawn to its locator. Locator lookup still occurs
+  before the disabled/transition gates. Failed probe creation breaks into
+  cleanup/AT-ST handling; a missing locator returns immediately.
+- Reverse background cleanup preserves retail's handling of null holes;
+  it is not a generic compact-all-nonnull operation.
+
+Two bounded source-form experiments were retained: declaring the AT-ST
+limit before the probe limit and expressing the loop comparisons in retail
+operand order raised the background object comparison from 50.66% to
+71.16%; separating the positive transition phase from the cutscene gate
+raised the controller from 81.45% to 82.11%. Linked scores are slightly
+higher. Remaining differences are predominantly branch placement, stack
+slots, and register allocation; no optimizer or calling-convention
+attributes were added.
+
+The target build and full linked report pass. Focused 32-bit tests link the
+actual NDK-compiled source with external services mocked. Assertions cover
+all transition phases and delay boundaries, normal/low-end scripts, missing
+scripts, object cleanup and one-time removal, count repair, antinode radii
+and masks, both final destinations, normal/low-end spawn limits, locator
+assignment, null holes, and locator/object allocation failures. These are
+not a full gameplay run. Function/data sections are enabled only in the
+temporary test object for dead stripping, not in matching builds.

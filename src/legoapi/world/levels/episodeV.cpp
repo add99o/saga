@@ -4,6 +4,7 @@
 #include "gameapi/ai/aisys/aipath.h"
 #include "legoapi/ai/core/ai_sys_stubs.h"
 #include "legoapi/ai/core/legoai.h"
+#include "legoapi/ai/game/creature.h"
 #include "legoapi/audio/sfx.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/motion.h"
@@ -64,8 +65,8 @@ void ResetTrooperCannons(WORLDINFO_s *, i32);
 void InitTrooperCannons(WORLDINFO_s *);
 void HothBattleE_UpdateWave();
 void HothBattle_Melee_init(HOTHBATTLE_MELEE_s *);
+i32 HothBattle_StartNewWave();
 void HothBattle_ManageBackgroundCreatures();
-i32 SpawnMeleeCreatureType(i32);
 void UpdateTrooperCannons(WORLDINFO_s *);
 EXPLOSION *Detonate(NUVEC *, u16);
 extern "C" void NewPartRotation(PART_s *);
@@ -851,7 +852,7 @@ void CloudCityTrapC_Update(WORLDINFO_s *) {
 
 void HothBattle_Melee_init(HOTHBATTLE_MELEE_s *melee) {
     if (melee != NULL) {
-        melee->waves[0].field_0x0 = 0;
+        melee->wave_delay = 0.0f;
         melee->field_0x0 = 0;
         melee->field_0x1 = 0;
         melee->field_0x2 = 1;
@@ -876,8 +877,105 @@ void CloudCityEscapeA_Reset(WORLDINFO_s *world) {
     LevGizmo[0] = GizmoFindByName(world->gizmo_sys, gizbuildit_gizmotype_id, "buildit2");
 }
 
+static inline void HothBattle_ClearBackgroundObjects() {
+    GameObject_s *object = Obj;
+    for (i32 index = 0; index < HIGHGAMEOBJECT; ++index, ++object) {
+        if ((object->apiobj.field_0x1f8 & 0x1001) == 0x1001 && object->id != id_ATAT &&
+            object->apiobj.field_0x27c == -1 && (object->apiobj.character_data->model_flags & 4) != 0) {
+            KillGameObject(object, 4, 0);
+        }
+    }
+    memset(melee.background_creatures, 0, sizeof(melee.background_creatures));
+}
+
 void HothBattleE_UpdateWave() {
-    STUBBED();
+    i32 pending = 0;
+    if (melee.current_wave != melee.next_wave) {
+        if (melee.transition_phase == -1) {
+            if (melee.wave_delay < 5.0f && melee.next_wave != 1) {
+                melee.wave_delay += FRAMETIME;
+                return;
+            }
+            if (melee.next_wave == 5) {
+                memset(melee.waves, 0, sizeof(melee) - offsetof(HOTHBATTLE_MELEE_s, waves));
+                if (FreePlay != 0) {
+                    CompleteLevel(WORLD);
+                } else {
+                    GoToNewLevel(HOTHBATTLEOUTRO_LDATA->idx);
+                }
+            }
+            melee.wave_delay = 0.0f;
+            HothBattle_ClearBackgroundObjects();
+            char state[16];
+            if (g_lowEndLevelBehaviour != 0) {
+                sprintf(state, "CamCutLow_%d", melee.next_wave);
+            } else {
+                sprintf(state, "CamCut_%d", melee.next_wave);
+            }
+            if (AIScriptSetBaseScriptStateByName(&WORLD->processors[0].processor, state) != 0) {
+                AIScriptProcess(WORLD->ai_sys, NULL, NULL, &WORLD->processors[0].processor, FRAMETIME);
+            }
+            melee.transition_phase = 0;
+            melee.wave_delay = 0.0f;
+            melee.initialize_wave = 1;
+            pending = 1;
+        } else if (melee.transition_phase > 0) {
+            if (MiniCutCam == 0) {
+                if (melee.transition_phase == 1) {
+                    HothBattle_ClearBackgroundObjects();
+                    melee.transition_phase = 2;
+                }
+                if (HothBattle_StartNewWave() == 0) {
+                    return;
+                }
+                melee.transition_phase = -1;
+                melee.current_wave = melee.next_wave;
+                pending = 1;
+            }
+        } else if (melee.transition_phase == 0 && MiniCutCam != 0) {
+            melee.transition_phase = 1;
+        }
+    }
+
+    i32 type;
+    for (type = 0; type < melee.creature_count; ++type) {
+        SpawnMeleeCreatureType(type);
+    }
+    HothBattle_ManageBackgroundCreatures();
+    if (melee.current_wave == 3 && melee.waves[0].creatures[0] != NULL && melee.waves[0].creatures[1] != NULL) {
+        AIANTINODE_s *node = AIAntinodeCreateSingleFrame(&melee.waves[0].creatures[0]->apiobj.collision_position,
+                                                         melee.waves[0].creatures[type]->apiobj.field_0x1dc * 3.0f);
+        node->excluded_character_types = ~(1 << melee.waves[0].creatures[1]->apiobj.field_0x289);
+        node = AIAntinodeCreateSingleFrame(&melee.waves[0].creatures[1]->apiobj.collision_position,
+                                           melee.waves[0].creatures[type]->apiobj.field_0x1dc * 3.0f);
+        node->excluded_character_types = ~(1 << melee.waves[0].creatures[0]->apiobj.field_0x289);
+    }
+    for (i32 wave_index = 0; wave_index < 4; ++wave_index) {
+        HOTHBATTLE_MELEE_WAVE_s *wave = &melee.waves[wave_index];
+        i32 count = 0;
+        for (i32 index = 0; index < 4; ++index) {
+            GameObject_s *object = wave->creatures[index];
+            if (object != NULL) {
+                if ((object->apiobj.field_0x1f8 & 0x1000) == 0 || object->apiobj.field_0x287 != 0) {
+                    --wave->active_count;
+                    --wave->remaining_count;
+                    wave->creatures[index] = NULL;
+                    PlaySfxAndSetPitch("TrueJedi_100pc", NULL, 1.5f);
+                } else {
+                    ++count;
+                }
+            }
+        }
+        if (wave->active_count != count) {
+            wave->active_count = static_cast<u8>(count);
+        }
+        if (wave->remaining_count != 0) {
+            pending = 1;
+        }
+    }
+    if ((pending | MiniCutCam) == 0 && NOAICREATURES == 0 && melee.current_wave == melee.next_wave) {
+        ++melee.next_wave;
+    }
 }
 
 void CloudCityEscapeA_Update(WORLDINFO_s *) {
@@ -993,8 +1091,87 @@ i32 isHothBattleWaveCreature(GameObject_s *object) {
     return 0;
 }
 
+static inline void HothBattle_AssignSpawnLocator(GameObject_s *object, AILOCATOR_s *locator, AILOCATORSET_s *set) {
+    for (i32 index = 0; index < set->locator_count; ++index) {
+        AILOCATOR_s *entry = &WORLD->ai_sys->locators[set->locator_entries[index]];
+        if (entry == locator) {
+            object->ai.locator = entry;
+            set->assigned[index] = object->apiobj.field_0x289;
+            break;
+        }
+    }
+}
+
 void HothBattle_ManageBackgroundCreatures() {
-    STUBBED();
+    AILOCATORSET_s *set = AIPathFindLocatorSet(WORLD->ai_sys, "spawn");
+    if (NOAICREATURES != 0 || melee.transition_phase != -1) {
+        return;
+    }
+    u8 wave_types = 0;
+    for (i32 type = 0; type < melee.creature_count; ++type) {
+        i16 id = melee.waves[type].character_id;
+        if (id == id_PROBEDROID) {
+            wave_types |= 1;
+        } else if (id == id_SPEEDERBIKESNOW) {
+            wave_types |= 2;
+        } else if (id == id_ATST_LOWRES) {
+            wave_types |= 4;
+        } else if (id == id_ATAT) {
+            wave_types |= 8;
+        }
+    }
+    i32 atst_count = g_lowEndLevelBehaviour != 0 ? 2 : 6;
+    i32 probe_count = g_lowEndLevelBehaviour != 0 ? 2 : 5;
+    f32 radius = apicharsys->char_data[id_PROBEDROID].collision_radius;
+    while (probe_count > aicreature_sets_alive[0] && (wave_types & 1) == 0) {
+        AILOCATOR_s *spawn = getSpawnLocator(radius, "spawn");
+        if (spawn == NULL) {
+            return;
+        }
+        GameObject_s *object = AddDynamicCreature(id_PROBEDROID, &spawn->position, spawn->direction, "Probe",
+                                                  &spawn->path_info, NULL, 1, NULL, NULL, 0, 1);
+        if (object == NULL) {
+            break;
+        }
+        object->field_0xefb |= 0x10;
+        HothBattle_AssignSpawnLocator(object, spawn, set);
+    }
+
+    i32 last = -1;
+    for (i32 index = 5; index >= 0; --index) {
+        GameObject_s *object = melee.background_creatures[index];
+        if (object == NULL) {
+            continue;
+        }
+        if ((object->apiobj.field_0x1f8 & 0x1000) != 0 && object->apiobj.field_0x287 == 0 &&
+            object->ai.creature_set == 3) {
+            if (last == -1) {
+                last = index;
+            }
+        } else if (last == -1) {
+            melee.background_creatures[index] = NULL;
+        } else {
+            melee.background_creatures[index] = melee.background_creatures[last];
+            melee.background_creatures[last] = NULL;
+            --last;
+        }
+    }
+
+    radius = apicharsys->char_data[id_ATST_LOWRES].collision_radius * 2.0f;
+    while (atst_count > aicreature_sets_alive[2] && (wave_types & 4) == 0) {
+        AILOCATOR_s *spawn = getSpawnLocator(radius, "spawn");
+        if (spawn == NULL) {
+            return;
+        }
+        GameObject_s *object = AddDynamicCreature(id_ATST_LOWRES, &spawn->position, spawn->direction, "rider",
+                                                  &spawn->path_info, NULL, 1, NULL, NULL, 0, 3);
+        melee.background_creatures[++last] = object;
+        if (object == NULL) {
+            return;
+        }
+        object->field_0xefb |= 0x10;
+        HothBattle_AssignSpawnLocator(object, spawn, set);
+    }
 }
 
 // ===========================================================================
