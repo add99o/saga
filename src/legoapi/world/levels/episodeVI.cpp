@@ -51,11 +51,60 @@ struct nunativegscene_s;
 struct SHOPINPUT;
 extern u8 LevFlag[16];
 struct SarlaccBattlePacket {
-    u8 reserved[0x10];
+    f32 height;
+    i16 off_mask;
+    i16 flash_mask;
+    i16 select_mask;
+    i16 on_mask;
+    i16 finish_mask;
+    i16 sound_mask;
     u8 disco_active;
+    u8 reserved;
+    i16 completion_sound_played;
 };
+DECOMP_ASSERT(sizeof(SarlaccBattlePacket) == 20, "Sarlacc battle packet size");
+DECOMP_ASSERT(offsetof(SarlaccBattlePacket, disco_active) == 0x10, "Sarlacc disco active offset");
+DECOMP_ASSERT(offsetof(SarlaccBattlePacket, completion_sound_played) == 0x12, "Sarlacc sound latch offset");
 SarlaccBattlePacket *sarlaccb_netpacket;
-static u8 sarlaccdisco[0x400];
+struct SarlaccDisco {
+    AIAREA_s *area;
+    nuhspecial_s off[16];
+    nuhspecial_s flash[16];
+    nuhspecial_s select[16];
+    nuhspecial_s on[16];
+    nuhspecial_s finish[16];
+    GIZOBSTACLE_s *off_obstacle;
+    GIZOBSTACLE_s *on_obstacle;
+    i32 field_3cc;
+    i32 field_3d0;
+    i32 field_3d4;
+    i32 field_3d8;
+    i8 count;
+    i8 field_3dd;
+    i8 field_3de;
+    i8 field_3df;
+    i32 field_3e0;
+    f32 initial_height;
+    f32 height;
+    f32 field_3ec;
+    GIZAIMESSAGE_s *help_message;
+    GIZAIMESSAGE_s *complete_message;
+    GIZAIMESSAGE_s *state_message;
+    i32 field_3fc;
+};
+DECOMP_ASSERT(sizeof(SarlaccDisco) == 0x400, "Sarlacc disco state size");
+DECOMP_ASSERT(offsetof(SarlaccDisco, off) == 4, "Sarlacc off array offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, flash) == 0xc4, "Sarlacc flash array offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, select) == 0x184, "Sarlacc select array offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, on) == 0x244, "Sarlacc on array offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, finish) == 0x304, "Sarlacc finish array offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, off_obstacle) == 0x3c4, "Sarlacc obstacle offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, count) == 0x3dc, "Sarlacc count offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, height) == 0x3e8, "Sarlacc height offset");
+DECOMP_ASSERT(offsetof(SarlaccDisco, complete_message) == 0x3f4, "Sarlacc completion message offset");
+static SarlaccDisco sarlaccdisco;
+f32 disco_base_offset = -0.12f;
+void PlayRadio(char *, char *, i32);
 GIZMO *obstMirrorBall;
 GIZMO *forceMirrorBall;
 nuhspecial_s LevSpecial[7];
@@ -157,8 +206,58 @@ void JabbasPalaceA_Update(WORLDINFO_s *) {
     }
 }
 
-void JabbasPalaceE_Update(WORLDINFO_s *) {
-    STUBBED();
+void JabbasPalaceE_Update(WORLDINFO_s *world) {
+    if (!netclient) {
+        if (FreePlay)
+            KillBossCompleteLevel(id_RANCOR, 0, 0.3f);
+        else
+            KillBossNewLevel(id_RANCOR, 0, 0.3f, JABBASPALACE_OUTRO_LDATA->idx);
+    }
+    GameObject_s *rancor = LevGameObject[0];
+    if (rancor != NULL) {
+        rancor->ai_opponent_exclusion_mask = 0;
+        if (aicreature_sets_alive[0] != 0) {
+            for (i32 index = 0; index < 8; ++index) {
+                GameObject_s *player = Player[index];
+                if (player != NULL)
+                    rancor->ai_opponent_exclusion_mask |= 1ULL << player->apiobj.field_0x289;
+            }
+        } else {
+            // Retail widens a signed 32-bit area mask, including its sign bit.
+            for (i32 index = 0; index < 8; ++index) {
+                GameObject_s *player = Player[index];
+                if (player != NULL && ((LevArea[0] != NULL &&
+                                        (player->apiobj.ai_area_mask &
+                                         static_cast<i32>(1u << ((LevArea[0] - world->ai_sys->areas) & 31))) != 0) ||
+                                       (LevArea[1] != NULL &&
+                                        (player->apiobj.ai_area_mask &
+                                         static_cast<i32>(1u << ((LevArea[1] - world->ai_sys->areas) & 31))) != 0) ||
+                                       (LevArea[2] != NULL &&
+                                        (player->apiobj.ai_area_mask &
+                                         static_cast<i32>(1u << ((LevArea[2] - world->ai_sys->areas) & 31))) != 0))) {
+                    rancor->ai_opponent_exclusion_mask |= 1ULL << player->apiobj.field_0x289;
+                }
+            }
+        }
+    }
+    GIZMOBLOWUP_s *blowup = LevGizmo[0] != NULL ? static_cast<GIZMOBLOWUP_s *>(LevGizmo[0]->object) : NULL;
+    if (blowup != NULL && (blowup->status_flags & 1) != 0) {
+        if (LevFlag[6] == 0) {
+            PlaySfx("exp_minecart", &blowup->position);
+            LevFlag[6] = 1;
+        }
+    } else {
+        LevFlag[6] = 0;
+    }
+    blowup = LevGizmo[1] != NULL ? static_cast<GIZMOBLOWUP_s *>(LevGizmo[1]->object) : NULL;
+    if (blowup != NULL && (blowup->status_flags & 1) != 0) {
+        if (LevFlag[7] == 0) {
+            PlaySfx("exp_minecart", &blowup->position);
+            LevFlag[7] = 1;
+        }
+    } else {
+        LevFlag[7] = 0;
+    }
 }
 
 // ===========================================================================
@@ -192,9 +291,9 @@ void SarlaccPitA_Reset(WORLDINFO_s *world) {
 }
 
 void SarlaccPitB_Init(WORLDINFO_s *) {
-    memset(sarlaccdisco, 0, sizeof(sarlaccdisco));
-    sarlaccb_netpacket = static_cast<SarlaccBattlePacket *>(SetLevelHack(20));
-    i8 *disco_index = reinterpret_cast<i8 *>(&sarlaccdisco[0x3dc]);
+    memset(&sarlaccdisco, 0, sizeof(sarlaccdisco));
+    sarlaccb_netpacket = static_cast<SarlaccBattlePacket *>(SetLevelHack(sizeof(SarlaccBattlePacket)));
+    i8 *disco_index = &sarlaccdisco.count;
     *disco_index = 0;
     char name[32];
     for (;;) {
@@ -202,89 +301,78 @@ void SarlaccPitB_Init(WORLDINFO_s *) {
             sprintf(name, "dot_off_0%d", *disco_index + 1);
         else
             sprintf(name, "dot_off_%d", *disco_index + 1);
-        NuSpecialFind(WORLD->current_gscn, reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[4 + 12 * *disco_index]), name,
-                      1);
+        NuSpecialFind(WORLD->current_gscn, &sarlaccdisco.off[*disco_index], name, 1);
 
         if (*disco_index <= 8)
             sprintf(name, "dot_flash_0%d", *disco_index + 1);
         else
             sprintf(name, "dot_flash_%d", *disco_index + 1);
-        NuSpecialFind(WORLD->current_gscn, reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0xc4 + 12 * *disco_index]),
-                      name, 1);
+        NuSpecialFind(WORLD->current_gscn, &sarlaccdisco.flash[*disco_index], name, 1);
 
         if (*disco_index <= 8)
             sprintf(name, "dot_select_0%d", *disco_index + 1);
         else
             sprintf(name, "dot_select_%d", *disco_index + 1);
-        NuSpecialFind(WORLD->current_gscn, reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x184 + 12 * *disco_index]),
-                      name, 1);
+        NuSpecialFind(WORLD->current_gscn, &sarlaccdisco.select[*disco_index], name, 1);
 
         if (*disco_index <= 8)
             sprintf(name, "dot_on_0%d", *disco_index + 1);
         else
             sprintf(name, "dot_on_%d", *disco_index + 1);
-        NuSpecialFind(WORLD->current_gscn, reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x244 + 12 * *disco_index]),
-                      name, 1);
+        NuSpecialFind(WORLD->current_gscn, &sarlaccdisco.on[*disco_index], name, 1);
 
         if (*disco_index <= 8)
             sprintf(name, "dot_finish_0%d", *disco_index + 1);
         else
             sprintf(name, "dot_finish_%d", *disco_index + 1);
-        NuSpecialFind(WORLD->current_gscn, reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x304 + 12 * *disco_index]),
-                      name, 1);
+        NuSpecialFind(WORLD->current_gscn, &sarlaccdisco.finish[*disco_index], name, 1);
 
-        if (!NuSpecialExistsFn(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[4 + 12 * *disco_index])) ||
-            !NuSpecialExistsFn(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0xc4 + 12 * *disco_index])) ||
-            !NuSpecialExistsFn(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x184 + 12 * *disco_index])) ||
-            !NuSpecialExistsFn(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x244 + 12 * *disco_index])) ||
-            !NuSpecialExistsFn(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x304 + 12 * *disco_index])))
+        if (!NuSpecialExistsFn(&sarlaccdisco.off[*disco_index]) ||
+            !NuSpecialExistsFn(&sarlaccdisco.flash[*disco_index]) ||
+            !NuSpecialExistsFn(&sarlaccdisco.select[*disco_index]) ||
+            !NuSpecialExistsFn(&sarlaccdisco.on[*disco_index]) ||
+            !NuSpecialExistsFn(&sarlaccdisco.finish[*disco_index]))
             break;
 
         if (*disco_index == 0) {
-            NUVEC *position = NuSpecialGetPos(&sarlaccdisco[4]);
+            NUVEC *position = NuSpecialGetPos(&sarlaccdisco.off[0]);
             if (position != NULL) {
                 f32 height = position->y;
-                *reinterpret_cast<f32 *>(&sarlaccdisco[0x3e4]) = height;
-                *reinterpret_cast<f32 *>(&sarlaccdisco[0x3e8]) = height;
+                sarlaccdisco.initial_height = height;
+                sarlaccdisco.height = height;
             }
         }
         ++*disco_index;
         if (*disco_index > 15)
             break;
     }
-    *reinterpret_cast<AIAREA_s **>(&sarlaccdisco[0]) = AISysFindArea(WORLD->ai_sys, "DISCO");
+    sarlaccdisco.area = AISysFindArea(WORLD->ai_sys, "DISCO");
     NuSpecialFind(WORLD->current_gscn, &LevHSpecial[0], "force_engine_lump", 1);
     NuSpecialFind(WORLD->current_gscn, &LevHSpecial[1], "disco_base", 1);
 }
 
 void SarlaccPitB_Reset(WORLDINFO_s *world) {
-    *reinterpret_cast<i32 *>(&sarlaccdisco[0x3cc]) = 0;
-    *reinterpret_cast<i32 *>(&sarlaccdisco[0x3d0]) = 0;
-    *reinterpret_cast<i32 *>(&sarlaccdisco[0x3d4]) = 0;
-    *reinterpret_cast<i32 *>(&sarlaccdisco[0x3d8]) = 0;
-    sarlaccdisco[0x3dd] = 0;
-    *reinterpret_cast<i32 *>(&sarlaccdisco[0x3e0]) = 0;
-    sarlaccdisco[0x3de] = 0xff;
-    sarlaccdisco[0x3df] = 0xff;
+    sarlaccdisco.field_3cc = 0;
+    sarlaccdisco.field_3d0 = 0;
+    sarlaccdisco.field_3d4 = 0;
+    sarlaccdisco.field_3d8 = 0;
+    sarlaccdisco.field_3dd = 0;
+    sarlaccdisco.field_3e0 = 0;
+    sarlaccdisco.field_3de = -1;
+    sarlaccdisco.field_3df = -1;
 
-    i8 count = *reinterpret_cast<i8 *>(&sarlaccdisco[0x3dc]);
-    for (i32 index = 0; index < count; ++index) {
-        NuSpecialSetVisibility(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[4 + 12 * index]), 1);
-        NuSpecialSetVisibility(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0xc4 + 12 * index]), 0);
-        NuSpecialSetVisibility(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x244 + 12 * index]), 0);
-        NuSpecialSetVisibility(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x304 + 12 * index]), 0);
+    for (i32 index = 0; index < sarlaccdisco.count; ++index) {
+        NuSpecialSetVisibility(&sarlaccdisco.off[index], 1);
+        NuSpecialSetVisibility(&sarlaccdisco.flash[index], 0);
+        NuSpecialSetVisibility(&sarlaccdisco.on[index], 0);
+        NuSpecialSetVisibility(&sarlaccdisco.finish[index], 0);
     }
 
-    *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f0]) =
-        SetGizAIMessage(gizaimessagesys, "HelpWithDisco", 0.0f, NULL);
-    *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f4]) =
-        SetGizAIMessage(gizaimessagesys, "DiscoComplete", 0.0f, NULL);
-    *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f8]) =
-        SetGizAIMessage(gizaimessagesys, "DiscoState", 0.0f, NULL);
-    *reinterpret_cast<GIZOBSTACLE_s **>(&sarlaccdisco[0x3c4]) =
-        GizObstacle_FindByName(world->giz_obstacle_sys, "disco_off");
-    *reinterpret_cast<GIZOBSTACLE_s **>(&sarlaccdisco[0x3c8]) =
-        GizObstacle_FindByName(world->giz_obstacle_sys, "disco_on");
+    sarlaccdisco.help_message = SetGizAIMessage(gizaimessagesys, "HelpWithDisco", 0.0f, NULL);
+    sarlaccdisco.complete_message = SetGizAIMessage(gizaimessagesys, "DiscoComplete", 0.0f, NULL);
+    sarlaccdisco.state_message = SetGizAIMessage(gizaimessagesys, "DiscoState", 0.0f, NULL);
+    sarlaccdisco.off_obstacle = GizObstacle_FindByName(world->giz_obstacle_sys, "disco_off");
+    sarlaccdisco.on_obstacle = GizObstacle_FindByName(world->giz_obstacle_sys, "disco_on");
 
     NuSpecialFind(world->current_gscn, &LevSpecial[0], "floor_disco", 1);
     NuSpecialFind(world->current_gscn, &LevSpecial[1], "light1_a", 1);
@@ -313,8 +401,79 @@ void SarlaccPitB_Update(WORLDINFO_s *) {
     STUBBED();
 }
 
+static inline void SarlaccDiscoShow(nuhspecial_s *special) {
+    NuSpecialSetVisibility(special, 1);
+    NUVEC *position = NuSpecialGetDrawPos(special);
+    if (position != NULL) {
+        position->y = sarlaccdisco.height;
+        NuSpecialSetDrawPos(special, position);
+    }
+}
+
 void SarlaccPitB_SpecialUpdate(WORLDINFO_s *) {
-    STUBBED();
+    for (i32 index = 0; index < sarlaccdisco.count; ++index) {
+        NuSpecialSetVisibility(&sarlaccdisco.off[index], 0);
+        NuSpecialSetVisibility(&sarlaccdisco.flash[index], 0);
+        NuSpecialSetVisibility(&sarlaccdisco.select[index], 0);
+        NuSpecialSetVisibility(&sarlaccdisco.on[index], 0);
+        NuSpecialSetVisibility(&sarlaccdisco.finish[index], 0);
+        if (netclient)
+            sarlaccdisco.height = SeekValF(sarlaccdisco.height, sarlaccb_netpacket->height, 8.0f);
+        else
+            sarlaccb_netpacket->height = sarlaccdisco.height;
+
+        if ((sarlaccb_netpacket->off_mask & (1 << index)) != 0)
+            SarlaccDiscoShow(&sarlaccdisco.off[index]);
+        else if ((sarlaccb_netpacket->flash_mask & (1 << index)) != 0)
+            SarlaccDiscoShow(&sarlaccdisco.flash[index]);
+        else if ((sarlaccb_netpacket->select_mask & (1 << index)) != 0)
+            SarlaccDiscoShow(&sarlaccdisco.select[index]);
+        else if ((sarlaccb_netpacket->on_mask & (1 << index)) != 0)
+            SarlaccDiscoShow(&sarlaccdisco.on[index]);
+        else if ((sarlaccb_netpacket->finish_mask & (1 << index)) != 0)
+            SarlaccDiscoShow(&sarlaccdisco.finish[index]);
+        NUVEC *position = NuSpecialGetDrawPos(&LevHSpecial[1]);
+        if (position != NULL) {
+            position->y = sarlaccdisco.height + disco_base_offset;
+            NuSpecialSetDrawPos(&LevHSpecial[1], position);
+        }
+        if ((sarlaccb_netpacket->sound_mask & (1 << index)) != 0)
+            PlaySfx("Kam_DiscoFloorPanelOn", NUMTX_GET_ROW_VEC(NuSpecialGetDrawMtx(&sarlaccdisco.on[index]), 3));
+    }
+    if (sarlaccb_netpacket->disco_active != 0) {
+        SetGizAIMessage(gizaimessagesys, "DiscoComplete", 1.0f, sarlaccdisco.complete_message);
+        PlayRadio("Speaker2", "Speaker21", 1);
+        PlayRadio("Speaker1", "Speaker11", 1);
+        PlayRadio("decks", "decks", 1);
+        if (obstMirrorBall != NULL)
+            GizObstacle_PlayForwards(static_cast<GIZOBSTACLE_s *>(obstMirrorBall->object));
+        if (NuSpecialExistsFn(&LevSpecial[0]))
+            NuSpecialSetVisibility(&LevSpecial[0], 1);
+        if (NuSpecialExistsFn(&LevSpecial[1]))
+            NuSpecialSetVisibility(&LevSpecial[1], 1);
+        if (NuSpecialExistsFn(&LevSpecial[4])) {
+            nuinstanim_s *animation = NuSpecialGetInstAnim(&LevSpecial[4]);
+            if (animation != NULL)
+                animation->playing = 1;
+        }
+        if (NuSpecialExistsFn(&LevSpecial[5]) && NuSpecialExistsFn(&LevSpecial[6])) {
+            nuinstanim_s *animation = NuSpecialGetInstAnim(&LevSpecial[5]);
+            if (animation != NULL)
+                animation->playing = 1;
+            animation = NuSpecialGetInstAnim(&LevSpecial[6]);
+            if (animation != NULL)
+                animation->playing = 1;
+        }
+        if (sarlaccb_netpacket->completion_sound_played == 0) {
+            PlaySfx("Kam_DiscoFloorPanelDone", NuSpecialGetDrawPos(&sarlaccdisco.off[0]));
+            sarlaccb_netpacket->completion_sound_played = 1;
+        }
+    } else {
+        PlayRadio("Speaker2", "Speaker21", 0);
+        PlayRadio("Speaker1", "Speaker11", 0);
+        PlayRadio("decks", "decks", 0);
+        sarlaccb_netpacket->completion_sound_played = 0;
+    }
 }
 
 void SarlaccPitC_Init(WORLDINFO_s *) {

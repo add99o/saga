@@ -516,3 +516,74 @@ arrival distance, signed count decay, timer NaNs, ricochet limits, and 1,000
 randomized rotation/speed samples. External math/terrain services are mocked;
 this is not a full gameplay run. Function/data sections are enabled only in
 temporary test objects, not matching builds.
+
+## Rancor exclusions and Sarlacc disco display
+
+Baseline: `1f09ba25`. Both reconstructed handlers retain Episode VI's `-O3`.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `JabbasPalaceE_Update` | 0.93% | 75.97% |
+| `SarlaccPitB_SpecialUpdate` | 2.22% | 99.85% |
+| `SarlaccPitB_Reset` | 87.18% | 92.04% |
+
+Overall fuzzy matching: **63.560116% → 63.639454%**. Five scores improve,
+four decrease slightly, and no full matches are lost. Direct before/after
+inspection attributes the decreases to literal relocation, a short/long branch
+encoding and alignment fill in `EmperorFightA_Reset`, scratch-register choices
+and independent load/store scheduling in `SarlaccPitC_Reset`, and scratch
+registers in `SarlaccPitC_Update`. `SetLevelSfxBits` changes only literal address
+operands. Their behavior and control-flow destinations are unchanged.
+
+The Rancor handler performs host-only boss completion/level routing, then
+rebuilds the boss's 64-bit opponent-exclusion mask. A live creature set excludes
+all present players; otherwise the three safe areas decide exclusion. The
+retail area expression is a **signed 32-bit shift widened to 64 bits**, not a
+64-bit area shift: bit 31 sign-extends. The reconstructed expression explicitly
+masks the shift count and preserves that widening on both pointer widths.
+Player identities use the separate full 64-bit mask. Two proximity explosions
+each play their sound once on activation and reset their latch when inactive
+or absent. A combined loop condition scored 50.69% in the object comparison;
+separate creature-set branches recover the original unrolled paths and reach
+75.88% without optimizer attributes.
+
+Sarlacc's private `sarlaccdisco` now has a typed 1,024-byte target layout:
+five 16-element special arrays, area/obstacle/message pointers, count, height,
+and still-opaque scalar fields. Initializer/reset accesses use typed members
+and `sizeof`, so host pointers and special records cannot overlap their
+neighbors through hardcoded 32-bit offsets. Target offset assertions preserve
+the retail contract. The 20-byte network packet gains its height, six signed
+panel masks, active byte, and 16-bit sound latch. The recovered data global
+`disco_base_offset` is initialized to retail's `-0.12f`.
+
+Display hides all five variants before selecting the first set mask in
+off/flash/select/on/finish order. Clients seek the height toward the packet
+**once per panel**, while the host publishes its height once per panel. The
+base special follows that height plus the offset, and the sound mask uses the
+on-special's matrix translation. Active disco updates its completion message,
+three radios, mirror-ball obstacle, floor/light visibility, shutter, and paired
+doors; the completion sound is latched until disco becomes inactive. Missing
+position/animation pointers are handled exactly where retail checks them.
+
+A shared selected-special variable merged the five display paths and scored
+25.58%. An ordinary inline helper called from each original branch preserves
+the separate call sites, reproduces the retail 1,580-byte body, and scores
+98.98% before linking. No helper symbol or forced inlining is added. The typed
+initializer keeps its original instruction shape and score. Reloading the
+signed count after each reset iteration now improves the typed reset to 92.04%;
+the earlier byte-array experiment in the Episode VI notes had not done so.
+
+Target/native builds and all five repository tests pass. Focused 32-bit NDK
+and 64-bit host tests cover boss routing, every player/area slot, signed area
+masks, explosion sound edges, and 2,000 randomized exclusion frames. Sarlacc
+tests cover initialization for every count 0–16, typed pointer assignments,
+reset visibility, all five display priorities at all 16 panel bits, host/client
+height updates, missing positions, completion sound reset/replay, and missing
+special/animation gates. The 64-bit Sarlacc test also passes AddressSanitizer
+and UBSan. The previous Death Star lightning regression passes against the
+final NDK object. External services are mocked; no full gameplay run is claimed.
+
+A bounded `Push_UpdateHints` experiment was not retained: eight explicit calls
+to an ordinary inline predicate still differ in prologue and branch layout at
+the source's required `-O2` (0% versus the existing 0.50%). Changing optimization
+settings is not a permitted shortcut.

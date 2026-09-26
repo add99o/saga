@@ -649,6 +649,7 @@ extern "C" {
     extern i16 id_OBIWANKENOBIJEDIMASTER;
     extern i16 id_GRIEVOUS;
     extern i16 id_THEEMPEROR;
+    extern i16 id_RANCOR;
     extern i16 id_SERVICECAR;
     extern i16 id_JANGOFETT;
     extern i16 id_MOSEISLEYCITIZEN;
