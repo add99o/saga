@@ -450,3 +450,69 @@ times), pickup parameters, and the global-rumble prelude. The previous
 2,000-frame city/town pickup regression also passes. Tests use function/data
 sections only in temporary test objects; matching builds are unchanged. No
 full gameplay run was performed.
+
+## Batarang flight and duplicate placeholder ownership
+
+Baseline: `06f6edb7`. The Batarang changes retain the source's `-O3` setting.
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `Batarang_SeekToTarget` | 0.64% | 93.27% |
+| `Batarang_InitRicochet` | 6.63% | 85.60% |
+| `Batarang_Ricochet` | 68.39% | 99.97% |
+| `seed_chase` | 2.61% | 100% |
+| `_fseek64_wrap` | 20.00% | 100% |
+| `ParseAIPathCnxFlag` | 7.50% | 86.05% |
+
+Overall fuzzy matching: **63.505257% → 63.560116%**. Six scores improve,
+none decrease, two reach 100%, and no full matches are lost. The reference
+code denominator remains 4,722,419 bytes and 13,459 function records.
+
+Flight now uses the existing `Batarang_GetTargetPos`, moved unchanged from
+`bolts.cpp` to its actual caller's `batarang.cpp`, instead of a simplified
+substitute. The original local entry point remains emitted using its existing
+retention annotation: retail also calls it from an unreconstructed target-marker
+path in `Batarang_MoveCode`. Removing retention with only the current caller
+inlines it and loses the required symbol. Its remaining private-register-ABI
+difference is deferred until that real second caller is recovered; no calling
+convention attribute or artificial call is added.
+
+The seek path distinguishes a lost/out-of-range target from helper failure,
+uses the owner's joint when returning in flight, accelerates steering after
+one second, and ray-tests only before four seconds. Target type and platform
+identity determine whether an impact starts a ricochet. Non-ricochet flight
+decays the signed ricochet count, integrates velocity, and tests a strict
+0.25-unit arrival radius. The ricochet timer tests its value at entry before
+advancing, rather than expiring one frame early. Initialization rotates and
+combines normalized vectors, retains 80% speed, and seeks each component by
+ten; the old simplified 75%-speed reflection was not retail behavior.
+
+Five unused nine-byte local placeholders duplicated real linked functions:
+
+- `episode.cpp::seed_chase` and `legoapi_misc.cpp::_fseek64_wrap` duplicated
+  the pinned libvorbis implementations in `psy.c` and `vorbisfile.c`.
+- `edpath.cpp::ParseAIPathCnxFlag` duplicated the parser in `aisys.cpp`.
+- `render/fx/edsplines.cpp::SplineLength` duplicated the local helper in
+  `socksysall.cpp` (the separate public editor function is retained).
+- `parts.cpp::UpdateAnimTimer` duplicated the helper used by `apiobject.cpp`.
+
+Each exact local symbol occurs once in retail. Source searches found no calls
+to the placeholders; the real bodies and their callers are unchanged. Removing
+only the placeholders leaves one emitted symbol apiece and removes three
+ambiguous source assignments. The library functions were already 100% matches;
+name-only pairing had selected the placeholders. Library ownership is outside
+the report's game-source unit list, so these two entries become unassigned
+rather than being incorrectly attributed to game stubs. The spline and timer
+scores are unchanged. This extends the duplicate trap documented in the audio
+audit: inspect all same-name local symbols before reconstructing a stub. A
+follow-up scan found no other short/large duplicate pair with a unique retail
+symbol except translation-unit startup functions, which were left alone.
+
+Target and native builds and all five repository tests pass. Focused tests
+link the actual NDK-compiled Batarang source and also pass with a 64-bit host
+object. Coverage includes all target kinds, owner/joint fallback, helper
+failure, platform filtering, steering/ray-test timing boundaries, strict
+arrival distance, signed count decay, timer NaNs, ricochet limits, and 1,000
+randomized rotation/speed samples. External math/terrain services are mocked;
+this is not a full gameplay run. Function/data sections are enabled only in
+temporary test objects, not matching builds.

@@ -167,8 +167,3 @@ void DieRumble(GameObject_s *) {
 void charToInt(char const *) {
     STUBBED();
 }
-
-static __used__ i32 _fseek64_wrap(__sFILE *, i64, i32) {
-    STUBBED();
-    return 0;
-}

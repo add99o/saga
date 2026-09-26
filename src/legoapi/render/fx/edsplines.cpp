@@ -341,11 +341,6 @@ void EvaluateSplineXZIntersection(nugspline_s *, i32, SPLINEPOS_s *, nugspline_s
     STUBBED();
 }
 
-static __used__ f32 SplineLength(nugspline_s *, i32) {
-    STUBBED();
-    return 0.0f;
-}
-
 void LevelSplines_InitForLevel(WORLDINFO_s *world) {
     world->giz_buffer.addr = ALIGN(world->giz_buffer.addr, 4);
     world->portal_places = reinterpret_cast<PORTALPOS **>(world->giz_buffer.void_ptr);

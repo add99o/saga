@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 63.505257,
+    "fuzzy_match_percent": 63.560116,
     "total_code": "4722419",
-    "matched_code": "514860",
-    "matched_code_percent": 10.902464,
+    "matched_code": "515563",
+    "matched_code_percent": 10.91735,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6202,
-    "matched_functions_percent": 46.080692,
+    "matched_functions": 6204,
+    "matched_functions_percent": 46.09555,
     "total_units": 1
   },
   "text": {
@@ -24086,6 +24086,14 @@
           "offset": 756064,
           "size": 627,
           "match_percent": 65.81287
+        },
+        {
+          "name": "_ZL18ParseAIPathCnxFlagPc",
+          "demangled_name": "ParseAIPathCnxFlag(char*)",
+          "address": 1646672,
+          "offset": 756704,
+          "size": 202,
+          "match_percent": 86.05357
         },
         {
           "name": "_ZL20Action_CnxControllerP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -61010,6 +61018,14 @@
           "match_percent": 90.06383
         },
         {
+          "name": "_ZL15UpdateAnimTimerP16CHARACTERMODEL_sP12ANIMPACKET_ssfffiPcif",
+          "demangled_name": "UpdateAnimTimer(CHARACTERMODEL_s*, ANIMPACKET_s*, short, float, float, float, int, char*, int, float)",
+          "address": 3989699,
+          "offset": 3099731,
+          "size": 1057,
+          "match_percent": 63.810997
+        },
+        {
           "name": "UpdateAnimPacket",
           "demangled_name": "UpdateAnimPacket",
           "address": 3990756,
@@ -61885,6 +61901,14 @@
           "match_percent": 99.979164
         },
         {
+          "name": "_ZL21Batarang_GetTargetPosP10BATARANG_siP7nuvec_s",
+          "demangled_name": "Batarang_GetTargetPos(BATARANG_s*, int, nuvec_s*)",
+          "address": 1928384,
+          "offset": 1038416,
+          "size": 325,
+          "match_percent": 71.9802
+        },
+        {
           "name": "_Z16Batarang_ReleaseP12GameObject_si",
           "demangled_name": "Batarang_Release(GameObject_s*, int)",
           "address": 1931168,
@@ -61914,7 +61938,7 @@
           "address": 1932096,
           "offset": 1042128,
           "size": 1101,
-          "match_percent": 6.628458
+          "match_percent": 85.604744
         },
         {
           "name": "_Z17Batarang_RicochetP10BATARANG_s",
@@ -61922,7 +61946,7 @@
           "address": 1933200,
           "offset": 1043232,
           "size": 132,
-          "match_percent": 68.3871
+          "match_percent": 99.96774
         },
         {
           "name": "_Z21Batarang_SeekToTargetP10BATARANG_s",
@@ -61930,7 +61954,7 @@
           "address": 1933344,
           "offset": 1043376,
           "size": 914,
-          "match_percent": 0.641509
+          "match_percent": 93.26887
         },
         {
           "name": "_Z14Batarangs_Drawv",
@@ -62121,14 +62145,6 @@
           "offset": 939616,
           "size": 240,
           "match_percent": 96.95652
-        },
-        {
-          "name": "_ZL21Batarang_GetTargetPosP10BATARANG_siP7nuvec_s",
-          "demangled_name": "Batarang_GetTargetPos(BATARANG_s*, int, nuvec_s*)",
-          "address": 1928384,
-          "offset": 1038416,
-          "size": 325,
-          "match_percent": 71.9802
         },
         {
           "name": "_ZL16StarFighterAlignP13starfighter_sP6_vuv_sfi",
@@ -71466,14 +71482,6 @@
           "match_percent": 45.039513
         },
         {
-          "name": "_ZL13_fseek64_wrapP7__sFILExi",
-          "demangled_name": "_fseek64_wrap(__sFILE*, long long, int)",
-          "address": 5256272,
-          "offset": 4366304,
-          "size": 63,
-          "match_percent": 20.0
-        },
-        {
           "name": "_Z9charToIntPKc",
           "demangled_name": "charToInt(char const*)",
           "address": 5420400,
@@ -73862,6 +73870,14 @@
           "offset": 3026543,
           "size": 220,
           "match_percent": 99.13158
+        },
+        {
+          "name": "_ZL12SplineLengthP11nugspline_si",
+          "demangled_name": "SplineLength(nugspline_s*, int)",
+          "address": 3916731,
+          "offset": 3026763,
+          "size": 276,
+          "match_percent": 72.5814
         },
         {
           "name": "_ZL16OnOrOutsidePlaneP7nuvec_sS0_S0_",
@@ -83656,14 +83672,6 @@
           "offset": 4272512,
           "size": 1412,
           "match_percent": 48.33775
-        },
-        {
-          "name": "_ZL10seed_chasePfil",
-          "demangled_name": "seed_chase(float*, int, long)",
-          "address": 5348304,
-          "offset": 4458336,
-          "size": 640,
-          "match_percent": 2.608696
         }
       ]
     },
@@ -119031,18 +119039,6 @@
       ]
     },
     {
-      "name": "_ZL18ParseAIPathCnxFlagPc",
-      "demangled_name": "ParseAIPathCnxFlag(char*)",
-      "address": 1646672,
-      "offset": 756704,
-      "size": 202,
-      "match_percent": 7.5,
-      "candidate_units": [
-        "editor/edpath.cpp.o",
-        "gameapi/ai/aisys/aisys.cpp.o"
-      ]
-    },
-    {
       "name": "_ZL17Action_SetLocatorP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
       "demangled_name": "Action_SetLocator(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
       "address": 1657184,
@@ -122062,18 +122058,6 @@
       ]
     },
     {
-      "name": "_ZL12SplineLengthP11nugspline_si",
-      "demangled_name": "SplineLength(nugspline_s*, int)",
-      "address": 3916731,
-      "offset": 3026763,
-      "size": 276,
-      "match_percent": 72.5814,
-      "candidate_units": [
-        "legoapi/props/system/socksysall.cpp.o",
-        "legoapi/render/fx/edsplines.cpp.o"
-      ]
-    },
-    {
       "name": "_ZL12InsideLineXZffffff",
       "demangled_name": "InsideLineXZ(float, float, float, float, float, float)",
       "address": 3917181,
@@ -122186,18 +122170,6 @@
         "nu2api/numath/nufloat_android.c.o",
         "nu2api/numath/numaths.c.o",
         "nu2api/numath/vumath.c.o"
-      ]
-    },
-    {
-      "name": "_ZL15UpdateAnimTimerP16CHARACTERMODEL_sP12ANIMPACKET_ssfffiPcif",
-      "demangled_name": "UpdateAnimTimer(CHARACTERMODEL_s*, ANIMPACKET_s*, short, float, float, float, int, char*, int, float)",
-      "address": 3989699,
-      "offset": 3099731,
-      "size": 1057,
-      "match_percent": 63.810997,
-      "candidate_units": [
-        "legoapi/items/base/apiobject.cpp.o",
-        "legoapi/render/fx/parts.cpp.o"
       ]
     },
     {
@@ -125306,6 +125278,14 @@
       "match_percent": 0.0
     },
     {
+      "name": "_ZL13_fseek64_wrapP7__sFILExi",
+      "demangled_name": "_fseek64_wrap(__sFILE*, long long, int)",
+      "address": 5256272,
+      "offset": 4366304,
+      "size": 63,
+      "match_percent": 100.0
+    },
+    {
       "name": "_ZL14_get_next_pageP14OggVorbis_FileP8ogg_pagex.constprop.13",
       "demangled_name": "_get_next_page(OggVorbis_File*, ogg_page*, long long) [clone .constprop.13]",
       "address": 5256336,
@@ -126311,6 +126291,14 @@
       "address": 5348256,
       "offset": 4458288,
       "size": 39,
+      "match_percent": 100.0
+    },
+    {
+      "name": "_ZL10seed_chasePfil",
+      "demangled_name": "seed_chase(float*, int, long)",
+      "address": 5348304,
+      "offset": 4458336,
+      "size": 640,
       "match_percent": 100.0
     },
     {
@@ -127589,8 +127577,8 @@
   "summary": {
     "bazel_units": 454,
     "functions": 13454,
-    "assigned_functions": 12659,
-    "ambiguous_functions": 242,
-    "unassigned_functions": 553
+    "assigned_functions": 12660,
+    "ambiguous_functions": 239,
+    "unassigned_functions": 555
   }
 }
