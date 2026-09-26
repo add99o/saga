@@ -1,6 +1,8 @@
 #include "legoapi/characters/core/charconfig.h"
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/motion/gameanim.h"
+#include "legoapi/core/input/qrand.h"
+#include "legoapi/items/base/collection.h"
 #include "legoapi/gizmo/base/gizactions.h"
 #include "legoapi/world/level.h"
 #include "legoapi/render/fx.h"
@@ -2213,11 +2215,6 @@ NUFPCOMJMP ConfigChar_GameKeywords[] = {
 static CHARVARIANT *CharVariant;
 static i32 CHARVARIANTCOUNT;
 
-i32 RandomIDFromFlags(u32, u32, i32, APICHARACTERMODELLIST_s *, i32) {
-    STUBBED();
-    return -1;
-}
-
 void CharVariants_Init(CHARVARIANT *variants, i32 count) {
     if (count > 0 && variants != NULL) {
         CharVariant = variants;
@@ -2318,6 +2315,41 @@ i32 CharCategory_IsCategory(GameObject_s *object, i32 index) {
         (((GAMECHARACTERDATA *)object->apiobj.character_data->field11_0x24)->flags_090 & game_flags) != game_flags)
         return 0;
     return 1;
+}
+
+void Move_DEFAULT(GameObject_s *);
+
+i32 RandomIDFromFlags(u32 model_flags, u32 game_flags, i32 require_hat, APICHARACTERMODELLIST_s *excluded,
+                      i32 exclude_hidden) {
+    i16 candidates[500];
+    i32 count = 0;
+    CHARACTERDATA *character = CDataList;
+    for (i32 id = 0; id < CHARCOUNT; ++id, ++character) {
+        if (excluded != NULL && InModelList(excluded, id, NULL) != 0) {
+            continue;
+        }
+        if (Game_Customiser != NULL && (Game_Customiser->field6c_0x6c == id || Game_Customiser->field6e_0x6e == id)) {
+            continue;
+        }
+        GAMECHARACTERDATA *game_character = character->game_character;
+        if (character->move_fn == Move_DEFAULT || (game_character->flags_090 & game_flags) != game_flags ||
+            (character->model_flags & model_flags) != model_flags ||
+            (exclude_hidden != 0 && (game_character->flags_094[1] & 0x40) != 0) ||
+            ((model_flags & 8) != 0 && (game_character->flags_094[1] & 0x80) != 0) || Collection_Got(id) == 0 ||
+            (require_hat != 0 && CanWearHatsInFreePlay(id) == 0)) {
+            continue;
+        }
+        if (count < 500) {
+            candidates[count++] = id;
+        }
+    }
+    if (count == 0) {
+        return -1;
+    }
+    if (count == 1) {
+        return candidates[0];
+    }
+    return candidates[qrand() / (0xffff / count + 1)];
 }
 
 CHARCONFIG_s charconfig;

@@ -1038,3 +1038,64 @@ The fighter type is also empty. Recover the shared fighter layout and real
 callers together so GCC can infer the private convention; do not add a
 calling-convention attribute to the isolated stub. This pass inspected the
 retail body but made no speculative source changes to that cluster.
+
+## Random character selection and balloon release
+
+Recovering `RandomIDFromFlags` raises its linked match from **4.27% to
+60.75%**, and `LetGoOfBalloon` rises from **3.93% to 75.86%**. Aggregate
+fuzzy matching rises from **63.996925% to 64.009445%**. These remove the last
+stub bodies in `charconfig.cpp` and `carrying.cpp`, respectively; their
+`-O2` and `-O3` settings are unchanged. No other function scores change and
+no exact matches are lost.
+
+Random selection filters model-list exclusions, signed customiser IDs,
+default movement, required model/game flags, packed visibility flags,
+collection ownership, and optional hat support in retail callback order.
+It stores at most 500 signed 16-bit IDs, but continues invoking filters for
+later characters. Zero and one candidate do not consume random state;
+larger lists use `qrand() / (65535 / count + 1)`, not modulo. The character
+array pointer is captured before traversal while the count is reloaded
+after callbacks. The existing hat helper is reused without modification.
+
+The first source placement slightly changed register allocation in three
+unchanged neighbors, including an exact category lookup. One bounded
+definition-order trial places random selection after the category helpers,
+consistent with their retail address ordering. This restores all three
+neighbor scores without changing random selection's 429-byte body or its
+60.41% object score. Ownership, compiler options, and calling conventions
+remain unchanged; no artificial register or inlining controls are used.
+
+Balloon release clears context before checking the level resource, resolves
+the signed hand locator, constructs its translation matrix and rotated
+velocity, and copies particle defaults after the rotation callback. Radius
+lookup precedes reloading the resource pointer and particle fields. The
+new particle receives the low 16 bits of the object's hit flags only after
+successful allocation. One body trial scores 75.35% before linking;
+remaining differences include the retail aligned frame and register/stack
+layout, which are not forced with matching-only attributes.
+
+Target/native builds and all five repository checks pass. Focused 32-bit
+NDK and 64-bit host ASan/UBSan tests pass for both functions. Random selection
+tests cover all 32 required-mask bits, packed flag bytes, callback ordering
+and mutations, the 500-entry cap, signed ID narrowing, all 65,536 random
+values at six representative counts, and 1,000 randomized cases. Its host
+harness disables ASan global instrumentation (`-mllvm -asan-globals=0`) so
+unused parser callback tables can be garbage-collected; stack/heap ASan and
+UBSan remain enabled. Balloon tests retain default ASan instrumentation and
+cover all signed contexts, all 16 hand locators, byte flags, allocation
+outcomes, default snapshots, and callback changes to resources and frame
+time. Engine services are mocked; no gameplay execution is claimed.
+
+### Rejected shared sound-list experiment
+
+`NuSoundSystem::CreateVoice` remains a shared-representation issue. Its
+retail intrusive-list conversions preserve null before applying an offset;
+the current `NuEListOffset::GetLinks` applies the offset unconditionally.
+A null-preserving helper raises this function from 0.74% to 15.22%, but the
+full report regresses overall: 14 functions improve and seven regress,
+including clock removal/destruction, sample unloading, and voice stopping.
+Inverting the decoder-selection branches scores 0%, both with and without
+the helper change. All experiments were reverted, and no behavior-validation
+claim is made for them. Audit the shared intrusive-list representation and
+its callers together before revisiting this cluster; isolated source-shape
+churn or optimizing only one caller is not a useful next step.
