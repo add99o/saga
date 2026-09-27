@@ -27,6 +27,7 @@
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/nuspline.h"
 #include "legoapi/render/fx/spline_position.h"
+#include "legoapi/props/system/socksys.h"
 
 void GameCameraMakeMiniCut2(NUVEC *, NUVEC *, i32, f32, f32, f32, f32, i32, i32, i32);
 
@@ -306,8 +307,8 @@ initialize:
 }
 
 i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s *system, AISCRIPTPROCESS_s *processor,
-                                                                         AIPACKET_s *packet, char **params, i32 param_count,
-                                                                         i32 first_time, f32 elapsed) {
+                                                                        AIPACKET_s *packet, char **params,
+                                                                        i32 param_count, i32 first_time, f32 elapsed) {
     if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
         return 1;
     GameObject_s *object = packet->owner->apiobj.objptr;
@@ -329,8 +330,8 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s 
         }
     }
     TECHNO *techno = static_cast<TECHNO *>(processor->action_data_3);
-    if (techno == NULL || (techno->flags & TECHNO_FLAG_ACTIVE) == 0 ||
-        (techno->flags & TECHNO_FLAG_VISIBLE) == 0 || (techno->flags & TECHNO_FLAG_COMPLETE) != 0)
+    if (techno == NULL || (techno->flags & TECHNO_FLAG_ACTIVE) == 0 || (techno->flags & TECHNO_FLAG_VISIBLE) == 0 ||
+        (techno->flags & TECHNO_FLAG_COMPLETE) != 0)
         return 1;
 
     AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
@@ -351,8 +352,8 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s 
 }
 
 i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *processor,
-                                                                            AIPACKET_s *packet, char **params,
-                                                                            i32 param_count, i32 first_time, f32) {
+                                                                          AIPACKET_s *packet, char **params,
+                                                                          i32 param_count, i32 first_time, f32) {
     if (player == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
         return 0;
     GameObject_s *object = packet->owner->apiobj.objptr;
@@ -364,19 +365,18 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_MoveForward(AISYS_
             i32 turn = 0;
             i32 random_direction = 0;
             for (i32 index = 0; index < param_count; ++index) {
-                if (AIActionParseSpeedFn != NULL &&
-                    AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0)
+                if (AIActionParseSpeedFn != NULL && AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0)
                     continue;
                 char *value = NuStrIStr(params[index], "min_turn");
                 if (value != NULL) {
-                    min_turn = static_cast<i32>(static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) *
-                                                182.04444885253906f);
+                    min_turn = static_cast<i32>(
+                        static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) * 182.04444885253906f);
                     continue;
                 }
                 value = NuStrIStr(params[index], "max_turn");
                 if (value != NULL) {
-                    max_turn = static_cast<i32>(static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) *
-                                                182.04444885253906f);
+                    max_turn = static_cast<i32>(
+                        static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) * 182.04444885253906f);
                     continue;
                 }
                 if (NuStrIStr(params[index], "rand_turn_dir") != NULL) {
@@ -393,8 +393,7 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_MoveForward(AISYS_
             if (turn != 0) {
                 if (random_direction != 0 && (NuRand(NULL) & 1) != 0)
                     turn = -turn;
-                processor->action_data_4 =
-                    static_cast<f32>(NuAngAdd(static_cast<i32>(processor->action_data_4), turn));
+                processor->action_data_4 = static_cast<f32>(NuAngAdd(static_cast<i32>(processor->action_data_4), turn));
             }
         }
     }
@@ -453,8 +452,8 @@ i32 Action_FollowPlayer(AISYS_s *sys, AISCRIPTPROCESS_s *processor, AIPACKET_s *
     return 0;
 }
 
-i32 Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **params, i32 param_count,
-                        i32 first_time, float) {
+i32 Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **params, i32 param_count, i32 first_time,
+                        float) {
     if (first_time != 0) {
         char *name = NULL;
         for (i32 index = 0; index < param_count; ++index) {
@@ -1220,8 +1219,190 @@ i32 Action_AssignLocatorInSet(AISYS_s *sys, AISCRIPTPROCESS_s *, AIPACKET_s *pac
     return 1;
 }
 
-void Action_SpeederBeingChased(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+extern i32 players_going_forward;
+extern i32 speeder_hitpoints_lost;
+f32 zoom_ahead_extra = 3.0f;
+f32 zoom_ahead_extra_time = 5.0f;
+f32 speeder_level_height_lerpf = 5.0f;
+f32 speeder_level_height = 1.0f;
+f32 speedervals[4][7] = {
+    {9.0f, -3.0f, 1.5f, 5.0f, 10.0f, 0.5f, 5.0f},
+    {-3.0f, -3.0f, 1.5f, 5.0f, 5.0f, 0.3f, 5.0f},
+    {-3.0f, -3.0f, 1.5f, 5.0f, 2.0f, 0.3f, 5.0f},
+    {4.0f, -3.0f, 1.5f, 5.0f, 10.0f, 0.5f, 5.0f},
+};
+f32 speederfirerange = -1.0f;
+f32 speeder_shootrate = 1.0f;
+f32 speeder_kill_dist = 75.0f;
+f32 speeder_midrange_time = 10.0f;
+f32 speeder_ahead_time = 15.0f;
+f32 speeder_mode_ahead_timer;
+f32 SeekValF(f32, f32, f32);
+
+i32 Action_SpeederBeingChased(AISYS_s *, AISCRIPTPROCESS_s *process, AIPACKET_s *packet, char **, i32, i32 first_time,
+                              float elapsed) {
+    if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 0;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    if (first_time != 0) {
+        object->run_speed_override = object->apiobj.character_data->game_character->run_speed;
+        process->action_data_1 = 0;
+        process->action_timer = 0.0f;
+        process->action_data_2 = object->current_hp;
+        set_speedermode = 0;
+        speeder_hitpoints_lost = 0;
+        speeder_mode_ahead_timer = 0.0f;
+    } else if (process->action_data_1 > 4) {
+        process->action_data_1 = 0;
+    }
+
+    const f32 base_speed = object->apiobj.character_data->game_character->run_speed;
+    const u8 mode = process->action_data_1;
+    f32 separation = 0.0f;
+    i32 in_fire_range = 0;
+    if (player->field_0x661 == 1) {
+        GameObject_s *lead_player = player;
+        if (player2 != NULL) {
+            f32 between_players = MidDistanceFromSockStart(WORLD->sock_sys, &player2->sock_position) -
+                                  MidDistanceFromSockStart(WORLD->sock_sys, &player->sock_position);
+            f32 circuit_length = *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(WORLD->sock_sys->sock->cam) + 0x1d4);
+            if (between_players > circuit_length * 0.5f)
+                between_players -= circuit_length;
+            else if (between_players < circuit_length * -0.5f)
+                between_players += circuit_length;
+            if ((speedervals[mode][0] <= 0.0f && between_players > 0.0f) ||
+                (speedervals[mode][0] > 0.0f && between_players <= 0.0f))
+                lead_player = player2;
+        }
+        separation = MidDistanceFromSockStart(WORLD->sock_sys, &object->sock_position) -
+                     MidDistanceFromSockStart(WORLD->sock_sys, &lead_player->sock_position);
+        f32 circuit_length = *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(WORLD->sock_sys->sock->cam) + 0x1d4);
+        if (separation > circuit_length * 0.5f)
+            separation -= circuit_length;
+        else if (separation < circuit_length * -0.5f)
+            separation += circuit_length;
+        in_fire_range = separation < speederfirerange;
+        if (separation >= speeder_kill_dist && separation != speeder_kill_dist) {
+            KillGameObject(object, 4, 0);
+            return 1;
+        }
+    }
+
+    f32 speed_delta = separation - speedervals[mode][0];
+    if (mode == 0) {
+        if (process->action_timer < zoom_ahead_extra_time)
+            speed_delta -= (zoom_ahead_extra_time - process->action_timer) / zoom_ahead_extra_time * zoom_ahead_extra;
+        if (speeder_mode_ahead_timer < 0.0f)
+            speeder_hitpoints_lost = 0;
+    }
+    f32 amount;
+    f32 factor;
+    f32 seek;
+    if (speed_delta > 0.0f) {
+        amount = speed_delta / speedervals[mode][4];
+        factor = speedervals[mode][5];
+        seek = speedervals[mode][6];
+    } else {
+        amount = speed_delta / speedervals[mode][1];
+        factor = speedervals[mode][2];
+        seek = speedervals[mode][3];
+    }
+    if (amount > 1.0f)
+        amount = 1.0f;
+    f32 multiplier = 1.0f - amount + factor * amount;
+    object->run_speed_override = SeekValF(object->run_speed_override, multiplier * base_speed, seek);
+    if (process->action_data_3 == NULL) {
+        if (separation > 0.0f)
+            process->action_data_3 = reinterpret_cast<void *>(1);
+        else
+            process->action_timer = 0.0f;
+    } else {
+        speeder_mode_ahead_timer += elapsed;
+    }
+    f32 &level_height = *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(object) + 0xe94);
+    level_height = SeekValF(level_height, mode == 1 || process->action_data_3 == NULL ? speeder_level_height : 0.0f,
+                            speeder_level_height_lerpf);
+    if (object->current_hp < static_cast<i8>(process->action_data_2)) {
+        process->action_data_2 = object->current_hp;
+        ++speeder_hitpoints_lost;
+    }
+    if (object->field_0x7a5 != 0xff)
+        return 0;
+
+    if (mode != static_cast<u8>(set_speedermode)) {
+        process->action_data_1 = set_speedermode;
+        process->action_timer = set_speedermode == 1 ? 0.25f : 0.0f;
+    }
+    switch (process->action_data_1) {
+        case 0:
+            if (players_going_forward == 0) {
+                process->action_timer = 0.0f;
+                break;
+            }
+            if (separation <= speedervals[0][0] * 1.25f && process->action_timer <= 0.0f)
+                break;
+            if (speeder_hitpoints_lost < 2) {
+                process->action_timer += elapsed;
+                if (process->action_timer <= speeder_ahead_time)
+                    break;
+            }
+            set_speedermode = process->action_data_1 = 1;
+            process->action_timer = 0.0f;
+            speeder_hitpoints_lost = 0;
+            speeder_mode_ahead_timer = 0.0f;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_JUMP;
+            break;
+        case 1:
+            if (players_going_forward == 0)
+                goto reset_mode;
+            if (separation < 0.0f) {
+                set_speedermode = process->action_data_1 = 2;
+                goto reset_mode;
+            }
+            process->action_timer -= elapsed;
+            if (process->action_timer <= 0.0f && player->field_0x7a5 == '6') {
+                set_speedermode = process->action_data_1 = 3;
+                goto reset_mode;
+            }
+            break;
+        case 2:
+            if (players_going_forward != 0) {
+                if (player->field_0x7a5 == '6') {
+                    set_speedermode = process->action_data_1 = 3;
+                    process->action_timer = 0.0f;
+                    speeder_hitpoints_lost = 0;
+                    speeder_mode_ahead_timer = 0.0f;
+                }
+                if (speeder_shootrate > 0.0f) {
+                    process->action_timer -= elapsed;
+                    if (process->action_timer <= 0.0f) {
+                        process->action_timer = speeder_shootrate * 0.5f + NuRandFloat() * speeder_shootrate;
+                        if (in_fire_range)
+                            object->pad_gamepad->buttons_pressed |= GAMEPAD_ACTION;
+                    }
+                }
+            } else {
+                goto reset_mode;
+            }
+            break;
+        case 3:
+            if (players_going_forward == 0)
+                goto reset_mode;
+            if (speeder_hitpoints_lost < 3) {
+                process->action_timer += elapsed;
+                if (process->action_timer <= speeder_midrange_time)
+                    break;
+            }
+            goto reset_mode;
+    }
+    return 0;
+reset_mode:
+    set_speedermode = 0;
+    process->action_data_1 = 0;
+    process->action_timer = 0.0f;
+    speeder_hitpoints_lost = 0;
+    speeder_mode_ahead_timer = 0.0f;
+    return 0;
 }
 
 namespace {
