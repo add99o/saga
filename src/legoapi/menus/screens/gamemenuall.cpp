@@ -632,9 +632,7 @@ extern i32 FS_CurrentPosFileNum;
 void FS_MakeTimeString(FS_FILEENTRYHDR *, char *);
 void FS_MakeDateString(FS_FILEENTRYHDR *, char *);
 
-void RenderFileSel3(i32 mode) {
-    if (FS_Active == 0)
-        return;
+static __attribute__((noinline, used)) void RenderFileSel3Part(i32 mode) {
 
     f32 x = FS_X;
     f32 y = FS_Y;
@@ -738,6 +736,11 @@ void RenderFileSel3(i32 mode) {
     NuQFntPrintU(system_qfont, sort_labels[sort]);
     NuQFntPopCoordinateSystem();
     NuQFntPopPrintMode();
+}
+
+void RenderFileSel3(i32 mode) {
+    if (FS_Active != 0)
+        RenderFileSel3Part(mode);
 }
 
 void EndMissionsMenu() {
@@ -2001,7 +2004,7 @@ void MenuEnterAutoSaveWarning(MENU_s *) {
     memcard_autosavedisabled = 0;
 }
 
-void MenuUpdateAutoSaveCancel(MENU_s *menu) {
+__attribute__((optimize("no-reorder-blocks"))) void MenuUpdateAutoSaveCancel(MENU_s *menu) {
     static u8 firstTimeIn = 1;
     if (MenuASCancelFinished != 0) {
         MenuASCancelFinished = 0;

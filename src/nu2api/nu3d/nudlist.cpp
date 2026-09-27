@@ -756,7 +756,7 @@ static i32 MtlSortKey(const NUMTL *mtl) {
            mtl->sort_pri;
 }
 
-void DisplayListLinkDynamicMtls(void) {
+__attribute__((optimize("O1"))) void DisplayListLinkDynamicMtls(void) {
     NUDLIST_MANAGER *mgr = &global_dlist_manager;
     if (mgr->nnew_materials == 0 && mgr->ndel_materials == 0)
         return;

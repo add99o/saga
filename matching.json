@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.21492,
+    "fuzzy_match_percent": 65.219215,
     "total_code": "4722419",
     "matched_code": "520312",
     "matched_code_percent": 11.017913,
@@ -69209,7 +69209,7 @@
           "address": 3831120,
           "offset": 2941152,
           "size": 37,
-          "match_percent": 0.0
+          "match_percent": 79.0
         },
         {
           "name": "_Z13RenderFileSelv",
@@ -69441,7 +69441,7 @@
           "address": 4352560,
           "offset": 3462592,
           "size": 258,
-          "match_percent": 0.254545
+          "match_percent": 18.4
         },
         {
           "name": "_Z18MenuUpdateDeletingP6MENU_s",
@@ -81663,14 +81663,6 @@
           "match_percent": 100.0
         },
         {
-          "name": "_ZL14BoxTreeRndrRecP15nuvisiboxtree_sPhP19nuvisiboxtreenode_sifP8nugscn_s",
-          "demangled_name": "BoxTreeRndrRec(nuvisiboxtree_s*, unsigned char*, nuvisiboxtreenode_s*, int, float, nugscn_s*)",
-          "address": 2787520,
-          "offset": 1897552,
-          "size": 365,
-          "match_percent": 45.81818
-        },
-        {
           "name": "_ZN16OcclusionManager10SetEnabledEb",
           "demangled_name": "OcclusionManager::SetEnabled(bool)",
           "address": 2821232,
@@ -81788,7 +81780,7 @@
           "address": 2823216,
           "offset": 1933248,
           "size": 1514,
-          "match_percent": 41.90997
+          "match_percent": 42.23151
         },
         {
           "name": "_ZN11OccluderSet13IsOccludedOBBEPK7nuvec_sS2_PK7numtx_s",
@@ -81869,14 +81861,6 @@
           "offset": 2075888,
           "size": 624,
           "match_percent": 59.083332
-        },
-        {
-          "name": "NuVisiBoxTree",
-          "demangled_name": "NuVisiBoxTree",
-          "address": 2972560,
-          "offset": 2082592,
-          "size": 149,
-          "match_percent": 99.43396
         },
         {
           "name": "_ZN11OccluderSet4InitEjP9variptr_uS0_",
@@ -91753,7 +91737,7 @@
           "address": 3050944,
           "offset": 2160976,
           "size": 3266,
-          "match_percent": 18.881006
+          "match_percent": 22.871853
         },
         {
           "name": "NuDisplayListDraw2D",
@@ -91801,7 +91785,7 @@
           "address": 3059440,
           "offset": 2169472,
           "size": 1746,
-          "match_percent": 26.883516
+          "match_percent": 26.85055
         },
         {
           "name": "NuDisplayListSwapBuffersBeginFrame",
@@ -106017,6 +106001,22 @@
           "offset": 1640776,
           "size": 556,
           "match_percent": 93.92424
+        },
+        {
+          "name": "_ZL14BoxTreeRndrRecP15nuvisiboxtree_sPhP19nuvisiboxtreenode_sifP8nugscn_s",
+          "demangled_name": "BoxTreeRndrRec(nuvisiboxtree_s*, unsigned char*, nuvisiboxtreenode_s*, int, float, nugscn_s*)",
+          "address": 2787520,
+          "offset": 1897552,
+          "size": 365,
+          "match_percent": 43.772728
+        },
+        {
+          "name": "NuVisiBoxTree",
+          "demangled_name": "NuVisiBoxTree",
+          "address": 2972560,
+          "offset": 2082592,
+          "size": 149,
+          "match_percent": 99.43396
         },
         {
           "name": "NuVisiInstTree",
