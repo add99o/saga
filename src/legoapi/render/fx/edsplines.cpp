@@ -1,11 +1,13 @@
 #include "decomp.h"
 #include "globals.h"
+#include "gameapi/edtools/edfile.h"
 #include "legoapi/characters/motion.h"
 #include "nu2api/numath/nufloat.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/render/fx/spline_position.h"
 #include "legoapi/menus/screens/shop.h"
 #include "legoapi/world/world.h"
+#include "legoapi/world/levels/levels.h"
 #include "nu2api/nu3d/nuspline.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nucore/nustring.h"
@@ -13,6 +15,7 @@
 #include "nu2api/numath/nutrig.h"
 
 #include <string.h>
+#include <stdio.h>
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -21,6 +24,8 @@ struct SHOPINPUT;
 
 // The original translation unit exports this internal counter under its unmangled C name.
 static i32 bezierline_depth asm("bezierline_depth");
+extern f32 PODRACE_SPLINEINC;
+char *FSP_Extension = const_cast<char *>(".FSP");
 
 f32 BezierLineLength(VuVec &, VuVec &, VuVec &, VuVec &);
 
@@ -243,8 +248,107 @@ void PointAlongSpline(NUGSPLINE *spline, f32 along, NUVEC *position, u16 *angle,
     }
 }
 
-void FlightSpline_Init(WORLDINFO_s *, flightspline_s *, i32) {
-    STUBBED();
+struct FlightSplineRecord {
+    _vuv_s points[64];
+    i32 point_count;
+    i32 reserved_404;
+    f32 field_408;
+    f32 field_40c;
+    f32 total_length;
+    f32 cumulative_lengths[64];
+    i32 field_514;
+    i32 reserved_518;
+    i32 field_51c;
+    i32 field_520;
+    i32 field_524;
+    i32 field_528;
+};
+DECOMP_ASSERT(sizeof(FlightSplineRecord) == 0x52c, "Flight spline record ABI");
+
+__attribute__((force_align_arg_pointer)) void FlightSpline_Init(WORLDINFO_s *world, flightspline_s *splines,
+                                                                 i32 capacity) {
+    char path[256];
+    sprintf(path, "%s%s", world->config_file, FSP_Extension);
+    EdFileSetMedia(1);
+    if (EdFileOpen(path, NUFILE_READ) == 0)
+        return;
+
+    const i32 version = EdFileReadInt();
+    const i32 spline_count = EdFileReadInt();
+    FlightSplineRecord *records = reinterpret_cast<FlightSplineRecord *>(splines);
+    for (i32 spline_index = 0; spline_index < spline_count; ++spline_index) {
+        FlightSplineRecord &record = records[spline_index];
+        record.point_count = EdFileReadInt();
+        record.field_408 = EdFileReadFloat();
+        record.field_524 = EdFileReadInt();
+        record.field_528 = 1;
+        if (version > 1) {
+            record.field_40c = EdFileReadFloat();
+            record.field_514 = EdFileReadInt();
+        } else {
+            record.field_40c = 0.0f;
+            record.field_514 = 0;
+        }
+        if (version > 2) {
+            record.field_51c = EdFileReadInt();
+            record.field_520 = EdFileReadInt();
+        } else {
+            record.field_51c = -1;
+            record.field_520 = spline_index;
+        }
+        for (i32 point = 0; point < record.point_count; ++point) {
+            record.points[point].x = EdFileReadFloat();
+            record.points[point].y = EdFileReadFloat();
+            record.points[point].z = EdFileReadFloat();
+            record.points[point].w = EdFileReadFloat();
+        }
+    }
+
+    for (i32 spline_index = 0; spline_index < spline_count; ++spline_index) {
+        FlightSplineRecord &record = records[spline_index];
+        flightspline_s *spline = reinterpret_cast<flightspline_s *>(&record);
+        if (version > 3) {
+            record.total_length = EdFileReadFloat();
+            if (version == 4) {
+                f32 total = 0.0f;
+                for (i32 point = 0; point < record.point_count; ++point) {
+                    _vuv_s previous, current;
+                    CalcSplinePoint(spline, &previous, static_cast<f32>(point) / record.point_count);
+                    for (i32 sample = 1; sample <= 10; ++sample) {
+                        CalcSplinePoint(spline, &current,
+                                        (static_cast<f32>(point) + static_cast<f32>(sample) * 0.1f) /
+                                            record.point_count);
+                        NUVEC displacement = {current.x - previous.x, current.y - previous.y, current.z - previous.z};
+                        total += NuVecMag(&displacement);
+                        previous = current;
+                    }
+                    record.cumulative_lengths[point] = total;
+                }
+                record.total_length = total;
+            } else {
+                for (i32 point = 0; point < record.point_count; ++point)
+                    record.cumulative_lengths[point] = EdFileReadFloat();
+            }
+        } else {
+            f32 total = 0.0f;
+            if (record.point_count != 0) {
+                _vuv_s previous, current;
+                CalcSplinePoint(spline, &previous, 1.0f);
+                const f32 step = PODRACE_ADATA != NULL && WORLD->area == PODRACE_ADATA ? PODRACE_SPLINEINC : 0.01f;
+                for (f32 along = 1.0f - step; along >= 0.0f; along -= step) {
+                    CalcSplinePoint(spline, &current, along);
+                    NUVEC displacement = {current.x - previous.x, current.y - previous.y, current.z - previous.z};
+                    total += NuVecMag(&displacement);
+                    previous = current;
+                }
+            }
+            record.total_length = total;
+        }
+    }
+
+    for (i32 spline_index = spline_count; spline_index < capacity; ++spline_index)
+        records[spline_index].point_count = 0;
+    EdFileClose();
 }
 
 i32 LineIntersectXY(NUVEC *, NUVEC *, NUVEC *, NUVEC *, NUVEC *, NUVEC *);
