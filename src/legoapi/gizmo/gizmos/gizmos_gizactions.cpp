@@ -97,8 +97,69 @@ void Action_CameraCut(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32
     STUBBED();
 }
 
-void Action_PullLever(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_PullLever(AISYS_s *system, AISCRIPTPROCESS_s *processor,
+                                                                          AIPACKET_s *packet, char **params, i32 param_count,
+                                                                          i32 first_time, f32 elapsed) {
+    if (__builtin_expect(first_time != 0, 0))
+        goto initialize;
+
+perform:
+    {
+        LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
+        if (lever == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+            return 1;
+        GameObject_s *object = packet->owner->apiobj.objptr;
+        AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
+        if ((object->field_0xefe & 0x80) != 0) {
+            f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
+            if (distance < ai_moveradius * ai_moveradius) {
+                packet->movement_look_target = &lever->position;
+                object->pad_gamepad->buttons_down_08 |= GAMEPAD_SPECIAL;
+            }
+        } else if (FreePlay != 0) {
+            processor->action_timer -= elapsed;
+            if (processor->action_timer < 0.0f) {
+                processor->action_timer = 0.5f;
+                object->pad_gamepad->buttons_down_08 |= GAMEPAD_TOGGLERIGHT;
+            }
+        }
+        return object->character_context == 0x4a && object->field_0x788 == lever;
+    }
+
+initialize:
+    if (param_count > 0) {
+        i32 instant = 0;
+        for (i32 index = 0; index < param_count; ++index) {
+            char *name = NuStrIStr(params[index], "lever=");
+            if (name != NULL) {
+                GIZMO *gizmo = GizmoFindByName(WORLD->gizmo_sys, lever_gizmotype_id, name + 6);
+                if (gizmo == NULL || gizmo->object == NULL)
+                    continue;
+                LEVER *lever = static_cast<LEVER *>(gizmo->object);
+                processor->action_data_3 = lever;
+                if ((lever->flags & LEVER_FLAG_BEING_PULLED) != 0)
+                    continue;
+                processor->action_pos = lever->floor_position;
+                f32 height = GameShadow(NULL, &processor->action_pos, 5.0f, -1);
+                if (height != 2000000.0f)
+                    processor->action_pos.y = height;
+                AISysGetPathPos2(system, &processor->action_pos, &processor->path_info, &processor->action_pos, NULL,
+                                 0xff);
+            } else if (NuStrICmp(params[index], "instant") == 0) {
+                instant = 1;
+            }
+        }
+        LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
+        if (lever == NULL)
+            return 1;
+        if (instant != 0) {
+            lever->flags |= LEVER_FLAG_BEING_PULLED;
+            lever->animation_frame = 0x8000;
+            lever->pull_progress = 1.0f;
+            return 1;
+        }
+    }
+    goto perform;
 }
 
 i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s *system, AISCRIPTPROCESS_s *processor,
