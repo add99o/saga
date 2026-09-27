@@ -20,6 +20,7 @@
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nurand.h"
 #include "nu2api/numath/nutrig.h"
+#include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nucore/nuanim3.h"
@@ -2779,8 +2780,34 @@ extern "C" {
         return characterdata;
     }
 
-    void WindShear(void) {
-        STUBBED();
+    i32 NuRndrGlobalFrameCount(void);
+
+    void __attribute__((optimize("O2,omit-frame-pointer"))) WindShear(NUMTX *output, const NUMTX *input, i32 scale,
+                                                                    i32 seed) {
+        const f32 wind_scale = (static_cast<f32>(scale) / 65535.0f) * global_windscale;
+        const f32 wind_speed = (static_cast<f32>(seed) / 65535.0f) * global_windspeed;
+        const f32 random = NuRandFloatSeeded(reinterpret_cast<u32 *>(&seed));
+        const u32 frame = static_cast<u32>(NuRndrGlobalFrameCount());
+        const f32 frame_time = static_cast<f32>(frame >> 16) * 65536.0f + static_cast<f32>(static_cast<u16>(frame));
+        const f32 phase = (random * 3.142f) * 2.0f + frame_time * wind_speed;
+
+        const f32 angle_scale = 10430.3779296875f;
+        const f32 wave_x = (NuTrigTable[(static_cast<i32>((phase * 4.2f) * angle_scale) >> 1) & 0x7fff] * 0.25f +
+                            (NuTrigTable[(static_cast<i32>((phase * 2.1f) * angle_scale) >> 1) & 0x7fff] * 0.5f +
+                             NuTrigTable[(static_cast<i32>(phase * angle_scale) >> 1) & 0x7fff])) *
+                           wind_scale;
+        const f32 wave_z = (NuTrigTable[((static_cast<i32>((phase * 4.4f) * angle_scale) + 0x4000) >> 1) & 0x7fff] *
+                                0.25f +
+                            (NuTrigTable[((static_cast<i32>((phase * 2.3f) * angle_scale) + 0x4000) >> 1) & 0x7fff] *
+                                 0.5f +
+                             NuTrigTable[((static_cast<i32>((phase * 1.1f) * angle_scale) + 0x4000) >> 1) & 0x7fff])) *
+                           wind_scale;
+
+        *output = *input;
+        output->m10 = input->m00 * wave_x + input->m10 + input->m20 * wave_z;
+        output->m11 = input->m01 * wave_x + input->m11 + input->m21 * wave_z;
+        output->m12 = input->m02 * wave_x + input->m12 + input->m22 * wave_z;
+        output->m13 = input->m03 * wave_x + input->m13 + input->m23 * wave_z;
     }
 
 } // extern "C"
