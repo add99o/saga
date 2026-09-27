@@ -1951,7 +1951,7 @@ static __used__ SPACE_FIGHTER_CALL i32 ProcessStarFighter(starfighter_s *fighter
             position->x += velocity->x * FRAMETIME;
             position->y += velocity->y * FRAMETIME;
             position->z += velocity->z * FRAMETIME;
-            AddVariableShotDebrisEffect(WORLD->debris_sys->entries[240].effect, position, 1, 0, 0);
+            AddVariableShotDebrisEffect(WORLD->debris_sys->entries[48].effect, position, 1, 0, 0);
         } else {
             AddGameDebris(WORLD->debris_sys, 0x17, position);
             *reinterpret_cast<i32 *>(data + 0x110) = 0;
