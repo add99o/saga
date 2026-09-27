@@ -364,13 +364,16 @@ i32 NuSoundSystem::GenerateHash(const char *str) {
     char buf[0x100];
     NuStrUpr(buf, str);
 
-    byte hash = 0x5;
+    if (__builtin_expect(buf[0] == '\0', 0)) {
+        return 0x5;
+    }
 
+    i32 hash = 0x1505;
     for (char *c = buf; *c != '\0'; c++) {
         hash = (hash * 0x21) + *c;
     }
 
-    return hash;
+    return static_cast<byte>(hash);
 }
 
 NuSoundSystem::FileType NuSoundSystem::DetermineFileType(const char *path) {
