@@ -12,6 +12,7 @@
 #include "legoapi/world/world.h"
 #include "legoapi/world/area.h"
 #include "nu2api/nu3d/nuspecial.h"
+#include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nucore/nustring.h"
@@ -212,8 +213,41 @@ void Customiser_LoadAccessories(CUSTOMISER *customiser, APICHARACTERMODELLIST_s 
     }
 }
 
-void Customiser_DrawAccessories(CUSTOMISER *, GameObject_s *, numtx_s *) {
-    STUBBED();
+i32 MatrixReflection(NUMTX *matrix, i32 axis, f32 plane, f32 height, NUMTX *result);
+
+__attribute__((force_align_arg_pointer)) void Customiser_DrawAccessories(CUSTOMISER *customiser, GameObject_s *object,
+                                                                           numtx_s *matrices) {
+    const i32 joint = object->apiobj.character_data->player_config->helmet_locator;
+    if (customiser == NULL || joint == -1 || object->apiobj.character_model->points_of_interest[joint] == NULL)
+        return;
+
+    const i32 side = object->id != customiser->character_ids[0];
+    const i16 *pieces = side == 0 ? customiser->save->pieces : customiser->save->secondary_pieces;
+    for (i32 category = 0; category < 9; ++category) {
+        if (customiser->piece_counts[category] <= 0 || category == 2)
+            continue;
+        if (category == 0 &&
+            (((customiser->piece_sets[1][static_cast<u16>(pieces[1])].availability_flags & 1) != 0) ||
+             ((customiser->piece_sets[0][static_cast<u16>(pieces[0])].availability_flags & 0x20) != 0) ||
+             object->field_0x108e != 0))
+            continue;
+
+        nuhspecial_s *special = &Accessory[side][category].special;
+        if (NuSpecialExistsFn(special) == 0)
+            continue;
+
+        NUMTX draw_matrix = matrices != NULL ? matrices[joint] : object->joint_matrices[joint];
+        NuSpecialDrawAt(special, &draw_matrix);
+        if (object->field_0x1088 != 0) {
+            NUMTX reflected_matrix;
+            if (MatrixReflection(&draw_matrix, object->field_0x1087, object->field_0x1020,
+                                 WORLD->current_level->unknown_0cc, &reflected_matrix) != 0) {
+                NuRndrStartReflectionRender(0);
+                NuSpecialDrawAt(special, &reflected_matrix);
+                NuRndrEndReflectionRender();
+            }
+        }
+    }
 }
 
 void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object, i32 animation, i32 mode, float scale) {
