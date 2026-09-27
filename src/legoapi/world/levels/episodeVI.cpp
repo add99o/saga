@@ -16,6 +16,10 @@
 #include "legoapi/audio/sfx.h"
 #include "nu2api/numath/nurand.h"
 #include "legoapi/core/input/qrand.h"
+#include "legoapi/core/input/gamepads.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
+#include "legoapi/render/core/rtl.h"
+#include "nu2api/numath/nutrig.h"
 i32 Player_HasInvincibility(GameObject_s *);
 void GameAudio_PlaySfxById(i32, NUVEC *, i32, i32);
 extern "C" i32 GetSfxId(const char *);
@@ -881,8 +885,57 @@ void DeathStar2BattleD_Init(WORLDINFO_s *world) {
     LevFlag[5] = 0;
 }
 
+GIZMOBLOWUP_s *DeathStar2BattleD_InZapRange(GameObject_s *object);
+void DisorientateCode(GameObject_s *object, NUVEC *target, f32 distance);
+
 void DeathStar2BattleD_Update(WORLDINFO_s *) {
-    STUBBED();
+    if (LevFlag[0] != 0 && qrand() <= 0x7ff)
+        NewRumbleAllPlayers(static_cast<f32>(qrand()) * (1.0f / 65535.0f), 0.0f, 0, 0);
+
+    GIZMO *shield = LevGizmo[7];
+    GIZMOBLOWUP_s *shield_blowup = shield != NULL ? static_cast<GIZMOBLOWUP_s *>(shield->object) : NULL;
+    if (shield_blowup != NULL && (shield_blowup->status_flags & 1) != 0) {
+        if (static_cast<i32>(AreaTimer.time_elapsed) % 3 == 0 &&
+            static_cast<i32>(AreaTimer.last_time_elapsed) % 3 != 0 &&
+            NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) < 0.5f) {
+            i32 angle = qrand();
+            NUVEC position = shield_blowup->mid_position;
+            NUVEC direction = {NuTrigTable[((angle + 0x4000) >> 1) & 0x7fff], 0.0f,
+                               NuTrigTable[(angle >> 1) & 0x7fff]};
+            f32 radius = NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) * 15.0f + 10.0f;
+            AddPickups(0, 0, 1, 0, &position, &direction, 3.0f, -1, radius, 2000000.0f, NULL, 1, 0, true);
+        }
+        return;
+    }
+
+    for (i32 i = 0; i < 8; i++) {
+        GameObject_s *object = Player[i];
+        if (object == NULL || object->dynamic_light_id == -1)
+            continue;
+        GIZMOBLOWUP_s *blowup = DeathStar2BattleD_InZapRange(object);
+        if (blowup == NULL)
+            continue;
+
+        rtlDynamicEnable(object->dynamic_light_id, 1);
+        NUVEC direction;
+        f32 distance = NuVecDist(&blowup->mid_position, &object->apiobj.collision_position, &direction);
+        rtlDynamicSetRadii(object->dynamic_light_id, distance * 0.5f, distance * 0.5f + 5.0f);
+        qrand();
+        f32 colour_value = qrand() <= 0x7fff ? 2.0f : 0.25f;
+        NUVEC colour = {0.0f, colour_value, colour_value};
+        rtlDynamicSetColours(object->dynamic_light_id, &colour, NULL);
+        NUVEC midpoint = {object->apiobj.collision_position.x + direction.x * 0.5f,
+                          object->apiobj.collision_position.y + direction.y * 0.5f,
+                          object->apiobj.collision_position.z + direction.z * 0.5f};
+        rtlDynamicSetPos(object->dynamic_light_id, &midpoint);
+        distance = NuVecDist(&object->apiobj.collision_position, &blowup->mid_position, &direction);
+        NuLgtLaser(0, 1.0f, 1.0f, 0.01f, &blowup->mid_position, &direction, 0xff808040, 1.5f, distance);
+        NewRumble(object->pad_gamepad->pad, static_cast<f32>(qrand()) * (1.0f / 65535.0f) * 0.3f, 0);
+        if (qrand() <= 0xfff)
+            NewBuzzFrames(object->pad_gamepad->pad, 1, 0);
+        PlaySfx(const_cast<char *>("ForceLightningLp"), &object->apiobj.collision_position);
+        DisorientateCode(object, &blowup->mid_position, 225.0f);
+    }
 }
 
 GIZMOBLOWUP_s *DeathStar2BattleD_InZapRange(GameObject_s *object) {
