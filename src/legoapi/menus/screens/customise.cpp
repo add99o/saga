@@ -11,12 +11,14 @@
 #include "legoapi/legoapi_types.h"
 #include "globals.h"
 #include "batman.h"
+#include "gameapi/gui/apimenu.h"
 #include "legoapi/items/base/animpacket.h"
 #include "legoapi/characters/core/character.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/core/customiser.h"
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/motion/gameanim.h"
+#include "legoapi/core/input/timer.h"
 #include "legoapi/render/core/rtl.h"
 #include "legoapi/render/light/lighting.h"
 #include "legoapi/world/area.h"
@@ -439,7 +441,21 @@ void Customiser_Update(CUSTOMISER *customiser, WORLDINFO_s *world) {
 }
 
 void CustomiserMenu_End() {
-    STUBBED();
+    LevLock[1] = 1;
+    LevTime[1] = 2.0f;
+    MenuRememberCursor(&GameMenu[GameMenuLevel]);
+    MenuReset();
+    ResetTimer(&JoinInTimer, 0.0f);
+    CustomiseMode[0] = 2;
+    CustomiseMode[1] = 2;
+    if (GAMEDEMO != 0) {
+        GAMEDEMO = 2;
+        NewLData = HUB_LDATA;
+        NextArea_FreePlay = 1;
+        FreePlay = 1;
+        makeplayerlist_freeplay = 1;
+        makefreeplaymodellist = 1;
+    }
 }
 
 void CustomiserMenu_Draw(MENU_s *) {
@@ -527,6 +543,15 @@ void Customiser_GetActiveWeirdoIndex(i32 *index, i32 *count) {
     *count = 2;
 }
 
-void Customise_GetToggleString(i32) {
-    STUBBED();
+i32 Customise_GetToggleString(i32 index) {
+    i32 mode = CustomiseMode[index];
+    if (mode == 1) {
+        return tCANCEL;
+    }
+    if (mode != 0) {
+        do {
+            mode = (i32)((u32)mode + 1u) % 3;
+        } while (mode == 0);
+    }
+    return tEDITNAME;
 }

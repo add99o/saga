@@ -19,6 +19,8 @@ void Customiser_DumpAccessories(CUSTOMISER *customiser);
 void Customiser_RestoreModelTextureIDs(CUSTOMISER *customiser);
 void Customiser_TransformToPanel(CUSTOMISER *customiser);
 void Customiser_InitNames(CUSTOMISER *customiser);
+void CustomiserMenu_End();
+i32 Customise_GetToggleString(i32 index);
 void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser);
 CUSTOMPIECE *Customiser_FindPieceByName(CUSTOMISER *customiser, char *name, i32 *category, i32 *index);
 void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object, i32 animation, i32 mode, float scale);

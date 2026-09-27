@@ -16,6 +16,8 @@ void MenuDrawViewTextStrings(MENU_s *menu);
 void Text_InitLanguageList(LANGUAGEDATA *list);
 extern i16 tSTRANGER;
 extern i16 tUNKNOWN;
+extern i16 tEDITNAME;
+extern i16 tCANCEL;
 extern f32 text3d_width;
 extern f32 text3d_height;
 void Text_SetLanguage(i32 lang);

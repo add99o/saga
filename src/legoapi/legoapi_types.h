@@ -1570,7 +1570,8 @@ DECOMP_ASSERT(offsetof(FLOWBOXACTIONDATA_s, argument_count) == 8, "FLOWBOXACTION
 DECOMP_ASSERT(offsetof(FLOWBOXACTIONDATA_s, definition) == 0xc, "FLOWBOXACTIONDATA definition offset");
 DECOMP_ASSERT(offsetof(FLOWBOX_s, actions) == 0xc, "FLOWBOX actions offset");
 
-// The AI message system: a fixed pool of 0x38-byte messages; the free list
+// The AI message system: a fixed pool of 0x38-byte messages on Android x86;
+// pointer-bearing headers and messages grow on 64-bit diagnostic hosts. The free list
 // and the active list live in the header (ResetGizAIMessageSys fills the
 // free list from the pool, CheckGizAIMessage moves nodes free -> active).
 struct GIZAIMESSAGESYS_s {
@@ -1579,6 +1580,10 @@ struct GIZAIMESSAGESYS_s {
     NULISTHDR free_list;      // 0x08
     NULISTHDR active_list;    // 0x10
 };
+DECOMP_ASSERT(sizeof(GIZAIMESSAGESYS_s) == 0x18, "GIZAIMESSAGESYS_s ABI");
+DECOMP_ASSERT(offsetof(GIZAIMESSAGESYS_s, messages) == 0x4, "GIZAIMESSAGESYS_s messages offset");
+DECOMP_ASSERT(offsetof(GIZAIMESSAGESYS_s, free_list) == 0x8, "GIZAIMESSAGESYS_s free list offset");
+DECOMP_ASSERT(offsetof(GIZAIMESSAGESYS_s, active_list) == 0x10, "GIZAIMESSAGESYS_s active list offset");
 
 enum GIZAIMESSAGE_FLAGS {
     GIZAIMESSAGE_FLAG_ADD_GIZMO = 0x01,

@@ -3386,3 +3386,129 @@ pass. No device storage or game-save execution was tested.
 Across batches 42–45, seven functions improve with no regressions or exact
 matches lost. The five body/API restorations are distinct from two incidental
 literal-address improvements documented in batch 42.
+
+## Batch 46: AI-message pool allocation portability
+
+The low-scoring `CheckGizAIMessage` already implements the original lookup,
+prefix handling and free-to-active transfer. One isolated common-return
+rewrite reduces its score from **8.324% to 0%** and is rejected; do not repeat
+this block-order permutation or add compiler hints. Its existing unchecked
+copy for names containing `msg_` retains the original bounded-input
+precondition.
+
+Inspection of the surrounding lifecycle finds a real native defect:
+`CreateGizAIMessageSys` allocates and clears a hard-coded 24-byte header,
+then allocates 56 bytes per message. On a 64-bit diagnostic host these
+pointer-bearing types occupy 48 and 64 bytes. An exact-size allocation
+fixture reproduces an ASan heap-buffer-overflow in `ResetGizAIMessageSys`
+while writing immediately beyond the 24-byte header.
+
+Use `sizeof` for both allocations and header clearing, consistent with the
+existing typed pool reset. Add Android header-size and member-offset
+assertions. Preserve the original first-allocation failure, zero-capacity
+pool and partially initialized header returned after second-allocation
+failure; no new count policy is introduced.
+
+**780 allocation/lifecycle cases per architecture** pass on NDK x86 and
+full-global 64-bit ASan/UBSan, linking the actual message, linked-list and
+string implementations. Coverage includes capacities 0–64, either allocation
+failure, four initial memory patterns, exact requested sizes, full header
+clearing, repeated activation/exhaustion/reset, case-insensitive reuse,
+enumeration, value clearing without metadata clearing, cached-pointer/null
+gates, the 26-character unprefixed boundary and a 31-character embedded-prefix
+name. Only the allocator is replaced; full AI-world setup and invalid or
+overflowing capacities are not exercised.
+
+The target remains **64.769320%**, with **no changed function scores**;
+`CreateGizAIMessageSys` retains its exact 100% match. Target/native builds and
+all five repository checks pass. This is a portability repair, not a fuzzy
+score gain.
+
+## Batch 47: spaceship matrix helpers
+
+`ChrisGetSpaceShipMatrix` and `ChrisGetTargetedSpaceShipMatrix` both improve
+from **9.545% to 100%**, raising whole fuzzy matching to **64.776550%**.
+These two original 189-byte functions are identical: copy the complete
+`object->apiobj.field_0xb8` matrix, then call `NuMtxPreRotateY` with `0x8000`.
+The targeted variant does not select a different matrix or inspect targeting
+state. Both require valid object/output pointers; no extra guards are added.
+Use the existing typed matrix member and expose the recovered signatures in
+the owner header. Existing source optimization is unchanged.
+
+**8,192 cases per architecture** pass with NDK x86 and full-global 64-bit
+ASan/UBSan. Half record the rotation call to verify all 64 copied bytes,
+the exact angle and output pointer, one callback invocation and preservation
+of the callback's output. The other half link the real rotation implementation
+and real trig-table initializer and compare the six rotated components with
+an independent scalar oracle. Both halves exercise both helpers, separate
+output and in-place aliases, untouched matrix components, complete source
+object preservation and output guards. Recording tests use arbitrary float
+bit patterns; arithmetic tests use bounded finite values. No live spaceship
+rendering is claimed. Target/native builds and all five checks pass, with
+two new exact matches and no regressions.
+
+## Batch 48: customiser menu exit
+
+`CustomiserMenu_End` improves **10.500% to 97.425%**, raising whole fuzzy
+matching to **64.780250%**. Restore level-lock slot 1 and its two-second
+delay, remember the currently selected menu cursor, reset the menu, reset
+`JoinInTimer` to zero, then set both private customiser modes to 2. Only
+after those callbacks does the original check `GAMEDEMO`. A nonzero value
+becomes 2 and requests `HUB_LDATA` through `NewLData`, with all four next-area,
+free-play, player-list and model-list flags set to 1. The normal path leaves
+those values untouched. The existing canonical flag declarations are reused.
+
+The rebuilt function has the original 200-byte size. Remaining differences
+are two private mode-storage operands and register/load scheduling in the
+demo branch. No optimization or calling-convention adjustments are made.
+The neighboring `Customiser_SetUpCharacterData` changes **15.023% to
+15.048%** through four register-only instruction differences; this is not a
+second behavior restoration. No function scores regress.
+
+**3,360 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan. Tests cover all ten valid menu levels, signed demo/flag boundary
+values, null/non-null hub destinations and each external callback changing
+demo, destination, flags, lock/time or menu-level state. They verify callback
+order, exact selected cursor/timer arguments, post-callback condition loads,
+normal-path preservation, timer output and final private modes. The actual
+owner is compiled separately from the fixture with a test-only private-mode
+accessor; there is no production accessor or source-copy replacement.
+Menu and timer services are recording mocks, so full menu rendering and
+area loading are not claimed. Target/native builds and all five checks pass.
+
+## Batch 49: customiser toggle label return ABI
+
+Correct `Customise_GetToggleString` from a void stub to an `i32` text-ID
+return, improving **12.000% to 94.257%**. Whole fuzzy matching becomes
+**64.781980%**, with no other changed function scores. Resolve the original
+GOT entries to the two-byte signed globals `tCANCEL` and `tEDITNAME`, and add
+their shared declarations to the text owner header.
+
+Mode 1 returns the sign-extended cancel ID; mode 0 returns the edit-name ID.
+For other modes, the original advances a local mode modulo 3, skipping zero,
+before returning edit-name. Preserve that observed loop without modifying
+the stored mode. Explicit unsigned addition preserves the target's wrapping
+increment at `INT_MAX` without introducing signed-overflow UB. The valid
+player indices remain 0 and 1. No UI-state mutation or localization lookup
+is invented.
+
+The rebuilt helper has the original 100-byte size. Its remaining differences
+are the private mode-array operand and one zero-mode branch scheduled before
+rather than after the invariant division-constant load. No follow-up branch
+permutations or compiler hints are used.
+
+**544,296 toggle cases per architecture** pass on NDK x86 and full-global
+64-bit ASan/UBSan: every signed 16-bit text-ID value across all three normal
+modes and both players, every signed 16-bit mode, four signed 32-bit mode
+boundaries and 20,000 randomized player/mode cases. The independent oracle
+selects solely on whether the initial mode is 1 and checks both stored modes
+are preserved. The final owner also reruns all **3,360 exit cases**, with
+**6,720 exit-to-toggle integrations** verifying that exiting leaves both
+players on the edit-name label. The same test-only private-mode accessor is
+used; no production test seam is added. Target/native builds and all five
+repository checks pass.
+
+Across batches 46–49, five functions improve, two exact matches are gained
+and no function scores regress. Four bodies are restored; one additional
+register-allocation improvement is incidental. The message-pool repair
+preserves matching while fixing a reproduced 64-bit allocation overflow.
