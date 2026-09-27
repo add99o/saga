@@ -5,6 +5,8 @@
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/nugscn.h"
 #include "nu2api/nu3d/nuprim.h"
+#include "nu2api/nu3d/nuqfnt.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -39,6 +41,7 @@ struct NuVisiBoxContext {
 };
 DECOMP_ASSERT(offsetof(NuVisiBoxContext, state) == 0x28, "visibility box context ABI");
 extern "C" i32 do_boxtree;
+extern "C" i32 NuRndrDoingScreenGrab;
 OcclusionManager g_OcclusionManager;
 NUMTL *OccluderSet::ms_pZOnlyMtl3D;
 NUMTL *OccluderSet::ms_pZOnlyMtl2D;
@@ -441,7 +444,28 @@ void OcclusionManager::OnCameraSet() {
 }
 
 void OcclusionManager::RenderStats() const {
-    STUBBED();
+    if (!initialized || !enabled || NuRndrDoingScreenGrab != 0)
+        return;
+
+    NuQFntPushPrintMode(2);
+    NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+    NuQFntSet(system_qfont);
+    NuQFntSetScale(system_qfont, 0.7f, 0.7f);
+    NuQFntSetPointSize(system_qfont, 0.7f, 0.7f);
+    NuQFntMove2d(system_qfont, 112.0f, 112.0f, 0.0f);
+    NuQFntSetColour2d(system_qfont, 0x80000000);
+
+    char stats[256];
+    sprintf(stats, "Occluders : %2d, Queries : %2d, Occluded : %2d, Visible : %2d", current_set->count,
+            unknown_164, unknown_160, unknown_164 - unknown_160);
+    NuQFntPrint2dU(system_qfont, stats);
+    f32 length = NuQFntLenScale();
+    f32 height = NuQFntHeightScale();
+    NuQFntMove2d(system_qfont, 112.0f - length, 112.0f - height, 0.0f);
+    NuQFntSetColour2d(system_qfont, 0xff00ffff);
+    NuQFntPrint2dU(system_qfont, stats);
+    NuQFntPopCoordinateSystem();
+    NuQFntPopPrintMode();
 }
 
 void OcclusionManager::RenderZPass() const {
