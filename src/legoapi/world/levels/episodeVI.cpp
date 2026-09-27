@@ -527,8 +527,59 @@ void LegoCity_Reset(WORLDINFO_s *world) {
     }
 }
 
-void LegoCity_Update(WORLDINFO_s *) {
-    STUBBED();
+extern i16 id_TRACTOR, id_TOWNCAR;
+
+void LegoCity_Update(WORLDINFO_s *world) {
+    if (world == NULL || world->pickup_sys == NULL)
+        return;
+
+    u8 on_tractor = 0;
+    u8 on_tauntaun = 0;
+    u8 on_moon_car = 0;
+    u8 on_town_car = 0;
+    for (i32 index = 0; index < 8; ++index) {
+        GameObject_s *player = Player[index];
+        if (player == NULL || (player->apiobj.flags_high & 0x10) == 0 || player->apiobj.field_0x287 != 0 ||
+            player->field_0xcc0 == NULL || player->field_0xcc0->field_0x7a5 != 0x3b)
+            continue;
+        if (player->id == id_TRACTOR)
+            on_tractor = 0xff;
+        else if (player->id == id_TAUNTAUN)
+            on_tauntaun = 0xff;
+        else if (player->id == id_MOONCAR)
+            on_moon_car = 0xff;
+        else if (player->id == id_TOWNCAR)
+            on_town_car = 0xff;
+    }
+
+    const u8 changed = (on_tractor ^ prevOnTractor) | (on_tauntaun ^ prevOnTaunTaun) |
+                       (on_moon_car ^ prevOnMoonCar) | (on_town_car ^ prevOnTownCar);
+    prevOnTractor = on_tractor;
+    prevOnTaunTaun = on_tauntaun;
+    prevOnMoonCar = on_moon_car;
+    prevOnTownCar = on_town_car;
+    if (changed == 0 || world->pickup_sys->pickups == NULL || world->pickup_sys->pickup_count <= 0)
+        return;
+
+    GIZMOPICKUP_s *pickup = world->pickup_sys->pickups;
+    for (i32 index = 0; pickup != NULL && index < world->pickup_sys->pickup_count; ++index, ++pickup) {
+        if ((pickup->runtime_flags & 8) != 0)
+            continue;
+        switch (pickup->type_id) {
+            case 3:
+                pickup->collected = on_tractor;
+                break;
+            case 4:
+                pickup->collected = on_tauntaun;
+                break;
+            case 5:
+                pickup->collected = on_moon_car;
+                break;
+            case 6:
+                pickup->collected = on_town_car;
+                break;
+        }
+    }
 }
 
 void SenateA_Init(WORLDINFO_s *world) {
