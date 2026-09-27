@@ -2449,11 +2449,12 @@ extern "C" {
         }
     }
     void edpartParticleReset(void) {
-        part_emit_s *emit = part_emits;
-        part_emit_s *const emit_end = part_emits + 512;
+        i32 *instance = &part_emits[0].instance_id;
+        i32 *const end = &part_emits[512].instance_id;
         do {
-            emit->instance_id = -1;
-        } while (++emit != emit_end);
+            *instance = -1;
+            instance = reinterpret_cast<i32 *>(reinterpret_cast<char *>(instance) + sizeof(part_emit_s));
+        } while (instance != end);
         memset(part_page_used, 0, sizeof(part_page_used));
         memset(part_page_on, 0, sizeof(part_page_on));
         edpart_instances_used = 0;
@@ -3041,9 +3042,8 @@ extern "C" {
         *y = edui_cursor_dy / 224.0f;
     }
     eduimenu_s *eduiGetTopLevelParent(eduimenu_s *menu) {
-        if (menu)
-            while (menu->parent)
-                menu = menu->parent;
+        while (__builtin_expect(menu != NULL, 1) && menu->parent)
+            menu = menu->parent;
         return menu;
     }
     i32 bUsingMenuFocus;
@@ -3102,15 +3102,14 @@ extern "C" {
         return eduiGradStageAdd(item, time, hue, saturation, value);
     }
     void eduiGradStageDelete(edui_gradient_pick_s *item, edui_gradient_node_s *stage) {
-        edui_gradient_node_s *previous = stage->previous;
-        edui_gradient_node_s *next = stage->next;
-        if (previous)
-            previous->next = next;
+        if (stage->previous)
+            stage->previous->next = stage->next;
         else
-            item->first_stage = next;
+            item->first_stage = stage->next;
+        edui_gradient_node_s *next = stage->next;
         if (next)
-            next->previous = previous;
-        item->selected_stage = next ? next : previous;
+            next->previous = stage->previous;
+        item->selected_stage = next ? next : stage->previous;
         NU_FREE(stage);
     }
     void eduiGradStageSetHSV(edui_gradient_node_s *stage, f32 hue, f32 saturation, f32 value) {
