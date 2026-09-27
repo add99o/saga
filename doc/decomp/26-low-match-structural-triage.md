@@ -1860,3 +1860,95 @@ confirm/cancel input. NaN delay follows the retry path. Two equivalent
 source forms compile to the same poorly aligned 290-byte/0% object body
 versus retail's 258 bytes. The unvalidated candidate and its added state
 were not retained; revisit with new control-flow/compiler evidence.
+
+## Batch 28: texture-script loading ABI and occlusion statistics
+
+Linked fuzzy matching improves from **64.481260% to 64.508064%**.
+Four functions improve, none regress, and one new exact match is gained:
+
+- `NuTexAnimProgReadCFG`: 3.203% to **81.502%**.
+- `NuTexAnimProgReadScript`: 87.194% to **100%**.
+- `InitTexAnimScripts`: 71.375% to **87.422%**.
+- `OcclusionManager::RenderStats`: 4.330% to **99.784%**.
+
+The configuration stub was missing its complete three-argument contract:
+path, forward allocation cursor, and scratch-region end. The script
+wrapper also incorrectly exposed only two of its four arguments. Recover
+the end pointer and integer FPS argument in the shared header and sole
+existing caller. `InitTexAnimScripts` passes the current `permbuffer_end`
+and truncated `DEFAULTFPS` after path-building callbacks, retains its
+four-byte per-script and sixteen-byte final alignment, and leaves a null
+input list unaligned. A nonnull empty list still receives final alignment.
+The original parser itself ignores its final two arguments; do not invent
+FPS processing or bounds checks in `NuTexAnimProgParseFile`.
+
+Recover the initialized `nutexanim_usepakfile = 1` global and the loader's
+two paths:
+
+- Archive mode replaces the final extension with `.pak`, narrows file
+  size to its low 32 bits, and returns immediately if that size is zero.
+  Otherwise load the archive at `(end - size)` rounded down to sixteen
+  bytes. Preserve its original start separately from the advancing
+  archive-load cursor. Parse the basename `.cfg` item and build a reverse
+  list of script basenames immediately below the original archive start.
+  Load each script item as a memory file, parse it, then close it. A
+  successful archive path does not perform final forward-buffer alignment.
+- With archive mode disabled, read the text configuration using full
+  script paths and a reverse name list below the supplied scratch end.
+  Read scripts in that resulting reverse order and align the forward
+  cursor to sixteen bytes. A failed archive load aligns the forward
+  cursor before falling through to this text path; a zero archive size
+  does not fall back.
+
+Basename extraction tries the last `/` first and only searches for `\\`
+if there is no slash. Preserve ignored word-length/item-info returns and
+the distinction between parser close and parser destroy. Reusing the
+address-escaped archive cursor for list iteration is supported by the
+retail stack slot and improves object matching from 79.626% to 80.808%;
+the linked result is 81.502%. Remaining differences are stack allocation,
+register selection and local control-flow alignment. No optimization
+override, volatile state, calling-convention attribute, or helper ABI was
+added to chase these differences.
+
+These APIs retain retail's valid-input requirements: generated paths
+must fit the 128-byte configuration and 72-byte script buffers (script
+names at most 57 bytes with the fixed prefix/suffix), the scratch end
+byte is writable, and the arena has room for the archive, name list, and
+programs without overlap. Parser/open failures can leave the preexisting
+list sentinel untouched; tests supply a valid empty sentinel on those
+paths rather than inventing new failure behavior. FPS conversion requires
+a representable integer result. Native pointer arithmetic uses full-width
+`usize`, while the existing parser retains natural program alignment.
+
+The occlusion statistics renderer uses existing typed state, suppresses
+output while uninitialized, disabled, or taking a screen grab, and emits
+the original two-pass diagnostic text. It uses PS2 coordinates, 0.7 scale
+and point size, position `(112, 112)`, translucent black then cyan, and
+calls length scale before height scale for the second-pass offset.
+Counters display their signed 32-bit bit patterns; the visible count
+subtracts in unsigned arithmetic before conversion. Reload the global
+font after each callback, format counters after the first colour call,
+and reuse the formatted text after the first print callback. Only the
+coordinate and print-mode stacks are restored. The header now declares
+the existing screen-grab flag; its ownership and definition are unchanged.
+
+Validation with original-toolchain 32-bit objects and full-global 64-bit
+ASan/UBSan passes:
+
+- **16,384 configuration integration cases** exercise archive/text modes,
+  failed size/load/open/parser operations, ignored item-info status,
+  reverse order, mixed separators, empty words, cursor mutation, and both
+  alignments. The harness uses the real script wrapper, parser, command
+  table, program initialization, assembler, and linked program list;
+  empty and one-instruction programs are checked along with entire arena
+  contents and external call traces.
+- **22,464 script-caller cases** exercise null/empty/multiple lists, all
+  alignment residues, maximum valid path lengths, signed/fractional FPS,
+  and callback changes to names, FPS, end pointer, and allocation cursor.
+- **65,856 occlusion-rendering cases** exercise all gate combinations,
+  signed counter boundaries and wrapping differences, nonfinite scale
+  values, and state/font mutations at every external call boundary.
+
+Target/native builds and all five repository tests pass. File/parser
+services and rendering are mocked; no asset-loading gameplay or visual
+run is claimed. All eleven PR checks were green on the preceding batch.

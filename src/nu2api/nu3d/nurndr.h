@@ -100,6 +100,7 @@ extern "C" {
     i32 NuRndrCircle(f32 x, f32 y, f32 radius, f32 aspect, i32 count, f32 u0, f32 v0, f32 u1, f32 v1, i32 colour,
                      struct numtl_s *material);
     i32 NuRndrHighResScreenGrab(char *prefix, f32 scale, f32 a, f32 b, f32 c, i32 number);
+    extern i32 NuRndrDoingScreenGrab;
     void NuRndrScreenGrabTileInit(void *, i32, f32, f32, f32);
     void NuRndrScreenGrabTileDeInit(void *);
     void NuRndrScreenGrabTileBegin(void **);

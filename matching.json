@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.48126,
+    "fuzzy_match_percent": 64.508064,
     "total_code": "4722419",
-    "matched_code": "516200",
-    "matched_code_percent": 10.930839,
+    "matched_code": "516316",
+    "matched_code_percent": 10.933295,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6209,
-    "matched_functions_percent": 46.132698,
+    "matched_functions": 6210,
+    "matched_functions_percent": 46.14013,
     "total_units": 1
   },
   "text": {
@@ -47380,7 +47380,7 @@
           "address": 4801248,
           "offset": 3911280,
           "size": 230,
-          "match_percent": 71.375
+          "match_percent": 87.421875
         },
         {
           "name": "_Z37GameAnimSys_AllocateLevelProgressDataP9variptr_uS0_ii",
@@ -81866,7 +81866,7 @@
           "address": 3114240,
           "offset": 2224272,
           "size": 453,
-          "match_percent": 4.329897
+          "match_percent": 99.78351
         }
       ]
     },
@@ -105578,7 +105578,7 @@
           "address": 2931632,
           "offset": 2041664,
           "size": 116,
-          "match_percent": 87.19355
+          "match_percent": 100.0
         },
         {
           "name": "NuTexAnimProgReadCFG",
@@ -105586,7 +105586,7 @@
           "address": 2931760,
           "offset": 2041792,
           "size": 998,
-          "match_percent": 3.202847
+          "match_percent": 81.50178
         },
         {
           "name": "NuTexAnimEnvProc",
