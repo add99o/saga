@@ -9,6 +9,7 @@ void RndrTexQuad(f32, f32, f32, f32, i32, numtl_s *, i32);
 #include "legoapi/menus/core/text.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/menus/core/panel.h"
+#include "legoapi/menus/screens/gamemenuall.h"
 #include "legoapi/world/level.h"
 #include "legoapi/world/world.h"
 #include "nu2api/nucore/nustring.h"
@@ -131,4 +132,43 @@ void DrawSpaceLevel(spacelevel_s *) {
 
 static __used__ void DrawEpisodesMenu(int, float) {
     STUBBED();
+}
+
+extern i8 episodesmode;
+extern f32 episodestime;
+extern i32 last_hub_area;
+extern f32 MainRenderTime;
+extern f32 ICONX, ICONSIZE, STATSPOSY, DROPINALPHA;
+extern i16 tSELECT, tBACK, tSELECTING;
+void Hub_DrawAreaStats(f32, i32, i32);
+void DrawCharIcon(i32, f32, f32, f32, f32, i32, f32, f32, i32, nuhspecial_s *);
+
+void MenuDrawEpisodes(MENU_s *) {
+    if (FadeSys.fade > 0.0f)
+        return;
+
+    f32 alpha = 1.0f;
+    if (episodesmode == 1) {
+        if (episodestime >= 0.5f)
+            return;
+        alpha = 1.0f - NU_SIN_LUT(static_cast<i32>(episodestime * 2.0f * 16384.0f));
+        if (!(alpha > 0.0f))
+            return;
+    }
+
+    Hub_DrawAreaStats(alpha, last_hub_area, 18);
+    const f32 icon_alpha = (MenuPacket.active_player[0] ? 1.0f : DROPINALPHA) * alpha;
+    DrawCharIcon(MenuPacket.player_model[0], -ICONX, STATSPOSY, 0.0f, ICONSIZE, 166, icon_alpha, icon_alpha, 1,
+                 NULL);
+
+    if (MainRenderTime <= 0.0f) {
+        DrawEpisodesMenu(1, alpha);
+    } else if (alpha > MainRenderTime) {
+        const f32 menu_alpha = 1.0f - NU_SIN_LUT(static_cast<i32>((alpha - MainRenderTime) * 16384.0f + 16384.0f));
+        DrawEpisodesMenu(0, menu_alpha * alpha);
+    }
+
+    if (MainRenderTime <= 0.0f && alpha == 1.0f)
+        DrawPlayerIconPrompts(MenuPacket.active_player[0], tSELECT, 1.0f, -1, tBACK, -1, tSELECTING,
+                              MenuPacket.active_player[1], tSELECT, 1.0f, -1, tBACK, -1, tSELECTING);
 }

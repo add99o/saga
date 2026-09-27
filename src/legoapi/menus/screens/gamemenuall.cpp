@@ -714,10 +714,6 @@ void MenuDrawDeleting(MENU_s *) {
                     MENUNORMALR, MENUNORMALG, MENUNORMALB, 1.5f, 3, NULL, 0, MenuA);
 }
 
-void MenuDrawEpisodes(MENU_s *) {
-    STUBBED();
-}
-
 void MenuDrawFreePlay(MENU_s *) {
     if (MenuStopDraw == 0) {
         Hub_DrawFreePlaySelect();
@@ -794,7 +790,7 @@ void MenuEnterOptions(MENU_s *) {
 
 i8 lastepisodesmode;
 i8 episodesmode;
-i32 episodestime;
+f32 episodestime;
 f32 episodesduration;
 i8 i_episodes;
 extern void *HubStartDoor;
