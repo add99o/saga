@@ -555,7 +555,7 @@ f32 RatioBetweenEdgesXZ(nuvec_s *point, nuvec_s *edge_a0, nuvec_s *edge_a1, nuve
     return distance_a / (distance_a + distance_b);
 }
 
-bool SphereSphereOverlap(NUVEC *a, f32 radius_a, NUVEC *b, f32 radius_b) {
+i32 SphereSphereOverlap(NUVEC *a, f32 radius_a, NUVEC *b, f32 radius_b) {
     const f32 x = b->x - a->x;
     const f32 y = b->y - a->y;
     const f32 z = b->z - a->z;

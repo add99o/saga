@@ -1620,3 +1620,85 @@ Further read-only triage:
   release handlers always succeed, but silently rewriting the rejection
   path would not be faithful reconstruction. No allocator changes were
   included in this batch.
+
+## Batch 25: HTML bar graphs and turret damage/collision
+
+Linked fuzzy matching improves from **64.280630% to 64.359140%**:
+seven functions improve, none regress against the published baseline,
+and `SphereSphereOverlap` gains an exact match. Optimization settings
+and the denominator remain unchanged.
+
+Restore the nine-argument contracts and bodies of `NuHtmlVBarGraph`
+(2.542% to **88.475%**) and `NuHtmlHBarGraph` (1.040% to **84.745%**).
+The vertical graph uses a 50-pixel axis, an 80-percent height scale,
+and descending quarter ticks; the horizontal graph uses a 12-percent
+label column, an 88-percent width scale, and ascending quarter ticks.
+Both clamp only the upper bar dimension, preserve signed tick rounding,
+cycle the supplied palette, and snapshot the value/color before output
+callbacks while reloading labels afterward. Negative palette counts
+reuse the first entry. Keep the retail two-stage HTML formatting and
+the same trusted-string/representable-arithmetic contract as the line
+graph. Vertical count/maximum must be nonzero; horizontal count must not
+be -1 and its maximum must be nonzero. These were the last two stubs in
+`nuhtml.cpp`.
+
+`GizTurrets_Hit` returns a full integer indicating whether it accepted
+the hit; the old void stub concealed that contract. Restore signed-byte
+health tests and wrapping subtraction, forced destruction, survivor
+buzz, random camera judder, animation visibility/role traversal, blowup
+and audio dispatch, repeatable pickup rewards, and camera hints.
+Callback-sensitive fields and linked-list successors are reloaded at
+their retail points. Restore `LEGOHINT_SHOOTCAMERAS` as shared state:
+retail initializes it to -1 and game configuration assigns 0x266.
+The linked hit score rises from 2.270% to **76.951%**; configuration
+initialization rises from 67.250% to **67.711%**.
+
+Restore `GizTurrets_BoltHit` candidate filtering, broad-phase bounds,
+reverse sample traversal, first-overlap/strict-nearest selection,
+damage dispatch, rumble, deflection, and targeting cleanup. Keep the
+otherwise unused bolt-type/cheat calls because they are observable.
+Bounds reject with strict greater-than comparisons: unordered/NaN
+bounds do not themselves reject a candidate. The candidate-array base
+is retained while the system count is reloaded after callbacks.
+Retail requires a valid bolt when a candidate is hit, and a valid
+`BoltSys` for targeting cleanup; no invented null-bolt behavior is added.
+Index-based sample traversal avoids forming an out-of-array pointer
+for empty samples.
+
+The shared sphere helper was incorrectly declared `bool`; retail clears
+EAX and returns an integer, and its callers test the full register.
+Correct the definition and canonical header, removing two conflicting
+local declarations. `SphereSphereOverlap` improves from 95% to **100%**,
+with a small improvement to `GizmoBlowUp_Hit` as well. Add the canonical
+deflected-bolt declaration for the restored call path.
+
+Bolt collision improves from 1.856% to **9.038%**, but its remaining
+large mismatch is primarily block order and register allocation.
+Two bounded nested-loop/return-shape experiments scored worse (6.932%
+object-level versus 8.905%) and were not retained. Adding the real
+same-unit caller also changes the hit routine's code generation from
+the intermediate 82.78% to 76.95%; the instruction review still shows
+the recovered behavior. Do not repeat branch permutations or add
+matching-only attributes/optimization overrides to chase these scores.
+
+Validation passes on the 32-bit NDK toolchain and 64-bit ASan/UBSan,
+with normal global instrumentation:
+
+- **61,056 cases per bar graph** compare every emitted string, input
+  mutations, null labels/palettes, signed dimensions/maxima, palette
+  wrapping, out-of-range samples, and callback snapshot/reload ordering.
+- **267,530 turret-hit cases** cover byte health and flags, full-width
+  damage boundaries, random outcomes, player slots, scores/angles,
+  animation roles, nullable sets, rewards/hints, and callback mutations.
+- **136,091 bolt-collision cases** exercise the actual hit routine,
+  all flag/health/damage bytes, nearest ties, reverse sample order,
+  integer overlap results beyond 0/1, owner/type dispatch, NaN/infinite
+  bounds, deflection, targeting callbacks, and count/base/state changes.
+- **58,249 sphere cases** cover touching/separated bounds, signed radii,
+  symmetry, aliases, and NaN/infinite coordinates without input writes.
+- The **5,280 line-graph cases** are rebuilt and rerun to check the
+  neighboring implementation and shared header.
+
+Target/native builds and all five repository tests pass. External
+rendering, collision, audio, pickup, and camera services are mocked in
+the focused turret/graph tests; no gameplay or visual run is claimed.

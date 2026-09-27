@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.28063,
+    "fuzzy_match_percent": 64.35914,
     "total_code": "4722419",
-    "matched_code": "515995",
-    "matched_code_percent": 10.926497,
+    "matched_code": "516076",
+    "matched_code_percent": 10.928213,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6206,
-    "matched_functions_percent": 46.11041,
+    "matched_functions": 6207,
+    "matched_functions_percent": 46.11784,
     "total_units": 1
   },
   "text": {
@@ -55452,7 +55452,7 @@
           "address": 4970640,
           "offset": 4080672,
           "size": 1469,
-          "match_percent": 38.623146
+          "match_percent": 38.65282
         },
         {
           "name": "_Z21GizmoBlowup_HitBlowupP12GameObject_sP13GIZMOBLOWUP_siP6BOLT_sP7nuvec_sPhji",
@@ -59933,7 +59933,7 @@
           "address": 5002848,
           "offset": 4112880,
           "size": 936,
-          "match_percent": 2.27027
+          "match_percent": 76.951355
         },
         {
           "name": "_ZL18GizTurrets_BoltHitPvS_S_P7nuvec_sifS1_S1_P6BOLT_sjPh",
@@ -59941,7 +59941,7 @@
           "address": 5003792,
           "offset": 4113824,
           "size": 1146,
-          "match_percent": 1.856061
+          "match_percent": 9.037879
         },
         {
           "name": "_ZL22GizTurrets_BoltHitPlatPvS_P6BOLT_sPh",
@@ -72206,7 +72206,7 @@
           "address": 4785360,
           "offset": 3895392,
           "size": 81,
-          "match_percent": 95.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z25SphereSphereOverlapScaleYP7nuvec_sffS0_ff",
@@ -87451,7 +87451,7 @@
           "address": 1165552,
           "offset": 275584,
           "size": 5015,
-          "match_percent": 67.923225
+          "match_percent": 67.711136
         },
         {
           "name": "_ZL24GizBuildIt_FinishFn_GameP12GIZBUILDIT_s",
@@ -102200,7 +102200,7 @@
           "address": 2973968,
           "offset": 2084000,
           "size": 1925,
-          "match_percent": 1.039604
+          "match_percent": 84.74505
         },
         {
           "name": "NuHtmlVBarGraph",
@@ -102208,7 +102208,7 @@
           "address": 2975904,
           "offset": 2085936,
           "size": 1498,
-          "match_percent": 2.542373
+          "match_percent": 88.47458
         },
         {
           "name": "_Z8setpointf",

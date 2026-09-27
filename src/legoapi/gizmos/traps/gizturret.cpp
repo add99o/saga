@@ -8,6 +8,10 @@
 #include "legoapi/characters/motion/gameanim.h"
 #include "legoapi/gizmo/base/GizTurretObjectInterface.h"
 #include "legoapi/gizmo/object/gizmoblowups.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
+#include "legoapi/core/input/gamepads.h"
+#include "legoapi/core/config/cheat.h"
+#include "legoapi/menus/core/gamehint.h"
 #include "legoapi/items/collect/bolts.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
@@ -638,10 +642,65 @@ static i32 *GizTurrets_GetBestBoltTarget(GIZMOSET *set, float *result_distance, 
     return reinterpret_cast<i32 *>(result);
 }
 
-static i32 GizTurrets_BoltHit(void *, void *, void *, NUVEC *, i32, float, NUVEC *, NUVEC *, BOLT *, u32,
-                              unsigned char *) {
-    UNIMPLEMENTED();
-    return {};
+static i32 GizTurrets_BoltHit(void *world, void *system_ptr, void *object_ptr, NUVEC *points, i32 point_count,
+                              float radius, NUVEC *minimum, NUVEC *maximum, BOLT *bolt, u32 hit_type,
+                              unsigned char *hit_data) {
+    GIZTURRETSYS_s *system = static_cast<GIZTURRETSYS_s *>(system_ptr);
+    if (system == NULL || system->count == 0) {
+        return 0;
+    }
+    GameObject_s *object = static_cast<GameObject_s *>(object_ptr);
+    GIZTURRET_s *nearest = NULL;
+    f32 nearest_distance = 1000000000.0f;
+    GIZTURRET_s *turret = system->turrets;
+    for (i32 index = 0; index < system->count; ++index, ++turret) {
+        if ((turret->flags & 4) == 0 || (turret->flags & 2) == 0 || (turret->flags & 0x30) != 0 ||
+            turret->primary_anim_obj == NULL || (turret->runtime_flags & 2) != 0) {
+            continue;
+        }
+        f32 extent = NuSpecialGetOriginRadius(&turret->primary_anim_obj->special);
+        NUVEC *centre = NuSpecialGetDrawPos(&turret->primary_anim_obj->special);
+        if (centre->x - extent > maximum->x || minimum->x > centre->x + extent || centre->z - extent > maximum->z ||
+            minimum->z > centre->z + extent || centre->y - extent > maximum->y || minimum->y > centre->y + extent) {
+            continue;
+        }
+        for (i32 point = point_count; point > 0;) {
+            --point;
+            if (SphereSphereOverlap(centre, extent, &points[point], radius) != 0) {
+                NUVEC *origin = object != NULL ? &object->apiobj.collision_position : &points[point];
+                f32 distance = NuVecDistSqr(origin, centre, NULL);
+                if (distance < nearest_distance) {
+                    nearest_distance = distance;
+                    nearest = turret;
+                }
+                break;
+            }
+        }
+    }
+    if (nearest == NULL) {
+        return 0;
+    }
+    if (hit_type != 7 && hit_type != 2 && bolt != NULL) {
+        BoltType_FindByID(bolt->type_id, WORLD);
+        Cheats_CheckFlags(2);
+    }
+    i32 damage = BoltType_FindByID(bolt->type_id, static_cast<WORLDINFO_s *>(world))->field_3c;
+    i32 player_index = bolt->owner != NULL ? static_cast<i8>(bolt->owner->apiobj.field_0x27c) : -1;
+    if (GizTurrets_Hit(world, nearest, &bolt->position, player_index, damage) != 0) {
+        if (object != NULL) {
+            NewRumble(object->pad_gamepad->pad, 0.4f, 0);
+            GameCam_HitJudder();
+        }
+    } else {
+        NUVEC direction;
+        NuVecSub(&direction, &nearest->position, &bolt->position);
+        NuVecNorm(&direction, &direction);
+        Bolt_AddDeflectedBolt(bolt, &bolt->field_0xac, &direction, hit_data);
+    }
+    if (BoltSys->stop_targeting != NULL) {
+        BoltSys->stop_targeting(object, points);
+    }
+    return 1;
 }
 
 static void *GizTurrets_AllocateProgressData(VARIPTR *buffer, VARIPTR *buffer_end) {
@@ -1027,8 +1086,63 @@ ADDGIZMOTYPE *GizTurrets_RegisterGizmo(i32 type_id) {
     return &addtype;
 }
 
-void GizTurrets_Hit(void *, GIZTURRET_s *, nuvec_s *, i32, i32) {
-    STUBBED();
+i32 GizTurrets_Hit(void *world, GIZTURRET_s *turret, nuvec_s *, i32 player_index, i32 damage) {
+    if (static_cast<i8>(turret->field_0x12e) <= 0) {
+        return 0;
+    }
+    if (damage != -1) {
+        // Health is stored as a byte and tested signed after wrapping.
+        turret->field_0x12e = static_cast<u8>(static_cast<u32>(turret->field_0x12e) - static_cast<u32>(damage));
+        if (static_cast<i8>(turret->field_0x12e) > 0) {
+            if (player_index != -1 && static_cast<i8>(Player[player_index]->apiobj.field_0x1f8) < 0) {
+                NewBuzz(Player[player_index]->pad_gamepad->pad, 0.1f, 0);
+            }
+            return 1;
+        }
+    }
+    turret->field_0x12e = 0;
+    f32 judder = qrand() > 0x7fff ? -0.4f : 0.4f;
+    GameCam_Judder(GameCam, judder, 2, NULL);
+    NewRumbleAllPlayers(1.0f, 0.0f, 0, 0);
+    if ((turret->behavior_flags & 0x2000) != 0) {
+        turret->flags |= 0x10;
+    } else {
+        turret->flags |= GIZTURRET_FLAG_UPDATE_DISABLED;
+        GameAnimSet_SetVisibility(turret->anim_set, 0);
+        if (turret->anim_set != NULL) {
+            GAMEANIMOBJ_s *object = turret->anim_set->objects;
+            while (object != NULL) {
+                GizTurretAnimObjectData *data = static_cast<GizTurretAnimObjectData *>(object->object_data);
+                if (data->role == 3) {
+                    NuSpecialSetVisibility(&object->special, 1);
+                }
+                object = object->next;
+            }
+        }
+    }
+    if (turret->blowup_type != -1) {
+        NUVEC *position = NuSpecialGetDrawPos(&turret->primary_anim_obj->special);
+        GizmoBlowUpTypeBlowUp(static_cast<WORLDINFO_s *>(world), turret->blowup_type, position);
+    }
+    NUVEC centre = turret->position;
+    GameAnimSet_GetCentreAndRadius(turret->anim_set, &centre, NULL, 2, 1, 1);
+    if (turret->field_0x138 != -1) {
+        GameAudio_PlaySfxById(turret->field_0x138, &centre, 0, 0);
+    }
+    if (turret->completion_score != 0 &&
+        ((turret->runtime_flags & 4) == 0 || (turret->behavior_flags & 0x40000) != 0)) {
+        NUVEC position, direction;
+        NuVecAdd(&position, &centre, &turret->field_0x114);
+        NuVecRotateX(&direction, &v010, static_cast<u16>(turret->field_0x110));
+        NuVecRotateY(&direction, &direction, static_cast<u16>(turret->field_0x112));
+        AddPickups(turret->completion_score, 0, 0, 0, &position, &direction, 2.0f, -1, turret->field_0x120, 2000000.0f,
+                   NULL, 1, 0, true);
+        turret->runtime_flags |= 4;
+    }
+    if ((turret->behavior_flags & 0x4010) == 0x4000 && LEGOHINT_SHOOTCAMERAS != -1) {
+        Hint_SetComplete(LEGOHINT_SHOOTCAMERAS);
+    }
+    return 1;
 }
 
 GameObject_s *GizTurret_GetTgt(GIZTURRET_s *, numtx_s *matrix) {

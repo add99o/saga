@@ -24,3 +24,4 @@ void CalculateInterceptVector(nuvec_s *origin, nuvec_s *target, nuvec_s *velocit
                               nuvec_s *intercept_velocity);
 i32 SphereSphereOverlapScaleY(nuvec_s *position_a, f32 radius_a, f32 y_radius_a, nuvec_s *position_b, f32 radius_b,
                               f32 y_radius_b);
+i32 SphereSphereOverlap(nuvec_s *position_a, f32 radius_a, nuvec_s *position_b, f32 radius_b);

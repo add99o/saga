@@ -752,7 +752,6 @@ static NUVEC *GizmoForce_GetPos(GIZMO *gizmo) {
     return NULL;
 }
 
-bool SphereSphereOverlap(NUVEC *, f32, NUVEC *, f32);
 void Bolt_AddDeflectedBolt(BOLT_s *, nuvec_s *, nuvec_s *, unsigned char *);
 i32 Player_HasDoubleBoltDamage_FromBolt(BOLT_s *);
 

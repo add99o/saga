@@ -1973,8 +1973,6 @@ i32 gizmoblowup_Load(void *world_ptr, void *) {
     return 1;
 }
 
-bool SphereSphereOverlap(NUVEC *, f32, NUVEC *, f32);
-
 u32 GetLevelExBlowupFlags(void) {
     return EXBLOWUPFLAGS;
 }

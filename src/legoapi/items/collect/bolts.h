@@ -12,6 +12,7 @@ struct nuvec_s;
 i32 Bolt_HitGameObjects(BOLT_s *bolt, nuvec_s *points, nuvec_s *minimum, nuvec_s *maximum, f32 radius, u8 *hit_flags);
 BOLT_s *Bolt_Find(i32 type_id, nuvec_s *position, GameObject_s *owner);
 void Bolt_End(BOLT_s *bolt, i32 run_callback);
+void Bolt_AddDeflectedBolt(BOLT_s *bolt, nuvec_s *direction, nuvec_s *normal, unsigned char *hit_flags);
 void GuidedMissile_Kill(PART_s *part, i32 reason);
 void GuidedMissile_Move(PART_s *part, f32 time);
 void GuidedMissile_Deflect(PART_s *part);
