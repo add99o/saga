@@ -22,7 +22,7 @@ extern "C" AAsset *AAssetManager_open(AAssetManager *, const char *path, int) {
         fclose(file);
         return NULL;
     }
-    long length = ftell(file);
+    auto length = ftell(file);
     if (length < 0 || fseek(file, 0, SEEK_SET) != 0) {
         fclose(file);
         return NULL;
@@ -44,7 +44,7 @@ extern "C" void AAsset_close(AAsset *asset) {
 }
 extern "C" off_t AAsset_seek(AAsset *asset, off_t offset, int whence) {
     if (asset == NULL || offset > LONG_MAX || offset < LONG_MIN ||
-        fseek(asset->file, static_cast<long>(offset), whence) != 0)
+        fseek(asset->file, offset, whence) != 0)
         return -1;
     return ftell(asset->file);
 }
