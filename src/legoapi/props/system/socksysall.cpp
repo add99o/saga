@@ -213,8 +213,23 @@ static __used__ void SockParName(nufpar_s *parser, void *) {
         NuStrCpy(sockpar_sock->name, parser->word_buf);
     }
 }
-static __used__ void SockParObj(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockParObj(nufpar_s *parser, void *) {
+    if (sockpar_buffer_ptr == NULL || sockpar_buffer_end == NULL || sockpar_scene == NULL)
+        return;
+
+    sockpar_buffer_ptr->addr = (sockpar_buffer_ptr->addr + 3) & ~static_cast<usize>(3);
+    sockpar_sock->unknown_f8 = static_cast<u32>(sockpar_buffer_ptr->addr);
+    sockpar_sock->unknown_fc = 0;
+    while (NuFParGetWord(parser) != 0) {
+        nuhspecial_s *special = reinterpret_cast<nuhspecial_s *>(static_cast<usize>(sockpar_sock->unknown_f8)) +
+                               sockpar_sock->unknown_fc;
+        if (NuSpecialFind(sockpar_scene, special, parser->word_buf, 1) != 0)
+            ++sockpar_sock->unknown_fc;
+    }
+    if (sockpar_sock->unknown_fc != 0)
+        sockpar_buffer_ptr->addr = sockpar_sock->unknown_f8 + sockpar_sock->unknown_fc * sizeof(nuhspecial_s);
+    else
+        sockpar_sock->unknown_f8 = 0;
 }
 static __used__ void SockParBlend(nufpar_s *parser, void *) {
     i32 value = NuFParGetInt(parser);
