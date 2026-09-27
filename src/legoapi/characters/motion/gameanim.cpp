@@ -82,6 +82,7 @@ enum CHARACTER_ANIMATION : i16 {
     CHARACTER_ANIMATION_EXTRA_RUN = 115,
     CHARACTER_ANIMATION_EXTRA_FALL = 116,
     CHARACTER_ANIMATION_EXTRA_IDLE = 117,
+    CHARACTER_ANIMATION_EXTRA_WEAPON_IDLE = 118,
     CHARACTER_ANIMATION_SUIT_TIPTOE = 198,
     CHARACTER_ANIMATION_SUIT_WALK = 199,
     CHARACTER_ANIMATION_SUIT_RUN = 200,
@@ -702,8 +703,99 @@ void Animate_WALKER(GameObject_s *object) {
     }
 }
 
-void Animate_WEIRDO(GameObject_s *) {
-    STUBBED();
+void Animate_WEIRDO(GameObject_s *object) {
+    ANIMPACKET_s &packet = object->apiobj.anim_packet;
+    CHARACTERMODEL_s *model = object->apiobj.character_model;
+    characterdata_s *character_data = object->apiobj.character_data;
+
+    if ((CInfo[object->character_context].flags & CHARACTER_CONTEXT_INFO_FLAG_OWNS_ANIMATION) != 0) {
+        packet.requested_animation = object->context_animation;
+    } else {
+        packet.requested_animation = CHARACTER_ANIMATION_FALL;
+        if (object->character_context != CHARACTER_CONTEXT_DOOMED) {
+            bool use_default_idle = object->apiobj.field_0x27d != 0;
+            if (!use_default_idle) {
+                const bool has_fall_animation = model->model_data_b[CHARACTER_ANIMATION_FALL] != NULL;
+                if (object->ground_contact_grace_timer > 0.0f || !has_fall_animation ||
+                    (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
+                     object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
+                    const GAMECHARACTERDATA *game_character = character_data->game_character;
+                    use_default_idle = !(game_character->field_0x28 > 0.0f) || !has_fall_animation;
+                }
+            }
+            if (use_default_idle)
+                packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
+        }
+
+        if (object->character_context == CHARACTER_CONTEXT_JUMP) {
+            JumpAnimCode(object);
+        } else if (UseFallAnim(object)) {
+            packet.requested_animation = CHARACTER_ANIMATION_FALL;
+        } else if (object->character_context == CHARACTER_CONTEXT_FORCE_PUSH ||
+                   object->character_context == CHARACTER_CONTEXT_FORCE_DEFLECT ||
+                   object->character_context == CHARACTER_CONTEXT_FORCE_THROW ||
+                   object->character_context == CHARACTER_CONTEXT_FORCE) {
+            const bool alternate = ((object->field_0xe22 & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION) != 0 ||
+                                    object->field_0xe32 == 1) &&
+                                   model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL;
+            if (object->character_context == CHARACTER_CONTEXT_FORCE_PUSH &&
+                (object->action_flags & GAMEOBJECT_ACTION_FLAG_FORCE_PUSH_WEAPON_IDLE_MASK) == 0) {
+                packet.requested_animation = model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL
+                                                 ? CHARACTER_ANIMATION_ALT_WEAPON_IDLE
+                                                 : CHARACTER_ANIMATION_WEAPON_IDLE;
+            } else {
+                packet.requested_animation = alternate ? CHARACTER_ANIMATION_ALT_WEAPON_IDLE
+                                                       : CHARACTER_ANIMATION_WEAPON_IDLE;
+            }
+        } else if (packet.requested_animation != CHARACTER_ANIMATION_FALL) {
+            GAMEPAD_s *pad = object->pad_gamepad;
+            if ((pad->allocated_5a & GAMEPAD_RUNTIME_SUPPRESS_MOVEMENT) == 0 && pad->input_magnitude > 0.0f) {
+                MoveAnim_Manage(object, pad->input_magnitude, 1, 1);
+            } else if ((object->field_0xe22 & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION) != 0 ||
+                       object->field_0xe32 == 1) {
+                if (packet.requested_animation != CHARACTER_ANIMATION_SABER_RUN &&
+                    packet.requested_animation != CHARACTER_ANIMATION_SABER_WALK &&
+                    character_data->game_character->uses_weapon_action == 0 &&
+                    (character_data->model_flags & CHARACTER_MODEL_FLAG_ALTERNATE_WEAPON) != 0 &&
+                    model->model_data_b[CHARACTER_ANIMATION_EXTRA_WEAPON_IDLE] != NULL) {
+                    packet.requested_animation = CHARACTER_ANIMATION_EXTRA_WEAPON_IDLE;
+                } else if (model->model_data_b[CHARACTER_ANIMATION_ALT_IDLE] != NULL) {
+                    packet.requested_animation = CHARACTER_ANIMATION_ALT_IDLE;
+                }
+            }
+        }
+
+        if (character_data->game_character->uses_weapon_action == 0 &&
+            (character_data->model_flags & CHARACTER_MODEL_FLAG_ALTERNATE_WEAPON) != 0) {
+            if (packet.requested_animation == CHARACTER_ANIMATION_SABER_RUN)
+                packet.requested_animation = CHARACTER_ANIMATION_EXTRA_RUN;
+            else if (packet.requested_animation == CHARACTER_ANIMATION_SABER_WALK)
+                packet.requested_animation = CHARACTER_ANIMATION_EXTRA_WALK;
+        }
+        MoveAnim_Check(object);
+    }
+
+    UpdateCharacterIdle(object);
+    const i16 animation = packet.requested_animation;
+    if (animation == CHARACTER_ANIMATION_FALL ||
+        ((character_data->model_flags & CHARACTER_MODEL_FLAG_HIGH_JUMP) != 0 &&
+         (animation == CHARACTER_ANIMATION_FALL_VARIANT_75 || animation == CHARACTER_ANIMATION_FALL_VARIANT_40 ||
+          animation == CHARACTER_ANIMATION_FALL_VARIANT_76))) {
+        object->fall_animation_timer += FRAMETIME;
+    } else {
+        object->fall_animation_timer = 0.0f;
+    }
+
+    if ((character_data->game_character->weapon_model & ~2) != 0x65 &&
+        (character_data->game_character->weapon_model & ~2) != 0x69)
+        return;
+    if (object->id == id_IMPERIALGUARD || object->weapon_scale <= 0.0f)
+        return;
+    const char *loop_sfx = object->id == id_BODYGUARD
+                               ? "Grv_GuardWeaponLp"
+                               : ((character_data->model_flags & CHARACTER_MODEL_FLAG_JEDI_BADDIE) != 0 ? "SaberLoopB"
+                                                                                                           : "SaberLoopJ");
+    PlaySfxByIdAndSetVolume(GetSfxId(loop_sfx), &object->apiobj.collision_position, object->weapon_scale);
 }
 
 void Animate_CRITTER(GameObject_s *object) {
