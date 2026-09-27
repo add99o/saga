@@ -29,6 +29,7 @@ void DrawMiniSnowTroopers(WORLDINFO_s *world);
 void DrawForceBackEffect(nuhspecial_s *special);
 void DrawSaveSlots(MENU_s *menu, float y);
 void Draw_AUTOSAVEWARNING(void);
+void Draw_AUTOSAVECANCEL(void);
 #ifdef __cplusplus
 extern "C" {
 #endif

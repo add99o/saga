@@ -257,6 +257,7 @@ typedef struct LEVELDATA_s {
 } LEVELDATA;
 
 DECOMP_ASSERT(offsetof(LEVELDATA, blob_shadow_fade_near) == 0xd5, "Level blob shadow fade near offset");
+DECOMP_ASSERT(offsetof(LEVELDATA, episode_index) == 0xae, "Level episode index offset");
 DECOMP_ASSERT(offsetof(LEVELDATA, blob_shadow_fade_far) == 0xd6, "Level blob shadow fade far offset");
 
 typedef struct LEVELOBJECT {

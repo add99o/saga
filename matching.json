@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.69311,
+    "fuzzy_match_percent": 64.701454,
     "total_code": "4722419",
-    "matched_code": "516857",
-    "matched_code_percent": 10.944751,
+    "matched_code": "516990",
+    "matched_code_percent": 10.947567,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6215,
-    "matched_functions_percent": 46.17728,
+    "matched_functions": 6217,
+    "matched_functions_percent": 46.19214,
     "total_units": 1
   },
   "text": {
@@ -69007,7 +69007,7 @@
           "address": 1145120,
           "offset": 255152,
           "size": 183,
-          "match_percent": 58.565216
+          "match_percent": 59.326088
         },
         {
           "name": "_Z17MenuUpdateOptionsP6MENU_s",
@@ -69040,14 +69040,6 @@
           "offset": 284160,
           "size": 520,
           "match_percent": 99.99
-        },
-        {
-          "name": "_Z16MenuInitEpisodesP6MENU_s",
-          "demangled_name": "MenuInitEpisodes(MENU_s*)",
-          "address": 1785648,
-          "offset": 895680,
-          "size": 264,
-          "match_percent": 6.760563
         },
         {
           "name": "_Z18MenuUpdateEpisodesP6MENU_s",
@@ -69295,7 +69287,7 @@
           "address": 4348640,
           "offset": 3458672,
           "size": 58,
-          "match_percent": 32.307693
+          "match_percent": 100.0
         },
         {
           "name": "_Z20MenuEnterCardWarningP6MENU_s",
@@ -69487,7 +69479,7 @@
           "address": 4353120,
           "offset": 3463152,
           "size": 67,
-          "match_percent": 22.105263
+          "match_percent": 99.947365
         },
         {
           "name": "_Z21MenuEnterStartNewGameP6MENU_s",
@@ -69543,7 +69535,7 @@
           "address": 4354304,
           "offset": 3464336,
           "size": 82,
-          "match_percent": 17.5
+          "match_percent": 99.375
         },
         {
           "name": "_Z16MenuUpdateSavingP6MENU_s",
@@ -69959,7 +69951,7 @@
           "address": 4395056,
           "offset": 3505088,
           "size": 75,
-          "match_percent": 18.26087
+          "match_percent": 100.0
         },
         {
           "name": "_Z23MenuDrawAutoSaveWarningP6MENU_s",
@@ -86731,12 +86723,20 @@
           "match_percent": 84.28175
         },
         {
+          "name": "_Z16MenuInitEpisodesP6MENU_s",
+          "demangled_name": "MenuInitEpisodes(MENU_s*)",
+          "address": 1785648,
+          "offset": 895680,
+          "size": 264,
+          "match_percent": 85.253525
+        },
+        {
           "name": "_Z18MenuInitSelectModeP6MENU_s",
           "demangled_name": "MenuInitSelectMode(MENU_s*)",
           "address": 1790144,
           "offset": 900176,
           "size": 214,
-          "match_percent": 99.82758
+          "match_percent": 99.655174
         },
         {
           "name": "_Z20MenuUpdateSelectModeP6MENU_s",
@@ -86752,7 +86752,7 @@
           "address": 1790384,
           "offset": 900416,
           "size": 903,
-          "match_percent": 37.162437
+          "match_percent": 33.517765
         },
         {
           "name": "_Z17MenuInitBonusModeP6MENU_s",
@@ -86776,7 +86776,7 @@
           "address": 1794160,
           "offset": 904192,
           "size": 974,
-          "match_percent": 88.42157
+          "match_percent": 88.34804
         },
         {
           "name": "_Z20Hub_ActivateDoorMenuPP11LEVELDATA_s",

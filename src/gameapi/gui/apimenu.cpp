@@ -219,7 +219,6 @@ void MenuDrawSelectControls(MENU *menu);
 void MenuEnterOptions(MENU *menu);
 void MenuExitOptions(MENU *menu);
 void MenuInitClips(MENU *menu);
-void MenuInitEpisodes(MENU *menu);
 void MenuInitFreePlay(MENU *menu);
 void MenuInitMissions(MENU *menu);
 void MenuUpdateClips(MENU *menu);

@@ -154,6 +154,7 @@ extern "C" void Draw_DONOTREMOVEMEMORYCARD(void);
 void Draw_OK(MENU_s *menu);
 
 i32 memcard_cardchanged;
+i32 MenuASCancelFinished;
 i32 MenuCardWarningState;
 i32 ButtonScaleMode;
 i32 Menu_InLoadFlow;
@@ -853,10 +854,6 @@ void MenuEnterOptions(MENU_s *) {
     if (parent_menu == 1 || parent_menu == 2) {
         TempOptions = Game.options_save;
     }
-}
-
-void MenuInitEpisodes(MENU_s *) {
-    STUBBED();
 }
 
 void MenuInitFreePlay(MENU_s *menu) {
@@ -1612,8 +1609,13 @@ void MenuUpdateSaveConfirm(MENU_s *menu) {
     }
 }
 
-void MenuDrawAutoSaveCancel(MENU_s *) {
-    STUBBED();
+void MenuDrawAutoSaveCancel(MENU_s *menu) {
+    if (MenuASCancelFinished == 0) {
+        Draw_AUTOSAVECANCEL();
+        if (memcard_savefailed == 0) {
+            Draw_OK(menu);
+        }
+    }
 }
 
 void MenuDrawNotEnoughSpace(MENU_s *) {
@@ -1697,8 +1699,12 @@ void MenuDrawDoNotRemoveCard(MENU_s *) {
     Draw_DONOTREMOVEMEMORYCARD();
 }
 
-void MenuEnterAutoSaveCancel(MENU_s *) {
-    STUBBED();
+void MenuEnterAutoSaveCancel(MENU_s *menu) {
+    if (MenuASCancelFinished == 0) {
+        memcard_autosaveenabled = 0;
+        memcard_autosavedisabled = 0;
+        menu->last_row = 0;
+    }
 }
 
 void MenuUpdateDeleteConfirm(MENU_s *menu) {
@@ -1808,12 +1814,20 @@ void MenuUpdateSelectControls(MENU_s *menu) {
     }
 }
 
-void MenuUpdateAutoSaveWarning(MENU_s *) {
-    STUBBED();
+void MenuUpdateAutoSaveWarning(MENU_s *menu) {
+    if (memcard_cardchanged != 0) {
+        BackupMenu();
+    }
+    if (menu->confirm_pressed != 0) {
+        MenuSFX = MENUSFX_MENUSELECT;
+        BackupMenuNoFn();
+    }
 }
 
-void MenuUpdateDoNotRemoveCard(MENU_s *) {
-    STUBBED();
+void MenuUpdateDoNotRemoveCard(MENU_s *menu) {
+    if (menu->menu_time > 2.0f && saveload_status == 1) {
+        BackupMenu();
+    }
 }
 
 extern "C" {

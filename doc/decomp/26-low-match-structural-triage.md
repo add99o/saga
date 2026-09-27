@@ -2641,3 +2641,107 @@ vector initialization is added to chase that compiler-generated artifact.
 
 All eleven GitHub checks on the preceding commit `8d4809f4` were verified
 green before this batch was committed.
+
+## Batch 35: autosave callbacks and hub episode initialization
+
+Linked fuzzy matching improves from **64.693110% to 64.701454%**:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `MenuEnterAutoSaveCancel` | 32.308% | **100%** |
+| `MenuDrawAutoSaveCancel` | 18.261% | **100%** |
+| `MenuUpdateAutoSaveWarning` | 17.500% | **99.375%** |
+| `MenuUpdateDoNotRemoveCard` | 22.105% | **99.947%** |
+| `MenuInitEpisodes` | 6.761% | **85.254%** |
+
+### Autosave state and callback order
+
+The original four-byte `MenuASCancelFinished` object was absent. Restore it
+with the two callbacks that consume it. Entry clears both autosave flags
+and the menu's **last row**, not its selection, only when the finished flag
+is zero. Drawing similarly gates on the flag, calls `Draw_AUTOSAVECANCEL`,
+then reloads `memcard_savefailed` before deciding whether to call `Draw_OK`.
+The text helper is genuinely empty in the reference binary; it remains
+empty, and its declaration now belongs to the renderer's shared header.
+
+The autosave-warning updater first backs out on any nonzero card-change
+flag. It then reads the **original menu pointer's current confirm input**,
+even after exit/enter callbacks, and may set the selection sound and back
+out a second time without entering the new parent. A combined `else` or an
+early return after the first backup would be wrong. The remove-card updater
+backs out only after the strict `menu_time > 2.0f` threshold and status 1;
+NaN time does not pass that gate.
+
+All four first candidates have the original byte lengths. The two exact
+functions require no source-shape tuning. The warning's residual mismatch
+is one load/test register pair; the remove-card residual is a literal
+address. The previously documented `MenuUpdateAutoSaveCancel` trial is not
+repeated: its body remains a stub, so this is not a claim that the complete
+autosave-cancellation workflow works yet.
+
+### Episode initializer ownership and widths
+
+`MenuInitEpisodes` at `0x1b3f30` immediately follows the private
+`DrawEpisodesMenu` and precedes episode update/draw and the already
+hub-owned select-mode callbacks. Move the initializer out of the generic
+menu source into `hub.cpp`, preserving both files' existing `-O3` settings.
+Its menu-table caller now uses the canonical header declaration.
+
+Restore the original global objects `lastepisodesmode`, `episodesmode`, and
+`i_episodes` as **one-byte** state, plus `episodestime` and
+`episodesduration` as floats. Initialization sets last mode to -1, time to
+zero, mode to zero and duration to 0.6. If save data exists, the selected
+episode's first area's **complete byte at offset 0**, not `area_complete`
+at offset 1, determines whether the selection falls back to zero. The
+episode index and first area ID are sign-extended from 8 and 16 bits.
+
+A non-sentinel level with a non-sentinel episode selects mode 2 and copies
+that episode unless a hub-start door is present. A door independently
+selects mode 2 even without such a level. The passed menu is untouched.
+Shared assertions verify the 28-byte episode stride, first area at offset
+4, and level episode at offset `0xae`. No additional index bounds are
+invented; callers must supply valid backing tables for the indices used.
+
+The 242-byte candidate versus retail's 264 bytes retains the full behavior.
+GCC caches the level episode byte and merges a return path that retail
+keeps separate. No volatile loads, branch hints, ABI attributes, padding,
+or compiler options are added to imitate those differences.
+
+### Collateral changes and verification
+
+Six functions improve and three regress, with **two exact matches gained
+and none lost**. The unchanged `MenuUpdateSelectControls` improves
+58.565% to 59.326%. The unchanged hub neighbors change as follows:
+
+- `MenuInitSelectMode`: 99.828% to 99.655%, one register pair.
+- `MenuDrawSelectMode`: 37.162% to 33.518%, register allocation and
+  instruction scheduling around existing draw-call argument setup.
+- `MenuDrawBonusMode`: 88.422% to 88.348%, one register pair plus relocated
+  local data/literals. All six differing literal references across these
+  renderers retain identical four-byte values before and after.
+
+Full before/after linked diffs for all three regressions were inspected;
+their source bodies are unchanged. They were not behavior-tested by the
+new focused fixtures, and their remaining reconstruction work is not
+claimed complete.
+
+**30,249 autosave cases per architecture** pass NDK x86 and full-global
+64-bit ASan/UBSan builds: signed/nonboolean flags, all four stack depths,
+both/null exit and enter callbacks, original-menu input mutations, sound
+and cursor changes, second backups, exact/adjacent floating thresholds,
+NaN/infinite timers, and draw callbacks mutating save/finished state. The
+actual `BackupMenu`, `BackupMenuNoFn`, and `MenuRememberCursor` run against
+an independent stack/state oracle; render services are mocked.
+
+**143,360 episode initializer cases per architecture** pass NDK x86 and
+full-global 64-bit ASan/UBSan builds: every signed episode byte, every save
+completion byte, signed area-ID endpoints, null save state, every level
+episode byte, missing/present start doors, and level sentinel/valid slots.
+Biased, adequately sized fixture tables make the signed index cases valid
+C++ accesses; no invalid-pointer or out-of-bounds contract is implied.
+An unrelated arcade table receives inert references in the host fixture
+so normal ASan instrumentation remains enabled for all globals.
+
+Target/native builds and all five repository checks pass. There is no
+gameplay or visual run, and the other episode-menu stubs remain open.
+All eleven PR checks on preceding commit `7f44010b` are green.

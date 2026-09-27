@@ -145,6 +145,11 @@ i32 freeplaymode = 0;
 i32 hub_selectmode = 0;
 f32 selectmodetime = 0.0f;
 i32 selectmodemode = 0;
+f32 episodesduration;
+f32 episodestime;
+i8 lastepisodesmode;
+i8 episodesmode;
+i8 i_episodes;
 i32 freeplay_selected[2] = {};
 f32 uprepeattime[2] = {};
 f32 rightrepeattime[2] = {};
@@ -2637,6 +2642,24 @@ static __used__ void Hub_UpdateSelectMode() {
     }
 
     MenuSFX = GameAudio_GetSfxId(0x32);
+}
+
+void MenuInitEpisodes(MENU_s *) {
+    lastepisodesmode = -1;
+    episodestime = 0.0f;
+    episodesmode = 0;
+    episodesduration = 0.6f;
+    if (Game_AreaSave != NULL && Game_AreaSave[EDataList[i_episodes].area_ids[0]].complete == 0) {
+        i_episodes = 0;
+    }
+    if (hub_new_level != -1 && LDataList[hub_new_level].episode_index != -1) {
+        episodesmode = 2;
+        if (HubStartDoor == NULL) {
+            i_episodes = LDataList[hub_new_level].episode_index;
+        }
+    } else if (HubStartDoor != NULL) {
+        episodesmode = 2;
+    }
 }
 
 void MenuInitSelectMode(MENU_s *) {
