@@ -1383,8 +1383,105 @@ void DebrisReleaseControlStackLock() {
     control_stack_lock = 0;
 }
 
-void xxxNuDisplayListUpdateSpecial(nuhspecial_s *) {
-    STUBBED();
+void xxxNuDisplayListUpdateSpecial(nuhspecial_s *special) {
+    NUDISPLAYSPECIAL *display = special->display_special;
+    NUDLDLISTSCENE *scene = reinterpret_cast<NUDLDLISTSCENE *>(special->scene->display_list);
+    NUMTX matrix = *NuSpecialGetDrawMtx(special);
+
+    const NUVEC4 &low = display->bounds_min;
+    const NUVEC4 &high = display->bounds_max;
+    NUVEC4_ALIGNED16 corners[8];
+    corners[0].x = low.x;
+    corners[0].y = low.y;
+    corners[0].z = low.z;
+    corners[1].x = high.x;
+    corners[1].y = high.y;
+    corners[1].z = high.z;
+    corners[2].x = low.x;
+    corners[2].y = low.y;
+    corners[2].z = high.z;
+    corners[3].x = high.x;
+    corners[3].y = high.y;
+    corners[3].z = low.z;
+    corners[4].x = low.x;
+    corners[4].y = high.y;
+    corners[4].z = low.z;
+    corners[5].x = low.x;
+    corners[5].y = high.y;
+    corners[5].z = high.z;
+    corners[6].x = high.x;
+    corners[6].y = low.y;
+    corners[6].z = low.z;
+    corners[7].x = high.x;
+    corners[7].y = low.y;
+    corners[7].z = high.z;
+
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[0]), reinterpret_cast<NUVEC *>(&corners[0]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[1]), reinterpret_cast<NUVEC *>(&corners[1]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[2]), reinterpret_cast<NUVEC *>(&corners[2]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[3]), reinterpret_cast<NUVEC *>(&corners[3]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[4]), reinterpret_cast<NUVEC *>(&corners[4]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[5]), reinterpret_cast<NUVEC *>(&corners[5]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[6]), reinterpret_cast<NUVEC *>(&corners[6]), &matrix);
+    NuVecMtxTransform(reinterpret_cast<NUVEC *>(&corners[7]), reinterpret_cast<NUVEC *>(&corners[7]), &matrix);
+
+    NUVEC4 minimum = {};
+    NUVEC4 maximum = {};
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&corners[0]),
+             reinterpret_cast<NUVEC *>(&corners[1]));
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&minimum),
+             reinterpret_cast<NUVEC *>(&corners[2]));
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&minimum),
+             reinterpret_cast<NUVEC *>(&corners[3]));
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&minimum),
+             reinterpret_cast<NUVEC *>(&corners[4]));
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&minimum),
+             reinterpret_cast<NUVEC *>(&corners[5]));
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&minimum),
+             reinterpret_cast<NUVEC *>(&corners[6]));
+    NuVecMin(reinterpret_cast<NUVEC *>(&minimum), reinterpret_cast<NUVEC *>(&minimum),
+             reinterpret_cast<NUVEC *>(&corners[7]));
+
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&corners[0]),
+             reinterpret_cast<NUVEC *>(&corners[1]));
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&maximum),
+             reinterpret_cast<NUVEC *>(&corners[2]));
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&maximum),
+             reinterpret_cast<NUVEC *>(&corners[3]));
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&maximum),
+             reinterpret_cast<NUVEC *>(&corners[4]));
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&maximum),
+             reinterpret_cast<NUVEC *>(&corners[5]));
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&maximum),
+             reinterpret_cast<NUVEC *>(&corners[6]));
+    NuVecMax(reinterpret_cast<NUVEC *>(&maximum), reinterpret_cast<NUVEC *>(&maximum),
+             reinterpret_cast<NUVEC *>(&corners[7]));
+
+    NUCLIPBOUNDS &bounds = scene->clip_bounds[display->instance_ix];
+    if ((scene->render_buffer & NUDL_SCENE_RENDER_FLAG_CENTER_EXTENT_BOUNDS) != 0) {
+        const f32 half = 0.5f;
+        const f32 extent_x = (maximum.x - minimum.x) * half;
+        const f32 extent_y = (maximum.y - minimum.y) * half;
+        const f32 extent_z = (maximum.z - minimum.z) * half;
+        bounds.center.x = (maximum.x + minimum.x) * half;
+        bounds.center.y = (maximum.y + minimum.y) * half;
+        bounds.center.z = (maximum.z + minimum.z) * half;
+        bounds.center_w = NuFsqrt(extent_x + extent_y + extent_z);
+        bounds.extent.x = extent_x;
+        bounds.extent.y = extent_y;
+        bounds.extent.z = extent_z;
+    } else {
+        bounds.center.x = minimum.x;
+        bounds.center.y = minimum.y;
+        bounds.center.z = minimum.z;
+        bounds.center_w = minimum.w;
+        bounds.extent.x = maximum.x;
+        bounds.extent.y = maximum.y;
+        bounds.extent.z = maximum.z;
+        bounds.extent_w = maximum.w;
+    }
+
+    DisplayListUpdateSpecialTransformPS(special, &matrix);
 }
 
 static inline __attribute__((always_inline)) f32 DebrisInterpolateFloatKeys(const debris_float_key_s *keys, f32 time) {
