@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.71974,
+    "fuzzy_match_percent": 64.7368,
     "total_code": "4722419",
-    "matched_code": "517638",
-    "matched_code_percent": 10.961289,
+    "matched_code": "517928",
+    "matched_code_percent": 10.96743,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6221,
-    "matched_functions_percent": 46.22186,
+    "matched_functions": 6223,
+    "matched_functions_percent": 46.236717,
     "total_units": 1
   },
   "text": {
@@ -50021,21 +50021,6 @@
       ]
     },
     {
-      "name": "legoapi/core/startup/startup.cpp.o",
-      "source": "src/legoapi/core/startup/startup.cpp",
-      "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_legoapi/startup.o",
-      "functions": [
-        {
-          "name": "_Z16ParseCommandLinev",
-          "demangled_name": "ParseCommandLine()",
-          "address": 2532062,
-          "offset": 1642094,
-          "size": 291,
-          "match_percent": 5.479452
-        }
-      ]
-    },
-    {
       "name": "legoapi/core/startup/virtual.cpp.o",
       "source": "src/legoapi/core/startup/virtual.cpp",
       "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_legoapi/virtual.o",
@@ -71035,7 +71020,7 @@
           "address": 4818144,
           "offset": 3928176,
           "size": 96,
-          "match_percent": 19.09091
+          "match_percent": 99.681816
         },
         {
           "name": "_Z20Movies_ConfigureListPcP9variptr_uS1_",
@@ -71043,7 +71028,7 @@
           "address": 4818240,
           "offset": 3928272,
           "size": 275,
-          "match_percent": 90.75949
+          "match_percent": 90.822784
         },
         {
           "name": "_Z10Movie_PlayPcP9variptr_uS1_fPFivEf",
@@ -71051,7 +71036,7 @@
           "address": 4818528,
           "offset": 3928560,
           "size": 481,
-          "match_percent": 4.695652
+          "match_percent": 99.94782
         }
       ]
     },
@@ -87509,6 +87494,14 @@
       "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_legogame/startup.o",
       "functions": [
         {
+          "name": "_GLOBAL__sub_I_startup.cpp",
+          "demangled_name": "_GLOBAL__sub_I_startup.cpp",
+          "address": 896448,
+          "offset": 6480,
+          "size": 93,
+          "match_percent": 0.0
+        },
+        {
           "name": "_ZL12LoadPermDataP12bgprocinfo_s",
           "demangled_name": "LoadPermData(bgprocinfo_s*)",
           "address": 1829840,
@@ -93550,7 +93543,31 @@
           "address": 3184160,
           "offset": 2294192,
           "size": 1201,
-          "match_percent": 42.394905
+          "match_percent": 44.0828
+        },
+        {
+          "name": "NuShaderObjectKeyGenerate2",
+          "demangled_name": "NuShaderObjectKeyGenerate2",
+          "address": 3185376,
+          "offset": 2295408,
+          "size": 104,
+          "match_percent": 100.0
+        },
+        {
+          "name": "NuShaderObjectKeyGenerate4",
+          "demangled_name": "NuShaderObjectKeyGenerate4",
+          "address": 3185488,
+          "offset": 2295520,
+          "size": 249,
+          "match_percent": 39.23611
+        },
+        {
+          "name": "NuShaderObjectKeySetUberShaderHash",
+          "demangled_name": "NuShaderObjectKeySetUberShaderHash",
+          "address": 3185744,
+          "offset": 2295776,
+          "size": 186,
+          "match_percent": 100.0
         },
         {
           "name": "_ZN19ShaderManagerOpenGL35adaptShaderMaterialForShaderVersionEP17nushadermtldesc_s",
@@ -98441,7 +98458,15 @@
           "address": 2527774,
           "offset": 1637806,
           "size": 2532,
-          "match_percent": 19.534592
+          "match_percent": 19.691824
+        },
+        {
+          "name": "_Z16ParseCommandLinev",
+          "demangled_name": "ParseCommandLine()",
+          "address": 2532062,
+          "offset": 1642094,
+          "size": 291,
+          "match_percent": 99.72603
         },
         {
           "name": "NuDisableOSMenuFreeze",
@@ -105951,30 +105976,6 @@
           "offset": 2292528,
           "size": 22,
           "match_percent": 100.0
-        },
-        {
-          "name": "NuShaderObjectKeyGenerate2",
-          "demangled_name": "NuShaderObjectKeyGenerate2",
-          "address": 3185376,
-          "offset": 2295408,
-          "size": 104,
-          "match_percent": 16.153847
-        },
-        {
-          "name": "NuShaderObjectKeyGenerate4",
-          "demangled_name": "NuShaderObjectKeyGenerate4",
-          "address": 3185488,
-          "offset": 2295520,
-          "size": 249,
-          "match_percent": 5.833334
-        },
-        {
-          "name": "NuShaderObjectKeySetUberShaderHash",
-          "demangled_name": "NuShaderObjectKeySetUberShaderHash",
-          "address": 3185744,
-          "offset": 2295776,
-          "size": 186,
-          "match_percent": 7.118644
         }
       ]
     },
@@ -118883,18 +118884,6 @@
       ]
     },
     {
-      "name": "_GLOBAL__sub_I_startup.cpp",
-      "demangled_name": "_GLOBAL__sub_I_startup.cpp",
-      "address": 896448,
-      "offset": 6480,
-      "size": 93,
-      "match_percent": 0.0,
-      "candidate_units": [
-        "legoapi/core/startup/startup.cpp.o",
-        "legogame/startup.cpp.o"
-      ]
-    },
-    {
       "name": "_GLOBAL__sub_I_gizforce.cpp",
       "demangled_name": "_GLOBAL__sub_I_gizforce.cpp",
       "address": 897120,
@@ -119118,7 +119107,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119159,7 +119147,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119200,7 +119187,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119257,7 +119243,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119333,7 +119318,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119390,7 +119374,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119447,7 +119430,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119504,7 +119486,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119561,7 +119542,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119618,7 +119598,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119884,7 +119863,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119941,7 +119919,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119998,7 +119975,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120104,7 +120080,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120173,7 +120148,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120331,7 +120305,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120440,7 +120413,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120549,7 +120521,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120606,7 +120577,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120663,7 +120633,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120720,7 +120689,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120803,7 +120771,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120860,7 +120827,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120928,7 +120894,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120985,7 +120950,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121055,7 +121019,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121112,7 +121075,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121188,7 +121150,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121245,7 +121206,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121302,7 +121262,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121359,7 +121318,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121479,7 +121437,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121528,7 +121485,7 @@
       "address": 3239642,
       "offset": 2349674,
       "size": 373,
-      "match_percent": 99.7,
+      "match_percent": 0.0,
       "candidate_units": [
         "MechInputTouch/MechObjectInterface.cpp.o",
         "editor/creature_editor.cpp.o",
@@ -121536,7 +121493,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121593,7 +121549,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121995,7 +121950,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122099,7 +122053,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122202,7 +122155,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122641,7 +122593,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122698,7 +122649,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -127575,10 +127525,10 @@
     }
   ],
   "summary": {
-    "bazel_units": 454,
+    "bazel_units": 453,
     "functions": 13454,
-    "assigned_functions": 12662,
-    "ambiguous_functions": 239,
+    "assigned_functions": 12663,
+    "ambiguous_functions": 238,
     "unassigned_functions": 553
   }
 }

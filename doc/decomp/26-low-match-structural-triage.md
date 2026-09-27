@@ -2840,3 +2840,228 @@ Target/native builds and all five repository checks pass. No live GL
 context, logging output, allocation failure, malformed driver output, or
 gameplay execution is claimed as tested.
 All eleven PR checks on preceding commit `078d3b48` are green.
+
+## Batch 37: movie wrapper and skip callback ABI
+
+Linked fuzzy matching improves from **64.719740% to 64.731090%**, with
+three improvements, no regressions and no exact-match transitions:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `Movie_Play` | 4.696% | **99.948%** |
+| `Movie_CallBack` | 19.091% | **99.682%** |
+| `Movies_ConfigureList` (unchanged body) | 90.759% | **90.823%** |
+
+The movie wrapper's six-argument signature was present but its **integer
+return was incorrectly declared void**. The private callback was likewise
+a void, forced-emitted stub. Recover both integer returns and the four real
+local state objects: `movie_skipped`, `MoviePlayTime`, `MovieFrameTime`, and
+`MovieInputFn`. The callback now emits naturally because the wrapper passes
+its address to `NuFmvPlayV`; the matching-only `__used__` placeholder is gone.
+Their source order follows the callback/configuration/play run in retail,
+with the owner's existing `-O3` setting unchanged.
+
+`Movie_Play` clears the skipped flag, constructs regional `movies\\pal\\`
+or `movies\\ntsc\\` paths in two 256-byte arrays, appends the name, and
+adds `.sub` and `.pss`. It kills audio only when `NOSOUND` is zero, then
+sets the frame interval, clears playback time and installs the supplied
+input callback or `GamePads_SkipMovie`. These actions still happen when
+either allocation-cursor pointer is null; that later gate returns zero.
+
+The successful path forwards the exact recovered tagged option sequence
+to `NuFmvPlayV`, including the local float volume pointer, real callback
+pointer, start-cursor pointer and dereferenced end cursor. Known pointer
+arguments retain native width. No additional meaning is invented for the
+remaining numeric tags. The default-input and kill-audio declarations now
+come from their canonical module headers.
+
+The return convention is **0 for a failed call or absent cursor pointer,
+1 for a nonzero skipped flag, and 2 otherwise**. In particular, the
+original CMP/SBB/NOT/ADD sequence returns 2, not 1, when the flag is zero.
+Existing trailer callers ignore the return but now see the correct shared
+prototype. The callback invokes installed input first, reloads the timer,
+accepts nonzero input only at `MoviePlayTime >= 0.2f`, sets the skipped
+flag on acceptance, then advances time using the current frame interval.
+NaN time does not pass the threshold. Null input still advances time and
+returns zero. Previously accepted skip state is not cleared by a later
+unaccepted frame.
+
+Two evidence-led source forms were compared. Selecting the region string
+inside one call produced CMOV rather than retail's two call sites; the
+retained ordinary `if`/`else` restores the original branch. Keeping the
+callback's input result and then normalizing it through the threshold
+recovers its original shared return path. Final sizes are exactly the
+retail **481 bytes** and **96 bytes**. Full linked diffs contain only six
+local-state address differences each, plus one literal address in the
+callback; do not permute their data to chase those residual fractions.
+
+### Validation and platform limit
+
+**152,113 cases per architecture** pass against NDK x86 and full-global
+64-bit ASan/UBSan with a recording playback mock:
+
+- 93,312 wrapper cases cover PAL/audio/input flags, missing and aliased
+  cursor pointers, nonboolean backend returns, skip flags, frame runs,
+  current-state reloads and callbacks changing input, time, audio or cursor
+  state. Reentrant input invokes the real wrapper with absent cursors.
+- 481 path cases cover every valid name length through 240 for PAL and 239
+  for NTSC, including maximum 255-character resulting paths and nonfinite
+  volume values. Oversized names remain outside the recovered contract.
+- 58,320 callback cases cover null/custom/default input, signed input
+  results, negative and nonfinite time/steps, exact and adjacent 0.2-second
+  values, existing skipped flags and callback-mutated/reentrant state.
+
+The same 152,113-case fixture also passes on both architectures with the
+**actual `nufmv_android.cpp` backend** in place of the recording mock.
+That backend returns 1 immediately and never invokes the callback, just
+as the reference Android `NuFmvPlayV` does. Those runs verify wrapper
+integration with this platform behavior, **not video playback**. Input,
+audio and string services are otherwise mocked; the recording variant
+exercises the real movie callback and validates every variadic argument.
+Target/native builds and all five repository checks pass. No gameplay or
+actual multimedia execution is claimed.
+
+## Batch 38: private command-line parser and bootstrap ownership
+
+`ParseCommandLine()` improves from **5.479% to 99.726%** at its original
+291-byte size. Its restored call immediately after `NuAPIInit` also raises
+`NuInitHardware` from **19.53% to 19.69%**. The parser, its private
+argument cursors, and the real bootstrap caller now share the default-`-O0`
+`nu2api/nucore/nuapi.cpp` owner. The misplaced one-stub
+`legoapi/core/startup/startup.cpp` is removed; it remains recoverable in Git.
+Neither source had an optimization override, and none was added.
+
+Original LOCAL `argc` and `argv` are four-byte BSS objects at `0x74ded4`
+and `0x74ded8`. The parser repeatedly checks signed positive `argc` and a
+non-null current argument, recognizes `PADRECORD` and `PADPLAY` through
+`NuStrICmp`, consumes their following argument into the recording path,
+sets the corresponding mode, and then advances the common argument cursor.
+The two destination offsets, `nuapi + 0x48` and `nuapi + 0x5c`, now have
+target-only layout assertions. Pointers and their arithmetic retain native
+width. The final linked diff has only twenty private-state/string address
+differences; no instruction-shape work remains in this body.
+
+The reference Android `NuCommandLine` is empty, and no writer to these
+private cursors was found in the original text. Consequently the normal
+Android path still starts with zero arguments. Do not invent host process
+argument plumbing or a platform provider to make the recovered parser run.
+The bootstrap call itself is evidenced at `0x2692da`, directly after the
+`NuAPIInit` call.
+
+### Compiler-generated score caveat
+
+The linked report changes **64.731090% to 64.729100%**, with two improved
+bodies, one regressed ambiguous initializer row, and no exact losses.
+Removing the obsolete startup unit removes its incidental header-generated
+vector initializer. The report then scores original
+`__static_initialization_and_destruction_0` at `0x316eda` as **0% rather
+than 99.70%**. This is an ambiguous duplicate-symbol pairing effect, not
+removal of scratch initialization: the real `nuscratch_android.c`
+initializer remains 373 bytes, with the same six vector constructions and
+instruction structure before and after, and its uniquely named
+`_GLOBAL__sub_I_nuscratch_android.c` wrapper remains **100%**.
+
+No dummy initializer, include-only translation unit, score filter, or
+denominator change is used to hide this artifact. Together with batch 37,
+the retained unit raises the published whole score **64.719740% to
+64.729100%**: five improved functions, this one artifact regression, and
+no exact-match transitions. This is consistent with prioritizing recovered
+behavior and coherent source ownership over compiler-artifact layout.
+
+### Validation and bounded scope
+
+**353,280 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan: 327,680 argument sequences, 20,480 comparator-mutation traces,
+and 5,120 calls through the actual `NuAPIInit`/`NuInitHardware` path.
+Tests cover case-insensitive keywords, unknown and prefix tokens, null and
+absent following paths, repeated commands, signed count boundaries, and
+comparison callbacks changing the cursors or recording state. Complete
+state and ordered comparison traces are checked against a separate oracle.
+Bootstrap services are mocked and their seventeen-step ordering is checked.
+
+The pre-existing hardware setup dispatcher also routes `NUAPI_SETUP_END`
+through its platform fallback and consumes another variadic argument.
+The integration fixture supplies that explicit null pointer; this batch
+does **not** claim to repair or fully validate the unrelated setup-token
+dispatcher. Target/native builds and all five repository checks pass.
+No real device bootstrap or pad-recording file I/O was exercised.
+
+## Batch 39: shader-key entry points and mutable digest state
+
+Linked fuzzy matching improves **64.729100% to 64.736800%**, with four
+improved functions, **two new exact matches**, and no regressions:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `NuShaderObjectKeyGenerate2` | 16.154% | **100%** |
+| `NuShaderObjectKeyGenerate4` | 5.833% | **39.236%** |
+| `NuShaderObjectKeySetUberShaderHash` | 7.119% | **100%** |
+| `NuShaderObjectKeyGenerate3` | 42.395% | **44.083%** |
+
+The three no-argument placeholders in `pending_stubs.cpp` hid real
+parameterized APIs. They now follow `Generate3` in its existing `-O3`
+shader-manager owner, matching the consecutive original `0x309620` through
+`0x309d09` run. The former catch-all stays `-O2`; no optimization override
+is changed. `Generate2` constructs a native-width `ShaderMtlDescFilter`,
+forwards descriptor/material pointers and the two scalar arguments into
+`internalInit`, then forwards that filter and the pixel-stage argument to
+`Generate3`. Its 104-byte linked body matches completely.
+
+The more important state defect was the private **constant** digest in
+`Generate3`. Retail instead reads GLOBAL, writable `uberShader2_md5`, a
+16-byte object at `0x636e20`, immediately before `uberShader2` at
+`0x636e40`. Restore its original bytes and place it alongside the embedded
+text in the text's existing `batman.cpp` owner; this does not establish
+that provisional asset owner's complete original TU boundary. The shared
+shader header declares the object and recovered APIs. Both key builders
+now read the same mutable digest, so calling the setter has real effect.
+
+The setter copies sixteen bytes in forward order, accepts exact self-alias,
+and uses its original LOCAL, zero-initialized `defaultHash16` for a null
+input. **Null resets to zero, not to the initial embedded digest.** Its
+ordinary loop naturally emits retail's vectorized non-overlap path and
+scalar overlap path. Defining the digest in the manager itself exposed its
+alignment to GCC and changed one store instruction; grouping the real
+digest with its adjacent shader asset restores the original external-object
+access and the complete 186-byte match, without alignment attributes.
+
+`Generate4` restores an output pointer and the two observed 32-bit argument
+words, described as flags and selector. It zeros the 104-byte serialized
+input, writes the fixed byte at offset 20, copies eight digest bytes at
+offset 12, serializes all four flag bytes at offset 4 and the selector's low
+nibble at offset 8, then repeats the low three flag bytes at offset 9.
+The inverse CRC is stored into the output's high half before the forward
+CRC is called and ORed into the low half. Keep that intermediate store and
+subsequent output reload. These byte offsets describe a serialized hash
+protocol, not native pointer-bearing structure accesses.
+
+The retained `Generate4` is 301 rather than 249 bytes. Full linked review
+finds a non-realigned frame, different byte extraction/register scheduling,
+and a mask instruction in place of zero extension. No synthetic alignment,
+calling-convention attribute, compiler hint or unrolling was added to chase
+the remaining score. The existing larger `Generate3` remains incomplete;
+only its digest access is repaired in this batch.
+
+### Validation and limits
+
+**307,200 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan, both with a recording CRC mock and with the actual `CRC16.cpp`
+implementation checked against an independent bitwise CRC oracle:
+
+- 12,288 setter cases cover all byte values, input alignments, exact-sized
+  allocations, input preservation, exact self-alias and null resets.
+- 262,144 `Generate4` cases verify every serialized byte, signed selector
+  boundaries, flag-byte patterns, setter-to-key integration, call ordering,
+  digest changes during hashing and CRC callbacks changing the output.
+- 32,768 direct/`Generate2` integration cases verify descriptor/material
+  pointer forwarding, scalar boundaries, filter lifetime, vertex-versus-
+  pixel digest selection and setter resets through the real `Generate3`.
+  Filter methods are controlled mocks and other descriptor fields are
+  bounded fixtures, **not** a complete material-key reconstruction audit.
+
+Actual CRC runs validate complete key values; callback mutation assertions
+belong to the recording variant. Four unused GL table targets are guarded
+by aborting mocks so full ASan global instrumentation can remain enabled.
+The linked digest's sixteen initial bytes match retail exactly. Target and
+native builds and all five repository checks pass. No live shader
+compilation, GL context or gameplay execution was tested.

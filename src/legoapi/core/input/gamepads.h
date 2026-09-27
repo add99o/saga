@@ -37,6 +37,7 @@ i32 GamePad_Waggle(GAMEPAD_s *pad);
 i32 ObjLookingWithLeftStick(GameObject_s *object);
 i32 ReadPad(i32 port);
 void ReadPads();
+i32 GamePads_SkipMovie();
 i32 NoPad(i32 port, i32 require_game_input);
 void PadOutPause(i32 port, struct WORLDINFO_s *world);
 void NewRumble(nupad_s *pad, f32 strength, i32 mode);

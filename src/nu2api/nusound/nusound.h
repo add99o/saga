@@ -93,6 +93,7 @@ extern "C" {
     i32 NuSound3PlayStereoV(NUSOUNDPLAYTOK, ...);
 
     void NuSound3Init(i32 zero);
+    void NuSound3KillAllAudio(void);
     i32 NuSound3InitEx(void);
     f32 NuSound3AmplitudeTodB(f32 amplitude);
     NuSoundVoice *NuSound3FindQuietestVoice(i32 sample_index, f32 *playback_position);
@@ -118,8 +119,8 @@ extern "C" {
                            i32 volume_right, f32 pitch, f32 buzz_timer, i32 rumble_strength, f32 rumble_sustain,
                            f32 rumble_release, i32 priority);
     void NuSound3Play3dLoopSfx(nuvec_s *position, i32 sample_index, f32 falloff_near, f32 falloff_far, i32 volume_left,
-                               i32 volume_right, f32 pitch, f32 buzz_timer, i32 rumble_strength,
-                               f32 rumble_sustain, f32 rumble_release);
+                               i32 volume_right, f32 pitch, f32 buzz_timer, i32 rumble_strength, f32 rumble_sustain,
+                               f32 rumble_release);
 
     // Stereo-stream control used by the NuMusic player. Streams live in slots
     // 0/1 (one per music voice); both status queries use the enum above.

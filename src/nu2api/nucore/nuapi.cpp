@@ -58,6 +58,7 @@ extern "C" i32 Nu360GetCommandLine(char **arguments, i32 capacity) {
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nufile/nufile.h"
 #include "nu2api/nucore/nuanim3.h"
+#include "nu2api/nucore/nustring.h"
 #include "nu2api/numath/nutrig.h"
 
 // Nucore bootstrap helpers; display-list and framebuffer initialization are
@@ -83,6 +84,10 @@ float nuapi_forced_frame_time;
 i32 nuapi_max_fps = 60;
 
 static i32 NUAPI_PADREC_DEFAULT_BUFFERSIZE = 0x500000;
+// The Android command-line provider is empty. These are still the original
+// private cursors consumed by ParseCommandLine, not host process arguments.
+static i32 argc;
+static char **argv;
 
 void NuAPIInit(void) {
     memset(&nuapi, 0, sizeof(NUAPI));
@@ -112,6 +117,27 @@ void NuDisableOSMenuFreeze(void) {
     nuapi.disable_os_menu_freeze = 1;
 }
 
+void ParseCommandLine() {
+    while (argc > 0) {
+        if (*argv == NULL) {
+            break;
+        }
+        if (NuStrICmp(*argv, "PADRECORD") == 0) {
+            ++argv;
+            --argc;
+            nuapi.pad_record.filepath = *argv;
+            nuapi.pad_record.mode = NUPAD_RECORD;
+        } else if (NuStrICmp(*argv, "PADPLAY") == 0) {
+            ++argv;
+            --argc;
+            nuapi.pad_record.filepath = *argv;
+            nuapi.pad_record.mode = NUPAD_PLAY;
+        }
+        ++argv;
+        --argc;
+    }
+}
+
 i32 NuInitHardware(VARIPTR *buf, VARIPTR *buf_end, i32 heap_size, ...) {
     i32 hostfs = 0;
     i32 streamsize = 0x200000;
@@ -124,6 +150,7 @@ i32 NuInitHardware(VARIPTR *buf, VARIPTR *buf_end, i32 heap_size, ...) {
     i32 flags = 0;
 
     NuAPIInit();
+    ParseCommandLine();
 
     va_list args;
     va_start(args, heap_size);
