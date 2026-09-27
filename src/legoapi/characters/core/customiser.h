@@ -7,6 +7,7 @@ struct CUSTOMPIECE;
 struct CUSTOMISESAVE_s;
 struct APICHARACTERMODELLIST_s;
 struct GameObject_s;
+struct nufpar_s;
 
 i32 Customiser_NextPieceLeft(CUSTOMISER *customiser, i32 index, i32 count, i32 unused, i32 category);
 i32 Customiser_GetIcon(CUSTOMISER *customiser, CUSTOMISESAVE_s *save, i32 side);
@@ -17,6 +18,8 @@ void Customiser_LoadAccessories(CUSTOMISER *customiser, APICHARACTERMODELLIST_s 
 void Customiser_DumpAccessories(CUSTOMISER *customiser);
 void Customiser_RestoreModelTextureIDs(CUSTOMISER *customiser);
 void Customiser_TransformToPanel(CUSTOMISER *customiser);
+void Customiser_InitNames(CUSTOMISER *customiser);
+void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser);
 CUSTOMPIECE *Customiser_FindPieceByName(CUSTOMISER *customiser, char *name, i32 *category, i32 *index);
 void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object, i32 animation, i32 mode, float scale);
 extern i32 customiser_quit;

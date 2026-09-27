@@ -24,6 +24,7 @@
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/numath/numtx.h"
+#include "nu2api/nufile/nufpar.h"
 
 f32 CustomiseMenuTime[2];
 GAMESAVE_s OldCustomiseGame = {};
@@ -46,6 +47,21 @@ static f32 CustomiseNameBoardTMul[2], CustomiseNameBoardMul[2], CustomiseNameLet
 static NUVEC CustomiseScreenPos[2];
 u16 CustomiseRotY[2], CustomiseTiltX[2], CustomiseTiltZ[2];
 void Customiser_SetNameAndIcon(CUSTOMISER *, i32);
+
+struct CUSTOMISER_GAMESETTING {
+    char *name;
+    u32 model_flags;
+    u32 gameplay_flags;
+};
+static CUSTOMISER_GAMESETTING Customiser_GameSetting[] = {
+    {"bountyhunter", 0x1000000, 0},
+    {"jedi", 8, 0},
+    {"sith", 0xc, 2},
+    {"blaster", 0x100080, 0x40000000},
+    {"alreadygothat", 0, 0x10},
+    {"stormtrooperhelmet", 0, 0x40000},
+    {NULL, 0, 0},
+};
 
 void Customiser_Init(CUSTOMISER *customiser) {
     if (customiser == NULL)
@@ -430,16 +446,37 @@ void CustomiserMenu_Draw(MENU_s *) {
     STUBBED();
 }
 
-void Customiser_InitNames(CUSTOMISER *) {
-    STUBBED();
+void Customiser_InitNames(CUSTOMISER *customiser) {
+    if (customiser == NULL)
+        return;
+    if (customiser->character_ids[0] != -1) {
+        const i32 text = CDataList[customiser->character_ids[0]].name_id;
+        if (text != -1) {
+            NuStrCpy(customiser->display_names[0], TTab[text]);
+            TTab[text] = customiser->display_names[0];
+        }
+    }
+    if (customiser->character_ids[1] != -1) {
+        const i32 text = CDataList[customiser->character_ids[1]].name_id;
+        if (text != -1) {
+            NuStrCpy(customiser->display_names[1], TTab[text]);
+            TTab[text] = customiser->display_names[1];
+        }
+    }
 }
 
 void CustomiserMenu_Update(MENU_s *) {
     STUBBED();
 }
 
-void Customiser_PieceConfig(CUSTOMPIECE *, nufpar_s *) {
-    STUBBED();
+void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser) {
+    for (CUSTOMISER_GAMESETTING *setting = Customiser_GameSetting; setting->name != NULL; ++setting) {
+        if (NuStrICmp(parser->word_buf, setting->name) == 0) {
+            piece->model_flags |= setting->model_flags;
+            piece->gameplay_flags |= setting->gameplay_flags;
+            break;
+        }
+    }
 }
 
 i32 Customiser_MenuAvailable(CUSTOMISER *customiser) {

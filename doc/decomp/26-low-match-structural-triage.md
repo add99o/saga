@@ -2071,3 +2071,137 @@ renderer experiment was retained.
 `NuErrorSleep` likewise passes an uninitialized local `va_list` to its
 font-print helper in retail. No speculative variadic reconstruction was
 made. These findings are recorded to avoid repeated low-yield attempts.
+
+## Customiser texture, selection, and configuration batch (30)
+
+Baseline: `9452302d`. Restore four stubs and correct the shared texture
+save/restore signedness contract without changing either owner's `-O2`
+configuration. Linked fuzzy matching rises from **64.558060% to
+64.571270%**; five functions improve and one regresses. Name initialization
+gains an exact match, while the unchanged piece lookup loses its exact
+code-generation alignment:
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `Customiser_RestoreModelTextureIDs` | 6.154% | 99.090% |
+| `Customiser_Set100PercentPieces` | 12.000% | 78.250% |
+| `Customiser_SaveModelTextureIDs` | 63.813% | 78.400% |
+| `Customiser_InitNames` | 7.778% | 100% |
+| `Customiser_PieceConfig` | 12.000% | 99.971% |
+| `Customiser_FindPieceByName` | 100% | 96.594% |
+
+Texture restoration visits both character IDs through `APICharacterLoaded`
+and skips missing models. For each of nine categories, a zero saved texture
+skips material inspection; a nonzero saved texture is narrowed to its low
+16 bits for every matching material, followed by `NuMtlUpdate`. A material's
+unsigned tag byte is compared with the category's **signed** tag. Negative
+category tags therefore never match an unsigned material tag. Remove the
+incorrect unsigned category cast from the existing save function too:
+retail explicitly sign-extends the category byte in both functions. Saving
+sign-extends each matching texture ID into its 32-bit cache, with the last
+matching material winning. Restoration reloads hierarchy, material count,
+material pointers, category data, and cached texture values after material
+callbacks rather than freezing state across those calls.
+
+Completion selection checks the customiser and save pointers, then scans
+each category using a cached signed count and an advancing piece pointer.
+The last piece with flag `0x80` selects the primary character, and the last
+with `0x100` selects the secondary character. The flags are independent;
+both can select the same piece. Empty or negative counts leave the save
+untouched, and selected indices retain retail's low-word narrowing. This
+does not itself test game completion or unlock pieces. The cached-count
+pointer loop is evidenced by retail and improves the first 58.200% object
+candidate to 78.250%; remaining differences are register/stack allocation
+and addressing, not missing selection behavior.
+
+Name initialization handles two slots in order. Character ID `-1` or
+localized-text ID `-1` skips that slot. Otherwise copy the text into the
+customiser's 128-byte name buffer and redirect the current `TTab` entry to
+that buffer. Keep the text ID captured before the copy, but reload the
+global text table afterwards and reload character data for the second
+slot. Duplicate character/text IDs consequently allow the second slot to
+copy the first buffer and become the final text-table owner. The customiser
+must outlive those table references and valid names must fit the buffers.
+No extra saved-name/default-name behavior is invented.
+
+Recover the original mutable 84-byte local `Customiser_GameSetting` table
+(six records plus sentinel), validating all string pointers and flags
+against retail data at `0x621260`:
+
+| Keyword | Model flags | Gameplay flags |
+| --- | ---: | ---: |
+| `bountyhunter` | `0x01000000` | `0` |
+| `jedi` | `0x00000008` | `0` |
+| `sith` | `0x0000000c` | `0x00000002` |
+| `blaster` | `0x00100080` | `0x40000000` |
+| `alreadygothat` | `0` | `0x00000010` |
+| `stormtrooperhelmet` | `0` | `0x00040000` |
+
+The configuration callback compares the parser's current word against
+each setting case-insensitively, ORs both masks from the first matching
+record, and stops. Unknown words leave the piece unchanged. It neither
+advances the parser nor clears existing flags. Keep the parser word and
+table flags reloadable across comparison callbacks. Names and parser
+callbacks are declared through the existing customiser header.
+
+The complete before/after diff for the neighboring
+`Customiser_FindPieceByName` has seven changed instructions: two register
+pairs and an equivalent conditional/fall-through branch arrangement. Its
+body is unchanged and 161 focused lookup cases pass. Retain the coherent
+source placement and larger verified improvements rather than introducing
+artificial declarations, attributes, or padding to recover that alignment.
+The near-exact configuration score differs only in a local table address;
+restoration retains two equivalent effective-address expressions and
+different local alignment. No layout-only score chase is retained.
+
+Original-toolchain 32-bit and full-global 64-bit ASan/UBSan tests pass on
+the actual source, totaling **315,171 cases per architecture**:
+
+- 68,129 restoration cases cover all signed-category/unsigned-material
+  byte pairs, both characters, missing models, negative/zero counts,
+  all integer texture boundaries including `INT_MIN`, and callback
+  mutations to hierarchy, counts, pointers, categories, IDs, and textures.
+- 131,096 saving cases cover all tag pairs, all signed 16-bit model IDs,
+  missing inputs, zero/negative counts, and signed texture storage.
+- 65,567 completion cases cover every availability word, all nine
+  categories, independent flags/last-match precedence, null inputs,
+  negative counts, and index narrowing through 65,537.
+- 161 lookup cases cover all 36 fixture pieces, misses, case folding,
+  optional outputs, and a null customiser.
+- 48,601 name cases cover sentinel/duplicate IDs, empty through maximum
+  127-byte names, both table owners, and callback changes to the global
+  tables and second slot.
+- 1,617 parser cases cover all retail keywords/masks, case variants,
+  unknown/whitespace words, preserved bits, and callback mutation.
+
+Target/native builds and all five repository tests pass. External model
+lookup, material updates, and string services are mocked; gameplay and
+visual execution are not claimed. All eleven PR checks on the preceding
+batch were verified green before publication.
+
+### Deferred availability and file-selector work
+
+`Customiser_PieceAvailable` has a recoverable integer return contract,
+but two natural source forms scored 0% and 3.750% in isolated objects
+because GCC places the demo branch after the ordinary path instead of
+retail's demo-first fall-through. A diagnostic-only `-O3` build of the
+second form produced the same score, so this is not evidence for a flag
+change. Neither reconstruction nor its provisional header/type additions
+is retained. The audited contract for a later attempt is:
+
+- Demo mode returns whether availability bit `0x10` is clear.
+- Otherwise flags `0x180` require `Game_100PercentComplete`.
+- A non-sentinel signed character ID absent from `InCollectList_Index`
+  returns one immediately; a listed but unowned ID returns zero.
+- Model flags `0xc` require `Collection_GotAnyOfType(-1, mask)`.
+- The signed byte at piece offset `0x11`, unless `-1`, requires
+  `Collection_GotAnyOfType(type, 0)`. This byte needs a canonical field
+  when the reconstruction is resumed.
+
+`ProcessFileSel3` also has an incorrect void placeholder: retail returns
+an integer selection result. Its real file-list helpers and state are in
+`core/config/saveload.cpp`, while its stub is in the menu unit; those
+owners currently use `-O2` and `-O3` respectively. Reconstruct it with a
+coherent file-selector state/header audit, including the missing byte
+flags, dimensions, filter strings, and callback, rather than layering new
+local declarations into the wrong owner. No file-selector edit is retained.

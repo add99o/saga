@@ -503,7 +503,7 @@ void Customiser_SaveModelTextureIDs(CUSTOMISER *customiser, CHARACTERMODEL_s *mo
         for (i32 category = 0; category < 9; ++category) {
             for (i32 material = 0; material < hierarchy->material_count; ++material) {
                 NUMTL *entry = hierarchy->materials[material];
-                if (entry->unknown_9a[0] == static_cast<u8>(customiser->categories[category]->material_tag)) {
+                if (entry->unknown_9a[0] == customiser->categories[category]->material_tag) {
                     customiser->model_texture_ids[character * 9 + category] = entry->tex_id;
                 }
             }
@@ -511,12 +511,44 @@ void Customiser_SaveModelTextureIDs(CUSTOMISER *customiser, CHARACTERMODEL_s *mo
     }
 }
 
-void Customiser_RestoreModelTextureIDs(CUSTOMISER *) {
-    STUBBED();
+void Customiser_RestoreModelTextureIDs(CUSTOMISER *customiser) {
+    if (customiser == NULL)
+        return;
+    for (i32 character = 0; character < 2; ++character) {
+        CHARACTERMODEL_s *model = APICharacterLoaded(customiser->character_ids[character]);
+        if (model == NULL)
+            continue;
+        for (i32 category = 0; category < 9; ++category) {
+            if (customiser->model_texture_ids[character * 9 + category] == 0)
+                continue;
+            for (i32 material = 0; material < model->hierarchy->material_count; ++material) {
+                NUMTL *entry = model->hierarchy->materials[material];
+                if (entry->unknown_9a[0] == customiser->categories[category]->material_tag) {
+                    entry->tex_id = customiser->model_texture_ids[character * 9 + category];
+                    NuMtlUpdate(entry);
+                }
+            }
+        }
+    }
 }
 
-void Customiser_Set100PercentPieces(CUSTOMISER *) {
-    STUBBED();
+void Customiser_Set100PercentPieces(CUSTOMISER *customiser) {
+    if (customiser == NULL || customiser->save == NULL)
+        return;
+    CUSTOMISESAVE_s *save = customiser->save;
+    for (i32 category = 0; category < 9; ++category) {
+        const i32 count = customiser->piece_counts[category];
+        if (count <= 0)
+            continue;
+        CUSTOMPIECE *piece = customiser->piece_sets[category];
+        for (i32 index = 0; index < count; ++index, ++piece) {
+            const u16 flags = piece->availability_flags;
+            if ((flags & 0x80) != 0)
+                save->pieces[category] = index;
+            if ((flags & 0x100) != 0)
+                save->secondary_pieces[category] = index;
+        }
+    }
 }
 
 void Customiser_CopyDefaultPiecesToSave(CUSTOMISER *customiser, CUSTOMISESAVE_s *save) {
