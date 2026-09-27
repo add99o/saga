@@ -79,8 +79,53 @@ void BezierLineEval(VuVec &result, VuVec &start, VuVec &first_control, VuVec &en
     result.w = 0.0f;
 }
 
-void CalcSplinePoint(flightspline_s *, _vuv_s *, float) {
-    STUBBED();
+void CalcSplinePoint(flightspline_s *spline, _vuv_s *result, float along) {
+    const VuVec *points = reinterpret_cast<const VuVec *>(spline);
+    const i32 count = *reinterpret_cast<const i32 *>(reinterpret_cast<const u8 *>(spline) + 0x400);
+    const f32 position = static_cast<f32>(count - 1) * along;
+    i32 segment = static_cast<i32>(position);
+    const f32 fraction = position - static_cast<f32>(segment);
+    if (segment > count) {
+        segment = count;
+    }
+    if (segment <= 0) {
+        segment = 0;
+    }
+    const VuVec &current = points[segment];
+    const VuVec &next = points[segment + 1];
+    VuVec previous;
+    VuVec following;
+    if (segment == 0) {
+        NUVEC direction = {current.x - next.x, current.y - next.y, current.z - next.z};
+        NuVecNorm(&direction, &direction);
+        previous = {current.x + direction.x * 10.0f, current.y + direction.y * 10.0f,
+                    current.z + direction.z * 10.0f, current.w};
+    } else {
+        previous = points[segment - 1];
+    }
+    if (segment < count - 2) {
+        following = points[segment + 2];
+    } else {
+        const VuVec &last = points[count - 1];
+        const VuVec &before_last = points[count - 2];
+        NUVEC direction = {last.x - before_last.x, last.y - before_last.y, last.z - before_last.z};
+        NuVecNorm(&direction, &direction);
+        following = {last.x + direction.x * 10.0f, last.y + direction.y * 10.0f,
+                     last.z + direction.z * 10.0f, last.w};
+    }
+    const f32 squared = fraction * fraction;
+    const f32 cubed = squared * fraction;
+    VuVec *out = reinterpret_cast<VuVec *>(result);
+    out->x = 0.5f * (2.0f * current.x + (next.x - previous.x) * fraction +
+                     (2.0f * previous.x - 5.0f * current.x + 4.0f * next.x - following.x) * squared +
+                     (3.0f * (current.x - next.x) - previous.x + following.x) * cubed);
+    out->y = 0.5f * (2.0f * current.y + (next.y - previous.y) * fraction +
+                     (2.0f * previous.y - 5.0f * current.y + 4.0f * next.y - following.y) * squared +
+                     (3.0f * (current.y - next.y) - previous.y + following.y) * cubed);
+    out->z = 0.5f * (2.0f * current.z + (next.z - previous.z) * fraction +
+                     (2.0f * previous.z - 5.0f * current.z + 4.0f * next.z - following.z) * squared +
+                     (3.0f * (current.z - next.z) - previous.z + following.z) * cubed);
+    out->w = current.w + (next.w - current.w) * fraction;
 }
 
 f32 BezierLineLength(VuVec &start, VuVec &first_control, VuVec &end, VuVec &second_control) {
