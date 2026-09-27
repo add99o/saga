@@ -991,15 +991,15 @@ static void CC_anim_start(NUFPAR *parser) {
         } else if (NuStrICmp(parser->word_buf, "priority") == 0) {
             animation.priority = static_cast<u8>(NuFParGetInt(parser));
         } else if (NuStrICmp(parser->word_buf, "gun_off") == 0) {
-            animation.flags |= 0x400;
+            animation.flags |= CHARACTER_ANIMATION_FLAG_GUN_OFF;
         } else if (NuStrICmp(parser->word_buf, "gun_on") == 0) {
-            animation.flags |= 0x800;
+            animation.flags |= CHARACTER_ANIMATION_FLAG_GUN_ON;
         } else if (NuStrICmp(parser->word_buf, "gun") == 0) {
             if (NuFParGetWord(parser) != 0) {
                 if (NuStrICmp(parser->word_buf, "on") == 0)
-                    animation.flags |= 0x800;
+                    animation.flags |= CHARACTER_ANIMATION_FLAG_GUN_ON;
                 else if (NuStrICmp(parser->word_buf, "off") == 0)
-                    animation.flags |= 0x400;
+                    animation.flags |= CHARACTER_ANIMATION_FLAG_GUN_OFF;
             }
         } else if (NuStrICmp(parser->word_buf, "locator") == 0) {
             if (NuFParGetWord(parser) != 0) {

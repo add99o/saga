@@ -1969,7 +1969,3 @@ void LoadPerm2() {
                             0x01000000, 0, 0, 0, 4, &permbuffer_ptr, &permbuffer_end, 0, COLLECTION_DEFAULTSCALE);
     Areas_ConfigureResidents(&permbuffer_ptr, &permbuffer_end);
 }
-
-void MapToGrid(nuvec_s *, nuvec_s *, i32 *, i32 *, nuvec_s *, nutexmanager_s *) {
-    STUBBED();
-}

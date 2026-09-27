@@ -1532,3 +1532,91 @@ Further read-only triage:
   reproduce its private EAX/EDX/XMM calling convention naturally. It has
   no reconstructed caller or complete types in its current owner; do not
   implement it as an isolated forced-register-ABI helper.
+
+## Batch 24: texture grid, HTML line graph, and weapon flag audit
+
+Linked fuzzy matching improves from **64.254920% to 64.280630%**:
+`MapToGrid` rises from 5.060% to **91.470%**, and `NuHtmlHLineGraph`
+from 2.093% to **84.159%**. Two scores improve, none regress, and no
+exact matches are lost. Optimization settings and the denominator stay
+unchanged.
+
+`MapToGrid` belongs with the texture manager: retail places it between
+`NuTexManagerInit` and `NuTexManagerStream`. Remove the character-file
+stub and restore the body in `nutex.cpp`. The shared 0x40-byte manager
+now names the grid centre, X/Z extents, and signed column/row counts;
+size and field-offset assertions preserve the target layout. The
+allocator still only aligns/reserves the manager, without clearing it.
+
+Grid coordinates use `(position - centre + extent * 0.5) * (count / extent)`.
+Negative values clamp to zero, but the upper test is strictly `>`:
+an exact edge remains `count`, while values beyond it become
+`count - 0.001`. The two `NuFloor` calls, integer outputs, and fractional
+remainders retain retail ordering and alias behavior. Despite its name,
+this build's `NuFloor` truncates toward zero. A store-order experiment
+did not change code generation; remaining differences are arithmetic
+scheduling/register allocation, not a reason for optimization overrides.
+
+The line graph's missing ABI is `(title, width, height, values, count,
+maximum, labels)`, not a zero-argument function. Restore its exact
+two-stage HTML formatting, integer tick rounding, 16 scan lines per
+row, initial eight-step segment, subsequent 17-step segments, zero-slope
+one-pixel lines, negative-delta reversal, and final-row slope reset.
+Use the real `setpoint`, `setnextpoint`, and `getnextdatapoint` helpers.
+The data contract includes `values[count]` as a look-ahead sample for
+positive counts, and still reads `values[0]` for empty/negative counts.
+Titles and labels are trusted internal diagnostic strings: the retail
+256-byte formatter and subsequent format-string writer are preserved,
+not made suitable for untrusted input. `maximum` must be nonzero and
+the arithmetic/conversions must remain representable.
+
+The fast-weapon audit found a real error independent of the low scores:
+`FastWeaponIn` suppresses audio for `gun_on` (0x800), while
+`FastWeaponOut` tests `gun_off` (0x400). Replace the misleading shared
+constant with distinct names, also used by the existing parser and
+automatic transitions. The mask fix leaves fuzzy scores unchanged.
+A nested-condition experiment did not improve matching and was not
+retained; do not repeat branch permutations without new evidence.
+
+Validation passes on the 32-bit NDK toolchain and 64-bit ASan/UBSan,
+with normal global instrumentation throughout:
+
+- **148,226 grid cases** cover signed dimensions/counts, exact and
+  near edges, valid infinity/clamping cases, all vector aliases and
+  shared index outputs, callback mutations, a 131,073-position sweep,
+  and all 16 manager-allocation alignments. NaN/out-of-range
+  float-to-integer inputs are outside the retail-defined contract;
+  they are not claimed as supported.
+- **5,280 HTML graph cases** compare every emitted string and final
+  interpolation state, including negative/empty counts, null label
+  arrays/entries, rising/falling/constant series, signed widths and
+  maxima, rounding, and sample/label changes during writes. Heap sample
+  arrays have exactly the required look-ahead capacity.
+- **144,480 fast-weapon cases** cover every low 16-bit animation flag
+  pattern, signed contexts, all model-mask and weapon-state bytes,
+  strict/NaN scale gates, nullable animation entries, Jedi/alternate
+  audio precedence, and callback mutations. Sound services are mocked.
+
+Target/native builds and all five repository tests pass. These are
+focused output/behavior tests, not a gameplay or visual run.
+
+Further read-only triage:
+
+- `StarFighterAlign` needs the actual `starfighter_s` layout and its
+  owning `ProcessStarFighter` call path. The current type is empty;
+  retail uses matrix/state fields and a private EAX/EDX/XMM0 convention.
+  The partial space-level reset records are not interchangeable with
+  that type. Reconstruct the group rather than adding forced ABI casts.
+- `CC_sfx_misc` already has the relevant behavior. Retail unrolls six
+  slot comparisons, while the established `-O2` build keeps a loop.
+  No manual unrolling or flag override was retained.
+- `MenuDrawEpisodes` calls the private `DrawEpisodesMenu`, currently
+  misplaced as a stub in `hud.cpp`. Audit/consolidate that ownership
+  before treating its private register convention as a local mismatch.
+- `ReleaseUnreferencedPages_OLD` exposes two issues needing a grouped
+  pool audit: the existing 0x400-byte free-list placeholder cannot hold
+  256 pointers on a 64-bit host, and the retail rejection path appears
+  to revisit the same recycled page instead of advancing. The supplied
+  release handlers always succeed, but silently rewriting the rejection
+  path would not be faithful reconstruction. No allocator changes were
+  included in this batch.

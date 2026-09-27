@@ -87,7 +87,7 @@ void FastWeaponIn(GameObject_s *object, i32 force_sound) {
         if (current_animation != -1) {
             animation = static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[current_animation]);
         }
-        if (animation == NULL || (animation->flags & CHARACTER_ANIMATION_FLAG_ALLOW_WEAPON_TRANSITION) == 0) {
+        if (animation == NULL || (animation->flags & CHARACTER_ANIMATION_FLAG_GUN_ON) == 0) {
             const u32 model_flags = object->apiobj.character_data->model_flags;
             if ((model_flags & CHARACTER_MODEL_FLAG_JEDI) != 0) {
                 if (object->apiobj.field_0x27c != -1 || WeaponInOut_NoAIJediSfx == 0) {
@@ -200,7 +200,7 @@ void FastWeaponOut(GameObject_s *object, i32 force_sound) {
             animation = static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[current_animation]);
         }
 
-        if (animation == NULL || (animation->flags & CHARACTER_ANIMATION_FLAG_ALLOW_WEAPON_TRANSITION) == 0) {
+        if (animation == NULL || (animation->flags & CHARACTER_ANIMATION_FLAG_GUN_OFF) == 0) {
             const u32 model_flags = object->apiobj.character_data->model_flags;
             if ((model_flags & CHARACTER_MODEL_FLAG_JEDI) != 0) {
                 if (object->apiobj.field_0x27c != -1 || WeaponInOut_NoAIJediSfx == 0) {
@@ -376,7 +376,7 @@ void AutoWeaponOnOff(GameObject_s *object) {
     CHARACTERANIM_s *animation = static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[index]);
     const u32 flags = animation->flags;
     const ANIMPACKET_s &packet = object->apiobj.anim_packet;
-    if ((flags & 0x400) != 0) {
+    if ((flags & CHARACTER_ANIMATION_FLAG_GUN_OFF) != 0) {
         if (object->weapon_scale > 0.0f) {
             if ((packet.flags & ANIMPACKET_FLAG_ANIMATION_CHANGED) != 0 && packet.blending != 0) {
                 FastWeaponIn(object, 0);
@@ -385,7 +385,7 @@ void AutoWeaponOnOff(GameObject_s *object) {
                 SetWeaponIn(object);
             }
         }
-    } else if ((flags & 0x800) != 0 && object->weapon_scale < 1.0f) {
+    } else if ((flags & CHARACTER_ANIMATION_FLAG_GUN_ON) != 0 && object->weapon_scale < 1.0f) {
         if ((packet.flags & ANIMPACKET_FLAG_ANIMATION_CHANGED) != 0 && packet.blending != 0) {
             FastWeaponOut(object, 0);
         } else if ((packet.flags & ANIMPACKET_FLAG_ANIMATION_CHANGED) != 0 ||
