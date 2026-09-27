@@ -2,6 +2,11 @@
 
 #include "nu2api/nucore/common.h"
 
+void *NuPtrBlockRead(NUFILE file) {
+    void *block = NuMemFileAddr(file);
+    return NuPtrBlockFix(block);
+}
+
 void *NuPtrBlockFix(void *block) {
     VARIPTR buf;
     VARIPTR ptr;

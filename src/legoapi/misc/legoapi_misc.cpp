@@ -10,6 +10,7 @@
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/menus/screens/store.h"
+#include "legoapi/misc/utilities.h"
 #include "legoapi/props/system/socksys.h"
 #include "legoapi/world/levels/episode.h"
 #include "legoapi/world/world.h"
@@ -18,6 +19,7 @@
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numath/nuvec.h"
 #include <math.h>
+#include <string.h>
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -97,12 +99,10 @@ void ClearLastSafeTakeOver(GameObject_s *object) {
     }
 }
 
-void GetNativeTextureFormatName(NUTEXFORMAT) {
-    STUBBED();
-}
-
-void CatIToX(char *, i32) {
-    STUBBED();
+void CatIToX(char *output, i32 value) {
+    while (*output != '\0')
+        ++output;
+    *IToX(output, value) = '\0';
 }
 
 void DoInput(WORLDINFO_s *world) {
@@ -156,19 +156,33 @@ void DoInput(WORLDINFO_s *world) {
     }
 }
 
-void CatI64ToX(char *, i64) {
-    STUBBED();
+void CatI64ToX(char *output, i64 value) {
+    while (*output != '\0')
+        ++output;
+    *I64ToX(output, value) = '\0';
 }
 
-void DieRumble(GameObject_s *) {
-    STUBBED();
+void DieRumble(GameObject_s *object) {
+    if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0) {
+        NewRumble(object->pad_gamepad->pad, 1.0f, 0);
+        NewBuzz(object->pad_gamepad->pad, 0.3f, 0);
+    }
 }
 
-void charToInt(char const *) {
-    STUBBED();
-}
-
-static __used__ i32 _fseek64_wrap(__sFILE *, i64, i32) {
-    STUBBED();
-    return 0;
+i32 charToInt(char const *text) {
+    const i32 length = static_cast<i32>(strlen(text));
+    i32 first = 0;
+    u32 sign = 1;
+    if (length > 0 && text[0] == '-') {
+        first = 1;
+        sign = static_cast<u32>(-1);
+    }
+    // The original accepts signed non-digit bytes and wraps at 32 bits.
+    u32 result = 0;
+    u32 place = 1;
+    for (i32 index = static_cast<i32>(static_cast<u32>(length) - 1u); index >= first; --index) {
+        result += static_cast<u32>(static_cast<i8>(text[index]) - '0') * place;
+        place *= 10;
+    }
+    return static_cast<i32>(result * sign);
 }

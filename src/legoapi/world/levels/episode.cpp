@@ -1256,7 +1256,3 @@ void DrawMiniSnowTroopers(WORLDINFO_s *world) {
                              matrices[frame] + first_side_counts[frame], 1);
     }
 }
-
-static __used__ void seed_chase(f32 *, i32, abi_long) {
-    STUBBED();
-}

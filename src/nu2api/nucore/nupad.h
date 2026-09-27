@@ -258,6 +258,7 @@ void NuPadMapPortToPS2Port(i32 pad, i32 port);
 i32 NuPadGetPort(i32 player);
 i32 NuPadGetPlayer(i32 port);
 i32 NuPadGetFirstActivePad(void);
+void UCStretchToCorners(i16 *horizontal, i16 *vertical);
 void NuPadGetDeadzonePS(NUPAD *pad);
 void NuPadOpenPS(NUPAD *pad);
 

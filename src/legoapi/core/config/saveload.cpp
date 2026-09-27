@@ -5,6 +5,7 @@
 #include "gameapi/edtools/gameapi_edtools_types.h"
 #include "gameframework/saveload.h"
 #include "globals.h"
+#include "legoapi/core/config/fileselect.h"
 #include "legoapi/cutscenes/cutscenes.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/world/area.h"
@@ -48,6 +49,18 @@ i32 FS_SortMode = 3;
 char *FS_CurrentCursorPos = FS_FileList;
 char *FS_CurrentPos = FS_FileList;
 char *FS_FileListEnd = FS_FileList;
+char FS_Title[64] = "Title";
+char FS_Filter[256] = "*.nup | *.hgp   ";
+char FS_FilterOut[256] = "_PC. | _360. | _PS3.";
+f32 FS_X = 50.0f;
+f32 FS_Y = 40.0f;
+f32 FS_Width = 248.0f;
+f32 FS_W;
+f32 FS_H;
+u8 FS_Active;
+u8 FS_RefreshDir;
+u8 FS_ShowVolumes;
+void (*FS_Callback)(char *, char *);
 
 void FS_BuildFilterBlocks(char *);
 void FS_BuildFilterOutBlocks(char *);
@@ -588,6 +601,135 @@ void FS_SetCursorToLastFileName() {
         }
         entry += NuStrLen(entry) + 1;
     }
+}
+
+i32 ProcessFileSel3(f32 elapsed, nupad_s *pad) {
+    if (FS_Active == 0)
+        return 0;
+    if (FS_RefreshDir != 0) {
+        FS_GetDirList(FS_Path, FS_Filter, FS_FilterOut);
+        NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+        NuQFntSet(system_qfont);
+        NuQFntSetPointSize(system_qfont, 1.0f, 1.0f);
+        f32 width = FS_GetDirTextWidth() * 0.0625f;
+        NuQFntPopCoordinateSystem();
+        if (width < 240.0f)
+            width = 240.0f;
+        FS_Width = width + 8.0f;
+        FS_GetPadWithRepeat(pad, 0.05f, elapsed);
+        if (FS_LastFileName[0] != '\0')
+            FS_SetCursorToLastFileName();
+        FS_RefreshDir = 0;
+    }
+    const i32 buttons = FS_GetPadWithRepeat(pad, 0.05f, elapsed);
+    if ((buttons & 0x4000) != 0)
+        FS_MoveCursorDown(1);
+    if ((buttons & 0x1000) != 0)
+        FS_MoveCursorUp(1);
+    if ((buttons & 1) != 0)
+        FS_MoveCursorDown(14);
+    if ((buttons & 4) != 0)
+        FS_MoveCursorUp(14);
+    if ((buttons & 2) != 0)
+        FS_MoveCursorDown(FS_NumFiles);
+    if ((buttons & 8) != 0)
+        FS_MoveCursorUp(FS_NumFiles);
+    if ((buttons & 0x80) != 0) {
+        FS_RefreshDir = 2;
+        FS_SortMode = static_cast<i32>(static_cast<u32>(FS_SortMode) + 1);
+        if (FS_SortMode == 4)
+            FS_SortMode = 0;
+        NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
+    }
+    if ((buttons & 0x20) != 0) {
+        const i32 length = NuStrLen(FS_Path);
+        if (length != 0 && FS_Path[length - 1] == '\\')
+            FS_Path[length - 1] = '\0';
+        char *separator = NuStrRChr(FS_Path, '\\');
+        if (separator != NULL)
+            separator[1] = '\0';
+        else
+            NuStrCat(FS_Path, "\\");
+        FS_RefreshDir = 1;
+        FS_LastFileName[0] = '\0';
+    }
+    if ((buttons & 0x40) != 0) {
+        if (FS_CurrentCursorPos[0] == 'V') {
+            FS_ShowVolumes = 0;
+            NuStrCpy(FS_Path, FS_CurrentCursorPos + 7);
+            FS_RefreshDir = 1;
+            FS_LastFileName[0] = '\0';
+        } else if (FS_CurrentCursorPos[0] == 'D') {
+            if (FS_CurrentCursorPos[7] == '.' && FS_CurrentCursorPos[8] == '.' && FS_CurrentCursorPos[9] == '\0') {
+                const i32 length = NuStrLen(FS_Path);
+                if (length != 0 && FS_Path[length - 1] == '\\')
+                    FS_Path[length - 1] = '\0';
+                char *separator = NuStrRChr(FS_Path, '\\');
+                if (separator != NULL)
+                    separator[1] = '\0';
+                else
+                    NuStrCat(FS_Path, "\\");
+            } else {
+                const i32 length = NuStrLen(FS_Path);
+                if (length != 0 && FS_Path[length - 1] != '\\')
+                    NuStrCat(FS_Path, "\\");
+                NuStrCat(FS_Path, FS_CurrentCursorPos + 7);
+                NuStrCat(FS_Path, "\\");
+            }
+            FS_RefreshDir = 1;
+            FS_LastFileName[0] = '\0';
+        } else {
+            FS_Active = 0;
+            NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
+            if (FS_Callback != NULL)
+                FS_Callback(FS_Path, FS_CurrentCursorPos + 7);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern "C" i32 ProcessFileSel2(f32 elapsed, nupad_s *pad) {
+    return ProcessFileSel3(elapsed, pad);
+}
+
+extern "C" void FileSelKill(void) {
+    NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
+    FS_Active = 0;
+}
+
+void ProcessFileSel(f32 elapsed, nupad_s *pad) {
+    ProcessFileSel3(elapsed, pad);
+    RenderFileSel();
+    if ((pad->digital_buttons & 0x10) != 0)
+        FileSelKill();
+}
+
+extern "C" void StartFileSel(char *title, char *path, char *filter, char *filter_out,
+                             void (*callback)(char *, char *)) {
+    if (title != NULL)
+        NuStrCpy(FS_Title, title);
+    if (path != NULL)
+        NuStrCpy(FS_Path, path);
+    if (filter != NULL)
+        NuStrCpy(FS_Filter, filter);
+    else
+        FS_Filter[0] = '\0';
+    if (filter_out != NULL)
+        NuStrCpy(FS_FilterOut, filter_out);
+    else
+        FS_FilterOut[0] = '\0';
+    FS_Active = 1;
+    FS_Callback = callback;
+    FS_RefreshDir = 2;
+}
+
+extern "C" void RenderFileSel2(i32 x, i32 y, i32 *width, i32 *height) {
+    FS_X = static_cast<f32>(x);
+    FS_Y = static_cast<f32>(y) * 0.5f;
+    RenderFileSel3(0);
+    *height = static_cast<i32>(FS_H + FS_H);
+    *width = static_cast<i32>(FS_W);
 }
 
 i32 LoadState(i32, variptr_u *, variptr_u *, variptr_u *, variptr_u *, variptr_u *, variptr_u *) {

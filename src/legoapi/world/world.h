@@ -450,7 +450,7 @@ typedef struct WORLDINFO_s {
     GAMEANTINODESYS_s *game_antinode_sys; // 0x5110
     EDGIZSHADOW_s *shadow_editor;         // 0x5114
     GIZBOMBGENSYS_s *giz_bombgen_sys;     // 0x5118
-    char filler14d[0x5120 - 0x511c];
+    i32 has_level_specific_data;          // 0x511c
 
     union {
         void *level_specific_data;
@@ -529,6 +529,7 @@ DECOMP_ASSERT(offsetof(WORLDINFO, push_block_count) == 0x46c4, "WORLDINFO push-b
 DECOMP_ASSERT(offsetof(WORLDINFO, gizmo_pickup_sys) == 0x50bc, "WORLDINFO pickup system offset");
 DECOMP_ASSERT(offsetof(WORLDINFO, giz_torp_machine_sys) == 0x5104, "WORLDINFO torpedo-machine system offset");
 DECOMP_ASSERT(offsetof(WORLDINFO, giz_bombgen_sys) == 0x5118, "WORLDINFO bomb-generator system offset");
+DECOMP_ASSERT(offsetof(WORLDINFO, has_level_specific_data) == 0x511c, "WORLDINFO level allocation flag offset");
 DECOMP_ASSERT(offsetof(WORLDINFO, current_gscn) == 0x13c, "WORLDINFO current scene offset");
 DECOMP_ASSERT(sizeof(WORLDINFO) == 0x51b0, "WORLDINFO ABI");
 

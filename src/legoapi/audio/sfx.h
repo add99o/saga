@@ -13,6 +13,7 @@
 extern "C" {
 #endif
     void PlaySfx(char *name, nuvec_s *pos);
+    void PlaySfxAndSetPitch(char *name, nuvec_s *position, f32 pitch);
     i32 IsSfxLooping(i32 sfx_id);
     void SetSfxBit_On(i32 sound);
     void ClearLinkedCutSceneMusic(void *context);

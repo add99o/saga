@@ -15,6 +15,11 @@
 #include "legoapi/world/mission.h"
 #include "legoapi/core/input/gamepads.h"
 #include "gamelib/util/gamelib_util_types.h"
+#include "gameapi/gui/apimenu.h"
+#include "legoapi/characters/motion.h"
+#include "legoapi/menus/core/text.h"
+#include "legoapi/render/core/render.h"
+#include "legoapi/world/level.h"
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -297,7 +302,8 @@ i32 ShinyMetal_UpdateHint(HINT_s *hint) {
     GIZMOBLOWUP_s *blowup = WORLD->gizmo_blowups;
     if (blowup == NULL)
         return 0;
-    for (i32 i = 0; i < WORLD->gizmo_blowup_count; ++i, ++blowup) {
+    i32 count = WORLD->gizmo_blowup_count;
+    for (i32 i = 0; i < count; ++i, ++blowup) {
         if ((blowup->draw_flags & 2) == 0 || (blowup->status_flags & 0x804001) != 0x804000)
             continue;
         if (NuVecDistSqr(&player->apiobj.position, &blowup->mid_position, NULL) < 4.0f) {
@@ -307,6 +313,7 @@ i32 ShinyMetal_UpdateHint(HINT_s *hint) {
                 return hint->control_mode_ids[0] == 0x283;
             return hint->control_mode_ids[0] == 0x61d;
         }
+        count = WORLD->gizmo_blowup_count;
     }
     return 0;
 }
@@ -443,3 +450,112 @@ HINT_s Hints_LSW[55] = {
     {{1577, 1577}, 16, {255, 0, 0}, 0, 6.0f, 2.0f, {Jump_UpdateHint}, NULL, {0, 0, 0, 0}, 0.0f},
     {{-1, -1}, 0, {255, 0, 0}, 1000, 1.0f, 1.0f, {NULL}, NULL, {0, 0, 0, 0}, 0.0f},
 };
+
+// Each control mode retains its own requested and interpolated hint row.
+static i32 updatehints_target_y[2];
+static f32 updatehints_current_y[2];
+
+void MenuUpdateHints(MENU_s *menu) {
+    if (menu->input_activity != 0 && menu->confirm_pressed != 0) {
+        if (menu->selected_item == 0)
+            menu->up_pressed = 1;
+        else
+            menu->down_pressed = 1;
+    }
+    if (menu->cancel_pressed != 0) {
+        BackupMenu();
+    } else if (menu->up_pressed != 0) {
+        if (updatehints_target_y[MechInputTouchSystem::s_baseControlMode] > 0)
+            --updatehints_target_y[MechInputTouchSystem::s_baseControlMode];
+    } else if (menu->down_pressed != 0) {
+        i32 &target = updatehints_target_y[MechInputTouchSystem::s_baseControlMode];
+        target = static_cast<i32>(static_cast<u32>(target) + 1U);
+    }
+
+    const i32 mode = MechInputTouchSystem::s_baseControlMode;
+    i32 count = 0;
+    if (mode == 0) {
+        for (HINT_s *hint = Hints_LSW; hint->control_mode_ids[0] != -1; ++hint) {
+            if ((hint->flags & 0x2c) == 0 && (hint->flags & 0x10) == 0 && TTab[hint->control_mode_ids[0]] != NULL)
+                ++count;
+        }
+    } else {
+        for (HINT_s *hint = Hints_LSW; hint->control_mode_ids[0] != -1; ++hint) {
+            if ((hint->flags & 0x2c) == 0 && hint->control_mode_ids[1] != -1 &&
+                TTab[hint->control_mode_ids[mode]] != NULL)
+                ++count;
+        }
+    }
+    if (count <= updatehints_target_y[mode])
+        updatehints_target_y[mode] = count - 1;
+    updatehints_current_y[mode] =
+        SeekValF(updatehints_current_y[mode], static_cast<f32>(updatehints_target_y[mode]), 5.0f);
+}
+
+void MenuDrawHints(MENU_s *menu) {
+    const f32 text_x = 0.09f - ICONX;
+    f32 icon_x = -ICONX;
+    const u16 pulse_angle =
+        static_cast<u16>(static_cast<i32>(NuFmod(GlobalTimer.time_elapsed_mod_seconds, 0.5f) * 2.0f * 65536.0f));
+    const f32 pulse = NU_SIN_LUT(pulse_angle) * 0.5f + 0.5f;
+    const u8 red =
+        static_cast<u8>(static_cast<i32>(HintRGB[2][0] + ((HintRGB[2][0] + 255.0f) * 0.5f - HintRGB[2][0]) * pulse));
+    const u8 green =
+        static_cast<u8>(static_cast<i32>(HintRGB[2][1] + ((HintRGB[2][1] + 255.0f) * 0.5f - HintRGB[2][1]) * pulse));
+    const u8 blue =
+        static_cast<u8>(static_cast<i32>(HintRGB[2][2] + ((HintRGB[2][2] + 255.0f) * 0.5f - HintRGB[2][2]) * pulse));
+    if (MenuAlpha < 1.0f) {
+        const f32 start_x = -1.0f - (1.0f - __builtin_fabsf(icon_x));
+        icon_x = start_x + (icon_x - start_x) * NU_SIN_LUT(static_cast<i32>(MenuAlpha * 16384.0f));
+    }
+    f32 y = -0.15f - -0.35f * updatehints_current_y[MechInputTouchSystem::s_baseControlMode];
+    const f32 height = 0.15f / GetAspectRatio();
+    Text3D(ASCII_UP, 0.85f, 0.15f, 1.0f, 1.2f, 1.2f, 1.2f, 0, red, green, blue);
+    menu->item_column[0] = 0;
+    menu->item_row[0] = 0;
+    menu->item_x[0] = 0.85f;
+    menu->item_y[0] = 0.15f;
+    menu->item_width[0] = 0.15f;
+    menu->item_height[0] = height;
+    Text3D(ASCII_DOWN, 0.85f, -0.55f, 1.0f, 1.2f, 1.2f, 1.2f, 0, red, green, blue);
+    menu->item_column[1] = 0;
+    menu->item_row[1] = 1;
+    menu->item_x[1] = 0.85f;
+    menu->item_y[1] = -0.55f;
+    menu->item_width[1] = 0.15f;
+    menu->item_height[1] = height;
+
+    i32 row = 0;
+    for (HINT_s *hint = Hints_LSW; hint->control_mode_ids[0] != -1; ++hint) {
+        if ((hint->flags & 0x2c) != 0)
+            continue;
+        const i32 mode = MechInputTouchSystem::s_baseControlMode;
+        if ((hint->flags & 0x10) != 0 && mode == 0)
+            continue;
+        if (hint->control_mode_ids[1] == -1 && mode != 0)
+            continue;
+        const i32 text_id = hint->control_mode_ids[mode];
+        if (TTab[text_id] == NULL)
+            continue;
+        if (y <= 0.3f) {
+            f32 fade = 1.0f;
+            if (y > 0.2f)
+                fade = 1.0f - (y - 0.2f) / 0.1f;
+            g_buttonFontScalePulse = CurrentHintButtonScale();
+            char text[1024];
+            Text_ExpandAllButtonStrings(TTab[text_id], text);
+            SmartTextEx(text, text_x, y, 1.0f, 0.5f, 0.5f, 0.5f, 2, red, green, blue, 1.9f - (1.0f + text_x) - 0.15f, 3,
+                        NULL, 0, static_cast<i32>(static_cast<f32>(MenuA) * fade));
+            g_buttonFontScalePulse = 1.0f;
+            const f32 scale = 0.5f * fade;
+            nuhspecial_s *special = &WORLD->lev_objs[0xd4].special;
+            const u16 rotation = static_cast<u16>(
+                static_cast<i32>(NuFmod(GlobalTimer.time_elapsed, 2.5f) / 2.5f * 65536.0f) + row * 0x1555);
+            DrawPanel3DObjectNoAlpha(icon_x, y, 1.0f, scale, scale, scale, 0, rotation, 0, special, 2);
+        }
+        y -= 0.35f;
+        if (y <= -1.5f)
+            break;
+        ++row;
+    }
+}

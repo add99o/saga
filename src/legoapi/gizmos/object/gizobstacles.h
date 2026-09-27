@@ -33,8 +33,8 @@ void GizObstacle_SetPushControlled(GIZOBSTACLE_s *obstacle, GameObject_s *object
 void GizObstacle_SetDefaultSFXFn_LSW(void *world, GIZOBSTACLE_s *obstacle);
 i32 GizObstacle_CheckExcludeFlagsFn_LSW(GIZOBSTACLE_s *obstacle, GameObject_s *object);
 GIZOBSTACLE_s *GizObstacle_FindByName(GIZOBSTACLESYS_s *system, char *name);
-GIZOBSTACLE_s *GizObstacle_FindNearest(GIZOBSTACLESYS_s *system, nuvec_s *position, GameObject_s *object, f32 *distance,
-                                       i32 mode);
+GIZOBSTACLE_s *GizObstacle_FindNearest(GIZOBSTACLESYS_s *system, NUVEC *position, GameObject_s *object,
+                                       f32 *distance_squared, i32 mode);
 void GizObstacle_JumpToStart(GIZOBSTACLE_s *obstacle);
 void GizObstacle_JumpToEnd(GIZOBSTACLE_s *obstacle);
 void GizObstacle_PlayForwards(GIZOBSTACLE_s *obstacle);

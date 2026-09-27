@@ -1,5 +1,6 @@
 #include "decomp.h"
 #include "legoapi/actions/combat/hits.h"
+#include "legoapi/actions/character/speederchase.h"
 #include "batman.h"
 #include "gameapi/ai/aisys/aisys.h"
 #include "globals.h"
@@ -22,6 +23,7 @@
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/gizmo/base/gizmo.h"
+#include "legoapi/gizmo/base/gizactions.h"
 #include "legoapi/gizmos/traps/gizturrets.h"
 #include "legoapi/gizmos/object/gizobstacles.h"
 #include "legoapi/gizmos/object/gizbuildits.h"
@@ -324,6 +326,8 @@ static i32 Action_SetCurrentSpeed(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char *
 i32 Action_SetState(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_FollowPlayer(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_UsePanel(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
+i32 Action_PullLever(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
+i32 Action_UseTechno(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_HelpWithTriggers(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_UseTriggerSet(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 static i32 Action_GoToOriginalPath(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
@@ -7203,7 +7207,7 @@ extern "C" {
         {"JudderGameCamera", Action_JudderGameCamera, 0, 0, 0},
         {"CameraShake", Action_CameraShake, 0, 0, 0},
         {"ResetGameCamera", NULL, 1, 0, 0},
-        {"PlayCutScene", NULL, 1, 0, 0},
+        {"PlayCutScene", Action_PlayCutScene, 1, 0, 0},
         {"SetLevelPath", Action_SetLevelPath, 0, 0, 0},
         {"ImmuneToKillTerrain", Action_ImmuneToKillTerrain, 0, 0, 0},
         {"ImmuneToBolts", Action_ImmuneToBolts, 0, 0, 0},
@@ -7216,9 +7220,9 @@ extern "C" {
         {"CnxController", Action_CnxController, 0, 0, 0},
         {"CnxHelper", Action_CnxHelper, 0, 0, 0},
         {"PlaySfx", Action_PlaySfx, 0, 0, 0},
-        {"CameraCut", NULL, 1, 0, 0},
+        {"CameraCut", Action_CameraCut, 1, 0, 0},
         {"DynamicCameraCut", NULL, 1, 0, 0},
-        {"EndCameraCut", NULL, 1, 0, 0},
+        {"EndCameraCut", Action_EndCameraCut, 1, 0, 0},
         {"DontRaycastLOS", Action_DontRaycastLOS, 0, 0, 0},
         {"SetForceBack", Action_SetForceBack, 1, 0, 0},
         {"FaceCamera", Action_FaceCamera, 0, 0, 0},
@@ -7237,9 +7241,9 @@ extern "C" {
         {"SetObstacleToEnd", NULL, 1, 0, 0},
         {"HelpWithTriggers", Action_HelpWithTriggers, 0, 0, 0},
         {"UseTriggerSet", Action_UseTriggerSet, 0, 0, 0},
-        {"PullLever", NULL, 0, 0, 0},
+        {"PullLever", Action_PullLever, 0, 0, 0},
         {"UsePanel", Action_UsePanel, 0, 0, 0},
-        {"UseTechno", NULL, 0, 0, 0},
+        {"UseTechno", Action_UseTechno, 0, 0, 0},
         {"ReleaseLocator", NULL, 0, 0, 0},
         {"AssignLocator", NULL, 0, 0, 0},
         {"GetLocatorFromSet", NULL, 0, 0, 0},
@@ -7264,7 +7268,7 @@ extern "C" {
         {"SetLayer", Action_SetLayer, 0, 0, 0},
         {"CreateRider", Action_CreateRider, 0, 0, 0},
         {"AddTorpedoPacket", NULL, 1, 0, 0},
-        {"SpeederBeingChased", NULL, 0, 0, 0},
+        {"SpeederBeingChased", Action_SpeederBeingChased, 0, 0, 0},
         {"ThrowDetonator", Action_ThrowDetonator, 0, 0, 0},
         {"SetScaleOverride", NULL, 0, 0, 0},
         {"DisableNarrowSocks", Action_DisableNarrowSocks, 1, 0, 0},

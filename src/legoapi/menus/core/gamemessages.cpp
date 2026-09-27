@@ -64,7 +64,10 @@ struct GAME_MESSAGE_DATA {
     u16 field_0xe2;
     u16 field_0xe4;
     u16 icon;
-    nuvec_s color;
+    union {
+        nuvec_s color;
+        nuhspecial_s special;
+    };
     u8 red;
     u8 green;
     u8 blue;
@@ -77,18 +80,20 @@ struct GAME_MESSAGE_DATA {
     u8 field_0xfd;
     u8 field_0xfe;
     u8 field_0xff;
-    u32 field_0x100;
-    u32 field_0x104;
+    void (*delay_fn)(GAMEMESSAGE_s *);
+    void (*tick_fn)(GAMEMESSAGE_s *);
     void (*update_fn)(GAMEMESSAGE_s *);
     void *field_0x10c;
     void (*end_fn)(GAMEMESSAGE_s *);
 };
 
-DECOMP_ASSERT(sizeof(GAME_MESSAGE_DATA) == sizeof(GAMEMESSAGE_s), "game message backing layout");
+static_assert(sizeof(GAME_MESSAGE_DATA) == sizeof(GAMEMESSAGE_s), "game message backing layout");
+static_assert(offsetof(GAME_MESSAGE_DATA, tick_fn) == offsetof(GAMEMESSAGE_s, tick_fn),
+              "game message backing callback offset");
 
 ADDGAMEMSG AddGameMsg_Default = {
     NULL, &v000, &v000, 1.0f, 1.0f, 0xff, 0xff, 0xff, 0x80, 0,  1.0f, 0.0f, 0, -1,
-    NULL, 0,     0.0f,  0.0f, 0.0f, 0.0f, NULL, NULL, NULL, -1, 0,    0xff, 0,
+    NULL, 0,     0.0f,  0.0f, NULL, NULL, NULL, NULL, NULL, -1, 0,    0xff, 0,
 };
 
 GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
@@ -137,8 +142,8 @@ GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
 
     slot->text = NULL;
     i32 text_index = 0;
-    if (message->extra_position != NULL) {
-        if (NuSpecialExistsFn(message->extra_position) == 0) {
+    if (message->special != NULL) {
+        if (NuSpecialExistsFn(message->special) == 0) {
             return NULL;
         }
     } else {
@@ -185,12 +190,10 @@ GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
     }
     slot->target_scale = message->target_scale;
     slot->icon = static_cast<u16>(message->icon);
-    if (message->extra_position != NULL) {
-        slot->color = *message->extra_position;
+    if (message->special != NULL) {
+        slot->special = *message->special;
     } else {
-        slot->color.x = 0.0f;
-        slot->color.y = 0.0f;
-        slot->color.z = 0.0f;
+        slot->special = nuhspecial_s();
     }
 
     slot->field_0xfd = static_cast<u8>(message->player_index);
@@ -200,8 +203,8 @@ GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
     slot->field_0xe0 = 0;
     slot->field_0xe2 = 0;
     slot->field_0xe4 = 0;
-    slot->field_0x100 = *reinterpret_cast<u32 *>(&message->field_0x38);
-    slot->field_0x104 = *reinterpret_cast<u32 *>(&message->field_0x3c);
+    slot->delay_fn = message->delay_fn;
+    slot->tick_fn = message->tick_fn;
     slot->update_fn = message->update_fn;
     slot->field_0x10c = message->field_0x44;
     slot->end_fn = message->end_fn;
@@ -429,7 +432,7 @@ void UpdateGameMessages() {
             if (message->field_0xd0 > 0.0f) {
                 continue;
             }
-            MessageFn callback = reinterpret_cast<MessageFn>(message->field_0x100);
+            MessageFn callback = message->delay_fn;
             if (callback != NULL) {
                 callback(reinterpret_cast<GAMEMESSAGE_s *>(message));
             }
@@ -480,7 +483,7 @@ void UpdateGameMessages() {
         } else if ((flags & 0x4000) != 0) {
             message->alpha = static_cast<u8>((1.0f - message->elapsed / message->duration) * 128.0f);
         }
-        MessageFn callback = reinterpret_cast<MessageFn>(message->field_0x104);
+        MessageFn callback = message->tick_fn;
         if (callback != NULL) {
             callback(reinterpret_cast<GAMEMESSAGE_s *>(message));
         }

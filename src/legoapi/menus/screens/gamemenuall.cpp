@@ -12,6 +12,7 @@
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/core/config/cheat.h"
+#include "legoapi/core/config/fileselect.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/menus/screens/gamemenuall.h"
 #include "legoapi/menus/screens/gamestructure.h"
@@ -78,6 +79,7 @@ extern char *apitxt_DOYOUWANTTOABORTFORMAT;
 extern char *apitxt_CONFIRMDELETE;
 extern char *apitxt_RETRY;
 extern char *apitxt_SLOT;
+extern char *apitxt_NEWSAVE;
 extern char *apitxt_CANCEL;
 extern char *apitxt_NODATAAVAILABLE;
 extern char *apitxt_NOTENOUGHSPACE;
@@ -150,10 +152,9 @@ extern "C" void Draw_SPACENEEDED(void);
 extern "C" void Draw_CHECKINGMEMORYCARD(void);
 extern "C" void Draw_DONOTREMOVEMEMORYCARD(void);
 void Draw_OK(MENU_s *menu);
-void RenderFileSel3(i32);
-void ProcessFileSel3(float, nupad_s *);
 
 i32 memcard_cardchanged;
+i32 MenuASCancelFinished;
 i32 MenuCardWarningState;
 i32 ButtonScaleMode;
 i32 Menu_InLoadFlow;
@@ -231,8 +232,116 @@ static bool MenuCheatUnlocked(i32 cheat) {
     return (unlocked[cheat >> 5] & (1u << (cheat & 31))) != 0;
 }
 
-void APIMenuDrawMemCardSlots(MENU *menu, f32 time) {
-    UNIMPLEMENTED();
+static inline i32 MenuSlotColourLerp(u32 first, u32 second, f32 amount) {
+    return static_cast<i32>(first * amount + second * (1.0f - amount));
+}
+
+void APIMenuDrawMemCardSlots(MENU *menu, f32 y) {
+    if (slideright > 0) {
+        --slideright;
+    }
+    if (slideleft > 0) {
+        --slideleft;
+    }
+
+    i32 count = SAVESLOTS;
+    i32 first, last;
+    f32 x;
+    if (count > 3) {
+        if (menu->selected_column != lastslot) {
+            if (menu->selected_column < lastslot) {
+                slideright = 10;
+            } else {
+                slideleft = 10;
+            }
+            lastslot = menu->selected_column;
+        }
+        const f32 right_offset = slideright * 0.5f / 10.0f;
+        const f32 left_offset = slideleft * 0.5f / 10.0f;
+        first = slideleft != 0 ? menu->selected_column - 2 : menu->selected_column - 1;
+        last = slideright != 0 ? menu->selected_column + 2 : menu->selected_column + 1;
+        if (count > 6) {
+            count = memcard_slotsused;
+        }
+        x = 0.0f - (menu->selected_column - first) * 0.5f - right_offset + left_offset;
+    } else {
+        first = 0;
+        last = count - 1;
+        x = (count - 1) * -0.25f;
+    }
+
+    for (i32 slot = first; slot <= last; ++slot, x += 0.5f) {
+        const i32 highlight =
+            menu->selected_row == menu->first_row && menu->selected_column == slot && slideleft == 0 && slideright == 0;
+        if (slot < 0 || slot > menu->last_column) {
+            continue;
+        }
+        if (slot < count) {
+            drawslotinfofn(x, y, highlight, slot);
+        } else {
+            i32 red, green, blue;
+            if (menu->selected_column == count && menu->selected_row == 0 && TestForController()) {
+                if (menu_pulsate > 0.0f) {
+                    red = MenuSlotColourLerp(MENUFLASH0R, MENUFLASH1R, menu_pulsate);
+                    green = MenuSlotColourLerp(MENUFLASH0G, MENUFLASH1G, menu_pulsate);
+                    blue = MenuSlotColourLerp(MENUFLASH0B, MENUFLASH1B, menu_pulsate);
+                } else if (menu_flash != 0) {
+                    red = MENUFLASH0R;
+                    green = MENUFLASH0G;
+                    blue = MENUFLASH0B;
+                } else {
+                    red = MENUFLASH1R;
+                    green = MENUFLASH1G;
+                    blue = MENUFLASH1B;
+                }
+            } else if (menu_pulse > 0.0f) {
+                red = MenuSlotColourLerp(MENUFLASH0R, MENUNORMALR, menu_pulse);
+                green = MenuSlotColourLerp(MENUFLASH0G, MENUNORMALG, menu_pulse);
+                blue = MenuSlotColourLerp(MENUFLASH0B, MENUNORMALB, menu_pulse);
+            } else {
+                red = MENUENTRYR;
+                green = MENUENTRYG;
+                blue = MENUENTRYB;
+            }
+            MenuText3DEx(apitxt_NEWSAVE, x, y, 1.0f, MENUTEXTSCALE * 0.85f, MENUTEXTSCALE * 0.85f, MENUTEXTSCALE, 0,
+                         red, green, blue, static_cast<u8>(MenuA));
+        }
+    }
+
+    i32 red, green, blue;
+    if (menu->selected_row == 0 && TestForController()) {
+        if (menu_pulsate > 0.0f) {
+            red = MenuSlotColourLerp(MENUFLASH0R, MENUFLASH1R, menu_pulsate);
+            green = MenuSlotColourLerp(MENUFLASH0G, MENUFLASH1G, menu_pulsate);
+            blue = MenuSlotColourLerp(MENUFLASH0B, MENUFLASH1B, menu_pulsate);
+        } else if (menu_flash != 0) {
+            red = MENUFLASH0R;
+            green = MENUFLASH0G;
+            blue = MENUFLASH0B;
+        } else {
+            red = MENUFLASH1R;
+            green = MENUFLASH1G;
+            blue = MENUFLASH1B;
+        }
+    } else if (menu_pulse > 0.0f) {
+        red = MenuSlotColourLerp(MENUFLASH0R, MENUNORMALR, menu_pulse);
+        green = MenuSlotColourLerp(MENUFLASH0G, MENUNORMALG, menu_pulse);
+        blue = MenuSlotColourLerp(MENUFLASH0B, MENUNORMALB, menu_pulse);
+    } else {
+        red = MENUENTRYR;
+        green = MENUENTRYG;
+        blue = MENUENTRYB;
+    }
+    f32 scale = MENUTEXTSCALE;
+    if (slideleft == 0 && slideright == 0) {
+        scale *= 2.0f;
+        if (first > 0) {
+            MenuText3DEx("<", -0.8f, y, 1.0f, scale, scale, scale, 0, red, green, blue, static_cast<u8>(MenuA));
+        }
+        if (menu->last_column > last) {
+            MenuText3DEx(">", 0.8f, y, 1.0f, scale, scale, scale, 0, red, green, blue, static_cast<u8>(MenuA));
+        }
+    }
 }
 
 void MenuDrawLoad(MENU_s *menu) {
@@ -282,11 +391,6 @@ void MenuExitSave(MENU_s *) {
 }
 
 void MenuDrawClips(MENU_s *) {
-}
-
-void MenuDrawHints(MENU_s *menu) {
-    NuStrCpy(MenuHeader, TTab[tHOWTOPLAY]);
-    GameDrawMenuEntry(menu, TTab[tBACK]);
 }
 
 void MenuEnterLoad(MENU_s *menu) {
@@ -506,10 +610,6 @@ void MenuUpdateSave(MENU_s *menu) {
     }
 }
 
-void ProcessFileSel(float, nupad_s *) {
-    STUBBED();
-}
-
 void RenderFileSel3(i32) {
     STUBBED();
 }
@@ -645,17 +745,6 @@ i32 MenuIsAvailable() {
 void MenuUpdateClips(MENU_s *) {
 }
 
-void MenuUpdateHints(MENU_s *menu) {
-    if (menu->cancel_pressed != 0 || menu->confirm_pressed != 0) {
-        BackupMenu();
-        MenuSFX = GameAudio_GetSfxId(0x31);
-    }
-}
-
-void ProcessFileSel3(float, nupad_s *) {
-    STUBBED();
-}
-
 void MenuDrawDeleting(MENU_s *) {
     static i32 messageswitched;
     NuStrCpy(MenuHeader, apitxt_DELETEGAME);
@@ -765,10 +854,6 @@ void MenuEnterOptions(MENU_s *) {
     if (parent_menu == 1 || parent_menu == 2) {
         TempOptions = Game.options_save;
     }
-}
-
-void MenuInitEpisodes(MENU_s *) {
-    STUBBED();
 }
 
 void MenuInitFreePlay(MENU_s *menu) {
@@ -883,59 +968,75 @@ void MenuUpdateLoading(MENU_s *) {
     BackupMenu();
 }
 
+static f32 opts_sfx_wait = 1.5f;
+static i32 opts_sfx_i;
+
 void MenuUpdateOptions(MENU_s *menu) {
     GameSetSoundVolume(&TempOptions);
-    GameSetMusicVolume(&TempOptions);
+    if (WORLD->current_level != TITLES_LDATA)
+        GameSetMusicVolume(&TempOptions);
+    else
+        legoSetMusicVolume(SuperOptions.music_enabled != 0 ? GameGetMusicVolume(&TempOptions) : 0.0f);
+
+    i32 preview = 0;
+    opts_sfx_wait -= FRAMETIME;
+    if (opts_sfx_wait <= 0.0f) {
+        opts_sfx_wait += 1.5f;
+        opts_sfx_i = static_cast<i32>(static_cast<u32>(opts_sfx_i) + 1);
+        if (opts_sfx_i == 1)
+            opts_sfx_i = 0;
+        preview = 1;
+    }
 
     if (menu->cancel_pressed != 0) {
+        BackupMenu();
         MenuSFX = GameAudio_GetSfxId(0x31);
-        BackupMenu();
-        return;
-    }
-
-    if (menu->selected_item == 2) {
-        if (menu->left_pressed != 0 && TempOptions.field5_0x5 > 0) {
-            --TempOptions.field5_0x5;
-        } else if (menu->right_pressed != 0 && TempOptions.field5_0x5 < 10) {
-            ++TempOptions.field5_0x5;
-        }
-        menu->selected_item_column = TempOptions.field5_0x5;
-    }
-
-    if (menu->confirm_pressed == 0) {
-        return;
-    }
-
-    MenuSFX = GameAudio_GetSfxId(0x30);
-    const i32 accept_row = GAMEDEMO != 0 ? 4 : 5;
-    if (menu->selected_item == accept_row) {
-        MenuSFX = GameAudio_GetSfxId(memcmp(&TempOptions, &Game.options_save, sizeof(TempOptions)) == 0 ? 0x31 : 0x30);
-        Game.options_save = TempOptions;
-        BackupMenu();
-        SfxCheckMusicOnOff(&Game.options_save);
-        return;
-    }
-
-    switch (menu->selected_item) {
-        case 0:
-            if (TestForController() != 0) {
-                MenuSFX = GameAudio_GetSfxId(0x31);
-            } else {
+    } else {
+        i32 row = 0;
+        if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                MenuSFX = GameAudio_GetSfxId(0x30);
                 SuperOptions.touch_controls = SuperOptions.touch_controls == 0;
-                MechSystems::Get()->input_touch_system.control_mode = SuperOptions.touch_controls == 0 ? 1 : 2;
+                i32 control_mode = SuperOptions.touch_controls == 0 ? 1 : 2;
+                MechSystems::Get()->input_touch_system.control_mode = control_mode;
             }
-            break;
-        case 1:
-            TempOptions.field2_0x2 = TempOptions.field2_0x2 == 0;
-            break;
-        case 3:
-            TempOptions.field6_0x6 = TempOptions.field6_0x6 == 0;
-            break;
-        case 4:
-            TempOptions.field11_0xb = TempOptions.field11_0xb == 0;
-            break;
-        default:
-            break;
+        } else if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.surround_sound = TempOptions.surround_sound == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            } else if (preview != 0 && TempOptions.surround_sound != 0) {
+                i32 angle = static_cast<i32>(NuFmod(GlobalTimer.time_elapsed, 8.0f) * 0.125f * 65536.0f) & 0xffff;
+                NUVEC position;
+                position.x = GameCam->pos.x + NU_SIN_LUT(angle) * nusound_fade_start;
+                position.y = GameCam->pos.y;
+                position.z = GameCam->pos.z + NU_COS_LUT(angle) * nusound_fade_start;
+                PlaySfx("PickupCoinB", &position);
+            }
+        } else if (menu->selected_item == row++) {
+            menu->selected_item_column = TempOptions.master_volume;
+            if (menu->left_pressed != 0 && TempOptions.master_volume != 0)
+                --TempOptions.master_volume;
+            else if (menu->right_pressed != 0 && TempOptions.master_volume < 10)
+                ++TempOptions.master_volume;
+        } else if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.music_enabled = TempOptions.music_enabled == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            }
+        } else if (GAMEDEMO == 0 && menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.widescreen = TempOptions.widescreen == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            }
+        }
+        if (menu->selected_item == row && menu->confirm_pressed != 0) {
+            i32 sound =
+                GameAudio_GetSfxId(memcmp(&TempOptions, &Game.options_save, sizeof(TempOptions)) == 0 ? 0x31 : 0x30);
+            Game.options_save = TempOptions;
+            BackupMenu();
+            SfxCheckMusicOnOff(&Game.options_save);
+            MenuSFX = sound;
+        }
     }
 }
 
@@ -1414,8 +1515,36 @@ void MenuEnterStartNewGame(MENU_s *) {
     BackupMenu();
 }
 
-void MenuUpdateCardWarning(MENU_s *) {
-    STUBBED();
+void MenuUpdateCardWarning(MENU_s *menu) {
+    menu->previous_item = MenuCardWarningState;
+    if (MenuCardWarningState == 0) {
+        if (saveload_status == 1) {
+            MenuCardWarningState = 3;
+            Menu_InWarningFlow = 1;
+            Menu_LastFlow = 1;
+            BackupMenu();
+            return;
+        }
+    } else if (MenuCardWarningState == 7) {
+        if (menu->confirm_pressed != 0) {
+            MenuCardWarningState = 3;
+            MenuSFX = MENUSFX_MENUSELECT;
+            BackupMenu();
+            return;
+        }
+    } else if (MenuCardWarningState == 3) {
+        BackupMenu();
+        return;
+    } else {
+        return;
+    }
+    if (menu->previous_item != MenuCardWarningState) {
+        if (MenuCardWarningState != 0) {
+            MenuAlpha = 0.0f;
+            MenuA = 0;
+        }
+        menu->unk = 0.0f;
+    }
 }
 
 void MenuUpdateFileCorrupt(MENU_s *menu) {
@@ -1480,8 +1609,13 @@ void MenuUpdateSaveConfirm(MENU_s *menu) {
     }
 }
 
-void MenuDrawAutoSaveCancel(MENU_s *) {
-    STUBBED();
+void MenuDrawAutoSaveCancel(MENU_s *menu) {
+    if (MenuASCancelFinished == 0) {
+        Draw_AUTOSAVECANCEL();
+        if (memcard_savefailed == 0) {
+            Draw_OK(menu);
+        }
+    }
 }
 
 void MenuDrawNotEnoughSpace(MENU_s *) {
@@ -1565,8 +1699,12 @@ void MenuDrawDoNotRemoveCard(MENU_s *) {
     Draw_DONOTREMOVEMEMORYCARD();
 }
 
-void MenuEnterAutoSaveCancel(MENU_s *) {
-    STUBBED();
+void MenuEnterAutoSaveCancel(MENU_s *menu) {
+    if (MenuASCancelFinished == 0) {
+        memcard_autosaveenabled = 0;
+        memcard_autosavedisabled = 0;
+        menu->last_row = 0;
+    }
 }
 
 void MenuUpdateDeleteConfirm(MENU_s *menu) {
@@ -1676,12 +1814,20 @@ void MenuUpdateSelectControls(MENU_s *menu) {
     }
 }
 
-void MenuUpdateAutoSaveWarning(MENU_s *) {
-    STUBBED();
+void MenuUpdateAutoSaveWarning(MENU_s *menu) {
+    if (memcard_cardchanged != 0) {
+        BackupMenu();
+    }
+    if (menu->confirm_pressed != 0) {
+        MenuSFX = MENUSFX_MENUSELECT;
+        BackupMenuNoFn();
+    }
 }
 
-void MenuUpdateDoNotRemoveCard(MENU_s *) {
-    STUBBED();
+void MenuUpdateDoNotRemoveCard(MENU_s *menu) {
+    if (menu->menu_time > 2.0f && saveload_status == 1) {
+        BackupMenu();
+    }
 }
 
 extern "C" {
@@ -1987,12 +2133,12 @@ extern "C" {
     void Draw_SPACENEEDED(void) {
     }
 
-    void FileSelKill(void) {
-        STUBBED();
-    }
-
-    void FlushMenuHighlights(void) {
-        STUBBED();
+    void FlushMenuHighlights(eduimenu_s *menu) {
+        for (eduiitem_s *item = menu->first; item != NULL; item = item->next) {
+            if (item->type == 0) {
+                item->highlighted = 0;
+            }
+        }
     }
 
     i32 MenuCurrentID(void) {
@@ -2173,24 +2319,12 @@ extern "C" {
         GameMenuLevel = 0;
     }
 
-    void ProcessFileSel2(f32 elapsed, nupad_s *pad) {
-        ProcessFileSel3(elapsed, pad);
-    }
-
     void RemapAddr(void *new_base, void *old_base, void **address) {
         *address = static_cast<u8 *>(new_base) + (static_cast<u8 *>(*address) - static_cast<u8 *>(old_base));
     }
 
-    void RenderFileSel2(void) {
-        STUBBED();
-    }
-
     void SetButtonScaleMode(i32 mode) {
         ButtonScaleMode = mode;
-    }
-
-    void StartFileSel(void) {
-        STUBBED();
     }
 
     i32 UpdateMenu(u32 primary_held, u32 primary_pressed, u32 alternate_held, u32 alternate_pressed, f32 elapsed,
@@ -2426,28 +2560,44 @@ extern "C" {
         eduiMenuDetach(menu);
     }
 
-    i32 cbCompateDirentByDateAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return first->year - second->year;
+    i32 cbCompateDirentByDateAsc(const void *first, const void *second) {
+        return static_cast<const FilePickDirectoryEntry *>(first)->year -
+               static_cast<const FilePickDirectoryEntry *>(second)->year;
     }
 
-    i32 cbCompateDirentByDateDec(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return second->year - first->year;
+    i32 cbCompateDirentByDateDec(const void *first, const void *second) {
+        return static_cast<const FilePickDirectoryEntry *>(second)->year -
+               static_cast<const FilePickDirectoryEntry *>(first)->year;
     }
 
-    void cbCompateDirentByNameAsc(void) {
-        STUBBED();
+    i32 cbCompateDirentByNameAsc(const void *first, const void *second) {
+        return NuStrCmp(static_cast<const FilePickDirectoryEntry *>(first)->name,
+                        static_cast<const FilePickDirectoryEntry *>(second)->name);
     }
 
-    void cbCompateDirentByNameDec(void) {
-        STUBBED();
+    i32 cbCompateDirentByNameDec(const void *first, const void *second) {
+        return NuStrCmp(static_cast<const FilePickDirectoryEntry *>(second)->name,
+                        static_cast<const FilePickDirectoryEntry *>(first)->name);
     }
 
-    void cbCompateDirentBySizeAsc(void) {
-        STUBBED();
+    i32 cbCompateDirentBySizeAsc(const void *first, const void *second) {
+        i32 first_size = static_cast<const FilePickDirectoryEntry *>(first)->size;
+        i32 second_size = static_cast<const FilePickDirectoryEntry *>(second)->size;
+        if (first_size < second_size)
+            return -1;
+        if (first_size > second_size)
+            return 1;
+        return 0;
     }
 
-    void cbCompateDirentBySizeDec(void) {
-        STUBBED();
+    i32 cbCompateDirentBySizeDec(const void *first, const void *second) {
+        i32 first_size = static_cast<const FilePickDirectoryEntry *>(first)->size;
+        i32 second_size = static_cast<const FilePickDirectoryEntry *>(second)->size;
+        if (first_size < second_size)
+            return 1;
+        if (first_size > second_size)
+            return -1;
+        return 0;
     }
 
     void cbTriggerSubMenu(eduimenu_s *menu, eduiitem_s *item, u32) {

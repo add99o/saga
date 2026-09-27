@@ -140,8 +140,13 @@ typedef struct nushadermtldesc_s {
 
     NUVERTEXDESCRIPTOR vtx_desc; // 0x13C
 
-    i16 shader_id;         // 0x140 — assigned by NuMtlUpdatePS
-    i16 shader_variant_id; // 0x142 (-1 when unvarianted)
+    union {
+        struct {
+            i16 shader_id;         // 0x140 — assigned by NuMtlUpdatePS
+            i16 shader_variant_id; // 0x142 (-1 when unvarianted)
+        };
+        i16 shader_ids[2];
+    };
 
     NUTEXANIMDATA tex_anim_desc[4]; // 0x144
     u8 unknown_194[4];              // 0x194..0x197
@@ -162,6 +167,9 @@ typedef struct nushadermtldesc_s {
     i32 field_1e8;        // 0x1E8
     u8 unknown_1ec[0x1C]; // 0x1EC..0x207
 } NUSHADERMTLDESC;
+
+DECOMP_ASSERT(offsetof(NUSHADERMTLDESC, shader_ids) == 0x140, "Material shader ID pair offset");
+DECOMP_ASSERT(sizeof(((NUSHADERMTLDESC *)0)->shader_ids) == 4, "Material shader ID pair size");
 
 typedef struct numtl_s {
     i16 is_used : 1;

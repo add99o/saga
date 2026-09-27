@@ -32,15 +32,3 @@ extern "C" void NuShaderManagerLoadCompiledShaders(void) {
 extern "C" void NuShaderManagerSetShininessFactor(f32 shininess) {
     ShaderManagerTemplate<NuShaderObject>::shininessFactor = shininess;
 }
-
-extern "C" void NuShaderObjectKeyGenerate2(void) {
-    STUBBED();
-}
-
-extern "C" void NuShaderObjectKeyGenerate4(void) {
-    STUBBED();
-}
-
-extern "C" void NuShaderObjectKeySetUberShaderHash(void) {
-    STUBBED();
-}

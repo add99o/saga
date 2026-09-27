@@ -73,6 +73,10 @@ extern "C" {
     void NuRndrSwapStreamBuffers(void);
     i32 NuRndrSwapScreen(i32 mode);
     void NuRndrClear(i32 clear_flags, i32 background_colour, f32 alpha);
+    i32 NuRndrBeginScene(i32 flags);
+    // Coordinate mode indexes PS2, normalized, or absolute coordinates (0..2).
+    void RndrMaskScreen(i32 texture, f32 clear_x, f32 clear_y, f32 clear_width, f32 clear_height, f32 mask_x,
+                        f32 mask_y, f32 mask_width, f32 mask_height, i32 coordinate_mode);
     void NuRndrGradClear(i32 clear_flags, i32 top_colour, i32 bottom_colour, f32 alpha);
     void NuRndrGradRectUV2di(i32 x, i32 y, i32 width, i32 height, f32 u0, f32 v0, f32 u1, f32 v1, u32 *colours,
                              struct numtl_s *material);
@@ -94,8 +98,9 @@ extern "C" {
     void NuRndrAxes(NUMTX *matrix, f32 length);
     void NuRndrAxisBright(NUMTX *matrix, f32 length, i32 brightness);
     i32 NuRndrCircle(f32 x, f32 y, f32 radius, f32 aspect, i32 count, f32 u0, f32 v0, f32 u1, f32 v1, i32 colour,
-                      struct numtl_s *material);
+                     struct numtl_s *material);
     i32 NuRndrHighResScreenGrab(char *prefix, f32 scale, f32 a, f32 b, f32 c, i32 number);
+    extern i32 NuRndrDoingScreenGrab;
     void NuRndrScreenGrabTileInit(void *, i32, f32, f32, f32);
     void NuRndrScreenGrabTileDeInit(void *);
     void NuRndrScreenGrabTileBegin(void **);

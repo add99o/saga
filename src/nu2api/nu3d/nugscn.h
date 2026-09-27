@@ -159,7 +159,8 @@ typedef struct nugscn_s {
     struct nuinstanim_s *instance_animations;    // 0x4c, 0x60-byte entries
     struct numtx_s *instance_animation_matrices; // 0x50, 0x40-byte entries
     nuanimdata_s **instance_animation_data;      // 0x54
-    undefined pad_58[8];
+    i32 num_instance_ids;                        // 0x58
+    void *instance_ids;                          // 0x5c, borrowed file data; record format unresolved
     i32 num_texture_anims;
     void *texture_anims;
     u16 *texture_anim_ids;
@@ -363,6 +364,8 @@ DECOMP_ASSERT(offsetof(NUGSCN, num_instance_animations) == 0x48, "NUGSCN instanc
 DECOMP_ASSERT(offsetof(NUGSCN, num_instance_animation_data) == 0x4a, "NUGSCN instance animation-data count offset");
 DECOMP_ASSERT(offsetof(NUGSCN, instance_animation_matrices) == 0x50, "NUGSCN instance animation matrix array offset");
 DECOMP_ASSERT(offsetof(NUGSCN, instance_animation_data) == 0x54, "NUGSCN instance animation data offset");
+DECOMP_ASSERT(offsetof(NUGSCN, num_instance_ids) == 0x58, "NUGSCN instance-ID count offset");
+DECOMP_ASSERT(offsetof(NUGSCN, instance_ids) == 0x5c, "NUGSCN instance-ID data offset");
 DECOMP_ASSERT(offsetof(NUGSCN, max_portals) == 0x6c, "NUGSCN portal-count offset");
 DECOMP_ASSERT(offsetof(NUGSCN, portals) == 0x70, "NUGSCN portal-array offset");
 DECOMP_ASSERT(offsetof(NUGSCN, num_rooms) == 0x74, "NUGSCN room-count offset");

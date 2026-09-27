@@ -16,6 +16,7 @@
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/menus/core/text.h"
+#include "legoapi/menus/core/gamehint.h"
 #include "legoapi/menus/core/panel.h"
 #include "legoapi/menus/screens/gamemenuall.h"
 #include "legoapi/menus/screens/movies.h"
@@ -211,7 +212,6 @@ void MenuDrawEndMission(MENU *menu);
 void MenuDrawEpisodes(MENU *menu);
 void MenuDrawExtras(MENU *menu);
 void MenuDrawFreePlay(MENU *menu);
-void MenuDrawHints(MENU *menu);
 void MenuDrawMissions(MENU *menu);
 void MenuDrawOptions(MENU *menu);
 void MenuDrawRestoreNewGame(MENU *menu);
@@ -219,7 +219,6 @@ void MenuDrawSelectControls(MENU *menu);
 void MenuEnterOptions(MENU *menu);
 void MenuExitOptions(MENU *menu);
 void MenuInitClips(MENU *menu);
-void MenuInitEpisodes(MENU *menu);
 void MenuInitFreePlay(MENU *menu);
 void MenuInitMissions(MENU *menu);
 void MenuUpdateClips(MENU *menu);
@@ -228,7 +227,6 @@ void MenuUpdateEndMission(MENU *menu);
 void MenuUpdateEpisodes(MENU *menu);
 void MenuUpdateExtras(MENU *menu);
 void MenuUpdateFreePlay(MENU *menu);
-void MenuUpdateHints(MENU *menu);
 void MenuUpdateMissions(MENU *menu);
 void MenuUpdateOptions(MENU *menu);
 void MenuUpdateRestoreNewGame(MENU *menu);
@@ -429,7 +427,60 @@ void ReCalculateCompletionPoints();
 void DrawShopPrompts();
 
 void APIMenuDrawGameState(f32 x, f32 y, i32 highlight, i32 slot) {
-    UNIMPLEMENTED();
+    i32 red, green, blue;
+    if (highlight != 0) {
+        if (!TestForController()) {
+            if (menu_pulse > 0.0f) {
+                red = static_cast<i32>(static_cast<u32>(MENUFLASH0R) * menu_pulse +
+                                       static_cast<u32>(MENUNORMALR) * (1.0f - menu_pulse));
+                green = static_cast<i32>(static_cast<u32>(MENUFLASH0G) * menu_pulse +
+                                         static_cast<u32>(MENUNORMALG) * (1.0f - menu_pulse));
+                blue = static_cast<i32>(static_cast<u32>(MENUFLASH0B) * menu_pulse +
+                                        static_cast<u32>(MENUNORMALB) * (1.0f - menu_pulse));
+            } else {
+                red = MENUENTRYR;
+                green = MENUENTRYG;
+                blue = MENUENTRYB;
+            }
+        } else {
+            if (menu_pulsate > 0.0f) {
+                red = static_cast<i32>(static_cast<u32>(MENUFLASH0R) * menu_pulsate +
+                                       static_cast<u32>(MENUFLASH1R) * (1.0f - menu_pulsate));
+                green = static_cast<i32>(static_cast<u32>(MENUFLASH0G) * menu_pulsate +
+                                         static_cast<u32>(MENUFLASH1G) * (1.0f - menu_pulsate));
+                blue = static_cast<i32>(static_cast<u32>(MENUFLASH0B) * menu_pulsate +
+                                        static_cast<u32>(MENUFLASH1B) * (1.0f - menu_pulsate));
+            } else if (menu_flash != 0) {
+                red = MENUFLASH0R;
+                green = MENUFLASH0G;
+                blue = MENUFLASH0B;
+            } else {
+                red = MENUFLASH1R;
+                green = MENUFLASH1G;
+                blue = MENUFLASH1B;
+            }
+        }
+    } else {
+        red = MENUFLASH1R;
+        green = MENUFLASH1G;
+        blue = MENUFLASH1B;
+    }
+
+    char label[32];
+    sprintf(label, "%s %i", apitxt_SLOT, slot + 1);
+    MenuText3DEx(label, x, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 0, red, green, blue,
+                 static_cast<u8>(MenuA));
+
+    if (saveload_slotused[slot] != 0) {
+        MenuSmartTextEx(apitxt_PRESENT, x, y + MENUTEXTSCALE * 0.5f, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE,
+                        0, MENUNORMALR, MENUNORMALG, MENUNORMALB, 0.4f, 2, NULL, 0, MenuA);
+    } else if (saveload_freespace >= SAVESIZE_ADDITIONAL) {
+        MenuSmartTextEx(apitxt_EMPTY, x, y + MENUTEXTSCALE * 0.5f, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 0,
+                        MENUNORMALR, MENUNORMALG, MENUNORMALB, 0.4f, 2, NULL, 0, MenuA);
+    } else {
+        MenuSmartTextEx(apitxt_NOSPACE, x, y + MENUTEXTSCALE * 0.5f, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE,
+                        0, MENUWARNR, MENUWARNG, MENUWARNB, 0.4f, 2, NULL, 0, MenuA);
+    }
 }
 
 void MenuLoadTechnicalStrings(char *filepath, char *language, VARIPTR *buf, VARIPTR buf_end) {

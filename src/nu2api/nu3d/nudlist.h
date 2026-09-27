@@ -99,12 +99,15 @@ typedef struct nudisplaylist_s {
 void DisplayListLinkDynamicMtls(void);
 void NuDisplayListCreate(nudisplayscene_s *scene, VARIPTR *buffer, VARIPTR buffer_end, i32 item_count,
                          i32 material_count, i32, i32, i32 sort_priority_count, i32, i32 allocate_materials);
-void DisplayListPrintItem(nudisplaylistitem_s *item, i32 index, i32 depth, i32 *, i32 file_handle);
+void DisplayListPrintItem(nudisplaylistitem_s *item, i32 index, i32 type_count, i32 *types, i32 file_handle);
 void DisplayListCreateDynMtlList(VARIPTR *buffer, VARIPTR buffer_end);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+    i32 DisplayListDebugPS(nudisplaylistitem_s *item, char *text);
+    void DisplayListPrintItemPS(nudisplaylistitem_s *item, i32 file_handle);
 
     // Sort-priority record driving render-scene capture (36 bytes; layout given by
     // nusortpri_s in the original DB, display_scene offset confirmed by the

@@ -2,6 +2,7 @@
 
 #include "decomp.h"
 #include "legoapi/render/fx/edsplines.h"
+#include "legoapi/render/core/rtldata.h"
 
 struct GIZMOBLOWUP_s;
 struct SNAKEBODY_s;
@@ -19,6 +20,7 @@ struct BOLT_s;
 #include "nu2api/numath/numtx.h"
 
 struct GameObject_s;
+struct SIGNAL_s;
 struct GizForceLOSState_s {
     u32 words[396]; // 12 visibility bitset words followed by 384 update counters
 };
@@ -59,6 +61,7 @@ enum CHARACTER_CONTEXT : i8 {
     CHARACTER_CONTEXT_DOOMED = 0x2b,
     CHARACTER_CONTEXT_BUILD_IT = 0x2d,
     CHARACTER_CONTEXT_LINKED_OBJECT = 0x3b,
+    CHARACTER_CONTEXT_SIGNAL = 0x4c,
     CHARACTER_CONTEXT_NONE = -1,
 };
 
@@ -703,24 +706,6 @@ extern "C" i32 APIObjectCollision2D(APIOBJECT *first, APIOBJECT *second);
 extern "C" void APIObjectCollisions(i32 count, APIOBJECT **objects, NUVEC *minimums, NUVEC *maximums,
                                     i32 (*collision_callback)(APIOBJECT *, APIOBJECT *));
 
-struct rtldata_s {
-    union {
-        u8 data[0x144];
-        struct {
-            u8 unknown_000[0x78];
-            NUCOLOUR3 intensity[3]; // 0x078
-            NUVEC direction[3];     // 0x09c
-            NUVEC ambient;          // 0x0c0
-            u8 unknown_0cc[0x78];
-        };
-    };
-};
-
-DECOMP_ASSERT(sizeof(rtldata_s) == 0x144, "rtldata_s size");
-DECOMP_ASSERT(offsetof(rtldata_s, intensity) == 0x78, "rtldata_s intensity offset");
-DECOMP_ASSERT(offsetof(rtldata_s, direction) == 0x9c, "rtldata_s direction offset");
-DECOMP_ASSERT(offsetof(rtldata_s, ambient) == 0xc0, "rtldata_s ambient offset");
-
 struct OBJECTLIGHTINGSTATE_s {
     NUVEC ambient;          // 0x00
     NUCOLOUR3 intensity[3]; // 0x0c
@@ -849,7 +834,10 @@ typedef struct GameObject_s {
         GameObject_s *takeover_entry_target;
     };
     GIZMOBLOWUP_s *blowup_target; // 0x0784
-    void *field_0x788;            // 0x0788
+    union {
+        void *field_0x788;
+        SIGNAL_s *signal_target;
+    }; // 0x0788
     union {
         u8 pad_78c[0x790 - 0x78c];
         i32 panel_use_request;

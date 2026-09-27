@@ -24,7 +24,6 @@ extern "C" {
     };
 
     void NuSound3FlushLoops(void);
-    void NuSound3KillAllAudio(void);
     void SoundStopMusic(void);
 
     f32 GetSoundVolume(void) {

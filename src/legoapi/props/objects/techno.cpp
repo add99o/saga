@@ -185,6 +185,14 @@ static i32 Techno_GetOutput(GIZMO *gizmo, i32, i32) {
     if (techno->target_mode == 1) {
         return (techno->flags & TECHNO_FLAG_COMPLETE) != 0;
     }
+    if (techno->target_mode == 3) {
+        GIZMO *target = static_cast<GIZMO *>(techno->controlled_object);
+        if (NuStrICmp(gizmotypes->types[target->type_id].name, "GIZOBSTACLE") == 0) {
+            target = static_cast<GIZMO *>(techno->controlled_object);
+            GIZOBSTACLE_s *obstacle = static_cast<GIZOBSTACLE_s *>(target->object);
+            return obstacle->anim_set->state == GAMEANIMSET_STATE_AT_END;
+        }
+    }
     return 0;
 }
 

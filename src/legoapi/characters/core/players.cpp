@@ -1771,8 +1771,14 @@ static SPECIAL_LAYER_s SpecialLayer[] = {
 // Shares the original translation-unit-local layer table with FixUpLayers.
 u32 AdjustLayerBits(u32 mask, GameObject_s *object) {
     GAMECHARACTERDATA *data = static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-    u32 cape = data->cape_layer == -1 ? 0 : 1u << (static_cast<u32>(data->cape_layer) & 31);
-    u32 hair = data->hair_layer == -1 ? 0 : 1u << (static_cast<u32>(data->hair_layer) & 31);
+    u32 cape = 0;
+    i32 cape_layer = data->cape_layer;
+    if (cape_layer != -1)
+        cape = 1u << cape_layer;
+    u32 hair = 0;
+    i32 hair_layer = data->hair_layer;
+    if (hair_layer != -1)
+        hair = 1u << hair_layer;
     if (object->field_0x108e != 0)
         mask &= ~hair;
     SUIT_s *suit = static_cast<SUIT_s *>(object->suit);
@@ -1843,7 +1849,10 @@ u32 AdjustLayerBits(u32 mask, GameObject_s *object) {
         if (object->current_hp <= 1)
             mask &= ~0x10u;
     } else if (object->id == id_GEONOSIAN) {
-        mask |= (object->field_0xefd & 2) != 0 ? 0x20 : 0x40;
+        if ((object->field_0xefd & 2) != 0)
+            mask |= 0x20;
+        else
+            mask |= 0x40;
     } else if (CharacterCustomiser != NULL && object->id == CharacterCustomiser->character_ids[0]) {
         if ((CharacterCustomiser->pieces[static_cast<u16>(Game.customizer.pieces[5])].layer_flags & 0x40) == 0)
             mask |= cape;

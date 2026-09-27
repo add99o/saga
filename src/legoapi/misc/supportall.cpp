@@ -1,7 +1,10 @@
 #include "nu2api/nu3d/nuprim.h"
 #include "nu2api/nu3d/nuprim_internal.h"
+#include "legoapi/misc/supportall.h"
+#include "legoapi/render/core/screen.h"
 #include "nu2api/nu3d/nuvport.h"
 #include "nu2api/nu3d/android/nuptl_android.h"
+#include "nu2api/nu3d/android/nutimebar_plain.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nutrig.h"
@@ -11,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <limits.h>
 #include "decomp.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nucore/nuthread.h"
@@ -158,6 +162,55 @@ static i32 TBGAMECOUNT;
 static i32 TBDRAWCOUNT;
 static i32 TBPLAYERCOUNT;
 static i32 TBAICOUNT;
+
+struct TIMINGBAR_LABEL {
+    char name[11];
+    u8 type;
+};
+DECOMP_ASSERT(sizeof(TIMINGBAR_LABEL) == 12, "Timing-bar label size");
+
+static TIMINGBAR_LABEL GameTB[12];
+static TIMINGBAR_LABEL PlayerTB[12];
+static TIMINGBAR_LABEL AITB[12];
+static TIMINGBAR_LABEL DrawTB[12];
+extern i32 app_tbgameset;
+extern i32 app_tbplayerset;
+extern i32 app_tbaiset;
+extern i32 app_tbdrawset;
+
+static inline void TBSTART(i32 slot, i32 type) {
+    switch (type) {
+        case 2:
+            _NuTimeBarSlotBegin(app_tbgameset, slot, NULL);
+            break;
+        case 3:
+            _NuTimeBarSlotBegin(app_tbplayerset, slot, NULL);
+            break;
+        case 4:
+            _NuTimeBarSlotBegin(app_tbaiset, slot, NULL);
+            break;
+        case 5:
+            _NuTimeBarSlotBegin(app_tbdrawset, slot, NULL);
+            break;
+    }
+}
+
+static inline void TBEND(i32 slot, i32 type) {
+    switch (type) {
+        case 2:
+            _NuTimeBarSlotEnd(app_tbgameset, slot);
+            break;
+        case 3:
+            _NuTimeBarSlotEnd(app_tbplayerset, slot);
+            break;
+        case 4:
+            _NuTimeBarSlotEnd(app_tbaiset, slot);
+            break;
+        case 5:
+            _NuTimeBarSlotEnd(app_tbdrawset, slot);
+            break;
+    }
+}
 
 f32 TargetDist_Near2;
 f32 TargetDist_Mid2;
@@ -828,7 +881,12 @@ i32 RndrUnfilledCircle(f32 x, f32 y, f32 radius, f32 border_width, f32 aspect, i
     NuRndrPrimUV(0.0f, 0.0f);
     NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * x, static_cast<f32>(PS2_VREZ_H) * (y - inner_radius), z);
 
-    const i32 segment_count = static_cast<i32>(progress * 360.0f);
+    const f32 segments = progress * 360.0f;
+    // Retail CVTTSS2SI returns integer-indefinite for unordered/out-of-range
+    // inputs. The touch widgets actually pass packed colours as progress;
+    // preserve that no-segment result without an undefined C++ conversion.
+    const i32 segment_count =
+        segments >= -2147483648.0f && segments < 2147483648.0f ? static_cast<i32>(segments) : INT_MIN;
     if (segment_count >= 0) {
         f32 angle = 0.0f;
         for (i32 segment = 0; segment <= segment_count; ++segment, angle += 0.017455555f) {
@@ -1374,8 +1432,56 @@ void DebrisReleaseControlStackLock() {
     control_stack_lock = 0;
 }
 
-void xxxNuDisplayListUpdateSpecial(nuhspecial_s *) {
-    STUBBED();
+void xxxNuDisplayListUpdateSpecial(nuhspecial_s *special) {
+    NUDLDLISTSCENE *scene = special->scene->display_list;
+    NUDISPLAYSPECIAL *display = special->display_special;
+    NUMTX matrix = *NuSpecialGetDrawMtx(special);
+    NUVEC corners[8] = {
+        {display->bounds_min.x, display->bounds_min.y, display->bounds_min.z},
+        {display->bounds_max.x, display->bounds_max.y, display->bounds_max.z},
+        {display->bounds_min.x, display->bounds_min.y, display->bounds_max.z},
+        {display->bounds_max.x, display->bounds_max.y, display->bounds_min.z},
+        {display->bounds_min.x, display->bounds_max.y, display->bounds_min.z},
+        {display->bounds_min.x, display->bounds_max.y, display->bounds_max.z},
+        {display->bounds_max.x, display->bounds_min.y, display->bounds_min.z},
+        {display->bounds_max.x, display->bounds_min.y, display->bounds_max.z},
+    };
+    for (i32 i = 0; i < 8; ++i) {
+        NuVecMtxTransform(&corners[i], &corners[i], &matrix);
+    }
+
+    NUVEC minimum;
+    NUVEC maximum;
+    NuVecMin(&minimum, &corners[0], &corners[1]);
+    for (i32 i = 2; i < 8; ++i) {
+        NuVecMin(&minimum, &minimum, &corners[i]);
+    }
+    NuVecMax(&maximum, &corners[0], &corners[1]);
+    for (i32 i = 2; i < 8; ++i) {
+        NuVecMax(&maximum, &maximum, &corners[i]);
+    }
+
+    if ((scene->render_buffer & NUDL_SCENE_RENDER_FLAG_CENTER_EXTENT_BOUNDS) != 0) {
+        NUVEC extent;
+        extent.x = (maximum.x - minimum.x) * 0.5f;
+        extent.y = (maximum.y - minimum.y) * 0.5f;
+        extent.z = (maximum.z - minimum.z) * 0.5f;
+        const f32 radius = NuFsqrt(extent.x + extent.y + extent.z);
+        NUCLIPBOUNDS *bounds = &scene->clip_bounds[display->instance_ix];
+        bounds->center.x = (maximum.x + minimum.x) * 0.5f;
+        bounds->center.y = (maximum.y + minimum.y) * 0.5f;
+        bounds->center.z = (maximum.z + minimum.z) * 0.5f;
+        bounds->center_w = radius;
+        bounds->extent = extent;
+    } else {
+        NUCLIPBOUNDS *bounds = &scene->clip_bounds[display->instance_ix];
+        bounds->center = minimum;
+        bounds->extent = maximum;
+        // Retail copies uninitialized local W components in min/max mode.
+        // They are not clipping coordinates; retain the destination padding,
+        // as the active NuDisplayListUpdateSpecial implementation does.
+    }
+    DisplayListUpdateSpecialTransformPS(special, &matrix);
 }
 
 static inline __attribute__((always_inline)) f32 DebrisInterpolateFloatKeys(const debris_float_key_s *keys, f32 time) {
@@ -1547,14 +1653,134 @@ void TBRESET() {
     TBAICOUNT = 0;
 }
 
-void TBOPENFN(char *, i32) {
-    STUBBED();
+void TBOPENFN(char *name, i32 type) {
+    TIMINGBAR_LABEL *labels;
+    i32 *count;
+    switch (type) {
+        case 2:
+            labels = GameTB;
+            count = &TBGAMECOUNT;
+            break;
+        case 3:
+            labels = PlayerTB;
+            count = &TBPLAYERCOUNT;
+            break;
+        case 4:
+            labels = AITB;
+            count = &TBAICOUNT;
+            break;
+        case 5:
+            labels = DrawTB;
+            count = &TBDRAWCOUNT;
+            break;
+        default:
+            return;
+    }
+    const i32 existing_count = *count;
+    for (i32 index = 0; index < existing_count; ++index) {
+        if (NuStrCmp(name, labels[index].name) == 0) {
+            TBSTART(index, type);
+            return;
+        }
+    }
+    if (*count < 12) {
+        char label[256];
+        NuStrCpy(label, name);
+        i32 length = NuStrLen(label);
+        if (length > 0) {
+            if (length > 10)
+                label[10] = '\0';
+            NuStrCpy(labels[*count].name, label);
+            labels[*count].type = static_cast<u8>(type);
+            TBSTART(*count, type);
+            ++*count;
+        }
+    }
 }
 
-void RndrArrow(float, float, float, i32, i32) {
-    STUBBED();
+void RndrArrow(float x, float y, float scale, i32 angle, i32 colour) {
+    NUVEC points[4] = {};
+    points[0].x = -1.0f;
+    points[0].y = -1.0f;
+    points[1].y = 1.0f;
+    points[2].y = -0.5f;
+    points[3].x = 1.0f;
+    points[3].y = -1.0f;
+    const f32 aspect = GetAspectRatio();
+    NuVecRotateZ(&points[0], &points[0], angle);
+    NuVecRotateZ(&points[1], &points[1], angle);
+    NuVecRotateZ(&points[2], &points[2], angle);
+    NuVecRotateZ(&points[3], &points[3], angle);
+    points[0].x *= scale;
+    points[0].y *= scale;
+    points[1].x *= scale;
+    points[1].y *= scale;
+    points[2].x *= scale;
+    points[2].y *= scale;
+    points[3].x *= scale;
+    points[3].y *= scale;
+    points[0].x *= aspect;
+    points[1].x *= aspect;
+    points[2].x *= aspect;
+    points[3].x *= aspect;
+    points[0].x += x;
+    points[0].y += y;
+    points[1].x += x;
+    points[1].y += y;
+    points[2].x += x;
+    points[2].y += y;
+    points[3].x += x;
+    points[3].y += y;
+    NuPrim2DBegin(1, 5, NULL);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[0].x, static_cast<f32>(PS2_VREZ_H) * points[0].y, 0.0f);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[1].x, static_cast<f32>(PS2_VREZ_H) * points[1].y, 0.0f);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[2].x, static_cast<f32>(PS2_VREZ_H) * points[2].y, 0.0f);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[3].x, static_cast<f32>(PS2_VREZ_H) * points[3].y, 0.0f);
+    NuPrim2DEnd();
 }
 
-void TBCLOSEFN(char *, i32) {
-    STUBBED();
+void TBCLOSEFN(char *name, i32 type) {
+    TIMINGBAR_LABEL *label;
+    switch (type) {
+        case 2:
+            label = GameTB;
+            for (i32 index = 0, count = TBGAMECOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+        case 3:
+            label = PlayerTB;
+            for (i32 index = 0, count = TBPLAYERCOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+        case 4:
+            label = AITB;
+            for (i32 index = 0, count = TBAICOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+        case 5:
+            label = DrawTB;
+            for (i32 index = 0, count = TBDRAWCOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+    }
 }

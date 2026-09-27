@@ -130,6 +130,7 @@ void RegisterGizmoTypes(VARIPTR *buffer, VARIPTR *buffer_end, REGISTERGIZMOTYPEF
                         i32 unknown);
 void RegisterGizmoTypes_LSW(VARIPTR *buffer, VARIPTR *buffer_end);
 void RegisterGizmoTypes_Batman(VARIPTR *buffer, VARIPTR *buffer_end);
+void RegisterGizmoTypes_Indy(VARIPTR *buffer, VARIPTR *buffer_end);
 GIZMO *AddGizmo(GIZMOSYS *gizmo_sys, i32 type_id, char *name, void *object);
 i32 GizmoFileReadName(char *name);
 i32 GizmoIsNameUnique(GIZMOSYS *gizmo_sys, char *name);

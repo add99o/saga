@@ -98,6 +98,7 @@ the matching skill; the reconstructed behavior is retained in portable C/C++.
 | [24-camera-minicut-command-codegen.md](24-camera-minicut-command-codegen.md) | camera mini-cut command reconstruction |
 | [24-core-input-stub-codegen.md](24-core-input-stub-codegen.md) | gamepad and timing callback matching |
 | [24-hub-bonus-menu-control-flow.md](24-hub-bonus-menu-control-flow.md) | bonus menu helper block order |
+| [26-low-match-structural-triage.md](26-low-match-structural-triage.md) | low-score network ABI repairs and rejected inlining/optimization experiments |
 | [agent-snake-specialmoves.md](agent-snake-specialmoves.md) | snake special move control flow |
 | [agent-tag-newtransfer-codegen.md](agent-tag-newtransfer-codegen.md) | tag transfer layout and register use |
 | [agent-tagging-codegen.md](agent-tagging-codegen.md) | character tagging and Batman icon matching |

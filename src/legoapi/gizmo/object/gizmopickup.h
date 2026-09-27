@@ -19,7 +19,7 @@ void AddCoinsToPanel(i32 coins, nuvec_s *position, i32 player, f32 speed, GameOb
 void AddPickups(i32 coin_count, i32 heart_count, i32 pickup_count, i32 unknown, nuvec_s *position, nuvec_s *direction,
                 f32 speed, i32 model, f32 radius, f32 duration, GameObject_s *owner, i32 flags, i32 extra,
                 bool visible);
-void AddMiscPickups(nuvec_s *position, i32 type, i32 count, i32 flags);
+void AddMiscPickups(nuvec_s *position, i32 player_id, i32 coins, i32 torpedoes);
 i32 IsACoinType(i32 type);
 i32 LoseCoins(GameObject_s *object, i32 cause);
 void GizmoPickups_SetOnOff(void);

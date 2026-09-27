@@ -5409,6 +5409,34 @@ i32 TerrShapeSideStep(NUVEC *, NUVEC *, u8 *) {
     return result;
 }
 
+extern "C" void CubeImpact(NUMTX *current, NUMTX *previous, NUVEC *normal, f32 scale, NUVEC *impact) {
+    NUVEC corners[8] = {
+        {-1.0f, -1.0f, -1.0f}, {1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, -1.0f}, {-1.0f, 1.0f, -1.0f},
+        {-1.0f, -1.0f, 1.0f},  {1.0f, -1.0f, 1.0f},  {1.0f, 1.0f, 1.0f},  {-1.0f, 1.0f, 1.0f},
+    };
+    NUVEC4 transformed[8], old_position;
+    f32 closest = 10000.0f;
+    i32 selected = 0;
+    for (i32 index = 0; index < 8; ++index) {
+        transformed[index].x = corners[index].x;
+        transformed[index].y = corners[index].y;
+        transformed[index].z = corners[index].z;
+        transformed[index].w = 0.0f;
+        NuVec4MtxTransformVU0(&old_position, &transformed[index], previous);
+        NuVec4MtxTransformVU0(&transformed[index], &transformed[index], current);
+        const f32 current_distance =
+            normal->x * transformed[index].x + normal->y * transformed[index].y + normal->z * transformed[index].z;
+        const f32 old_distance = normal->x * old_position.x + normal->y * old_position.y + normal->z * old_position.z;
+        if (current_distance > old_distance && current_distance < closest) {
+            closest = current_distance;
+            selected = index;
+        }
+    }
+    impact->x = scale * transformed[selected].x + current->m30;
+    impact->y = scale * transformed[selected].y + current->m31;
+    impact->z = scale * transformed[selected].z + current->m32;
+}
+
 extern "C" i32 NewTerrainOnAPlatform(void *id) {
     if (CurTerr != NULL) {
         CurTrackInfo = ScanTerrId(id);

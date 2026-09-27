@@ -2,6 +2,8 @@
 #include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/nu3d/nuhspecial.h"
 #include <string.h>
+#include <stdio.h>
+#include "nu2api/nucore/nustring.h"
 // nudlist.cpp — Display-list manager
 //
 // Transcribed from libTTapp.so (Android x86). Builds and executes the
@@ -1413,8 +1415,128 @@ extern "C" void NuDisplayListBurstRndrSpecial(nuhspecial_s *handle, u32 count, N
     }
 }
 
-void DisplayListPrintItem(nudisplaylistitem_s *, i32, i32, i32 *, i32) {
-    STUBBED();
+void DisplayListPrintItem(nudisplaylistitem_s *item, i32 index, i32 type_count, i32 *types, i32 file_handle) {
+    char text[256];
+    char detail[256];
+    text[0] = '\0';
+    if (file_handle != 0) {
+        if (item->id == 0)
+            strcpy(text, "<font color = \"#00a000\">");
+        else
+            strcpy(text, "<font color = \"#0000a0\">");
+    }
+    sprintf(detail, "%d: ", index);
+    NuStrCat(text, detail);
+    switch (item->type) {
+        case 0x80:
+            strcpy(detail, "MTL              ");
+            break;
+        case 0x81:
+            strcpy(detail, "TXTRLOAD         ");
+            break;
+        case 0x82:
+            strcpy(detail, "GEOMCALL         ");
+            break;
+        case 0x83:
+            strcpy(detail, "MTXLOAD          ");
+            break;
+        case 0x84:
+            strcpy(detail, "TERMINATE        ");
+            break;
+        case 0x85:
+            strcpy(detail, "MTL_CLIP         ");
+            break;
+        case 0x86:
+            strcpy(detail, "CLUT             ");
+            break;
+        case 0x87:
+            strcpy(detail, "DUMMY            ");
+            break;
+        case 0x88:
+            strcpy(detail, "DLIST            ");
+            break;
+        case 0x8b:
+            strcpy(detail, "DYNAMIC GEOMETRY ");
+            break;
+        case 0x8c:
+            strcpy(detail, "TRANSFORM_REF    ");
+            break;
+        case 0x8d:
+            strcpy(detail, "NEXT             ");
+            break;
+        case 0x8e:
+            strcpy(detail, "END ITEM         ");
+            break;
+        case 0x8f:
+            strcpy(detail, "FACEON           ");
+            break;
+        case 0x90:
+            strcpy(detail, "FACEON_TRANSFORM ");
+            break;
+        case 0x93:
+            strcpy(detail, "GEOMCALL2D       ");
+            break;
+        case 0x94:
+            strcpy(detail, "LIGHTS           ");
+            break;
+        case 0x95:
+            strcpy(detail, "DEBUG GEOMCALL   ");
+            break;
+        case 0x97:
+            strcpy(detail, "LINECALL2D       ");
+            break;
+        case 0x9a:
+            strcpy(detail, "CAMERA           ");
+            break;
+        case 0x9b:
+            strcpy(detail, "FX SCREEN COPY   ");
+            break;
+        case 0x9c:
+            strcpy(detail, "FX SUN FLARE     ");
+            break;
+        case 0x9d:
+            strcpy(detail, "FX SCREEN FILTER ");
+            break;
+        case 0x9e:
+            strcpy(detail, "FX SPEED BLUR    ");
+            break;
+        case 0x9f:
+            strcpy(detail, "LINEBUFFER       ");
+            break;
+        case 0xa0:
+            strcpy(detail, "GEOM CLIPPED     ");
+            break;
+        case 0xad:
+            strcpy(detail, "INST_SURF_GEOM ITEM ");
+            break;
+        case 0xb0:
+            strcpy(detail, "LIGHTMAP ITEM    ");
+            break;
+        default:
+            if (DisplayListDebugPS(item, detail) != 0)
+                strcpy(detail, "ERROR: Unknown item.");
+            break;
+    }
+    NuStrCat(text, detail);
+    sprintf(detail, "(%x)", static_cast<u32>(reinterpret_cast<usize>(item->next)));
+    NuStrCat(text, detail);
+    bool selected = type_count == 0;
+    for (i32 type_index = 0; type_index < type_count; ++type_index) {
+        if (types[type_index] == item->type) {
+            selected = true;
+            break;
+        }
+    }
+    if (selected && nudlist_debug_level > 0) {
+        if (file_handle != 0) {
+            NuHtmlWrite(text);
+            NuHtmlWrite("</br>\n");
+            if (item->id == 0)
+                NuHtmlWrite("<font color = \"#000000\">");
+        }
+    }
+    if (file_handle != 0)
+        DisplayListPrintItemPS(item, file_handle);
 }
 
 void DisplayListCreateDynMtlList(variptr_u *buffer, variptr_u buffer_end) {

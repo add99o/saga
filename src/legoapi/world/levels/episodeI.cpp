@@ -27,6 +27,7 @@
 #include "legoapi/render/fx/parts.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/world/levels/levels.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/world/world_shared.h"
 #include "legoapi/world/world.h"
@@ -101,49 +102,7 @@ void CalcSplinePointFromDist(flightspline_s *, _vuv_s *, float);
 
 // --- File-local layout types -----------------------------------------------
 
-struct _vuv_s {
-    float x, y, z, w;
-};
-
-// One pod in the pod race state (0x98-byte stride). The first 0x40 bytes
-// are its current transform; the second position is used by race alignment.
-struct racepod_s {
-    NUMTX matrix;             // 0x00
-    _vuv_s previous_axis;     // 0x40
-    _vuv_s previous_position; // 0x50
-    char pad_0x60[0x10];      // 0x60
-    i32 pitch;                // 0x70
-    i32 yaw;                  // 0x74
-    i32 pad_0x78;             // 0x78
-    float speed;              // 0x7c
-    u32 *data;                // 0x80 (flightspline_s *)
-    float start;              // 0x84
-    i16 model_id;             // 0x88
-    i16 pad_0x8a;             // 0x8a
-    float distance;           // 0x8c
-    GameObject_s *object;     // 0x90
-    void *next;               // 0x94 (active marker)
-};
-using PODRACE_LAPENTRY_s = racepod_s;
-DECOMP_ASSERT(sizeof(racepod_s) == 0x98, "racepod layout");
 static void RacePodAlign(racepod_s *pod, _vuv_s *direction, float amount, i32 mode);
-
-// Per-level PodRace state block held at WORLDINFO.podrace (0x5120), 0xaf24
-// bytes total (size of the memset in PodRaceInit).
-struct PODRACE_s {
-    char pad_0x0000[0xa580];
-    PODRACE_LAPENTRY_s lap_entries[0x10]; // 0xa580 .. 0xaf00 (zeroed by PodRaceReset)
-    float lap_countdown;                  // 0xaf00
-    float mushroom_timer;                 // 0xaf04
-    float lap_display;                    // 0xaf08
-    float prev_lap_display;               // 0xaf0c
-    float max_lap_time;                   // 0xaf10
-    float lap_time_increment;             // 0xaf14
-    i32 lap_attempts_per_increment;       // 0xaf18
-    char pad_0xaf1c[0xaf20 - 0xaf1c];
-    u8 flags; // 0xaf20 bit1/bit0 cleared by PodRaceReset
-    char pad_0xaf21[0xaf24 - 0xaf21];
-};
 
 // Pacemaker display data stored at LevObjs[0] for the pacemaker object.
 struct PACEMAKERDATA_s {
@@ -333,8 +292,8 @@ static void *CreatePodRaceMine(nuvec_s *pos) {
     pod_mines_bitfield[0] |= bit;
     pod_mines_bitfield[1] |= bit >> 31;
     i32 clear = ~bit;
-    client_mines[0x300 / 4] &= clear;
-    client_mines[0x304 / 4] &= clear >> 31;
+    client_mines.present_words[0] &= clear;
+    client_mines.present_words[1] &= clear >> 31;
     return entry;
 }
 
@@ -515,13 +474,13 @@ static __used__ void UpdatePodRaceMines(void) {
 
     {
         float radius = mines->mine_radius;
-        u32 *client = client_mines;
+        CLIENTMINES_s *client = &client_mines;
         for (u32 idx = 0; idx < 0x40; idx++) {
             u32 mask = 1u << (idx & 0x1f);
             // Words 0xc0/0xc1: host mine-present flags; 0xc2/0xc3: exploded ack.
-            if (((client[(idx >> 5) + 0xc0] | client[(idx >> 5) + 0xc2]) & mask) == 0)
+            if (((client->present_words[idx >> 5] | client->exploded_words[idx >> 5]) & mask) == 0)
                 continue;
-            NUVEC *mine_pos = (NUVEC *)&client[idx * 3];
+            NUVEC *mine_pos = &client->positions[idx];
             for (i32 i = 0; i < minecount; i++) {
                 GameObject_s *obj = minesarr[i];
                 if (obj == NULL)
@@ -538,7 +497,7 @@ static __used__ void UpdatePodRaceMines(void) {
                 GameCam_HitJudder();
                 GameCam_NewShake(NULL, 0.75f, 1.0f, 1.0f);
                 PlaySfx("Explode1", mine_pos);
-                client[(idx >> 5) + 0xc2] |= mask;
+                client->exploded_words[idx >> 5] |= mask;
                 break;
             }
         }
@@ -911,9 +870,9 @@ void PodRaceADraw(WORLDINFO_s *world) {
         NUMTX mtx;
         for (i32 i = 0; i < 0x40; i++) {
             i32 bit = 1 << (i & 0x1f);
-            if (((client_mines[0x300 / 4] & bit) | (client_mines[0x304 / 4] & (bit >> 31))) != 0) {
+            if (((client_mines.present_words[0] & bit) | (client_mines.present_words[1] & (bit >> 31))) != 0) {
                 NuMtxSetIdentity(&mtx);
-                NuMtxTranslate(&mtx, (NUVEC *)&client_mines[i * 3]);
+                NuMtxTranslate(&mtx, &client_mines.positions[i]);
                 NuSpecialDrawAt(&minesys, &mtx);
             }
         }
@@ -1155,10 +1114,10 @@ i32 Action_CreatePod(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char **
         return 1;
 
     i32 spline_index = 0;
-    flightspline_s *spline = (flightspline_s *)PodRace;
-    while (spline_index < 31 && *(i32 *)((u8 *)spline + 0x524) != spline_id) {
+    flightspline_s *spline = PodRace->splines;
+    while (spline_index < 31 && spline->id != spline_id) {
         spline_index++;
-        spline = (flightspline_s *)((u8 *)spline + 0x52c);
+        ++spline;
     }
 
     if (start < 0.0f)
@@ -1169,7 +1128,7 @@ i32 Action_CreatePod(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char **
         end = 0.0f;
     else if (end > 1.0f)
         end = 1.0f;
-    if (*(i32 *)((u8 *)spline + 0x400) == 0 || start == end)
+    if (spline->point_count == 0 || start == end)
         return 1;
 
     i32 slot = 0;
@@ -1181,7 +1140,7 @@ i32 Action_CreatePod(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char **
     pod->model_id = model_id;
     pod->next = (void *)1;
 
-    float spline_length = *(float *)((u8 *)spline + 0x410);
+    float spline_length = spline->length;
     float duration = time_factor * PodRace->prev_lap_display;
     pod->speed = duration > 0.0f ? ((end - start) * spline_length) / duration : 1.0f;
 
@@ -1387,7 +1346,7 @@ void PodRaceAReset(WORLDINFO_s *world) {
     pod_mines_bitfield[0] = 0;
     pod_mines_bitfield[1] = 0;
     memset(mines->mines, 0, sizeof(mines->mines));
-    memset(client_mines, 0, 0xc5 * 4);
+    memset(&client_mines, 0, sizeof(client_mines));
     mine_count = 0;
     if (Lap == 3 && nethost == 0 && netclient == 0)
         NewCutScene(NULL, world->cutscene_sys, "ep1_podrace_sebulba", 1);
@@ -1404,7 +1363,7 @@ void PodRaceInit(WORLDINFO_s *world) {
     memset(podrace, 0, sizeof(*podrace)); // 0xaf24 bytes in the original
     if (netclient != 0) {
         memset(&minesys, 0, 0x1d2 * 4);
-        memset(client_mines, 0, 0xc5 * 4);
+        memset(&client_mines, 0, sizeof(client_mines));
         MINESYS_s *mines = &minesys;
         if (NuSpecialFind(vehicle_scene, &mines->mine_special, "mine", 1) != 0) {
             mines->mine_radius = NuSpecialGetOriginRadius(&mines->mine_special);
@@ -1445,7 +1404,7 @@ void PodRaceInit(WORLDINFO_s *world) {
             mines->mine_part = PARTLookupType("POD_MINE_PART");
         }
     } else {
-        FlightSpline_Init(world, (flightspline_s *)podrace, 0x20);
+        FlightSpline_Init(world, podrace->splines, 0x20);
     }
     PodKeyReset();
     ResetPodStuff();

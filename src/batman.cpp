@@ -18,6 +18,7 @@
 #include "legoapi/render/fx.h"
 #include "nu2api/nusound/nusound_android.hpp"
 #include "nu2api/nu3d/android/nuobject_android.h"
+#include "nu2api/nu3d/ShaderManagerOpenGL.h"
 
 #include <string.h>
 
@@ -32,6 +33,14 @@ namespace {
 }
 // NuSoundSystem::Shutdown() is the original callback target
 static void NuSoundAppTerminate(void);
+
+// Original mutable digest immediately precedes its embedded shader text.
+// Key generation consumes its first eight bytes; the public setter copies all 16.
+extern "C" {
+    u8 uberShader2_md5[16] = {
+        0x38, 0x2a, 0x9d, 0x15, 0xf8, 0xfa, 0xbf, 0x09, 0xcb, 0xcc, 0x9b, 0xec, 0x5e, 0xb7, 0x62, 0x40,
+    };
+}
 
 char uberShader2[] = {
 #include <uberShader2.array>

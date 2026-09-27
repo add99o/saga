@@ -46,6 +46,9 @@ typedef struct nuapi_s {
     f32 video_brightness;
 } NUAPI;
 
+DECOMP_ASSERT(offsetof(NUAPI, pad_record) + offsetof(NUPADREC, mode) == 0x48, "NuAPI pad recording mode offset");
+DECOMP_ASSERT(offsetof(NUAPI, pad_record) + offsetof(NUPADREC, filepath) == 0x5c, "NuAPI pad recording path offset");
+
 extern NUAPI nuapi;
 
 enum {
@@ -72,6 +75,10 @@ extern char *nuapi_target_manager_mac_address;
 
 #ifdef __cplusplus
 void NuAPIInit(void);
+void ParseCommandLine(void);
+// Background-load frame timing uses the original C++ linkage.
+i32 NuFrameEndBgLoadPS(i32 minimum_delay);
+void Nu360ConfigureSMBSharing(char **path);
 
 extern "C" {
 #endif

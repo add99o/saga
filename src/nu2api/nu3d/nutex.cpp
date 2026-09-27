@@ -10,15 +10,10 @@
 #include <pthread.h>
 #include <string.h>
 #include "nu2api/nucore/numemory.h"
+#include "nu2api/numath/nufloat.h"
 
 struct nutextureformat_e {};
 struct nutexanimprog_s;
-
-struct nutexmanager_s {
-    u8 reserved[0x40];
-};
-
-DECOMP_ASSERT(sizeof(nutexmanager_s) == 0x40, "texture manager size");
 
 nutexmanager_s *g_texman;
 i32 streamOff;
@@ -269,6 +264,35 @@ nutexmanager_s *NuTexGetManager() {
 void NuTexManagerInit(VARIPTR *buf, VARIPTR) {
     g_texman = reinterpret_cast<nutexmanager_s *>(ALIGN(buf->addr, 0x10));
     buf->addr = reinterpret_cast<usize>(g_texman + 1);
+}
+
+void MapToGrid(NUVEC *grid, NUVEC *fraction, i32 *column, i32 *row, NUVEC *position, nutexmanager_s *manager) {
+    f32 columns = static_cast<f32>(manager->grid_columns);
+    f32 rows = static_cast<f32>(manager->grid_rows);
+    f32 x = (position->x - manager->grid_centre.x + manager->grid_width * 0.5f) * (columns / manager->grid_width);
+    f32 z = (position->z - manager->grid_centre.z + manager->grid_depth * 0.5f) * (rows / manager->grid_depth);
+    grid->y = 0.0f;
+    grid->x = x;
+    grid->z = z;
+    if (grid->x < 0.0f) {
+        grid->x = 0.0f;
+    }
+    if (grid->z < 0.0f) {
+        grid->z = 0.0f;
+    }
+    if (grid->x > columns) {
+        grid->x = columns - 0.001f;
+    }
+    if (grid->z > rows) {
+        grid->z = rows - 0.001f;
+    }
+    fraction->x = NuFloor(grid->x);
+    fraction->y = 0.0f;
+    fraction->z = NuFloor(grid->z);
+    *column = static_cast<i32>(fraction->x);
+    *row = static_cast<i32>(fraction->z);
+    fraction->x = grid->x - fraction->x;
+    fraction->z = grid->z - fraction->z;
 }
 
 void NuTextureCreate3D(i32, i32, i32, i32, i32, nutextureformat_e) {

@@ -3,6 +3,8 @@
 #include "legoapi/legoapi_types.h"
 #include "nu2api/nucore/nugcutscene.h"
 #include "nu2api/nucore/nuhgobj.h"
+#include "nu2api/nu3d/nugscn.h"
+#include "nu2api/nu3d/numtl.h"
 
 #include "globals.h"
 #include "legoapi/cutscenes/cutscenes.h"
@@ -348,7 +350,15 @@ struct GCutLookAtState {
     NUGCUTLOCATOR_s *locator;
 };
 
-i32 FindMtlInHGObj(nugscn_s *, i32);
+i32 FindMtlInHGObj(nugscn_s *scene, i32 material_type) {
+    for (i32 index = 0; index < scene->nummtl; ++index) {
+        if (scene->mtls[index]->unknown_9a[0] == material_type) {
+            return index + 1;
+        }
+    }
+    return 0;
+}
+
 i32 FindTexAnimFromMtl(nugscn_s *, numtl_s *);
 
 void instGetLookAtLocatorInfo(instNUGCUTSCENE_s *instance, instNUGCUTLOOKAT_s *opaque_state) {

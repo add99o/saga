@@ -58,5 +58,6 @@ struct SwipeDecalRenderer {
 };
 DECOMP_ASSERT(sizeof(SwipeDecalRenderer) == 0x48, "Swipe decal renderer ABI");
 DECOMP_ASSERT(offsetof(SwipeDecalRenderer, alpha) == 0xc, "Swipe decal alpha offset");
+DECOMP_ASSERT(offsetof(SwipeDecalRenderer, alpha.value) == 0x24, "Swipe decal cleanup alpha offset");
 DECOMP_ASSERT(offsetof(SwipeDecalRenderer, width) == 0x28, "Swipe decal width offset");
 DECOMP_ASSERT(offsetof(SwipeDecalRenderer, style) == 0x44, "Swipe decal style offset");

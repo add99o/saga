@@ -11,8 +11,6 @@ extern "C" {
         void *special;
         void *display_special;
     };
-    extern "C++" NuWindGType *NuWindAllocateGrp();
-    extern "C++" void NuWindFreeGrp(NuWindGType *);
     void NuWindUpdateArray(NUVEC **);
     static i32 maxwindmats;
     static i32 maxgroups;
@@ -128,6 +126,12 @@ extern "C" {
             }
         }
         return NULL;
+    }
+
+    extern "C++" void NuWindFreeGrp(NuWindGType *group) {
+        if (group != NULL) {
+            group->in_use = 0;
+        }
     }
 
     void NuWindSetup(VARIPTR *buffer, VARIPTR buffer_end, i32 matrix_count, i32 group_count) {

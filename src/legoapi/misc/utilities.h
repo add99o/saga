@@ -1,11 +1,19 @@
 #pragma once
 
-#include "nu2api/nucore/fixed_width.h"
+#include "nu2api/nucore/common.h"
 
 struct nuvec_s;
 struct numtx_s;
 struct VuVec;
 
+i32 charToInt(char const *text);
+char *IToX(char *output, i32 value);
+char *I64ToX(char *output, i64 value);
+void CatIToX(char *output, i32 value);
+void CatI64ToX(char *output, i64 value);
+
+f32 XZLinesClosest(nuvec_s *first_start, nuvec_s *first_end, nuvec_s *second_start, nuvec_s *second_end,
+                   f32 *first_fraction, f32 *second_fraction);
 f32 LineToPointDistance(VuVec &origin, VuVec &direction, VuVec &point, VuVec *closest);
 i32 LineToPlaneIntersecion(VuVec &origin, VuVec &direction, VuVec &plane, VuVec *intersection);
 i32 LineToSphereIntersection(VuVec &origin, VuVec &direction, VuVec &center, f32 radius, VuVec *far_intersection,
@@ -22,3 +30,4 @@ void CalculateInterceptVector(nuvec_s *origin, nuvec_s *target, nuvec_s *velocit
                               nuvec_s *intercept_velocity);
 i32 SphereSphereOverlapScaleY(nuvec_s *position_a, f32 radius_a, f32 y_radius_a, nuvec_s *position_b, f32 radius_b,
                               f32 y_radius_b);
+i32 SphereSphereOverlap(nuvec_s *position_a, f32 radius_a, nuvec_s *position_b, f32 radius_b);

@@ -1,11 +1,19 @@
+#include "legoapi/characters/motion/chris.h"
+
 #include "decomp.h"
+#include "globals.h"
 #include "legoapi/items/collect/spacelevel.h"
+#include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
+#include "legoapi/props/system/socksys.h"
+#include "legoapi/render/core/terrain.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/world/world.h"
 #include "nu2api/numath/nurand.h"
 #include "nu2api/numath/nuvec4.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/nuhspecial.h"
+#include "nu2api/nu3d/nuspecial.h"
 #include <string.h>
 
 struct AIROW_s;
@@ -33,6 +41,25 @@ void ChrisAnakinCReset();
 static NUVEC4 RadialMoveCentre;
 static __used__ f32 RadialPlayerRadius[2];
 static __used__ f32 MaxRadialCamY;
+
+anakin_door_setup_s DoorSetupList[15] = {
+    {"door1", "door1r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door2", "door2r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door3", "door3r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door4", "door4r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door5", "door5r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door6", "door6r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door7", "door7r", 15.0f, 1.0f, 0, {}, {1.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door8", "door8r", 15.0f, 1.0f, 0, {}, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door9", "door9r", 15.0f, 1.0f, 0, {}, {0.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door10", "door10r", 15.0f, 1.0f, 0, {}, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door11", "door11r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door12", "door12r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door15", "door15r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door16", "door16r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    // The retail table stores an empty string here, not a null name.
+    {"", NULL, 0.0f, 0.0f, 0, {}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f},
+};
 
 void ResetSpaceLevel(WORLDINFO_s *, spacelevel_s *) __asm__("_ZL15ResetSpaceLevelP11WORLDINFO_sP12spacelevel_s")
     __attribute__((visibility("hidden")));
@@ -365,7 +392,37 @@ void ChrisAnakinBReset() {
 }
 
 void ChrisAnakinCReset() {
-    STUBBED();
+    anakin_door_s *door = AnakinC;
+    i32 count = 0;
+    for (anakin_door_setup_s *setup = DoorSetupList; count < 12; ++setup) {
+        if (setup->name == NULL) {
+            for (; count < 12; ++count, ++door)
+                door->active = 0;
+            return;
+        }
+        if (!NuSpecialFind(WORLD->current_gscn, &door->special, setup->name, 1) || !NuSpecialExistsFn(&door->special))
+            continue;
+
+        if (NuSpecialFind(WORLD->current_gscn, &door->secondary_special, setup->secondary_name, 1))
+            door->has_secondary = static_cast<i16>(NuSpecialExistsFn(&door->secondary_special));
+
+        NuMtxSetIdentity(&door->original_matrix);
+        door->matrix = door->original_matrix = *NuSpecialGetMtx(&door->special);
+        if (door->has_secondary != 0) {
+            NuMtxSetIdentity(&door->original_secondary_matrix);
+            door->secondary_matrix = door->original_secondary_matrix = *NuSpecialGetMtx(&door->secondary_special);
+        }
+        door->platform_id = static_cast<i16>(FindPlatInst(NuSpecialGetInstanceix(&door->special)));
+        door->active = 1;
+        door->flags = static_cast<u8>(setup->flags);
+        door->direction = setup->direction;
+        door->offset = setup->initial_offset;
+        door->speed = setup->speed;
+        door->minimum_offset = setup->minimum_offset;
+        door->unknown_134 = setup->unknown_20;
+        ++door;
+        ++count;
+    }
 }
 
 void ChrisAnakinDReset(WORLDINFO_s *world) {
@@ -376,7 +433,33 @@ void ChrisAnakinBUpdate() {
 }
 
 void ChrisAnakinCUpdate() {
-    STUBBED();
+    anakin_door_s *door = AnakinC;
+    anakin_door_s *end = door + 12;
+    for (; door != end; ++door) {
+        if (door->active == 0)
+            continue;
+
+        const f32 offset = door->offset - door->speed * FRAMETIME;
+        if (offset <= door->minimum_offset)
+            door->offset = door->minimum_offset;
+        else
+            door->offset = offset;
+
+        // The retail transform temporaries require a 16-byte-aligned stack.
+        NUVEC_ALIGNED16 translation = {door->direction.x * door->offset, door->direction.y * door->offset,
+                                       door->direction.z * door->offset};
+        NUVEC_ALIGNED16 position;
+        NuVecMtxTransform(&position, &translation, &door->original_matrix);
+        memcpy(&door->matrix.m30, &position, sizeof(position));
+        door->matrix.m33 = 1.0f;
+        NuSpecialSetDrawMtx(&door->special, &door->matrix);
+        if (door->has_secondary != 0) {
+            NuVecMtxTransform(&position, &translation, &door->original_secondary_matrix);
+            memcpy(&door->secondary_matrix.m30, &position, sizeof(position));
+            door->secondary_matrix.m33 = 1.0f;
+            NuSpecialSetDrawMtx(&door->secondary_special, &door->secondary_matrix);
+        }
+    }
 }
 
 void ChrisAnakinDUpdate(WORLDINFO_s *) {
@@ -386,8 +469,25 @@ void ChrisAfterBurnerCam(nuvec_s *, nuvec_s *camera) {
     *camera = WORLD->space_level->camera_origin;
 }
 
-void ChrisAllocLevelStuff(WORLDINFO_s *) {
-    STUBBED();
+void ChrisAllocLevelStuff(WORLDINFO_s *world) {
+    world->has_level_specific_data = 1;
+    if (world->current_level == DOGFIGHTA_LDATA) {
+        world->space_level = static_cast<spacelevel_s *>(
+            GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, sizeof(spacelevel_s)));
+        spacelevel_s *space = world->space_level;
+        space->reset_buffer = space->unknown_5ce90;
+        space->reset_buffer_count = 256;
+        world->space_level->normalized_speed = 1.0f;
+        if (world->current_level == DOGFIGHTA_LDATA && world->sock_sys->sock[0].current_speed != 0.0f) {
+            world->space_level->normalized_speed = world->sock_sys->sock[0].current_speed / 11.0f;
+        }
+        world->space_level->unknown_62ef0 = 0;
+    } else if (world->current_level == PODRACEA_LDATA || world->current_level == PODRACEB_LDATA ||
+               world->current_level == PODRACEC_LDATA) {
+        world->podrace = GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, sizeof(PODRACE_s));
+    } else {
+        world->has_level_specific_data = 0;
+    }
 }
 
 i32 DidBoltHitChrisJobby(WORLDINFO_s *, BOLT_s *) {
@@ -400,10 +500,12 @@ i32 ChrisExtraBoltCollision(BOLT_s *, nuvec_s *) {
     return 0;
 }
 
-void ChrisGetSpaceShipMatrix(GameObject_s *, numtx_s *) {
-    STUBBED();
+void ChrisGetSpaceShipMatrix(GameObject_s *object, numtx_s *matrix) {
+    *matrix = object->apiobj.field_0xb8;
+    NuMtxPreRotateY(matrix, 0x8000);
 }
 
-void ChrisGetTargetedSpaceShipMatrix(GameObject_s *, numtx_s *) {
-    STUBBED();
+void ChrisGetTargetedSpaceShipMatrix(GameObject_s *object, numtx_s *matrix) {
+    *matrix = object->apiobj.field_0xb8;
+    NuMtxPreRotateY(matrix, 0x8000);
 }

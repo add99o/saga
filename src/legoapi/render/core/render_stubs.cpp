@@ -7,6 +7,7 @@
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nu3d/android/nurndr_android.h"
+#include "nu2api/nu3d/android/nufmv_android.h"
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/nudlist.h"
 #include "nu2api/nu3d/nuspecial.h"
@@ -77,8 +78,8 @@ extern "C" {
         }
     }
 
-    void FmvTimePS(void) {
-        STUBBED();
+    f32 FmvTimePS(void) {
+        return 0.0f;
     }
 
     void PerspectMidPoint(NUVEC *result, NUVEC *first, NUVEC *second, NUVEC *camera_position) {
@@ -88,10 +89,6 @@ extern "C" {
         result->x = first->x + (second->x - first->x) * ratio;
         result->y = first->y + (second->y - first->y) * ratio;
         result->z = first->z + (second->z - first->z) * ratio;
-    }
-
-    void RndrMaskScreen(void) {
-        STUBBED();
     }
 
 } // extern "C"

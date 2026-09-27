@@ -137,13 +137,8 @@ void PartKill_ThermalDetonator(PART_s *part, i32) {
 }
 
 i32 ThermalDetonator_MoveCode(GameObject_s *object) {
-    if (object == NULL || object->apiobj.character_model == NULL || object->pad_gamepad == NULL || WORLD == NULL ||
-        WORLD->lev_objs == NULL || WORLD->lev_objs[0xea].active == 0) {
-        return 0;
-    }
-
     if (object->character_context != 0x2e) {
-        if (static_cast<i8>(object->apiobj.flags_low) >= 0 ||
+        if (WORLD->lev_objs[0xe9].active == 0 || static_cast<i8>(object->apiobj.flags_low) >= 0 ||
             (object->pad_gamepad->buttons_pressed & GAMEPAD_SPECIAL) == 0) {
             return 0;
         }
@@ -157,16 +152,13 @@ i32 ThermalDetonator_MoveCode(GameObject_s *object) {
             return 0;
         }
 
-        for (i32 index = 0; index < MAXPARTS; ++index) {
-            PART_s *part = &Part[index];
-            if ((part->active & 1) != 0 && part->owner == object &&
-                part->draw_callback == PartDraw_ThermalDetonator) {
-                if ((part->active & 2) != 0 && part->elapsed <= 1.0f) {
-                    return 0;
-                }
-                KillPart(part, 0);
-                return 1;
+        PART_s *part = FindPart(NULL, 0, object);
+        if (part != NULL) {
+            if ((part->active & 2) != 0 && !(part->elapsed > 1.0f)) {
+                return 0;
             }
+            KillPart(part, 0);
+            return 1;
         }
 
         object->character_context = 0x2e;
@@ -174,9 +166,10 @@ i32 ThermalDetonator_MoveCode(GameObject_s *object) {
         if (object->apiobj.character_model->model_data_b[object->context_animation] == NULL) {
             object->context_animation = 0x65;
         }
+        if (AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 1) != NULL) {
+            ResetAnimPacket(&object->apiobj.anim_packet, -1);
+        }
         object->context_flags &= ~0x40;
-        object->movement_runtime_flags &= ~0x40;
-        ResetAnimPacket(&object->apiobj.anim_packet, -1);
         object->context_animation_timer =
             object->apiobj.character_model->model_data_b[object->context_animation] != NULL
                 ? AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 1)
@@ -184,22 +177,31 @@ i32 ThermalDetonator_MoveCode(GameObject_s *object) {
         return 0;
     }
 
-    f32 *frame = object->apiobj.character_model->model_data_b[object->context_animation] != NULL
-                     ? AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0)
-                     : NULL;
-    object->context_animation_timer -= FRAMETIME;
-    const f32 release_frame =
-        object->apiobj.character_model->model_data_b[object->context_animation] != NULL
-            ? AnimListFrame(object->apiobj.character_model, object->context_animation, 2)
-            : 0.0f;
-    if ((object->context_flags & 0x40) == 0 &&
-        ((frame != NULL && *frame > 0.0f && *frame >= release_frame) ||
-         (frame == NULL && object->context_animation_timer <= 0.5f))) {
-        object->context_flags |= 0x40;
-        object->movement_runtime_flags |= 0x40;
+    f32 *frame = NULL;
+    if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL) {
+        frame = AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0);
+        if (frame == NULL) {
+            return 0;
+        }
     }
+    object->context_animation_timer -= FRAMETIME;
     if (object->context_animation_timer <= 0.0f) {
         object->character_context = -1;
+        if ((object->context_flags & 0x40) == 0) {
+            object->movement_runtime_flags |= 0x40;
+        }
+    } else if ((object->context_flags & 0x40) == 0) {
+        if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL) {
+            const f32 release_frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 2);
+            if (frame != NULL && *frame > 0.0f && *frame >= release_frame) {
+                object->movement_runtime_flags |= 0x40;
+            }
+        } else if (object->context_animation_timer < 0.5f) {
+            object->movement_runtime_flags |= 0x40;
+        }
+    }
+    if ((object->movement_runtime_flags & 0x40) != 0) {
+        object->context_flags |= 0x40;
     }
     return 0;
 }
@@ -238,8 +240,7 @@ void PartUpdate_ThermalDetonator(PART_s *part) {
     if (part == NULL) {
         return;
     }
-    if ((part->active & 2) != 0 && part->elapsed > 0.0f && part->elapsed < 1.0f &&
-        (part->render_flags & 0x40) == 0) {
+    if ((part->active & 2) != 0 && part->elapsed > 0.0f && part->elapsed < 1.0f && (part->render_flags & 0x40) == 0) {
         PlaySfx(const_cast<char *>("ThermalDet_Beep"), &part->position);
         part->render_flags |= 0x40;
     }

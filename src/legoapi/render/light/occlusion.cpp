@@ -4,6 +4,8 @@
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/nuprim.h"
+#include "nu2api/nu3d/nuqfnt.h"
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
@@ -411,7 +413,26 @@ void OcclusionManager::OnCameraSet() {
 }
 
 void OcclusionManager::RenderStats() const {
-    STUBBED();
+    if (!initialized || !enabled || NuRndrDoingScreenGrab != 0)
+        return;
+    NuQFntPushPrintMode(2);
+    NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+    NuQFntSet(system_qfont);
+    NuQFntSetScale(system_qfont, 0.7f, 0.7f);
+    NuQFntSetPointSize(system_qfont, 0.7f, 0.7f);
+    NuQFntMove2d(system_qfont, 112.0f, 112.0f, 0.0f);
+    NuQFntSetColour2d(system_qfont, 0x80000000);
+    char text[256];
+    sprintf(text, "Occluders : %2d, Queries : %2d, Occluded : %2d, Visible : %2d", static_cast<i32>(current_set->count),
+            static_cast<i32>(unknown_164), static_cast<i32>(unknown_160), static_cast<i32>(unknown_164 - unknown_160));
+    NuQFntPrint2dU(system_qfont, text);
+    f32 width = NuQFntLenScale();
+    f32 height = NuQFntHeightScale();
+    NuQFntMove2d(system_qfont, 112.0f - width, 112.0f - height, 0.0f);
+    NuQFntSetColour2d(system_qfont, 0xff00ffff);
+    NuQFntPrint2dU(system_qfont, text);
+    NuQFntPopCoordinateSystem();
+    NuQFntPopPrintMode();
 }
 
 void OcclusionManager::RenderZPass() const {

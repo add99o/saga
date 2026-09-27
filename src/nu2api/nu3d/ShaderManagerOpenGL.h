@@ -25,6 +25,10 @@ DECOMP_ASSERT(offsetof(ShaderMtlDescFilter, texture_id_threshold) == 0x20,
               "ShaderMtlDescFilter texture threshold offset");
 
 extern "C" void NuShaderObjectKeyGenerate3(u32 *, const ShaderMtlDescFilter *, i32);
+extern "C" void NuShaderObjectKeyGenerate2(u32 *, const nushadermtldesc_s *, const numtl_s *, i32, i32, i32);
+extern "C" void NuShaderObjectKeyGenerate4(u32 *, i32, i32);
+extern "C" void NuShaderObjectKeySetUberShaderHash(const u8 *);
+extern "C" u8 uberShader2_md5[16];
 struct ShaderObjectKey {
     u32 key;
 };

@@ -555,7 +555,7 @@ f32 RatioBetweenEdgesXZ(nuvec_s *point, nuvec_s *edge_a0, nuvec_s *edge_a1, nuve
     return distance_a / (distance_a + distance_b);
 }
 
-bool SphereSphereOverlap(NUVEC *a, f32 radius_a, NUVEC *b, f32 radius_b) {
+i32 SphereSphereOverlap(NUVEC *a, f32 radius_a, NUVEC *b, f32 radius_b) {
     const f32 x = b->x - a->x;
     const f32 y = b->y - a->y;
     const f32 z = b->z - a->z;
@@ -680,7 +680,7 @@ char *IToX(char *output, i32 value) {
     char hex[] = "0123456789abcdef";
     output[0] = hex[(static_cast<u32>(value) >> 28) & 15];
     output[1] = hex[(value >> 24) & 15];
-    i32 shifted = value << 8;
+    i32 shifted = static_cast<u32>(value) << 8;
     output[2] = hex[(static_cast<u32>(shifted) >> 28) & 15];
     output[3] = hex[(shifted >> 24) & 15];
     i8 byte = static_cast<i8>(value >> 8);
@@ -747,7 +747,7 @@ char *I64ToX(char *output, i64 value) {
     char hex[] = "0123456789abcdef";
     output[0] = hex[(static_cast<u32>(high) >> 28) & 15];
     output[1] = hex[(high >> 24) & 15];
-    i32 shifted_high = high << 8;
+    i32 shifted_high = static_cast<u32>(high) << 8;
     output[2] = hex[(static_cast<u32>(shifted_high) >> 28) & 15];
     output[3] = hex[(shifted_high >> 24) & 15];
     i8 byte_high = static_cast<i8>(high >> 8);
@@ -759,7 +759,7 @@ char *I64ToX(char *output, i64 value) {
     __builtin_memcpy(&low, &value, sizeof(low));
     output[8] = hex[(static_cast<u32>(low) >> 28) & 15];
     output[9] = hex[(low >> 24) & 15];
-    i32 shifted_low = low << 8;
+    i32 shifted_low = static_cast<u32>(low) << 8;
     output[10] = hex[(static_cast<u32>(shifted_low) >> 28) & 15];
     output[11] = hex[(shifted_low >> 24) & 15];
     i8 byte_low = static_cast<i8>(low >> 8);

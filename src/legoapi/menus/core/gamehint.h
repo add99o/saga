@@ -54,6 +54,8 @@ extern HintScalarTransition hintYPop;
 f32 CurrentHintAlpha();
 f32 CurrentHintButtonScale();
 void Hint_Draw(i32 viewport);
+void MenuUpdateHints(MENU_s *menu);
+void MenuDrawHints(MENU_s *menu);
 
 HINT_s *Hint_FindHint(i32 hint_id);
 i32 Hint_CurrentId();

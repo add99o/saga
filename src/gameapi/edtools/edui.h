@@ -205,6 +205,24 @@ struct edui_graph_s : eduiitem_s {
     char title[16];
 };
 
+struct FilePickDirectoryEntry {
+    u8 flags;
+    u8 reserved_01[3];
+    i32 size;
+    u8 reserved_08[9];
+    i8 minute;
+    i8 hour;
+    i8 month;
+    i8 day;
+    u8 reserved_15;
+    i16 year;
+    char name[0x100];
+};
+DECOMP_ASSERT(sizeof(FilePickDirectoryEntry) == 0x118, "file picker directory entry ABI");
+DECOMP_ASSERT(offsetof(FilePickDirectoryEntry, size) == 4, "file picker size offset");
+DECOMP_ASSERT(offsetof(FilePickDirectoryEntry, year) == 0x16, "file picker year offset");
+DECOMP_ASSERT(offsetof(FilePickDirectoryEntry, name) == 0x18, "file picker name offset");
+
 struct edui_file_pick_s : eduiitem_s {
     i32 (*interact)(edui_interact_s *);
     EdUiItemCallback changed;
@@ -366,6 +384,7 @@ extern "C" {
     void eduiMenuEnsureSelection(eduimenu_s *menu);
     void eduiMenuFitWidth(eduimenu_s *menu, i32 padding);
     void eduiMenuHighlight(eduimenu_s *menu, eduiitem_s *item);
+    void FlushMenuHighlights(eduimenu_s *menu);
     eduiitem_s *eduiItemSelCreate(usize data, const void *colours, i32 selected, i32 group, EdUiItemCallback callback,
                                   char *text);
     eduiitem_s *eduiItemSeparatorCreate(usize data, const void *colours);
@@ -426,6 +445,12 @@ extern "C" {
     void eduiItemTextPickSetFmt(edui_textpicker_s *item, char *format);
     eduiitem_s *eduiItemFilePickCreate(usize data, const void *colours, EdUiItemCallback callback, char *text);
     void eduiItemFilePickSetFmt(edui_file_pick_s *item, char *format);
+    i32 cbCompateDirentByDateAsc(const void *first, const void *second);
+    i32 cbCompateDirentByDateDec(const void *first, const void *second);
+    i32 cbCompateDirentByNameAsc(const void *first, const void *second);
+    i32 cbCompateDirentByNameDec(const void *first, const void *second);
+    i32 cbCompateDirentBySizeAsc(const void *first, const void *second);
+    i32 cbCompateDirentBySizeDec(const void *first, const void *second);
     void eduiItemGraphAddOnionSkin(edui_graph_s *item, nugraph_s *graph);
     void eduiItemGraphSetCursor(edui_graph_s *item, f32 x, f32 y);
     void eduiItemGraphSetLabels(edui_graph_s *item, char *x, char *y, char *title);

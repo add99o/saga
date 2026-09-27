@@ -2,21 +2,25 @@
 #include <stdio.h>
 #include <string.h>
 #include "legoapi/items/objects/gameobjects.h"
+#include "legoapi/items/base/collection.h"
 #include "nu2api/nu3d/nuspecial.h"
 #include "legoapi/world/world.h"
 #include "legoapi/core/input/qrand.h"
 #include "nu2api/numath/nutrig.h"
 #include "legoapi/menus/screens/gamemenuall.h"
+#include "legoapi/menus/screens/gamestructure.h"
 #include "legoapi/menus/core/text.h"
 #include "legoapi/legoapi_types.h"
 #include "globals.h"
 #include "batman.h"
+#include "gameapi/gui/apimenu.h"
 #include "legoapi/items/base/animpacket.h"
 #include "legoapi/characters/core/character.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/core/customiser.h"
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/motion/gameanim.h"
+#include "legoapi/core/input/timer.h"
 #include "legoapi/render/core/rtl.h"
 #include "legoapi/render/light/lighting.h"
 #include "legoapi/world/area.h"
@@ -24,6 +28,7 @@
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/numath/numtx.h"
+#include "nu2api/nufile/nufpar.h"
 
 f32 CustomiseMenuTime[2];
 GAMESAVE_s OldCustomiseGame = {};
@@ -46,6 +51,21 @@ static f32 CustomiseNameBoardTMul[2], CustomiseNameBoardMul[2], CustomiseNameLet
 static NUVEC CustomiseScreenPos[2];
 u16 CustomiseRotY[2], CustomiseTiltX[2], CustomiseTiltZ[2];
 void Customiser_SetNameAndIcon(CUSTOMISER *, i32);
+
+struct CUSTOMISER_GAMESETTING {
+    char *name;
+    u32 model_flags;
+    u32 gameplay_flags;
+};
+static CUSTOMISER_GAMESETTING Customiser_GameSetting[] = {
+    {"bountyhunter", 0x1000000, 0},
+    {"jedi", 8, 0},
+    {"sith", 0xc, 2},
+    {"blaster", 0x100080, 0x40000000},
+    {"alreadygothat", 0, 0x10},
+    {"stormtrooperhelmet", 0, 0x40000},
+    {NULL, 0, 0},
+};
 
 void Customiser_Init(CUSTOMISER *customiser) {
     if (customiser == NULL)
@@ -198,8 +218,26 @@ void Customiser_Reset(CUSTOMISER *customiser) {
     customiser->animation_state[1] = 2;
 }
 
-void Customiser_PieceAvailable(CUSTOMPIECE *) {
-    STUBBED();
+i32 Customiser_PieceAvailable(CUSTOMPIECE *piece) {
+    if (GAMEDEMO != 0) {
+        if ((piece->availability_flags & 0x10) != 0)
+            return 0;
+    } else {
+        if ((piece->availability_flags & 0x180) != 0 && Game_100PercentComplete() == 0)
+            return 0;
+        if (piece->character_id != -1) {
+            if (InCollectList_Index(piece->character_id, NULL, 0) == -1)
+                return 1;
+            if (Collection_Got(piece->character_id) == 0)
+                return 0;
+        }
+        const u32 required_flags = piece->model_flags & 0x0c;
+        if (required_flags != 0 && Collection_GotAnyOfType(-1, required_flags) == 0)
+            return 0;
+        if (piece->collection_type != -1 && Collection_GotAnyOfType(piece->collection_type, 0) == 0)
+            return 0;
+    }
+    return 1;
 }
 
 void Customiser_TransformToPanel(CUSTOMISER *) {
@@ -423,23 +461,58 @@ void Customiser_Update(CUSTOMISER *customiser, WORLDINFO_s *world) {
 }
 
 void CustomiserMenu_End() {
-    STUBBED();
+    LevLock[1] = 1;
+    LevTime[1] = 2.0f;
+    MenuRememberCursor(&GameMenu[GameMenuLevel]);
+    MenuReset();
+    ResetTimer(&JoinInTimer, 0.0f);
+    CustomiseMode[0] = 2;
+    CustomiseMode[1] = 2;
+    if (GAMEDEMO != 0) {
+        GAMEDEMO = 2;
+        NewLData = HUB_LDATA;
+        NextArea_FreePlay = 1;
+        FreePlay = 1;
+        makeplayerlist_freeplay = 1;
+        makefreeplaymodellist = 1;
+    }
 }
 
 void CustomiserMenu_Draw(MENU_s *) {
     STUBBED();
 }
 
-void Customiser_InitNames(CUSTOMISER *) {
-    STUBBED();
+void Customiser_InitNames(CUSTOMISER *customiser) {
+    if (customiser == NULL)
+        return;
+    if (customiser->character_ids[0] != -1) {
+        const i32 text = CDataList[customiser->character_ids[0]].name_id;
+        if (text != -1) {
+            NuStrCpy(customiser->display_names[0], TTab[text]);
+            TTab[text] = customiser->display_names[0];
+        }
+    }
+    if (customiser->character_ids[1] != -1) {
+        const i32 text = CDataList[customiser->character_ids[1]].name_id;
+        if (text != -1) {
+            NuStrCpy(customiser->display_names[1], TTab[text]);
+            TTab[text] = customiser->display_names[1];
+        }
+    }
 }
 
 void CustomiserMenu_Update(MENU_s *) {
     STUBBED();
 }
 
-void Customiser_PieceConfig(CUSTOMPIECE *, nufpar_s *) {
-    STUBBED();
+void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser) {
+    for (CUSTOMISER_GAMESETTING *setting = Customiser_GameSetting; setting->name != NULL; ++setting) {
+        if (NuStrICmp(parser->word_buf, setting->name) == 0) {
+            piece->model_flags |= setting->model_flags;
+            piece->gameplay_flags |= setting->gameplay_flags;
+            break;
+        }
+    }
 }
 
 i32 Customiser_MenuAvailable(CUSTOMISER *customiser) {
@@ -490,6 +563,15 @@ void Customiser_GetActiveWeirdoIndex(i32 *index, i32 *count) {
     *count = 2;
 }
 
-void Customise_GetToggleString(i32) {
-    STUBBED();
+i32 Customise_GetToggleString(i32 index) {
+    i32 mode = CustomiseMode[index];
+    if (mode == 1) {
+        return tCANCEL;
+    }
+    if (mode != 0) {
+        do {
+            mode = (i32)((u32)mode + 1u) % 3;
+        } while (mode == 0);
+    }
+    return tEDITNAME;
 }

@@ -99,8 +99,8 @@ void NuRndrStreamInit(i32 stream_buffer_size, VARIPTR *buffer) {
     rndrstream_free.addr = ALIGN(rndrstream[0].addr, 16);
 }
 
-void NuRndrRectUV2d(f32 x, f32 y, f32, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1,
-                    i32 colour, numtl_s *material) {
+void NuRndrRectUV2d(f32 x, f32 y, f32, f32 width, f32 height, f32 u0, f32 v0, f32 u1, f32 v1, i32 colour,
+                    numtl_s *material) {
     NuPrim2DBegin(4, 7, material);
     NuRndrPrimTexturedColour(u0, v0, colour);
     NuPrim2DAddXYZ(x, y, 0.0f);
@@ -109,8 +109,8 @@ void NuRndrRectUV2d(f32 x, f32 y, f32, f32 width, f32 height, f32 u0, f32 v0, f3
     NuPrim2DEnd();
 }
 
-void NuRndrRectUV2diZ(i32 x, i32 y, i32 width, i32 height, f32 u0, f32 v0, f32 u1, f32 v1,
-                      i32 colour, numtl_s *material, i32 z) {
+void NuRndrRectUV2diZ(i32 x, i32 y, i32 width, i32 height, f32 u0, f32 v0, f32 u1, f32 v1, i32 colour,
+                      numtl_s *material, i32 z) {
     const f32 sx = static_cast<f32>(x) * 0.0625f;
     const f32 sy = static_cast<f32>(y) * 0.0625f;
     const f32 sw = static_cast<f32>(width) * 0.0625f;
@@ -126,6 +126,53 @@ void NuRndrRectUV2diZ(i32 x, i32 y, i32 width, i32 height, f32 u0, f32 v0, f32 u
 
 static NUMTL *pZClearMaterial;
 static NUMTL *pAlphaMask;
+static const NUPRIMSCALEMODE kPRIM_COORD_LOOKUP[3] = {NUPRIM_SCALEMODE_PS2, NUPRIM_SCALEMODE_NORMALISED,
+                                                      NUPRIM_SCALEMODE_ABSOLUTE};
+
+void RndrMaskScreen(i32 texture, f32 clear_x, f32 clear_y, f32 clear_width, f32 clear_height, f32 mask_x, f32 mask_y,
+                    f32 mask_width, f32 mask_height, i32 coordinate_mode) {
+    pAlphaMask->tex_id = static_cast<i16>(texture);
+    NuMtlUpdate(pAlphaMask);
+    NuRndrBeginScene(-1);
+    NUPRIMSCALEMODE coordinates = kPRIM_COORD_LOOKUP[coordinate_mode];
+    ++NuPrimCSPos;
+    NuPrimSetCoordinateSystem(coordinates);
+    NuPrim2DBegin(1, 7, pZClearMaterial);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(clear_x, clear_y, 0.0f);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(clear_x + clear_width, clear_y, 0.0f);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(clear_x, clear_y + clear_height, 0.0f);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(clear_x + clear_width, clear_y + clear_height, 0.0f);
+    NuPrim2DEnd();
+    --NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
+    ++NuPrimCSPos;
+    NuPrimSetCoordinateSystem(coordinates);
+    NuPrim2DBegin(1, 7, pAlphaMask);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(mask_x, mask_y, 1.0f);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(1.0f, 0.0f);
+    NuPrim2DAddXYZ(mask_x + mask_width, mask_y, 1.0f);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(0.0f, 1.0f);
+    NuPrim2DAddXYZ(mask_x, mask_y + mask_height, 1.0f);
+    NuRndrPrimSetColour(0xff000000);
+    NuRndrPrimUV(1.0f, 1.0f);
+    NuPrim2DAddXYZ(mask_x + mask_width, mask_y + mask_height, 1.0f);
+    NuPrim2DEnd();
+    --NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
+    NuRndrEndScene();
+}
 
 void NuRndrInitGeneric() {
     const i32 render_plane = NuMtlSetCurrentRenderPlane(22);

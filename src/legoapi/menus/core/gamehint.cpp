@@ -741,15 +741,6 @@ void Hint_Draw(i32 viewport) {
 
 // Static game message and hint helpers. Stubbed to satisfy the symbol baseline.
 
-static __used__ void EndRedBrickMessage(GAMEMESSAGE_s *) {
-    if (AreaGlobals.values.field_0x08 != 0)
-        AreaGlobals.values.field_0x08 = 2;
-    RedBrickScale = 2.0f;
-    GameAudio_PlaySfx(0x26, NULL, 0, 0);
-    NewRumbleAllPlayers(0.6f, 0.0f, 0, 0);
-    GameCam_Judder(GameCam, -0.2f, 0, NULL);
-}
-
 static __used__ nuhspecial_s *GameMsg_GetExtraObj(GAMEMESSAGE_s *message) {
     if (message->icon == 0xd0)
         return &WORLD->lev_objs[0xd1].special;
