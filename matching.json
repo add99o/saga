@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.684235,
+    "fuzzy_match_percent": 64.69311,
     "total_code": "4722419",
-    "matched_code": "516669",
-    "matched_code_percent": 10.94077,
+    "matched_code": "516857",
+    "matched_code_percent": 10.944751,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6213,
-    "matched_functions_percent": 46.162422,
+    "matched_functions": 6215,
+    "matched_functions_percent": 46.17728,
     "total_units": 1
   },
   "text": {
@@ -94861,7 +94861,7 @@
           "address": 2576736,
           "offset": 1686768,
           "size": 659,
-          "match_percent": 2.763158
+          "match_percent": 33.480263
         },
         {
           "name": "NuPhoneOSMessagePump",
@@ -94869,7 +94869,23 @@
           "address": 2577408,
           "offset": 1687440,
           "size": 440,
-          "match_percent": 3.652174
+          "match_percent": 10.278261
+        },
+        {
+          "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED1Ev",
+          "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
+          "address": 2577856,
+          "offset": 1687888,
+          "size": 94,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED2Ev",
+          "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
+          "address": 2577856,
+          "offset": 1687888,
+          "size": 94,
+          "match_percent": 100.0
         }
       ]
     },
@@ -124446,22 +124462,6 @@
       "match_percent": 0.0
     },
     {
-      "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED1Ev",
-      "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
-      "address": 2577856,
-      "offset": 1687888,
-      "size": 94,
-      "match_percent": 0.0
-    },
-    {
-      "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED2Ev",
-      "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
-      "address": 2577856,
-      "offset": 1687888,
-      "size": 94,
-      "match_percent": 0.0
-    },
-    {
       "name": "_GLOBAL__sub_I_numath_includes.c",
       "demangled_name": "_GLOBAL__sub_I_numath_includes.c",
       "address": 2689793,
@@ -127577,8 +127577,8 @@
   "summary": {
     "bazel_units": 454,
     "functions": 13454,
-    "assigned_functions": 12660,
+    "assigned_functions": 12662,
     "ambiguous_functions": 239,
-    "unassigned_functions": 555
+    "unassigned_functions": 553
   }
 }

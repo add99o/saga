@@ -2555,3 +2555,89 @@ Target/native builds and all five repository checks pass. Rendering,
 remainder/trig services, interpolation and menu backup are mocked in this
 fixture; no gameplay or visual output is claimed. All eleven GitHub checks
 on the preceding published commit `a078395c` were verified green.
+
+## Batch 34: PhoneOS message queue and semaphore return ABI
+
+Complete the queue prerequisite recorded in batch 32. The existing
+`nuphoneos.cpp` stays at `-O3`, with register/post/pump in their original
+relative order and LOCAL callback/queue storage. No build flags change.
+
+| Function | Before | After |
+|---|---:|---:|
+| `NuPhoneOSMessagePost` | 2.763158% | 33.480263% |
+| `NuPhoneOSMessagePump` | 3.652174% | 10.278261% |
+| `NuThreadQueue<NuPhoneOSMessage, 128>::~NuThreadQueue` | 0% | 100% |
+
+Linked fuzzy matching improves **64.684235% → 64.693110%**: three
+improvements, no regressions, one exact match gained, and none lost.
+
+The recovered queue has five real `NuThreadSemaphore` members, two
+32-bit counters, 128 message/token records and a final waiting token.
+Target assertions cover its `0xe5c` size and the counters/records/token
+at offsets `0x50`, `0x54`, `0x58` and `0xe58`. Native semaphore storage
+grows naturally; there is no fixed-size pthread placeholder. Construction
+sets semaphore capacities to 128, 128, 1, 1, 1, clears the counters,
+sets the token sentinel to `0x0fffffff`, and signals all 128 free slots.
+Ordinary C++ member destruction reproduces all five reverse-order
+destructor calls exactly. The queue cannot be copied.
+
+Posting acquires a free slot, either with a nonblocking try or a wait,
+copies the 24-byte message and sentinel token, updates empty/nonempty
+notifications when necessary, advances the wrapping write counter, and
+signals the occupied slot. A failed nonblocking acquisition returns
+without waiting. The optional final wait observes the queue becoming
+empty, **not completion of the last callback**. The header now explains
+this distinction without changing the exported three-argument ABI.
+
+Pumping first handles pending pause, resume and become-active flags in
+that order. Each installed lifecycle callback gets null data, followed by
+clearing its flag; later flags/callbacks are reloaded. It then consumes
+available queued records, signals matching non-sentinel tokens, advances
+the read counter, updates empty/nonempty notifications, and releases the
+slot **before** dispatching the callback with the local payload copy.
+Null callbacks consume records normally. The three previously absent
+lifecycle flag objects are restored with their original four-byte widths.
+
+The shared `NuThreadSemaphore::TryWait` declaration was also wrong:
+every retail caller that uses its result tests AL, not EAX. Its canonical
+return and local result are now `bool`. The linked semaphore constructor,
+destructor, wait, try-wait and signal all remain exact matches. The queue's
+cross-thread counters use relaxed atomic loads/stores to preserve the
+retail x86 instructions without introducing C++ data races; the existing
+semaphores provide record publication and slot-reuse synchronization.
+The recovered contract is one producer and one consumer, not an invented
+multi-producer lock-free queue.
+
+Full post/pump assembly and object diffs were inspected. The post candidate
+has a 28-byte frame instead of retail's 172-byte frame; retail retains
+several intermediate aggregate copies absent from the simple recovered
+message type. The pump's remaining mismatch is dominated by loop/return
+block placement, with its record-copy and notification sequences present.
+Do not add redundant copies, manual unrolling or ABI attributes just to
+inflate these scores. The original constructor symbol includes its old
+filename and unrelated VuVec constants; no filename alias or artificial
+vector initialization is added to chase that compiler-generated artifact.
+
+### Validation
+
+- **54,180 trace/state cases per architecture** pass against the NDK x86
+  build and full-global 64-bit ASan/UBSan build. They cover all seven
+  event IDs, every occupancy 0 through 128, ring/counter wrapping including
+  `UINT_MAX`, blocking/nonblocking and drain waits, lifecycle flag and
+  callback combinations, matching/nonmatching/sentinel tokens, callback
+  registration changes, callback-posted messages and nested pumping.
+  Constructor capacities/free-slot signals and reverse destruction order
+  are checked separately. Semaphore scheduling is deterministic in this
+  trace fixture; records and callback payloads are compared byte for byte.
+- A separate host integration fixture uses the actual pthread semaphore
+  implementation. Full-queue dropping, a blocked 129th post, acknowledgement
+  before callback return, counter wrapping, and **100,000 concurrent FIFO
+  messages** pass under both ASan/UBSan and ThreadSanitizer.
+- Target/native builds and all five repository checks pass. No gameplay,
+  external platform lifecycle wiring, multiple producers, concurrent
+  callback registration, invalid event IDs, or invalid message pointers
+  are claimed as tested. Lifecycle flag mutation is tested on the consumer
+  thread; the queue stress test does not invent asynchronous flag writers.
+
+All eleven GitHub checks on the preceding commit `8d4809f4` were verified
+green before this batch was committed.

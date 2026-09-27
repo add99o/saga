@@ -150,15 +150,15 @@ void NuThreadSemaphore::Signal() {
     pthread_mutex_unlock(&this->mutex);
 }
 
-i32 NuThreadSemaphore::TryWait() {
-    i32 did_wait;
+bool NuThreadSemaphore::TryWait() {
+    bool did_wait;
 
     pthread_mutex_lock(&this->mutex);
 
-    did_wait = 0;
+    did_wait = false;
     if (this->signaled_count > 0) {
         this->signaled_count--;
-        did_wait = 1;
+        did_wait = true;
     }
 
     pthread_mutex_unlock(&this->mutex);
