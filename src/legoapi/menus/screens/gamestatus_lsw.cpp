@@ -306,7 +306,7 @@ void Save_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float elapse
 extern i32 from_save_and_exit;
 extern TIMER BonusTimer;
 extern i16 id_SLAVE1;
-extern i16 tSUPERSTORYCOMPLETE, tNEWBESTTIME, tLEVELCOMPLETE, tMISSIONCOMPLETE;
+extern i16 tSUPERSTORYCOMPLETE, tNEWBESTTIME, tNONEWBESTTIME, tLEVELCOMPLETE, tMISSIONCOMPLETE;
 extern i16 tCHALLENGECOMPLETE, tTRUEHERO, tMINIKIT;
 extern "C" void NuIOS_RecordFlurryEvent(char *);
 extern "C" i32 NuStrCpy(char *, const char *);
@@ -1376,8 +1376,43 @@ f32 getFinishedStatusAlpha(STATUSPACKET_s *packet) {
     return alpha;
 }
 
-void SuperStoryTime_LSW_Draw(STATUS_STAGE_s *, STATUSPACKET_s *, i32) {
-    STUBBED();
+void SuperStoryTime_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 current) {
+    if (current == 0 || stage->field_0x14 <= 0)
+        return;
+
+    const f32 time = stage->field_0x18;
+    f32 alpha;
+    if (time < 0.5f)
+        alpha = time + time;
+    else if (time < 4.5f)
+        alpha = 1.0f;
+    else
+        alpha = 1.0f - (time - 4.5f) * 2.0f;
+
+    const i32 opacity = static_cast<i32>(alpha * 128.0f);
+    const i32 angle = (static_cast<i32>(alpha * 16384.0f) >> 1) & 0x7fff;
+    const f32 coin_y = STATSPOS2Y + (STATSPOSY - STATSPOS2Y) * NuTrigTable[angle];
+    CoinTotal_Draw(*packet->score, coin_y, CoinTotalScale, 1, 1.0f, 255, 191, 0);
+
+    const bool new_best = packet->new_best_time != 0.0f;
+    SmartTextEx(TTab[new_best ? tNEWBESTTIME : tNONEWBESTTIME], 0.0f, 0.2f, 1.0f, 0.7f, 0.7f, 0.7f, 0,
+                new_best ? 0 : 255, new_best ? 255 : 0, 0, 1.7f, 1, NULL, 0, opacity);
+
+    f32 shown_time = packet->superstory_time;
+    if (new_best) {
+        const f32 blend = time < 0.5f ? alpha : time < 4.0f ? (time - 0.5f) / 3.5f : 1.0f;
+        shown_time = packet->previous_best_time + (packet->new_best_time - packet->previous_best_time) * blend;
+    }
+    char time_text[256];
+    Text_MakeTime(shown_time, 1, 1, 1, time_text);
+    Text3DEx(time_text, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.7f, 0, 255, 255, 255, opacity & 255);
+
+    Text_MakeTime(packet->previous_best_time, 1, 1, 1, time_text);
+    char previous_text[256];
+    NuStrCpy(previous_text, "(");
+    NuStrCat(previous_text, time_text);
+    NuStrCat(previous_text, ")");
+    Text3DEx(previous_text, 0.0f, -0.2f, 1.0f, 0.7f, 0.7f, 0.7f, 0, 255, 255, 255, (opacity / 2) & 255);
 }
 
 void SuperStoryTime_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *packet) {
