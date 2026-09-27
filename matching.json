@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.31778,
+    "fuzzy_match_percent": 64.36291,
     "total_code": "4722419",
-    "matched_code": "517114",
-    "matched_code_percent": 10.950192,
+    "matched_code": "517759",
+    "matched_code_percent": 10.963851,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6241,
-    "matched_functions_percent": 46.37046,
+    "matched_functions": 6247,
+    "matched_functions_percent": 46.415035,
     "total_units": 1
   },
   "text": {
@@ -79913,47 +79913,7 @@
           "address": 908848,
           "offset": 18880,
           "size": 93,
-          "match_percent": 2.352941
-        },
-        {
-          "name": "_ZL9count_leni",
-          "demangled_name": "count_len(int)",
-          "address": 2552682,
-          "offset": 1662714,
-          "size": 153,
-          "match_percent": 91.46154
-        },
-        {
-          "name": "_ZL8make_leni",
-          "demangled_name": "make_len(int)",
-          "address": 2552835,
-          "offset": 1662867,
-          "size": 374,
-          "match_percent": 76.97087
-        },
-        {
-          "name": "_ZL8downheapi",
-          "demangled_name": "downheap(int)",
-          "address": 2553209,
-          "offset": 1663241,
-          "size": 246,
-          "match_percent": 86.21429
-        },
-        {
-          "name": "_ZL9make_codeiPhPt",
-          "demangled_name": "make_code(int, unsigned char*, unsigned short*)",
-          "address": 2553455,
-          "offset": 1663487,
-          "size": 172,
-          "match_percent": 87.63158
-        },
-        {
-          "name": "_Z15ImplodeMakeTreeiPtPhS_",
-          "demangled_name": "ImplodeMakeTree(int, unsigned short*, unsigned char*, unsigned short*)",
-          "address": 2553627,
-          "offset": 1663659,
-          "size": 599,
-          "match_percent": 90.56688
+          "match_percent": 99.35294
         },
         {
           "name": "_Z12refpack_initv",
@@ -97736,6 +97696,46 @@
           "offset": 1661795,
           "size": 919,
           "match_percent": 99.81119
+        },
+        {
+          "name": "_ZL9count_leni",
+          "demangled_name": "count_len(int)",
+          "address": 2552682,
+          "offset": 1662714,
+          "size": 153,
+          "match_percent": 99.79487
+        },
+        {
+          "name": "_ZL8make_leni",
+          "demangled_name": "make_len(int)",
+          "address": 2552835,
+          "offset": 1662867,
+          "size": 374,
+          "match_percent": 82.65048
+        },
+        {
+          "name": "_ZL8downheapi",
+          "demangled_name": "downheap(int)",
+          "address": 2553209,
+          "offset": 1663241,
+          "size": 246,
+          "match_percent": 92.88571
+        },
+        {
+          "name": "_ZL9make_codeiPhPt",
+          "demangled_name": "make_code(int, unsigned char*, unsigned short*)",
+          "address": 2553455,
+          "offset": 1663487,
+          "size": 172,
+          "match_percent": 96.210526
+        },
+        {
+          "name": "_Z15ImplodeMakeTreeiPtPhS_",
+          "demangled_name": "ImplodeMakeTree(int, unsigned short*, unsigned char*, unsigned short*)",
+          "address": 2553627,
+          "offset": 1663659,
+          "size": 599,
+          "match_percent": 94.49045
         }
       ]
     },
@@ -99694,7 +99694,7 @@
           "address": 930688,
           "offset": 40720,
           "size": 45,
-          "match_percent": 0.0
+          "match_percent": 99.90909
         },
         {
           "name": "NuIOS_HardwareSupportsRetina",
@@ -99710,7 +99710,7 @@
           "address": 931392,
           "offset": 41424,
           "size": 1197,
-          "match_percent": 0.569106
+          "match_percent": 2.857724
         },
         {
           "name": "NuIOS_RecordFlurryEvent",
@@ -99743,14 +99743,6 @@
           "offset": 43648,
           "size": 9,
           "match_percent": 100.0
-        },
-        {
-          "name": "NuErrorSleep",
-          "demangled_name": "NuErrorSleep",
-          "address": 2530744,
-          "offset": 1640776,
-          "size": 556,
-          "match_percent": 93.92424
         },
         {
           "name": "NuRegisterEndFrameCallBackFn",
@@ -99790,7 +99782,7 @@
           "address": 2562672,
           "offset": 1672704,
           "size": 3282,
-          "match_percent": 9.697387
+          "match_percent": 10.683631
         },
         {
           "name": "NuSysDirOpen",
@@ -100182,7 +100174,7 @@
           "address": 2866240,
           "offset": 1976272,
           "size": 633,
-          "match_percent": 66.605095
+          "match_percent": 69.025475
         },
         {
           "name": "NuAnimBuffCreate",
@@ -100246,7 +100238,7 @@
           "address": 2868752,
           "offset": 1978784,
           "size": 52,
-          "match_percent": 93.75
+          "match_percent": 100.0
         },
         {
           "name": "NuAnimGetAnimLOD",
@@ -100254,7 +100246,7 @@
           "address": 2868816,
           "offset": 1978848,
           "size": 67,
-          "match_percent": 0.0
+          "match_percent": 53.192307
         },
         {
           "name": "NuAnimNumNodes",
@@ -100270,7 +100262,7 @@
           "address": 2871680,
           "offset": 1981712,
           "size": 1800,
-          "match_percent": 57.157894
+          "match_percent": 58.061787
         },
         {
           "name": "NuAnimBuffAccumulate_3",
@@ -100318,7 +100310,7 @@
           "address": 2914704,
           "offset": 2024736,
           "size": 2117,
-          "match_percent": 80.04314
+          "match_percent": 84.12941
         },
         {
           "name": "NuAnimCurve2SetApplyToJoint",
@@ -100398,7 +100390,7 @@
           "address": 2924320,
           "offset": 2034352,
           "size": 125,
-          "match_percent": 96.41304
+          "match_percent": 100.0
         },
         {
           "name": "NuQFntPrintLenV",
@@ -100454,7 +100446,7 @@
           "address": 2936416,
           "offset": 2046448,
           "size": 729,
-          "match_percent": 91.12136
+          "match_percent": 99.985435
         },
         {
           "name": "NuHGobjEvalAnim",
@@ -100478,7 +100470,7 @@
           "address": 2937440,
           "offset": 2047472,
           "size": 1225,
-          "match_percent": 68.72871
+          "match_percent": 69.04417
         },
         {
           "name": "NuHGobjEvalAnim2",
@@ -100494,7 +100486,7 @@
           "address": 2938768,
           "offset": 2048800,
           "size": 561,
-          "match_percent": 47.402596
+          "match_percent": 59.35065
         },
         {
           "name": "NuHGobjEvalDwa2",
@@ -100502,7 +100494,7 @@
           "address": 2939344,
           "offset": 2049376,
           "size": 526,
-          "match_percent": 45.626762
+          "match_percent": 45.732395
         },
         {
           "name": "NuHGobjEvalDwaBlend",
@@ -100510,7 +100502,7 @@
           "address": 2939872,
           "offset": 2049904,
           "size": 930,
-          "match_percent": 55.759827
+          "match_percent": 61.170307
         },
         {
           "name": "NuHGobjEvalDwaBlend2",
@@ -100518,7 +100510,7 @@
           "address": 2940816,
           "offset": 2050848,
           "size": 1214,
-          "match_percent": 28.895653
+          "match_percent": 31.295652
         },
         {
           "name": "NuHGobjEvalAnimBlend",
@@ -100526,7 +100518,7 @@
           "address": 2942032,
           "offset": 2052064,
           "size": 777,
-          "match_percent": 62.25
+          "match_percent": 60.97059
         },
         {
           "name": "NuHGobjEvalAnimBlend2Root",
@@ -100550,7 +100542,7 @@
           "address": 2947520,
           "offset": 2057552,
           "size": 1209,
-          "match_percent": 59.679127
+          "match_percent": 63.127728
         },
         {
           "name": "NuPostBloom",
@@ -100905,14 +100897,6 @@
           "match_percent": 98.83681
         },
         {
-          "name": "NuVisiInstTree",
-          "demangled_name": "NuVisiInstTree",
-          "address": 2984384,
-          "offset": 2094416,
-          "size": 146,
-          "match_percent": 55.673077
-        },
-        {
           "name": "NuPortalEnabled",
           "demangled_name": "NuPortalEnabled",
           "address": 2984544,
@@ -100942,7 +100926,7 @@
           "address": 2984928,
           "offset": 2094960,
           "size": 676,
-          "match_percent": 11.489473
+          "match_percent": 11.131579
         },
         {
           "name": "NuPortalRoomClipTest",
@@ -100958,7 +100942,7 @@
           "address": 2986944,
           "offset": 2096976,
           "size": 116,
-          "match_percent": 95.42857
+          "match_percent": 100.0
         },
         {
           "name": "NuPortalClipTest",
@@ -101030,7 +101014,7 @@
           "address": 2994768,
           "offset": 2104800,
           "size": 351,
-          "match_percent": 11.051948
+          "match_percent": 49.103897
         },
         {
           "name": "NuCameraSetVPortClipMtx",
@@ -101038,7 +101022,7 @@
           "address": 2995120,
           "offset": 2105152,
           "size": 335,
-          "match_percent": 31.51948
+          "match_percent": 50.766235
         },
         {
           "name": "NuCameraSetEx",
@@ -101102,7 +101086,7 @@
           "address": 3025600,
           "offset": 2135632,
           "size": 104,
-          "match_percent": 99.51613
+          "match_percent": 100.0
         },
         {
           "name": "NuWindSetCurrent",
@@ -101126,7 +101110,7 @@
           "address": 3043840,
           "offset": 2153872,
           "size": 4706,
-          "match_percent": 38.578205
+          "match_percent": 63.764885
         },
         {
           "name": "NuLightSpeedBlurScale",
@@ -101198,7 +101182,7 @@
           "address": 3050528,
           "offset": 2160560,
           "size": 158,
-          "match_percent": 99.680855
+          "match_percent": 100.0
         },
         {
           "name": "NuDisplayListLinkMtl",
@@ -101206,7 +101190,7 @@
           "address": 3050688,
           "offset": 2160720,
           "size": 243,
-          "match_percent": 55.227272
+          "match_percent": 83.15151
         },
         {
           "name": "DisplayListCreateFxList",
@@ -101294,7 +101278,7 @@
           "address": 3067376,
           "offset": 2177408,
           "size": 525,
-          "match_percent": 65.39333
+          "match_percent": 65.69334
         },
         {
           "name": "NuDisplayListDrawAll",
@@ -101342,7 +101326,7 @@
           "address": 3093312,
           "offset": 2203344,
           "size": 3273,
-          "match_percent": 19.25
+          "match_percent": 16.78125
         },
         {
           "name": "NuDynamicLightAddShadowCasterScene",
@@ -101454,7 +101438,7 @@
           "address": 3121072,
           "offset": 2231104,
           "size": 833,
-          "match_percent": 56.057777
+          "match_percent": 56.324444
         },
         {
           "name": "NuWindLoad",
@@ -101486,7 +101470,7 @@
           "address": 3128208,
           "offset": 2238240,
           "size": 90,
-          "match_percent": 93.333336
+          "match_percent": 100.0
         },
         {
           "name": "NuEffectTexLockVP",
@@ -101614,7 +101598,7 @@
           "address": 3240592,
           "offset": 2350624,
           "size": 291,
-          "match_percent": 99.55224
+          "match_percent": 99.10448
         },
         {
           "name": "NuKeyToAscii",
@@ -101646,7 +101630,7 @@
           "address": 4425232,
           "offset": 3535264,
           "size": 1918,
-          "match_percent": 1.536259
+          "match_percent": 4.475191
         },
         {
           "name": "NuMemAllocFn",
@@ -105944,6 +105928,22 @@
       "source": "src/nu2api/nucore/pending_stubs.cpp",
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_nu2api/pending_stubs.o",
       "functions": [
+        {
+          "name": "NuErrorSleep",
+          "demangled_name": "NuErrorSleep",
+          "address": 2530744,
+          "offset": 1640776,
+          "size": 556,
+          "match_percent": 93.92424
+        },
+        {
+          "name": "NuVisiInstTree",
+          "demangled_name": "NuVisiInstTree",
+          "address": 2984384,
+          "offset": 2094416,
+          "size": 146,
+          "match_percent": 55.673077
+        },
         {
           "name": "NuShaderManagerLoadCompiledShaders",
           "demangled_name": "NuShaderManagerLoadCompiledShaders",
@@ -119197,7 +119197,6 @@
         "legoapi/render/core/nugraph.cpp.o",
         "legoapi/render/core/render_stubs.cpp.o",
         "legoapi/render/core/rtl.c.o",
-        "legoapi/render/fx/inflate.cpp.o",
         "nu2api/nu3d/android/nugscn_android.cpp.o",
         "nu2api/nu3d/android/nuhgo_android.c.o",
         "nu2api/nu3d/android/nuobject_android.c.o",
@@ -119211,7 +119210,7 @@
         "nu2api/nu3d/glutils.c.o",
         "nu2api/nucore/android/nuthread.c.o",
         "nu2api/nucore/android/nutime_android.c.o",
-        "nu2api/nucore/nucore_plain.cpp.o",
+        "nu2api/nucore/pending_stubs.cpp.o",
         "nu2api/numath/nufloat_android.c.o",
         "nu2api/numath/numaths.c.o"
       ]
@@ -119240,7 +119239,6 @@
         "legoapi/render/core/nugraph.cpp.o",
         "legoapi/render/core/render_stubs.cpp.o",
         "legoapi/render/core/rtl.c.o",
-        "legoapi/render/fx/inflate.cpp.o",
         "nu2api/nu3d/android/nugscn_android.cpp.o",
         "nu2api/nu3d/android/nuhgo_android.c.o",
         "nu2api/nu3d/android/nuobject_android.c.o",
@@ -119254,7 +119252,7 @@
         "nu2api/nu3d/glutils.c.o",
         "nu2api/nucore/android/nuthread.c.o",
         "nu2api/nucore/android/nutime_android.c.o",
-        "nu2api/nucore/nucore_plain.cpp.o",
+        "nu2api/nucore/pending_stubs.cpp.o",
         "nu2api/numath/nufloat_android.c.o",
         "nu2api/numath/numaths.c.o"
       ]
@@ -120272,8 +120270,7 @@
         "nu2api/nu3d/android/nudlist_android.c.o",
         "nu2api/nu3d/android/nuprim_android.c.o",
         "nu2api/nu3d/android/nuptl_android.c.o",
-        "nu2api/nu3d/android/nurndrstat_android.c.o",
-        "nu2api/nucore/nucore_plain.cpp.o"
+        "nu2api/nu3d/android/nurndrstat_android.c.o"
       ]
     },
     {
@@ -120430,8 +120427,7 @@
         "nu2api/nu3d/android/nudlist_android.c.o",
         "nu2api/nu3d/android/nuprim_android.c.o",
         "nu2api/nu3d/android/nuptl_android.c.o",
-        "nu2api/nu3d/android/nurndrstat_android.c.o",
-        "nu2api/nucore/nucore_plain.cpp.o"
+        "nu2api/nu3d/android/nurndrstat_android.c.o"
       ]
     },
     {
@@ -120528,8 +120524,7 @@
         "nu2api/nu3d/android/nudlist_android.c.o",
         "nu2api/nu3d/android/nuprim_android.c.o",
         "nu2api/nu3d/android/nuptl_android.c.o",
-        "nu2api/nu3d/android/nurndrstat_android.c.o",
-        "nu2api/nucore/nucore_plain.cpp.o"
+        "nu2api/nu3d/android/nurndrstat_android.c.o"
       ]
     },
     {
@@ -120821,8 +120816,7 @@
         "nu2api/nu3d/android/nudlist_android.c.o",
         "nu2api/nu3d/android/nuprim_android.c.o",
         "nu2api/nu3d/android/nuptl_android.c.o",
-        "nu2api/nu3d/android/nurndrstat_android.c.o",
-        "nu2api/nucore/nucore_plain.cpp.o"
+        "nu2api/nu3d/android/nurndrstat_android.c.o"
       ]
     },
     {
