@@ -63,8 +63,20 @@ i32 BezierLinePos(VuVec &result, VuVec &start, VuVec &first_control, VuVec &end,
     return 1;
 }
 
-void BezierLineEval(VuVec &, VuVec &, VuVec &, VuVec &, VuVec &, float) {
-    STUBBED();
+void BezierLineEval(VuVec &result, VuVec &start, VuVec &first_control, VuVec &end,
+                    VuVec &second_control, float t) {
+    const f32 other = 1.0f - t;
+    const f32 start_weight = other * other * other;
+    const f32 first_weight = 3.0f * t * other * other;
+    const f32 second_weight = 3.0f * t * t * other;
+    const f32 end_weight = t * t * t;
+    result.x = start.x * start_weight + first_control.x * first_weight +
+               second_control.x * second_weight + end.x * end_weight;
+    result.y = start.y * start_weight + first_control.y * first_weight +
+               second_control.y * second_weight + end.y * end_weight;
+    result.z = start.z * start_weight + first_control.z * first_weight +
+               second_control.z * second_weight + end.z * end_weight;
+    result.w = 0.0f;
 }
 
 void CalcSplinePoint(flightspline_s *, _vuv_s *, float) {
@@ -308,8 +320,27 @@ void GetNearestSplinePos(NUVEC *origin, SPLINEPOS_s *result, NUGSPLINE *spline, 
     result->along = (result->segment_distance / result->segment_length + result->segment) / (logical_count - 1);
 }
 
-void CalcSplinePointFromDist(flightspline_s *, _vuv_s *, float) {
-    STUBBED();
+void CalcSplinePointFromDist(flightspline_s *spline, _vuv_s *result, float distance) {
+    const u8 *data = reinterpret_cast<const u8 *>(spline);
+    const i32 count = *reinterpret_cast<const i32 *>(data + 0x400);
+    const f32 total = *reinterpret_cast<const f32 *>(data + 0x410);
+    const f32 *lengths = reinterpret_cast<const f32 *>(data + 0x414);
+    if (distance >= total) {
+        distance = 1.0f;
+    } else if (count > 0) {
+        if (lengths[0] > distance) {
+            distance = distance / lengths[0] / count;
+        } else {
+            for (i32 index = 1; index < count; ++index) {
+                if (lengths[index] > distance) {
+                    distance = ((distance - lengths[index - 1]) /
+                                (lengths[index] - lengths[index - 1]) + index) / count;
+                    break;
+                }
+            }
+        }
+    }
+    CalcSplinePoint(spline, result, distance);
 }
 
 static LEVELSPLINE *LevSplList;

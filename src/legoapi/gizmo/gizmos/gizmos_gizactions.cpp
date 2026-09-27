@@ -105,8 +105,22 @@ void Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i
     STUBBED();
 }
 
-void Action_EndCameraCut(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 Action_EndCameraCut(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *, char **params, i32 param_count,
+                        i32 first_time, float) {
+    if (first_time != 0 && MiniCutCam != 0) {
+        for (i32 index = 0; index < param_count; ++index) {
+            char *value = NuStrIStr(params[index], "end_time=");
+            if (value != NULL) {
+                ObstacleCamEnd = ObstacleCamTime + AIParamToFloat(processor, value + 9);
+            } else {
+                value = NuStrIStr(params[index], "blend_out_time=");
+                if (value != NULL) {
+                    ObstacleCamBlendOutTime = AIParamToFloat(processor, value + 15);
+                }
+            }
+        }
+    }
+    return 1;
 }
 
 i32 Action_FollowPlayer(AISYS_s *sys, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
@@ -137,8 +151,21 @@ i32 Action_FollowPlayer(AISYS_s *sys, AISCRIPTPROCESS_s *processor, AIPACKET_s *
     return 0;
 }
 
-void Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **params, i32 param_count,
+                        i32 first_time, float) {
+    if (first_time != 0) {
+        char *name = NULL;
+        for (i32 index = 0; index < param_count; ++index) {
+            char *value = NuStrIStr(params[index], "name");
+            if (value != NULL) {
+                name = value + 5;
+            }
+        }
+        if (name != NULL) {
+            NewCutScene(NULL, WORLD->cutscene_sys, name, 0);
+        }
+    }
+    return 1;
 }
 
 i32 Action_SetVisibility(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **params, i32 param_count, i32 first_time,
