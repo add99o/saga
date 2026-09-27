@@ -426,15 +426,38 @@ void DumpShaderAttributes(u32 program) {
 
 // The original 0x2940a6 helper and its counter belong to this VAO family.
 static i32 g_vaoRecordCount;
+struct VAORecord {
+    u32 vertex_buffer;
+    u32 index_buffer;
+    NuVertexFormatPS *format;
+    u32 attribute_flags;
+    i32 vao;
+};
+static VAORecord g_vaoRecords[2048];
 
 void NuIOS_ResetVAODuplicateFinder() {
     g_vaoRecordCount = 0;
 }
 
-// Original 0x2940c0. The original record array/layout are still unverified.
-static i32 NuIOS_GetOrCreateVAO(u32, u32, u32, NuVertexFormatPS *) {
-    STUBBED();
-    return 0;
+// Original 0x2940c0: deduplicate the five-word VAO records.
+static i32 NuIOS_GetOrCreateVAO(u32 vertex_buffer, u32 index_buffer, u32 attribute_flags,
+                                NuVertexFormatPS *format) {
+    i32 index = 0;
+    index = 0;
+    for (; static_cast<u32>(index) < static_cast<u32>(g_vaoRecordCount); ++index) {
+        if (g_vaoRecords[index].vertex_buffer == vertex_buffer &&
+            g_vaoRecords[index].index_buffer == index_buffer &&
+            g_vaoRecords[index].format == format &&
+            g_vaoRecords[index].attribute_flags == attribute_flags) {
+            return g_vaoRecords[index].vao;
+        }
+    }
+    g_vaoRecords[index].vertex_buffer = vertex_buffer;
+    g_vaoRecords[index].index_buffer = index_buffer;
+    g_vaoRecords[index].format = format;
+    g_vaoRecords[index].attribute_flags = attribute_flags;
+    ++g_vaoRecordCount;
+    return g_vaoRecords[index].vao;
 }
 
 // original 0x294233 — records the material's vertex format on static geometry
