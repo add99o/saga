@@ -4761,3 +4761,38 @@ matrix, rebinds the global record array and mutates the lookup table. NaN
 payloads are not compared; other float results are checked bitwise. Target and
 native builds and all five repository checks pass. No particle-system or
 visual integration is claimed.
+
+## Batch 91: vertical timing-bar rendering
+
+Audit all 2,320 bytes of `NuTimeBarSetRender` at `0x2f8d60` in its unchanged
+`-O3` owner. Restore the original created-set contract, GPU-frame gate and
+unsigned timing conversion. Preserve the rectangle's subtract-after-add
+rounding, callback-visible screen-size reloads, initial discarded baseline
+query, three bottom-up decimal digits and conditional fourth digit, 9,999
+clamp, unconditional final height query and alternating label offsets.
+Keep the captured set pointer across scene callbacks, but reload the active
+peak buffers, labels, font and material at their original boundaries.
+Use the existing real slot-reset operation. Remove speculative null/index/
+GPU-slot-count guards absent from retail; callers must supply created sets
+when rendering is active. Compiler options and repository checks are unchanged.
+
+The first ordinary C++ candidate improves **5.229656% to 59.467%** in its
+isolated object and **60.000000%** when linked. The unchanged destructor's
+layout also improves **99.153850% to 99.318680%**. Overall fuzzy matching
+rises **65.076510% to 65.103430%**, with two improved scores, no regressions
+and no exact-match transitions. Remaining digit-loop layout/register choices
+do not justify manual instruction shaping.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**96,365 vertical state/trace cases** and the existing **334,600 horizontal
+regression cases**. Vertical coverage includes every valid set, signed slot
+counts, all initialization/reset/GPU/engine flag combinations, full-width
+unsigned timing values, digit thresholds, fractional font metrics, nonfinite
+GPU-frame rates and mutations at 100 callback positions. Tests verify exact
+render/font events, cached versus reloaded state, global set/buffer rebinding,
+font/material changes, real slot resets and complete resulting arrays.
+The fixture records a label cleared by a callback without dereferencing it;
+it does not claim that the real variadic font renderer accepts null labels.
+Graphics/font services are mocks, and screen/font conversions are tested
+within their valid integer ranges. Target/native builds and all five
+repository checks pass; no GPU or visual integration is claimed.
