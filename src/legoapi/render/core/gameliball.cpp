@@ -2,6 +2,7 @@
 #include "legoapi/render/core/gameliball.h"
 #include "legoapi/legoapi_types.h"
 #include "nu2api/nufile/nufile.h"
+#include "nu2api/nu3d/nugscn.h"
 #include "nu2api/nu3d/nutex.h"
 
 #include <string.h>
@@ -146,8 +147,10 @@ extern "C" void CrashDataPtr(void) {
     STUBBED();
 }
 
-void ReadInstanceIDs(i32, nugscn_s *) {
-    STUBBED();
+void ReadInstanceIDs(i32 file, nugscn_s *scene) {
+    scene->num_instance_ids = NuFileReadInt(file);
+    NuFileReadInt(file);
+    scene->instance_ids = NuMemFileAddr(file);
 }
 
 i32 ReadTerrainPickup(unsigned char *base_path, i16 **buffer, TERRPICKUPSET *terrain) {

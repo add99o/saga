@@ -1069,12 +1069,20 @@ extern "C" {
         return SockBitIsSet(sock, index);
     }
 
-    void SockOff(SOCKSYS *, i32) {
-        STUBBED();
+    void SockOff(SOCKSYS *system, i32 index) {
+        if (system != NULL && index >= 0 && index < 64) {
+            if ((system->sock[index].flags & SOCK_FLAG_DISABLED) == 0) {
+                system->sock[index].flags = system->sock[index].flags | SOCK_FLAG_DISABLED;
+            }
+        }
     }
 
-    void SockOn(SOCKSYS *, i32) {
-        STUBBED();
+    void SockOn(SOCKSYS *system, i32 index) {
+        if (system != NULL && index >= 0 && index < 64) {
+            if ((system->sock[index].flags & SOCK_FLAG_DISABLED) != 0) {
+                system->sock[index].flags = system->sock[index].flags & ~SOCK_FLAG_DISABLED;
+            }
+        }
     }
 
     void SockRotationMatrix(SOCKSYS *system, SOCKPOSITION *position, NUMTX *out, i32 stride, i32 mode) {

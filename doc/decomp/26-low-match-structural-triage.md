@@ -3512,3 +3512,160 @@ Across batches 46–49, five functions improve, two exact matches are gained
 and no function scores regress. Four bodies are restored; one additional
 register-allocation improvement is incidental. The message-pool repair
 preserves matching while fixing a reproduced 64-bit allocation overflow.
+
+## Batch 50: socket enable/disable controls
+
+`SockOn` and `SockOff` both improve **10.303% to 100%**, raising whole fuzzy
+matching to **64.785820%** with no other changed scores. Each original is
+101 bytes under the owner's unchanged default `-O0`.
+
+Both ignore null systems and indices outside 0–63. `SockOn` clears the
+16-bit flag `0x100` only when set; `SockOff` sets it only when clear. Name
+that verified flag `SOCK_FLAG_DISABLED` and assert its member offset at
+`0x68`. The original checks the fixed 64-entry allocation, not the number
+of populated rails, and neither checks the selected socket's `valid` byte.
+Do not invent either additional gate. A non-null pool is required only
+for a non-null system and in-range index.
+
+**264,240 calls per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan. Coverage includes every 16-bit flag word distributed over all
+64 slots, eight independent flag patterns at every slot, repeated calls,
+signed rail-count boundaries, null systems and invalid indices with either
+null or valid pools. Complete pool comparisons include both guard entries
+and every non-flag byte; the system header is preserved. The real source
+is compiled separately from the fixture. Full-global ASan keeps the parser
+dispatch table, whose unrelated external services have aborting mocks;
+the tested flag-only functions make no service calls. Target/native builds
+and all five checks pass. No live camera/rail traversal is claimed.
+
+Read-only follow-up: `NuSpecialDrawAtAlpha` is already behavior-complete,
+but its original frame and scalar literal loads are unoptimized while the
+current `nucore_plain.cpp` owner is optimized. One isolated direct-handle,
+separate-guard/common-result rewrite scores **9.556%** and is rejected.
+Do not repeat expression variants; resolve the actual NuSpecial wrapper
+translation-unit grouping before changing placement, without altering
+existing optimization settings or adding per-function overrides.
+
+## Batch 51: push-block knock impulse
+
+`KnockPushBlock` improves **12.353% to 77.706%**, raising whole fuzzy
+matching to **64.787740%** with no other changed scores. A null block does
+nothing. Otherwise negate the three input direction components into the
+block's typed velocity, scale it in place by exactly `0.005f`
+(`0x3ba3d70a`), then OR `0x80` into the current runtime flag byte. The flag
+write follows the scaling call, preserving callback-driven flag changes.
+No input-vector null check or flag clearing is added.
+
+The rebuilt body has the original 139-byte size and stack realignment under
+the unchanged `-O1` source settings. Remaining differences are register-save,
+argument and address-calculation scheduling, a final SSE register choice
+and the sign-mask operand. No alignment or compiler attributes are added.
+
+**7,684 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan: 6,146 recording cases check bitwise sign changes, exact scale
+bits, in-place argument identity, arbitrary float patterns, every flag byte,
+post-scaling flag mutations and null-block gates; 1,538 integrations use the
+real vector scaler on bounded finite values, including signed zero and
+subnormals. Tests exercise external input, the velocity itself and the
+neighboring target-velocity vector, comparing the complete typed block and
+preserving the external source. No full block physics or collision traversal
+is claimed. Target/native builds and all five repository checks pass.
+
+## Batch 52: death feedback controller forwarding
+
+`DieRumble` improves **16.154% to 78.269%**, raising whole fuzzy matching
+to **64.789290%** with no other changed scores. Restore the null-object and
+signed player-flag gates, then issue rumble strength `1.0f` followed by buzz
+duration `0.3f`, both with mode zero. Reload the controller and its pad after
+the first call; do not recheck the player flag after that callback. Active
+objects require a controller, but a null pad is forwarded to the existing
+services, which handle it. The canonical gamepad header declares the helper.
+
+The unchanged `-O3` owner emits 133 bytes versus the original 117. The call
+sequence and operands agree; a duplicated early-return epilogue and inverted
+active-branch layout account for the remaining mismatch. No additional
+branch permutations, attributes or compiler hints are attempted.
+
+**23,042 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan. Half use recording rumble/buzz services; half link the actual
+gamepad owner and record the sound-layer callback. Coverage includes every
+flag byte, null objects, inactive objects with null controllers, null and
+distinct pads, callbacks changing either the controller or its pad pointer,
+and callbacks clearing the player flag. Tests check exact float bits, mode,
+call order, real service conversion to rumble amount 255, and complete object
+and controller preservation outside callback mutations. Sound hardware is
+not exercised. Target/native builds and all five repository checks pass.
+
+## Batch 53: scene instance-ID file header
+
+`ReadInstanceIDs` improves **20.000% to 100%**, raising whole fuzzy matching
+to **64.790670%** with no other changed scores. Restore the original two
+integer reads followed by a memory-file address query: store the first word
+as the scene's instance-ID count, discard the second, then retain the returned
+borrowed pointer. The body is the original 82 bytes under unchanged `-O3`.
+
+Replace the scene's opaque eight bytes with `i32 num_instance_ids` and
+`void *instance_ids`, asserting target offsets `0x58` and `0x5c`. The pointed
+record format is not established by this helper and remains opaque. Native
+builds now have a pointer-width field rather than an assumed four-byte slot.
+The routine neither copies the records nor consumes their payload, performs
+no validation and does not own the memory-file buffer. No count-based gate,
+null-scene check or invented file-error policy is added.
+
+**65,536 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan, using the separately compiled real owner and recording file
+services. Tests cover signed count/header/handle boundaries, randomized
+header words, null/interior/one-past returned addresses, exact call order,
+the count store before the second read and callback mutations of both
+fields. Complete scene comparisons preserve neighboring state. These are
+header/service-contract tests, not a complete scene-file integration.
+Target/native builds and all five repository checks pass.
+
+## Batch 54: speeder-bike pickup collision scale
+
+The private `GizmoPickups_Collide2D` callback improves **20.952% to 99.952%**,
+raising whole fuzzy matching to **64.791880%** with no other changed scores.
+Return exactly `2.0f` only when the current level equals `SPEEDERCHASEA_LDATA`
+and the object's signed 16-bit ID equals `id_SPEEDERBIKE`; otherwise return
+positive zero. Resolve all three original GOT references and the `2.0f`
+literal at `0x5767cc`. Reuse existing typed fields and declarations, retaining
+the callback's original private linkage and existing symbol-retention marker.
+The 72-byte rebuilt body differs only in the floating-literal operand. No
+source relocation, extra null gate or compiler adjustment is made.
+
+**524,290 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan. Tests cover every 16-bit character-ID pattern, matching and
+different IDs, equal/distinct/null level identities and null objects only on
+the nonmatching-level path. Exact return bits and complete object/world state
+are checked. A test-only accessor exposes the private callback from the
+actual owner compiled separately from the fixture. No production accessor
+is added, and live pickup traversal or startup callback wiring is not claimed.
+Target/native builds and all five repository checks pass.
+
+## Batch 55: Indy gizmo registration table
+
+`RegisterGizmoTypes_Indy` improves **18.261% to 99.957%**, raising whole fuzzy
+matching to **64.793670%** with no other changed scores. Decode the original
+24-word table at `0x622fe0`: 23 registration callbacks in their exact order,
+followed by a null terminator. Restore a writable local copy and forward the
+two buffer cursors plus the original final argument `12` to the shared
+registrar. That argument is not the number of callbacks. Reuse canonical
+callback headers and add the wrapper declaration alongside the LSW/Batman
+registration entry points.
+
+The body has the original 103-byte size under the existing character owner's
+`-O3` settings, differing only in the table-address operand. No translation
+unit move or compiler workaround is used.
+
+**10,240 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan, compiling the actual owner separately from the fixture. Tests
+verify all 23 callback identities and positions, the null terminator, exact
+buffer/mode forwarding, null and aliased cursor pointers, callback cursor
+mutations and a fresh table after the shared-registrar mock clears the prior
+copy. The individual registration callbacks are identifying mocks; complete
+gizmo allocation and live level initialization are not claimed. Target/native
+builds and all five repository checks pass.
+
+Across batches 50–55, seven functions improve, three exact matches are gained
+and no function scores regress. Existing optimization settings, symbol rules
+and matching denominators are unchanged.

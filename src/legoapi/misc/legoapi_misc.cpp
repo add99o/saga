@@ -158,8 +158,11 @@ void CatI64ToX(char *, i64) {
     STUBBED();
 }
 
-void DieRumble(GameObject_s *) {
-    STUBBED();
+void DieRumble(GameObject_s *object) {
+    if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0) {
+        NewRumble(object->pad_gamepad->pad, 1.0f, 0);
+        NewBuzz(object->pad_gamepad->pad, 0.3f, 0);
+    }
 }
 
 i32 charToInt(char const *text) {

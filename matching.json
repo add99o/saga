@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.78198,
+    "fuzzy_match_percent": 64.79367,
     "total_code": "4722419",
-    "matched_code": "518306",
-    "matched_code_percent": 10.975434,
+    "matched_code": "518590",
+    "matched_code_percent": 10.981448,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6225,
-    "matched_functions_percent": 46.25158,
+    "matched_functions": 6228,
+    "matched_functions_percent": 46.27387,
     "total_units": 1
   },
   "text": {
@@ -40767,7 +40767,7 @@
           "address": 5204640,
           "offset": 4314672,
           "size": 139,
-          "match_percent": 12.352942
+          "match_percent": 77.70588
         },
         {
           "name": "_Z20ResetSinglePushBlockP11WORLDINFO_sP11pushblock_si",
@@ -43683,7 +43683,7 @@
           "address": 1855936,
           "offset": 965968,
           "size": 103,
-          "match_percent": 18.26087
+          "match_percent": 99.95652
         },
         {
           "name": "_Z25CollectCharactersOff_SkipP14STATUS_STAGE_sP14STATUSPACKET_s",
@@ -54299,7 +54299,7 @@
           "address": 1156144,
           "offset": 266176,
           "size": 72,
-          "match_percent": 20.952381
+          "match_percent": 99.95238
         },
         {
           "name": "_Z23GizmoPickup_CollectCoinP11WORLDINFO_sP7nuvec_siiP12GameObject_si",
@@ -71424,7 +71424,7 @@
           "address": 4756656,
           "offset": 3866688,
           "size": 117,
-          "match_percent": 16.153847
+          "match_percent": 78.26923
         },
         {
           "name": "_Z14ConstantRumbleP12GameObject_sff",
@@ -74494,7 +74494,7 @@
           "address": 3957551,
           "offset": 3067583,
           "size": 101,
-          "match_percent": 10.30303
+          "match_percent": 100.0
         },
         {
           "name": "SockOff",
@@ -74502,7 +74502,7 @@
           "address": 3957652,
           "offset": 3067684,
           "size": 101,
-          "match_percent": 10.30303
+          "match_percent": 100.0
         },
         {
           "name": "SockSysSetObjectVisibility",
@@ -74533,7 +74533,7 @@
           "address": 2988256,
           "offset": 2098288,
           "size": 82,
-          "match_percent": 20.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z11ReadTerrainPhiPPsP7TERRSET",

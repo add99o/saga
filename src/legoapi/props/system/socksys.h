@@ -17,6 +17,7 @@ enum SOCK_FLAGS : u16 {
     SOCK_FLAG_MISSING_C_OR_D = 0x0001,
     SOCK_FLAG_CLAMP_TARGET_Y = 0x0020,
     SOCK_FLAG_PROJECT_CAMERA_FROM_PLAYER = 0x0080,
+    SOCK_FLAG_DISABLED = 0x0100,
     SOCK_FLAG_SCALE_LATERAL_OFFSET = 0x0200,
     // Two-player pullback follows the camera/target line in XZ only.
     SOCK_FLAG_TWO_PLAYER_PLANAR_PULLBACK = 0x0400,
@@ -180,6 +181,7 @@ typedef struct SOCK {
 
 DECOMP_ASSERT(offsetof(SOCK, looping) == 0x33, "SOCK loop flag offset");
 DECOMP_ASSERT(offsetof(SOCK, length) == 0x30, "SOCK rail length offset");
+DECOMP_ASSERT(offsetof(SOCK, flags) == 0x68, "SOCK flags offset");
 DECOMP_ASSERT(offsetof(SOCK, objects) == 0xf8, "SOCK scene-object array offset");
 DECOMP_ASSERT(offsetof(SOCK, object_count) == 0xfc, "SOCK scene-object count offset");
 DECOMP_ASSERT(offsetof(SOCKPOSITION, midpoint_rotation) == 0x24, "SOCKPOSITION midpoint rotation offset");

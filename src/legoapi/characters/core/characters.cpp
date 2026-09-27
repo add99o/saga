@@ -27,6 +27,27 @@
 #include "legoapi/render/core/terrain.h"
 #include "legoapi/gizmos/object/lever.h"
 #include "legoapi/gizmos/door/zipups.h"
+#include "legoapi/gizmo/base/gizmo.h"
+#include "legoapi/gizmo/base/gizmessage.h"
+#include "legoapi/gizmos/object/gizobstacles.h"
+#include "legoapi/gizmos/object/gizbuildits.h"
+#include "legoapi/gizmos/object/newblowup.h"
+#include "legoapi/gizmos/fx/gizmopickups.h"
+#include "legoapi/gizmos/transport/grapples.h"
+#include "legoapi/props/objects/tightrope.h"
+#include "legoapi/gizmos/door/spinner.h"
+#include "legoapi/gizmos/trigger/minicut.h"
+#include "legoapi/gizmos/transport/tubes.h"
+#include "legoapi/gizmos/traps/gizturrets.h"
+#include "legoapi/gizmos/trigger/ai.h"
+#include "legoapi/gizmos/trigger/giztimer.h"
+#include "legoapi/gizmos/trigger/gizrandom.h"
+#include "legoapi/gizmos/trigger/gizspecial.h"
+#include "legoapi/props/doors/door.h"
+#include "legoapi/gizmos/door/plugs.h"
+#include "legoapi/gizmos/door/push.h"
+#include "legoapi/gizmos/fx/edgizshadowmachine.h"
+#include "legoapi/gizmos/transport/gizportal.h"
 #include "legoapi/props/objects/techno.h"
 #include "legoapi/world/level.h"
 #include "legoapi/world/areas.h"
@@ -1776,8 +1797,22 @@ void CollectCharcters_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, floa
     }
 }
 
-void RegisterGizmoTypes_Indy(variptr_u *, variptr_u *) {
-    STUBBED();
+void RegisterGizmoTypes_Indy(variptr_u *buffer, variptr_u *buffer_end) {
+    REGISTERGIZMOTYPEFN gizmo_types[] = {
+        GizObstacles_RegisterGizmo, GizBuildIts_RegisterGizmo,
+        NewBlowup_RegisterGizmo,    GizmoPickups_RegisterGizmo,
+        Grapples_RegisterGizmo,     TightRopes_RegisterGizmo,
+        Levers_RegisterGizmo,       Spinner_RegisterGizmo,
+        Technos_RegisterGizmo,      MiniCut_RegisterGizmo,
+        Tubes_RegisterGizmo,        ZipUps_RegisterGizmo,
+        GizTurrets_RegisterGizmo,   AI_RegisterGizmo,
+        GizTimer_RegisterGizmo,     GizRandom_RegisterGizmo,
+        GizSpecial_RegisterGizmo,   Door_RegisterGizmo,
+        Plugs_RegisterGizmo,        GizAIMessage_RegisterGizmo,
+        Push_RegisterGizmo,         EdGizShadowMachine_RegisterGizmo,
+        Portal_RegisterGizmo,       NULL,
+    };
+    RegisterGizmoTypes(buffer, buffer_end, gizmo_types, 12);
 }
 
 i32 SetProtocolDroidFallAnim(GameObject_s *object) {
