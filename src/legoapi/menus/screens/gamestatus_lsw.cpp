@@ -23,12 +23,17 @@
 #include "legoapi/render/core/render.h"
 #include "legoapi/menus/core/panel.h"
 #include "legoapi/menus/core/gamemessage.h"
+#include "legoapi/menus/core/gamemessages.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
+#include "legoapi/gizmos/fx/gizmopickups.h"
+#include "legoapi/render/fx.h"
 #include "legoapi/world/levels/episode.h"
 #include "legoapi/world/levels/levels.h"
 #include "legoapi/world/mission.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/props/doors/door.h"
 #include "nu2api/numath/nufloat.h"
+#include "nu2api/numath/nuvec.h"
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -1725,8 +1730,54 @@ void BonusTime_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float e
         }
     }
 }
-void ChallangeCash_Update(STATUS_STAGE_s *, STATUSPACKET_s *, float) {
-    STUBBED();
+void ChallangeCash_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float elapsed) {
+    NUVEC target = {0.0f, STATSPOSY, 1.0f};
+    if (stage->field_0x14 == 0) {
+        stage->field_0x1c = 4.0f;
+        stage->field_0x18 = 0.0f;
+        stage->field_0x14 = 1;
+    } else if (stage->field_0x14 == 1) {
+        const f32 previous = stage->field_0x18;
+        stage->field_0x18 += elapsed;
+        if (stage->field_0x18 >= 1.5f && FindGameMsgsWithID(1, 0, -1, NULL) == 0) {
+            stage->field_0x18 = 0.0f;
+            stage->field_0x14 = 2;
+            stage->field_0x1c = 1.0f;
+        } else if (previous < 1.0f && stage->field_0x18 >= 1.0f) {
+            f32 delay = 0.0f;
+            for (i32 count = 50; count != 0; --count) {
+                NUVEC position = {static_cast<f32>(qrand()) * (1.0f / 65535.0f) * 0.1f, 0.0f, 1.0f};
+                NuVecRotateZ(&position, &position, qrand());
+                ADDGAMEMSG_ALIGNED16 message = AddGameMsg_Default;
+                message.position = &position;
+                message.target_position = &target;
+                message.target_scale = COINTOTAL_COINSIZE;
+                message.player_index = static_cast<i8>(qrand() / 32768);
+                target.x = cointotal_x[message.player_index];
+                message.icon = static_cast<i16>(GizmoPickupType[2].first_model_id);
+                message.extra_position = reinterpret_cast<NUVEC *>(&WORLD->lev_objs[message.icon]);
+                message.score = GizmoPickupType[2].score;
+                message.flags = 0x112d;
+                message.duration = COINMSGTIME;
+                message.field_0x20 = delay;
+                message.update_fn = GameMsg_DrawAdjustNewPos_CoinToTotal;
+                message.end_fn = EndScoreMessage;
+                message.field_0x4e = 1;
+                AddGameMsg(&message);
+                if (delay == 0.0f) {
+                    NewStatusRumbleBuzz(-1, 0.0f, 0.0f, 1);
+                    AddGameDebris(WORLD->debris_sys, 0x38, &position);
+                }
+                delay += 0.1f;
+            }
+        }
+    } else if (stage->field_0x14 == 2) {
+        stage->field_0x18 += elapsed;
+        if (stage->field_0x18 > stage->field_0x1c) {
+            PlaySfx(const_cast<char *>("Shop_BuyCheat"), NULL);
+            NextStatusStage(packet);
+        }
+    }
 }
 void BonusComplete_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 current) {
     if (current == 0)
