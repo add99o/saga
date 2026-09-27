@@ -3065,3 +3065,139 @@ by aborting mocks so full ASan global instrumentation can remain enabled.
 The linked digest's sixteen initial bytes match retail exactly. Target and
 native builds and all five repository checks pass. No live shader
 compilation, GL context or gameplay execution was tested.
+
+## Batch 40: touch-system update lifecycle and embedded native storage
+
+`MechSystems::Process` improves **5.295% to 44.910%**, raising linked fuzzy
+matching **64.736800% to 64.744120%** without any regressed functions or
+exact-match transitions. The constructor remains **100%** matched.
+
+The old body only called `Init`. Retail additionally updates 32 move
+markers, four swipe markers, and removes three expired tag controls, then
+processes the current world's auto-jump manager when present. Restore
+that sequence with ordinary loops in the existing `-O2` owner. Slots are
+reloaded after callbacks: a callback can replace its own slot, and tag
+removal can clear or replace the pointer before the subsequent delete.
+The world lookup happens even if initialization has not enabled the UI.
+
+Move markers are deleted only with flag bit 3 set and scale at most
+`0.001f`; swipe alpha must be strictly less than `0.01f`; tag controls
+require their fading flag and first-fade value at most zero. NaNs do not
+pass these comparisons. Frame time is read for each update call, not
+cached across callbacks. Virtual deletion retains real managed-reference
+invalidation for marker and tag objects. Target-only assertions document
+the three cleanup-value offsets and the initialization byte.
+
+Before restoring these calls, fix a real native-layout defect: the three
+placement-constructed UI objects and click tracker previously occupied
+fixed Android-size buffers. Their polymorphic native forms are larger.
+Move the `MechSystems` declaration after the complete UI types and size
+each buffer with `sizeof` of its actual type. Its alignment attribute is
+required for placement construction of those objects, not instruction
+matching; the NDK GCC 4.7 compiler does not implement `alignas` (verified
+in a bounded compile probe). All original Android offsets and the
+`0x293c` class size remain asserted and unchanged.
+
+The constructor's five pointer clears also previously used 32-bit words
+from `unknown_0x10`, leaving native pointers partly initialized. Replace
+them with the actual pointer members and remove the unused word overlay.
+Do not initialize the sixth, menu-controller pointer: that would add
+behavior absent from the original. Explicit construction/destruction
+order for the embedded UI controls is preserved.
+
+The 413-byte update body is shorter than retail's 873 bytes because the
+four swipe slots and three tag slots remain loops instead of duplicated
+blocks. Full object-diff review confirms this, the related stack/register
+differences and relocation operands; no compiler-forcing attributes,
+hints, padding or manual expansion were introduced.
+
+**24,576 lifecycle cases per architecture**, plus an empty-bootstrap
+smoke case, pass on NDK x86 and full-global 64-bit ASan/UBSan. They link
+the actual `MechSystems.cpp` constructor, initializer, update and destructor
+with independently constructed typed objects. Tests check embedded buffer
+alignment, sentinel preservation, complete pointer initialization, all
+slots across mixed presence masks, byte flags, exact/adjacent thresholds,
+signed zero, infinities and NaNs. Ordered traces cover callback replacement,
+future-slot removal, changed frame time/initialization/world state, tag
+removal clearing or replacing a slot, virtual destruction, and real
+`NuMechPtr` invalidation.
+
+Child UI constructors and external update/UI/world services are mocks;
+this does not claim complete UI behavior, the wider destructor contract,
+or gameplay execution. Target/native builds and all five repository checks
+pass. All eleven PR checks on preceding commit `859bed90` are green.
+
+## Batch 41: camera-cut completion action and miscellaneous pickups
+
+Restore two small stubs in their existing `-O3` owners. Linked fuzzy matching
+rises **64.744120% to 64.753750%**: `Action_EndCameraCut` improves **6.269%
+to 99.179%**, and `AddMiscPickups` improves **7.925% to 91.321%**. No other
+function score changes or exact-match transitions occur. Combined with
+batch 40, three functions improve without regressions since `859bed90`.
+
+### Camera completion and registration
+
+The original 238-byte camera handler returns `i32`, not `void`. It always
+returns one, and only scans parameters when both `first_time` and
+`MiniCutCam` are nonzero. Each parameter first searches case-insensitively
+for `end_time=` anywhere in the string, then for `blend_out_time=` only
+if the first key was absent. The end key stores the parsed duration plus
+the camera time reloaded **after** `AIParamToFloat`; the blend key stores
+the parsed value directly. Negative counts do not enter the loop. Do not
+retest the initial camera gate after callbacks or replace substring
+matching with prefix matching.
+
+Repair the missing `EndCameraCut` entry in `lego_aiactiondefs` and declare
+the real signature in the shared gizmo-action header. Original and rebuilt
+ELF inspection verifies record 125, the handler pointer, and `(1, 0, 0)`
+flags. Records are twelve bytes on Android, not twenty; the original entry
+is at `0x61f5dc` and points to `0x18fff0`.
+
+The rebuilt body is also 238 bytes. Its remaining eight differing
+instructions are six scratch-register choices in the initial gates and
+two private literal operands. No ABI, optimization, or register-forcing
+change was made to chase these differences.
+
+### Pickup forwarding
+
+`AddMiscPickups(position, player_id, coins, torpedoes)` calls `ReleaseHearts`
+only when the torpedo count is exactly zero. It then calls `AddPickups`
+with the input coin count, either the returned heart count or input
+torpedo count, no powerups, the supplied position, shared `v010` direction,
+speed five, player ID, unit scale, duration `2000000.0f`, null owner, and
+final arguments `(1, 0, true)`. Restore the canonical `ReleaseHearts`
+declaration through its header and name the wrapper's parameters by their
+actual meanings. Signed negative values are forwarded, not clamped.
+
+The 269-byte result differs from the 280-byte original in branch placement:
+GCC lays out the no-heart path first and moves `ReleaseHearts` to the other
+branch. Full linked review finds equivalent forwarding on both paths.
+No prediction hint or attribute was added to force the original ordering.
+
+### Validation and limits
+
+**327,680 camera-action cases per architecture** pass on NDK x86 and
+full-global 64-bit ASan/UBSan. Tests cover all three-token sequences from
+eight keyword/miss/precedence patterns, negative/zero/positive counts,
+both initial gates, signed-zero/infinite/NaN floats, exact search/parse
+traces, callback changes to camera state, and future parameter replacement.
+The production translation unit's unrelated locator registrations remain
+active; their unused services have aborting mocks. The action-table binding
+is inspected separately in the complete linked image, not exercised through
+the full script VM.
+
+**49,152 pickup-forwarding cases per architecture** cover signed integer
+boundaries, null/ordinary/direction-aliased positions, every forwarded
+argument, callback order, and callback changes to vector storage. Tests
+link the actual separately compiled production object; only its downstream
+`AddPickups` definition is weakened in a test copy so a strong recording
+mock can replace it. Wrapper instructions and repository linkage are not
+changed. Native tests explicitly enable semantic interposition: without
+it, Clang legitimately omits arguments unused by the real same-unit callee,
+invalidating that mock seam. These are wrapper-contract tests, not tests of
+the downstream pickup spawning implementation.
+
+Both suites retain full global ASan instrumentation. Batch 40's 24,576
+lifecycle cases are also rebuilt and rerun on both architectures after
+the final header cleanup. Target/native builds, all five repository checks,
+and `git diff --check` pass. No gameplay execution was performed.

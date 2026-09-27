@@ -3,6 +3,12 @@
 #include "decomp.h"
 
 struct GIZACTIONDEFN_s;
+struct AISYS_s;
+struct AISCRIPTPROCESS_s;
+struct AIPACKET_s;
+
+i32 Action_EndCameraCut(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params,
+                        i32 param_count, i32 first_time, f32 elapsed);
 
 struct ACTIONINFO_s {
     const char *name;

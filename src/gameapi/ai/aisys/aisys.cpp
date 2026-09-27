@@ -22,6 +22,7 @@
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/gizmo/base/gizmo.h"
+#include "legoapi/gizmo/base/gizactions.h"
 #include "legoapi/gizmos/traps/gizturrets.h"
 #include "legoapi/gizmos/object/gizobstacles.h"
 #include "legoapi/gizmos/object/gizbuildits.h"
@@ -7220,7 +7221,7 @@ extern "C" {
         {"PlaySfx", Action_PlaySfx, 0, 0, 0},
         {"CameraCut", NULL, 1, 0, 0},
         {"DynamicCameraCut", NULL, 1, 0, 0},
-        {"EndCameraCut", NULL, 1, 0, 0},
+        {"EndCameraCut", Action_EndCameraCut, 1, 0, 0},
         {"DontRaycastLOS", Action_DontRaycastLOS, 0, 0, 0},
         {"SetForceBack", Action_SetForceBack, 1, 0, 0},
         {"FaceCamera", Action_FaceCamera, 0, 0, 0},
