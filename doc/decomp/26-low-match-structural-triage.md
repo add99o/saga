@@ -1702,3 +1702,83 @@ with normal global instrumentation:
 Target/native builds and all five repository tests pass. External
 rendering, collision, audio, pickup, and camera services are mocked in
 the focused turret/graph tests; no gameplay or visual run is claimed.
+
+## Batch 26: screen clearing, fade loops, and renderer-owned masking
+
+Linked fuzzy matching improves from **64.359140% to 64.403740%**.
+Six functions improve, none regress, and two become exact matches.
+The optimization map and matching denominator are unchanged.
+
+- `ClearScreen`: 4.475% to **93.128%**.
+- `FadeLoop`: 3.750% to **95.984%**.
+- `FadeLoop_SetObj`: 17.500% to **100%**.
+- `FadeLoop_UsingObj`: 35.000% to **100%**.
+- `FadeLoop_DrawObj`: 10.769% to **77.000%**.
+- `RndrMaskScreen`: 1.921% to **93.094%**.
+
+`ClearScreen` draws a normalized four-vertex black quad with 0x80 alpha,
+zero depth, and full-range UVs, then restores the coordinate stack.
+Use the existing shared primitive helpers, including their float/half
+UV representation and callback-sensitive stream cursor. Do not replace
+this draw with a render-target clear; they are different operations.
+
+Recover the fade loop's shared scene/special handle and integer
+`FadeLoop_UsingObj` return ABI. Object selection stores the scene before
+lookup and clears it only on failure; clearing the scene does not erase
+the special handle. Object drawing checks existence, applies a 0.125
+scale and Z translation of 1, and passes alpha through unchanged.
+The retail draw has stack realignment absent from the reconstruction;
+no matching-only alignment/calling-convention attribute was added.
+
+The loop fades from 0 to 1 for direction zero and from 1 to 0 otherwise.
+Rate is reciprocal duration, or 10 for zero duration. It initializes
+`FRAMETIME` from `DEFAULTFRAMETIME`, seeks after frame begin, renders
+the optional object and blue/cyan text, runs the optional draw callback,
+then ends the scene and enables terrain swapping around frame end.
+Store the returned frame time before disabling the swap. Only direction
+exactly 1 clears the selected scene and calls `FinishLoop(2)` afterward.
+Duration/frame-time inputs must let the seek reach its endpoint;
+nonconvergent NaN/negative-time behavior is not silently capped.
+
+`RndrMaskScreen` belongs with the existing `pZClearMaterial` and
+`pAlphaMask` statics in `nu3d/nurndr.cpp`, not the gameplay render stub
+unit. Remove the misplaced zero-argument stub and recover its contract:
+texture ID, clear rectangle, mask rectangle, and coordinate-mode index.
+The retail three-entry lookup maps indices 0/1/2 to PS2/normalized/
+absolute coordinates. Update the mask texture's low 16 bits, begin a
+scene, draw the zero-depth clear rectangle with zero UVs, then draw the
+unit-depth textured mask. Each quad separately pushes/restores the
+coordinate system; material handles and stream state retain their
+retail reload points. Initialization must already have created the
+materials, and the mode index must be in range.
+
+Validation passes on the 32-bit NDK toolchain and 64-bit ASan/UBSan,
+with normal global instrumentation:
+
+- **23,088 clear-screen cases** verify exact vertex writes, all half-UV
+  patterns, untouched storage, cursor changes, and stack restoration.
+- **7,974 fade-group cases** verify lookup success/failure and reentrant
+  state changes, exact frame/render/callback traces, signed directions,
+  zero and positive durations, changing frame times, endpoint colors,
+  cleanup, and direct draw alpha including NaN/infinity.
+- **69,127 screen-mask cases** cover every low 16-bit texture ID plus
+  signed extremes, all coordinate modes, UV patterns, signed/nonfinite
+  rectangles, material/cursor callback changes, and stack restoration.
+
+Target/native builds and all five repository tests pass. Rendering and
+timing services are mocked; no gameplay or visual run is claimed.
+
+Bounded experiments not retained:
+
+- `GizObstacles_BoltHit` has an audited active-gizmo-array traversal,
+  per-sample radius reload, reverse sample selection, and the same
+  bolt/cheat dispatch pattern as turrets. A candidate remains 0% at the
+  established `-O3`, and an isolated `-O2` diagnostic is also 0%.
+  The corresponding turret diagnostic only rises from 8.905% to 10.246%
+  object-level. This does not justify an optimization-map change.
+  The unvalidated obstacle candidate remains outside the repository.
+- Reversing the shared `NuRndrPrimUV` branch order raises ten existing
+  callers and lowers two, for +0.0064 aggregate points, but drops
+  `NuRndrLine3d` from 21.33% to 3.40% and does not improve either new
+  screen function. Restore the original helper instead of retaining
+  that cross-caller tradeoff. No exact matches were lost in the trial.

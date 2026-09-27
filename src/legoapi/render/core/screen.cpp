@@ -17,6 +17,7 @@
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nurndrstat.h"
+#include "nu2api/nu3d/nuprim_internal.h"
 #include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/nu3d/nuvport.h"
 #include "nu2api/nu3d/NuRenderDevice.h"
@@ -33,7 +34,24 @@ struct nunativegscene_s;
 struct SHOPINPUT;
 
 void ClearScreen() {
-    STUBBED();
+    ++NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NUPRIM_SCALEMODE_NORMALISED);
+    NuPrim2DBegin(1, 7, NULL);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(-1.0f, -1.0f, 0.0f);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(1.0f, 0.0f);
+    NuPrim2DAddXYZ(1.0f, -1.0f, 0.0f);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(0.0f, 1.0f);
+    NuPrim2DAddXYZ(-1.0f, 1.0f, 0.0f);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(1.0f, 1.0f);
+    NuPrim2DAddXYZ(1.0f, 1.0f, 0.0f);
+    NuPrim2DEnd();
+    --NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
 }
 
 void RenderQuads(i16 *) {

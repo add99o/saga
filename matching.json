@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.35914,
+    "fuzzy_match_percent": 64.40374,
     "total_code": "4722419",
-    "matched_code": "516076",
-    "matched_code_percent": 10.928213,
+    "matched_code": "516200",
+    "matched_code_percent": 10.930839,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6207,
-    "matched_functions_percent": 46.11784,
+    "matched_functions": 6209,
+    "matched_functions_percent": 46.132698,
     "total_units": 1
   },
   "text": {
@@ -75628,14 +75628,6 @@
       "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_legoapi/render_stubs.o",
       "functions": [
         {
-          "name": "RndrMaskScreen",
-          "demangled_name": "RndrMaskScreen",
-          "address": 3087232,
-          "offset": 2197264,
-          "size": 1033,
-          "match_percent": 1.921182
-        },
-        {
           "name": "DisplaySceneRndrSpecials",
           "demangled_name": "DisplaySceneRndrSpecials",
           "address": 3099536,
@@ -77311,7 +77303,7 @@
           "address": 3032864,
           "offset": 2142896,
           "size": 465,
-          "match_percent": 4.468085
+          "match_percent": 93.12766
         },
         {
           "name": "_Z11RenderQuadsPs",
@@ -81101,7 +81093,7 @@
           "address": 4760608,
           "offset": 3870640,
           "size": 96,
-          "match_percent": 17.5
+          "match_percent": 100.0
         },
         {
           "name": "_Z17FadeLoop_UsingObjv",
@@ -81109,7 +81101,7 @@
           "address": 4760704,
           "offset": 3870736,
           "size": 28,
-          "match_percent": 35.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z16FadeLoop_DrawObjf",
@@ -81117,7 +81109,7 @@
           "address": 4760736,
           "offset": 3870768,
           "size": 152,
-          "match_percent": 10.769231
+          "match_percent": 77.0
         },
         {
           "name": "_Z19CreateFadeMaterialsv",
@@ -81133,7 +81125,7 @@
           "address": 4764272,
           "offset": 3874304,
           "size": 601,
-          "match_percent": 3.75
+          "match_percent": 95.984375
         },
         {
           "name": "_ZN8FadeBaseD1Ev",
@@ -92889,6 +92881,14 @@
           "offset": 2153456,
           "size": 42,
           "match_percent": 100.0
+        },
+        {
+          "name": "RndrMaskScreen",
+          "demangled_name": "RndrMaskScreen",
+          "address": 3087232,
+          "offset": 2197264,
+          "size": 1033,
+          "match_percent": 93.0936
         },
         {
           "name": "_Z17NuRndrInitGenericv",
