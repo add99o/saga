@@ -19,6 +19,7 @@ DECOMP_ASSERT(sizeof(SOCKCAMERARESULT) == 0x64, "Socket camera result ABI");
 #include "nu2api/numath/nuquat.h"
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nutrig.h"
+#include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nufile/nufpar.h"
 struct GameObject_s;
@@ -1663,12 +1664,32 @@ extern "C" {
         result->z = from->z + (to->z - from->z) * ratio;
     }
 
-    void SockSysSetObjectVisibility(void) {
-        STUBBED();
+    void SockSysSetObjectVisibility(SOCKSYS *sock_sys, i32 sock_index, i32 visible) {
+        if (sock_sys == NULL)
+            return;
+        SOCK *sock = &sock_sys->sock[sock_index];
+        if (sock->unknown_f8 == 0)
+            return;
+        nuhspecial_s *specials = reinterpret_cast<nuhspecial_s *>(static_cast<usize>(sock->unknown_f8));
+        for (i32 index = 0; index < sock->unknown_fc; ++index)
+            NuSpecialSetVisibility(&specials[index], visible);
     }
 
-    void SockSysTrackInSplineInfo(void) {
-        STUBBED();
+    i32 SockSysTrackInSplineInfo(SOCKSYS *sock_sys, SOCKPOSITION *position, NUVEC *track_position, f32 *distance) {
+        if (position == NULL || position->location.sock == -1 || sock_sys == NULL)
+            return 0;
+        SOCK *sock = &sock_sys->sock[position->location.sock];
+        if (!sock->valid || sock->trackin == NULL)
+            return 0;
+
+        NUVEC local_position;
+        if (track_position == NULL)
+            track_position = &local_position;
+        SockSysPointAlongSpline(track_position, sock->trackin, position->location.segment, position->next_segment,
+                                position->ratio);
+        if (distance != NULL)
+            *distance = NuVecDist(track_position, &position->midpoint, NULL);
+        return 1;
     }
 
     void SockSys_Configure(SOCKSYS *sock_sys, char *config, i32, VARIPTR *buf, VARIPTR *buf_end, NUGSCN *gscn) {
