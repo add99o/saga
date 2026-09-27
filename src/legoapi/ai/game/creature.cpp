@@ -418,9 +418,8 @@ void SpawnCreatureFromCrate(GameObject_s *object, f32 height, f32 delay) {
 }
 
 extern "C" HOTHBATTLE_MELEE_s melee;
-AILOCATOR *getSpawnLocator(f32 clip_radius, char *name);
-i32 OnOrInsidePlane(NUVEC *point, NUVEC *plane_point, NUVEC *plane_normal, NUVEC *corrected_point,
-                    f32 normal_offset, f32 *distance);
+i32 OnOrInsidePlane(NUVEC *point, NUVEC *plane_point, NUVEC *plane_normal, NUVEC *corrected_point, f32 normal_offset,
+                    f32 *distance);
 
 i32 SpawnMeleeCreatureType(i32 type) {
     u8 active_count = melee.waves[type].reserved_1a;
@@ -452,8 +451,7 @@ i32 SpawnMeleeCreatureType(i32 type) {
         if (melee.waves[type].character_id == id_ATAT && melee.waves[type].reserved_1a == 0) {
             GameObject_s *named = GetNamedGameObject(WORLD->ai_sys, "ATAT_EDIT");
             melee.waves[type].creatures[slot] = named;
-            if (named != NULL && named->apiobj.field_0x287 == 0 &&
-                (named->apiobj.field_0x1f8 & 0x1000) != 0) {
+            if (named != NULL && named->apiobj.field_0x287 == 0 && (named->apiobj.field_0x1f8 & 0x1000) != 0) {
                 ++melee.waves[type].reserved_1a;
                 continue;
             }
@@ -464,14 +462,14 @@ i32 SpawnMeleeCreatureType(i32 type) {
         for (i32 attempts = 50; attempts > 0; --attempts) {
             locator = getSpawnLocator(5.0f, "spawn");
             if (locator != NULL) {
-                if (OnOrInsidePlane(&locator->position, &PlayPlane[1].point, &PlayPlane[1].normal,
-                                    NULL, 0.5f, NULL) == 0 ||
-                    OnOrInsidePlane(&locator->position, &PlayPlane[2].point, &PlayPlane[2].normal,
-                                    NULL, 0.5f, NULL) == 0) {
-                    if (OnOrInsidePlane(&locator->position, &PlayPlane[1].point, &PlayPlane[1].normal,
-                                        NULL, 2.5f, NULL) != 0 ||
-                        OnOrInsidePlane(&locator->position, &PlayPlane[2].point, &PlayPlane[2].normal,
-                                        NULL, 2.5f, NULL) != 0)
+                if (OnOrInsidePlane(&locator->position, &PlayPlane[1].point, &PlayPlane[1].normal, NULL, 0.5f, NULL) ==
+                        0 ||
+                    OnOrInsidePlane(&locator->position, &PlayPlane[2].point, &PlayPlane[2].normal, NULL, 0.5f, NULL) ==
+                        0) {
+                    if (OnOrInsidePlane(&locator->position, &PlayPlane[1].point, &PlayPlane[1].normal, NULL, 2.5f,
+                                        NULL) != 0 ||
+                        OnOrInsidePlane(&locator->position, &PlayPlane[2].point, &PlayPlane[2].normal, NULL, 2.5f,
+                                        NULL) != 0)
                         break;
                 }
                 locator = NULL;
@@ -480,18 +478,17 @@ i32 SpawnMeleeCreatureType(i32 type) {
         if (locator == NULL)
             return 0;
 
-        NUVEC offset = {(NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) + 1.0f) * radius * 8.0f,
-                        0.0f, 0.0f};
+        NUVEC offset = {(NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) + 1.0f) * radius * 8.0f, 0.0f, 0.0f};
         NuVecRotateY(&offset, &offset, qrand());
         NuVecAdd(&offset, &offset, &locator->position);
 
         GameObject_s *object;
         if (melee.waves[type].character_id != id_ATAT) {
-            object = AddDynamicCreature(melee.waves[type].character_id, &offset, locator->direction, melee.waves[type].name,
-                                        &locator->path_info, NULL, 1, NULL, NULL, 0, 0);
+            object = AddDynamicCreature(melee.waves[type].character_id, &offset, locator->direction,
+                                        melee.waves[type].name, &locator->path_info, NULL, 1, NULL, NULL, 0, 0);
         } else {
-            object = AddDynamicCreature(melee.waves[type].character_id, &locator->position, locator->direction, melee.waves[type].name,
-                                        &locator->path_info, NULL, 1, NULL, NULL, 0, 0);
+            object = AddDynamicCreature(melee.waves[type].character_id, &locator->position, locator->direction,
+                                        melee.waves[type].name, &locator->path_info, NULL, 1, NULL, NULL, 0, 0);
         }
         if (object == NULL)
             return 0;

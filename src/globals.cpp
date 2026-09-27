@@ -380,7 +380,7 @@ ARCADE_MODE_s Arcade_Mode[3] = {
     {&tARCADEMODE_COLLECT, 500000, 0x24},
     {&tARCADEMODE_HUNT, 0, 0x58},
 };
-GAME_CUSTOMISER_s *Game_Customiser = NULL;
+CUSTOMISER *Game_Customiser = NULL;
 AREASAVE_s *Game_AreaSave = NULL;
 u8 *Game_CharacterSave = NULL;
 APICHARACTERMODELLIST_s *CurrentCList = NULL;
@@ -747,7 +747,7 @@ i8 trooper_side[10] = {0};
 nuhspecial_s *hothtroopers = NULL;
 i32 troopers_gdeb[4] = {0};
 i32 TimingBarSet = 0;
-u32 client_mines[0xc5] = {0};
+CLIENTMINES_s client_mines = {};
 MINESYS_s minesys;
 i32 nethost = 0;
 i32 clients_mines_bitfield[2] = {0};
@@ -1353,8 +1353,8 @@ i32 LEGOMENU_PAUSECUT = -1;
 i32 LEGOMENU_CREDITS = -1;
 i32 MiniCutCam = 0;
 i32 LEGOHINT_BUILD = -1;
-i32 LEGOHINT_PUSHBLOCKS = -1;
 i32 LEGOHINT_SHOOTCAMERAS = -1;
+i32 LEGOHINT_PUSHBLOCKS = -1;
 i32 LEGOHINT_FREEPLAYTOGGLE = -1;
 i32 WeaponInOut_NoAIJediSfx = 0;
 i32 LEGOSPL_START = -1;

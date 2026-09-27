@@ -130,44 +130,44 @@ bool MechInputTouchMenuController::OnRelease(GameObject_s &, TouchHolder &holder
             field_70 = NULL;
             return false;
         }
-        u8 *customiser = reinterpret_cast<u8 *>(CharacterCustomiser);
+        CUSTOMISER *customiser = CharacterCustomiser;
         if (dx > 0.1f || dx < -0.1f) {
-            customiser[0xd16] = 1;
+            customiser->field_0xd16 = 1;
             return true;
         }
         if (dy > 0.1f) {
-            customiser[0xd12] = 1;
+            customiser->field_0xd12 = 1;
             return true;
         }
         if (dy < -0.1f) {
-            customiser[0xd13] = 1;
+            customiser->field_0xd13 = 1;
             return true;
         }
 
-#define CUSTOMISER_HIT(index, position_offset, width_offset, height_offset)                                            \
+#define CUSTOMISER_HIT(index)                                                                                          \
     {                                                                                                                  \
-        const f32 width = *reinterpret_cast<f32 *>(customiser + width_offset);                                         \
+        const f32 width = customiser->touch_widths[index];                                                             \
         if (width > 0.0f) {                                                                                            \
-            const f32 x = down.x - *reinterpret_cast<f32 *>(customiser + position_offset);                             \
-            const f32 centre_y = *reinterpret_cast<f32 *>(customiser + position_offset + 4);                           \
-            const f32 height = *reinterpret_cast<f32 *>(customiser + height_offset);                                   \
+            const f32 x = down.x - customiser->touch_positions[index].x;                                               \
+            const f32 centre_y = customiser->touch_positions[index].y;                                                 \
+            const f32 height = customiser->touch_heights[index];                                                       \
             const f32 half_width = fabsf(0.5f * width);                                                                \
             if (x > -half_width && x < half_width) {                                                                   \
                 const f32 y = down.y - centre_y;                                                                       \
                 const f32 half_height = fabsf(0.5f * height);                                                          \
                 if (y > -half_height && y < half_height) {                                                             \
-                    customiser[0xd10 + index] = 1;                                                                     \
+                    customiser->touch_requests[index] = 1;                                                             \
                     return true;                                                                                       \
                 }                                                                                                      \
             }                                                                                                          \
         }                                                                                                              \
     }
-        CUSTOMISER_HIT(0, 0xc98, 0xce0, 0xcf8);
-        CUSTOMISER_HIT(1, 0xca4, 0xce4, 0xcfc);
-        CUSTOMISER_HIT(2, 0xcb0, 0xce8, 0xd00);
-        CUSTOMISER_HIT(3, 0xcbc, 0xcec, 0xd04);
-        CUSTOMISER_HIT(4, 0xcc8, 0xcf0, 0xd08);
-        CUSTOMISER_HIT(5, 0xcd4, 0xcf4, 0xd0c);
+        CUSTOMISER_HIT(0);
+        CUSTOMISER_HIT(1);
+        CUSTOMISER_HIT(2);
+        CUSTOMISER_HIT(3);
+        CUSTOMISER_HIT(4);
+        CUSTOMISER_HIT(5);
 #undef CUSTOMISER_HIT
     }
 

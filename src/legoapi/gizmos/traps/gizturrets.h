@@ -33,9 +33,9 @@ enum GIZTURRET_RUNTIME_FLAGS : u8 {
 
 ADDGIZMOTYPE *GizTurrets_RegisterGizmo(i32 type_id);
 GameObject_s *GizTurret_GetTgt(GIZTURRET_s *turret, numtx_s *matrix);
-void GizTurret_CalculateInterceptVector(NUVEC *origin, numtx_s *matrix, NUVEC *target, NUVEC *velocity,
-                                        f32 speed, NUVEC *intercept, NUVEC *intercept_velocity, u32 fallback);
-i32 GizTurrets_Hit(void *world, GIZTURRET_s *turret, NUVEC *position, i32 player, i32 flags);
+void GizTurret_CalculateInterceptVector(NUVEC *origin, numtx_s *matrix, NUVEC *target, NUVEC *velocity, f32 speed,
+                                        NUVEC *intercept, NUVEC *intercept_velocity, u32 fallback);
+i32 GizTurrets_Hit(void *world, GIZTURRET_s *turret, NUVEC *position, i32 player, i32 damage);
 
 extern "C" {
 #endif

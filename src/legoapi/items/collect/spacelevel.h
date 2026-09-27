@@ -3,6 +3,48 @@
 #include "decomp.h"
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
+#include "nu2api/nu3d/nuhspecial.h"
+
+struct anakin_door_setup_s {
+    char *name;
+    char *secondary_name;
+    f32 initial_offset;
+    f32 speed;
+    i16 flags;
+    u8 unknown_12[2];
+    NUVEC direction;
+    f32 unknown_20;
+    f32 minimum_offset;
+};
+DECOMP_ASSERT(sizeof(anakin_door_setup_s) == 0x28, "Anakin door setup size");
+DECOMP_ASSERT(offsetof(anakin_door_setup_s, direction) == 0x14, "Anakin door direction offset");
+
+struct anakin_door_s {
+    NUMTX matrix;
+    NUMTX secondary_matrix;
+    NUMTX original_matrix;
+    NUMTX original_secondary_matrix;
+    NUVEC direction;
+    f32 unknown_10c;
+    nuhspecial_s special;
+    nuhspecial_s secondary_special;
+    f32 minimum_offset;
+    f32 offset;
+    f32 speed;
+    f32 unknown_134;
+    u8 active;
+    u8 flags;
+    i16 has_secondary;
+    i16 platform_id;
+    u8 unknown_13e[2];
+};
+DECOMP_ASSERT(sizeof(anakin_door_s) == 0x140, "Anakin door state size");
+DECOMP_ASSERT(offsetof(anakin_door_s, special) == 0x110, "Anakin door special offset");
+DECOMP_ASSERT(offsetof(anakin_door_s, active) == 0x138, "Anakin door active offset");
+
+// The legacy level callbacks require storage for twelve door records.
+extern anakin_door_s *volatile AnakinC;
+extern anakin_door_setup_s DoorSetupList[15];
 
 struct dogfight_door_s {
     char name[12];
@@ -156,13 +198,18 @@ struct spacelevel_s {
     f32 door_time;
     f32 door_countdown;
     f32 door_elapsed;
-    u8 unknown_62ee4[0x62ee8 - 0x62ee4];
+    f32 normalized_speed;
     f32 value_one_a;
     f32 value_one_b;
+    i32 unknown_62ef0;
+    // The allocator reserves a further 4 KiB; its contents are not recovered.
+    u8 unknown_62ef4[0x1000];
 };
 DECOMP_ASSERT(offsetof(spacelevel_s, fighter_groups) == 0x1b0, "fighter group array offset");
 DECOMP_ASSERT(offsetof(spacelevel_s, large_records) == 0x3390, "large record array offset");
 DECOMP_ASSERT(offsetof(spacelevel_s, queued_starfighters) == 0x55f90, "queued fighter array offset");
 DECOMP_ASSERT(offsetof(spacelevel_s, reset_buffer) == 0x62e90, "reset buffer offset");
 DECOMP_ASSERT(offsetof(spacelevel_s, direction) == 0x62ebc, "direction offset");
-DECOMP_ASSERT(sizeof(spacelevel_s) == 0x62ef0, "spacelevel_s size");
+DECOMP_ASSERT(offsetof(spacelevel_s, normalized_speed) == 0x62ee4, "space normalized speed offset");
+DECOMP_ASSERT(offsetof(spacelevel_s, unknown_62ef0) == 0x62ef0, "space allocator state offset");
+DECOMP_ASSERT(sizeof(spacelevel_s) == 0x63ef4, "spacelevel_s allocation size");

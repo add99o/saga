@@ -15,3 +15,4 @@ extern NEWMINIPIECE_s NewMiniPiece[10];
 
 void DrawStatusScreen(WORLDINFO_s *world);
 void UpdateStatusScreen(WORLDINFO_s *world);
+void SetBonusWinner(i32 player);

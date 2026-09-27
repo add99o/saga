@@ -119,7 +119,8 @@ enum CHARACTER_ANIMATION_CONFIG_FLAGS : u32 {
     CHARACTER_ANIMATION_FLAG_BSA = 0x00000008,
     CHARACTER_ANIMATION_FLAG_NO_HEAD_TURN = 0x00000040,
     CHARACTER_ANIMATION_FLAG_FOOTSTEPS = 0x00000100,
-    CHARACTER_ANIMATION_FLAG_ALLOW_WEAPON_TRANSITION = 0x00000400,
+    CHARACTER_ANIMATION_FLAG_GUN_OFF = 0x00000400,
+    CHARACTER_ANIMATION_FLAG_GUN_ON = 0x00000800,
 };
 
 struct CHARSCENE_s {
@@ -649,6 +650,7 @@ extern "C" {
     extern i16 id_OBIWANKENOBIJEDIMASTER;
     extern i16 id_GRIEVOUS;
     extern i16 id_THEEMPEROR;
+    extern i16 id_RANCOR;
     extern i16 id_SERVICECAR;
     extern i16 id_JANGOFETT;
     extern i16 id_MOSEISLEYCITIZEN;
@@ -684,6 +686,10 @@ extern "C" {
     extern i16 id_ATST;
     extern i16 id_SNOWMOB;
     extern i16 id_MOONCAR;
+    extern i16 id_TRACTOR;
+    extern i16 id_TOWNCAR;
+    extern i16 id_FIRETRUCK;
+    extern i16 id_LIFEBOAT;
     extern i16 id_MAPCAR;
     extern i16 id_ATAT;
     extern i16 id_REPUBLICGUNSHIP;

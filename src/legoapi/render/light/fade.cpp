@@ -1,11 +1,14 @@
 #include "decomp.h"
+#include "batman.h"
+#include "globals.h"
+#include "gameapi/edtools/edgra.h"
+#include "legoapi/characters/motion.h"
+#include "legoapi/core/startup/main.h"
+#include "legoapi/menus/core/text.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/render/light/fade.h"
 #include "legoapi/render/core/screen.h"
-#include "legoapi/core/startup/main.h"
-#include "legoapi/menus/core/text.h"
 #include "legoapi/core/input/qrand.h"
-#include "gameapi/edtools/edgra.h"
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nuspecial.h"
@@ -13,10 +16,6 @@
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nutrig.h"
 extern f32 FRAMETIME;
-extern f32 DEFAULTFRAMETIME;
-extern "C" f32 NuFrameEnd(void);
-extern "C" i32 NuRndrBeginScene(i32);
-f32 SeekLinearF(f32, f32, f32);
 extern i32 pause_rndr_on;
 extern i32 wait_till_next_frame;
 extern void DrawFadeScreenWipe(void);
@@ -35,8 +34,6 @@ FadeStill fadeStill;
 NUMTL *ScreenFadeMtl;
 NUMTL *FadeMtl2;
 NUMTL *FadeMtl;
-nugscn_s *FadeLoop_ObjScene;
-nuhspecial_s FadeLoop_ObjHSpecial;
 
 void FadeStillWipe::DrawFade() {
     if (wait_till_next_frame != 0)
@@ -240,6 +237,9 @@ i32 FadeSystem::SetFade(FADETYPE const &t, u32 frames) {
     return 0;
 }
 
+nugscn_s *FadeLoop_ObjScene;
+nuhspecial_s FadeLoop_ObjHSpecial;
+
 void FadeLoop_SetObj(nugscn_s *scene, char *name) {
     FadeLoop_ObjScene = scene;
     if (scene != NULL && NuSpecialFind(scene, &FadeLoop_ObjHSpecial, name, 1) == 0) {
@@ -247,10 +247,10 @@ void FadeLoop_SetObj(nugscn_s *scene, char *name) {
     }
 }
 
-__attribute__((force_align_arg_pointer)) void FadeLoop_DrawObj(float alpha) {
-    if (FadeLoop_ObjScene != NULL && NuSpecialExistsFn(&FadeLoop_ObjHSpecial) != 0) {
+void FadeLoop_DrawObj(float alpha) {
+    if (FadeLoop_ObjScene != NULL && NuSpecialExistsFn(&FadeLoop_ObjHSpecial)) {
         NUVEC scale = {0.125f, 0.125f, 0.125f};
-        NUMTX matrix __attribute__((aligned(16)));
+        NUMTX matrix;
         NuMtxSetScale(&matrix, &scale);
         matrix.m32 = 1.0f;
         NuSpecialDrawAtAlpha(&FadeLoop_ObjHSpecial, &matrix, alpha);
@@ -287,31 +287,40 @@ void CreateFadeMaterials() {
     NuMtlUpdate(FadeMtl);
 }
 
-void FadeLoop(char *text, i32 mode, float duration, void (*draw)(float)) {
-    const f32 target = mode == 0 ? 1.0f : 0.0f;
-    f32 progress = mode == 0 ? 0.0f : 1.0f;
-    const f32 rate = duration == 0.0f ? 10.0f : 1.0f / duration;
+void FadeLoop(char *text, i32 direction, float duration, void (*draw)(float)) {
+    f32 alpha = 0.0f;
+    f32 target = 1.0f;
+    if (direction != 0) {
+        alpha = 1.0f;
+        target = 0.0f;
+    }
+    f32 rate = 10.0f;
+    if (duration != 0.0f) {
+        rate = 1.0f / duration;
+    }
     FRAMETIME = DEFAULTFRAMETIME;
-    while (progress != target) {
+    while (alpha != target) {
         NuFrameBegin();
-        progress = SeekLinearF(progress, target, rate * FRAMETIME);
+        alpha = SeekLinearF(alpha, target, rate * FRAMETIME);
         NuRndrBeginScene(-1);
         NuRndrClear(0xb00, 0, 1.0f);
-        if (FadeLoop_ObjScene != NULL)
-            FadeLoop_DrawObj(progress);
+        if (FadeLoop_ObjScene != NULL) {
+            FadeLoop_DrawObj(alpha);
+        }
         if (text != NULL) {
             SetQFont2D();
-            Text3D(text, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0, static_cast<u8>(255.0f * progress),
-                   static_cast<u8>(191.0f * progress), 0);
+            Text3D(text, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0, static_cast<u8>(alpha * 0.0f),
+                   static_cast<u8>(alpha * 191.0f), static_cast<u8>(alpha * 255.0f));
         }
-        if (draw != NULL)
-            draw(progress);
+        if (draw != NULL) {
+            draw(alpha);
+        }
         NuRndrEndScene();
         edGraEnableTerrainSwap();
         FRAMETIME = NuFrameEnd();
         edGraDisableTerrainSwap();
     }
-    if (mode == 1) {
+    if (direction == 1) {
         FadeLoop_SetObj(NULL, NULL);
         FinishLoop(2);
     }

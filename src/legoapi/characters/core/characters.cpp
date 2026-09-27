@@ -29,6 +29,27 @@
 #include "legoapi/gizmos/object/lever.h"
 #include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/gizmos/door/zipups.h"
+#include "legoapi/gizmo/base/gizmo.h"
+#include "legoapi/gizmo/base/gizmessage.h"
+#include "legoapi/gizmos/object/gizobstacles.h"
+#include "legoapi/gizmos/object/gizbuildits.h"
+#include "legoapi/gizmos/object/newblowup.h"
+#include "legoapi/gizmos/fx/gizmopickups.h"
+#include "legoapi/gizmos/transport/grapples.h"
+#include "legoapi/props/objects/tightrope.h"
+#include "legoapi/gizmos/door/spinner.h"
+#include "legoapi/gizmos/trigger/minicut.h"
+#include "legoapi/gizmos/transport/tubes.h"
+#include "legoapi/gizmos/traps/gizturrets.h"
+#include "legoapi/gizmos/trigger/ai.h"
+#include "legoapi/gizmos/trigger/giztimer.h"
+#include "legoapi/gizmos/trigger/gizrandom.h"
+#include "legoapi/gizmos/trigger/gizspecial.h"
+#include "legoapi/props/doors/door.h"
+#include "legoapi/gizmos/door/plugs.h"
+#include "legoapi/gizmos/door/push.h"
+#include "legoapi/gizmos/fx/edgizshadowmachine.h"
+#include "legoapi/gizmos/transport/gizportal.h"
 #include "legoapi/props/objects/techno.h"
 #include "legoapi/world/level.h"
 #include "legoapi/world/areas.h"
@@ -1361,6 +1382,7 @@ void UpdateCharacterLoad() {
     i32 candidate = 0;
     i16 *fixed_candidate = NULL;
     i32 fixed_value = -1;
+    i32 pack_index = 0;
 
     if (id_BARMAN != -1 && APICharacterLoaded(id_BARMAN) == NULL) {
         fixed_candidate = &id_BARMAN;
@@ -1395,15 +1417,15 @@ void UpdateCharacterLoad() {
         goto queue_fixed_character;
     }
 
-    for (i32 pack = 0; pack < 11; ++pack) {
+    for (STOREPACK *pack = StorePack; pack != StorePack + 11; ++pack, ++pack_index) {
         if (g_lowEndLevelBehaviour != 0 && Hub_LowEnd_IconsInsteadOfModels != 0) {
             continue;
         }
-        if (Store_IsPackUnlocked(pack) != 0 || StorePack[pack].id == NULL) {
+        if (Store_IsPackUnlocked(pack_index) != 0 || pack->id == NULL) {
             continue;
         }
 
-        const i32 id = *StorePack[pack].id;
+        const i32 id = *pack->id;
         if (id != -1 && APICharacterLoaded(id) == NULL) {
             fixed_value = id;
             goto queue_fixed_value;
@@ -1777,38 +1799,20 @@ void CollectCharcters_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, floa
     }
 }
 
-ADDGIZMOTYPE *GizObstacles_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizBuildIts_RegisterGizmo(i32);
-ADDGIZMOTYPE *NewBlowup_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizmoPickups_RegisterGizmo(i32);
-ADDGIZMOTYPE *Grapples_RegisterGizmo(i32);
-ADDGIZMOTYPE *TightRopes_RegisterGizmo(i32);
-ADDGIZMOTYPE *Levers_RegisterGizmo(i32);
-ADDGIZMOTYPE *Spinner_RegisterGizmo(i32);
-ADDGIZMOTYPE *Technos_RegisterGizmo(i32);
-ADDGIZMOTYPE *MiniCut_RegisterGizmo(i32);
-ADDGIZMOTYPE *Tubes_RegisterGizmo(i32);
-ADDGIZMOTYPE *ZipUps_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizTurrets_RegisterGizmo(i32);
-ADDGIZMOTYPE *AI_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizTimer_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizRandom_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizSpecial_RegisterGizmo(i32);
-ADDGIZMOTYPE *Door_RegisterGizmo(i32);
-ADDGIZMOTYPE *Plugs_RegisterGizmo(i32);
-ADDGIZMOTYPE *GizAIMessage_RegisterGizmo(i32);
-ADDGIZMOTYPE *Push_RegisterGizmo(i32);
-ADDGIZMOTYPE *EdGizShadowMachine_RegisterGizmo(i32);
-ADDGIZMOTYPE *Portal_RegisterGizmo(i32);
-
 void RegisterGizmoTypes_Indy(variptr_u *buffer, variptr_u *buffer_end) {
     REGISTERGIZMOTYPEFN gizmo_types[] = {
-        GizObstacles_RegisterGizmo, GizBuildIts_RegisterGizmo, NewBlowup_RegisterGizmo, GizmoPickups_RegisterGizmo,
-        Grapples_RegisterGizmo, TightRopes_RegisterGizmo, Levers_RegisterGizmo, Spinner_RegisterGizmo,
-        Technos_RegisterGizmo, MiniCut_RegisterGizmo, Tubes_RegisterGizmo, ZipUps_RegisterGizmo,
-        GizTurrets_RegisterGizmo, AI_RegisterGizmo, GizTimer_RegisterGizmo, GizRandom_RegisterGizmo,
-        GizSpecial_RegisterGizmo, Door_RegisterGizmo, Plugs_RegisterGizmo, GizAIMessage_RegisterGizmo,
-        Push_RegisterGizmo, EdGizShadowMachine_RegisterGizmo, Portal_RegisterGizmo, NULL,
+        GizObstacles_RegisterGizmo, GizBuildIts_RegisterGizmo,
+        NewBlowup_RegisterGizmo,    GizmoPickups_RegisterGizmo,
+        Grapples_RegisterGizmo,     TightRopes_RegisterGizmo,
+        Levers_RegisterGizmo,       Spinner_RegisterGizmo,
+        Technos_RegisterGizmo,      MiniCut_RegisterGizmo,
+        Tubes_RegisterGizmo,        ZipUps_RegisterGizmo,
+        GizTurrets_RegisterGizmo,   AI_RegisterGizmo,
+        GizTimer_RegisterGizmo,     GizRandom_RegisterGizmo,
+        GizSpecial_RegisterGizmo,   Door_RegisterGizmo,
+        Plugs_RegisterGizmo,        GizAIMessage_RegisterGizmo,
+        Push_RegisterGizmo,         EdGizShadowMachine_RegisterGizmo,
+        Portal_RegisterGizmo,       NULL,
     };
     RegisterGizmoTypes(buffer, buffer_end, gizmo_types, 12);
 }
@@ -2001,29 +2005,4 @@ void LoadPerm2() {
     Collection_CreateCustom(const_cast<char *>("BountyHunters"), &tBOUNTYHUNTERCHARACTERS, &BountyHunterCollection,
                             0x01000000, 0, 0, 0, 4, &permbuffer_ptr, &permbuffer_end, 0, COLLECTION_DEFAULTSCALE);
     Areas_ConfigureResidents(&permbuffer_ptr, &permbuffer_end);
-}
-
-void MapToGrid(nuvec_s *grid, nuvec_s *fraction, i32 *column, i32 *row,
-               nuvec_s *position, nutexmanager_s *manager) {
-    const u8 *data = reinterpret_cast<const u8 *>(manager);
-    const f32 origin_x = *reinterpret_cast<const f32 *>(data);
-    const f32 origin_z = *reinterpret_cast<const f32 *>(data + 8);
-    const f32 cell_x = *reinterpret_cast<const f32 *>(data + 16);
-    const f32 cell_z = *reinterpret_cast<const f32 *>(data + 20);
-    const i32 width = *reinterpret_cast<const i32 *>(data + 24);
-    const i32 height = *reinterpret_cast<const i32 *>(data + 28);
-    grid->x = (position->x - origin_x + cell_x * 0.5f) * (static_cast<f32>(width) / cell_x);
-    grid->y = 0.0f;
-    grid->z = (position->z - origin_z + cell_z * 0.5f) * (static_cast<f32>(height) / cell_z);
-    if (grid->x < 0.0f) grid->x = 0.0f;
-    if (grid->z < 0.0f) grid->z = 0.0f;
-    if (grid->x > static_cast<f32>(width)) grid->x = static_cast<f32>(width) - 0.001f;
-    if (grid->z > static_cast<f32>(height)) grid->z = static_cast<f32>(height) - 0.001f;
-    const f32 floor_x = NuFloor(grid->x);
-    fraction->y = 0.0f;
-    const f32 floor_z = NuFloor(grid->z);
-    *column = static_cast<i32>(floor_x);
-    *row = static_cast<i32>(floor_z);
-    fraction->x = grid->x - floor_x;
-    fraction->z = grid->z - floor_z;
 }

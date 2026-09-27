@@ -40,6 +40,8 @@ void Move_GEONOSIAN(GameObject_s *object);
 void SetMoveAndAnimateFunctions(u32 model_flag_mask, u32 model_flag_value, u32 game_flag_mask, u32 game_flag_value,
                                 i32 movement_type, void *move_function, void *animate_function, void *draw_function);
 void GameCam_Blend(GAMECAMERA_s *camera, f32 duration, f32 curve, i32 mode);
+void GameCameraMakeMiniCut2(NUVEC *camera, NUVEC *target, i32 target_guid, f32 start, f32 end, f32 blend_in,
+                            f32 blend_out, i32 follow_target, i32 follow_camera, i32 borders);
 void GameCam_Judder(GAMECAMERA_s *camera, f32 amount, i32 axis, NUVEC *source);
 void SetHeadTarget(GameObject_s *object, NUVEC *position, i8 priority, f32 time, f32 minimum_delay, f32 maximum_delay);
 void PushAway(NUVEC *position, f32 radius, NUVEC *minimum, NUVEC *maximum, GameObject_s *object, GameObject_s *excluded,
@@ -112,6 +114,7 @@ u16 TurnRot(u16 current, u16 target, i32 speed, i32 *difference);
 u16 SeekRot(u16 current, u16 target, float rate);
 void SeekVec(NUVEC *result, NUVEC *current, NUVEC *target, float rate);
 void KeepPointOnScreen(NUVEC *position, NUVEC *velocity);
+void DisorientateCode(GameObject_s *object, NUVEC *limit, float range);
 void GameCam_NewShake(GAMECAMERA_s *camera, float amount, float duration, float speed);
 void GameCam_HitJudder(void);
 void GameCam_Reset(GAMECAMERA_s *camera);

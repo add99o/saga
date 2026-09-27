@@ -177,11 +177,12 @@ MechSystems::MechSystems() {
     new (player_button_storage) MechTouchUIPlayerButton();
     new (pause_button_storage) MechTouchUIPauseButton();
     initialized = 0;
-    new (&click_to_press_start_tracker_storage) ClickToPressStartGestureTracker();
-    unknown_0x10[4] = 0;
-    for (i32 i = 0; i < 4; ++i) {
-        unknown_0x10[i] = 0;
-    }
+    new (click_to_press_start_tracker_storage) ClickToPressStartGestureTracker();
+    gesture_controller = NULL;
+    location_ping_material = NULL;
+    swipe_material = NULL;
+    tag_hold_background_material = NULL;
+    radar_pulse_material = NULL;
     memset(move_to_markers, 0, sizeof(move_to_markers));
     swipe_markers[0] = NULL;
     swipe_markers[1] = NULL;
@@ -275,6 +276,38 @@ MechTouchUITagButton *MechSystems::NewTagButton(GameObject_s &object, TouchHolde
 void MechSystems::Process(ThingProcessData *) {
     if (initialized == 0) {
         Init();
+    }
+    if (initialized != 0) {
+        for (i32 i = 0; i < 32; ++i) {
+            if (move_to_markers[i] != NULL) {
+                move_to_markers[i]->Process(FRAMETIME);
+                if (move_to_markers[i]->field_108_3 && move_to_markers[i]->scale.value <= 0.001f) {
+                    delete move_to_markers[i];
+                    move_to_markers[i] = NULL;
+                }
+            }
+        }
+        for (i32 i = 0; i < 4; ++i) {
+            if (swipe_markers[i] != NULL) {
+                swipe_markers[i]->Process(FRAMETIME);
+                if (swipe_markers[i]->alpha.value < 0.01f) {
+                    delete swipe_markers[i];
+                    swipe_markers[i] = NULL;
+                }
+            }
+        }
+        for (i32 i = 0; i < 3; ++i) {
+            if (level_ui_elements[i] != NULL && level_ui_elements[i]->fading_out != 0 &&
+                level_ui_elements[i]->first_fade.value <= 0.0f) {
+                TouchUI().RemoveUIElement(*level_ui_elements[i]);
+                delete level_ui_elements[i];
+                level_ui_elements[i] = NULL;
+            }
+        }
+    }
+    WORLDINFO_s *world = WorldInfo_CurrentlyActive();
+    if (world != NULL && world->mech_auto_jump_manager != NULL) {
+        world->mech_auto_jump_manager->Process();
     }
 }
 

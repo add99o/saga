@@ -1231,64 +1231,55 @@ extern "C" {
 
     // original 0xe3640 — exact locale-matching ladder of the original.
     i32 NuIOS_GetDeviceLanguage(void) {
-        if (g_languageIndex != -1) {
-            return g_languageIndex;
+        if (g_languageIndex == -1) {
+            if (strncmp(g_language, "en-us", 5) == 0)
+                g_languageIndex = 0x12;
+            else if (strncmp(g_language, "en-", 3) == 0)
+                g_languageIndex = 1;
+            else if (strncmp(g_language, "fr-ca", 5) == 0)
+                g_languageIndex = 2;
+            else if (strncmp(g_language, "fr-", 3) == 0)
+                g_languageIndex = 2;
+            else if (strncmp(g_language, "it-", 3) == 0)
+                g_languageIndex = 5;
+            else if (strncmp(g_language, "de-", 3) == 0)
+                g_languageIndex = 4;
+            else if (strncmp(g_language, "es-mx", 5) == 0)
+                g_languageIndex = 3;
+            else if (strncmp(g_language, "es-", 3) == 0)
+                g_languageIndex = 3;
+            else if (strncmp(g_language, "ja-", 3) == 0)
+                g_languageIndex = 0;
+            else if (strncmp(g_language, "ko-", 3) == 0)
+                g_languageIndex = 0xd;
+            else if (strncmp(g_language, "nl-", 3) == 0)
+                g_languageIndex = 6;
+            else if (strncmp(g_language, "pt-br", 5) == 0)
+                g_languageIndex = 0x10;
+            else if (strncmp(g_language, "pt-", 3) == 0)
+                g_languageIndex = 7;
+            else if (strncmp(g_language, "zh-", 3) == 0)
+                g_languageIndex = 0x13;
+            else if (strncmp(g_language, "hu-", 3) == 0)
+                g_languageIndex = 1;
+            else if (strncmp(g_language, "ru-", 3) == 0)
+                g_languageIndex = 0xc;
+            else if (strncmp(g_language, "pl-", 3) == 0)
+                g_languageIndex = 0xb;
+            else if (strncmp(g_language, "cs-", 3) == 0)
+                g_languageIndex = 10;
+            else if (strncmp(g_language, "el-", 3) == 0)
+                g_languageIndex = 9;
+            else if (strncmp(g_language, "da-", 3) == 0)
+                g_languageIndex = 8;
+            else if (strncmp(g_language, "no-", 3) == 0)
+                g_languageIndex = 0xf;
+            else if (strncmp(g_language, "sv-", 3) == 0)
+                g_languageIndex = 0xe;
+            else if (strncmp(g_language, "fi-", 3) == 0)
+                g_languageIndex = 0x11;
         }
-        auto matches = [&](const char *suffix, i32 n) {
-            for (i32 k = 0; k < n; k++) {
-                if (g_language[k] != suffix[k]) {
-                    return false;
-                }
-            }
-            return true;
-        };
-        if (matches("en-us", 5))
-            return g_languageIndex = 0x12;
-        if (matches("en-", 3))
-            return g_languageIndex = 1;
-        if (matches("fr-ca", 5))
-            return g_languageIndex = 2;
-        if (matches("fr-", 3))
-            return g_languageIndex = 2;
-        if (matches("it-", 3))
-            return g_languageIndex = 5;
-        if (matches("de-", 3))
-            return g_languageIndex = 4;
-        if (matches("es-mx", 5))
-            return g_languageIndex = 3;
-        if (matches("es-", 3))
-            return g_languageIndex = 3;
-        if (matches("ja-", 3))
-            return g_languageIndex = 0;
-        if (matches("ko-", 3))
-            return g_languageIndex = 0xd;
-        if (matches("nl-", 3))
-            return g_languageIndex = 6;
-        if (matches("pt-br", 5))
-            return g_languageIndex = 0x10;
-        if (matches("pt-", 3))
-            return g_languageIndex = 7;
-        if (strncmp(g_language, "zh-", 3) == 0)
-            return g_languageIndex = 0x13;
-        if (strncmp(g_language, "hu-", 3) == 0)
-            return g_languageIndex = 1;
-        if (strncmp(g_language, "ru-", 3) == 0)
-            return g_languageIndex = 0xc;
-        if (strncmp(g_language, "pl-", 3) == 0)
-            return g_languageIndex = 0xb;
-        if (strncmp(g_language, "cs-", 3) == 0)
-            return g_languageIndex = 10;
-        if (strncmp(g_language, "el-", 3) == 0)
-            return g_languageIndex = 9;
-        if (strncmp(g_language, "da-", 3) == 0)
-            return g_languageIndex = 8;
-        if (strncmp(g_language, "no-", 3) == 0)
-            return g_languageIndex = 0xf;
-        if (strncmp(g_language, "sv-", 3) == 0)
-            return g_languageIndex = 0xe;
-        if (strncmp(g_language, "fi-", 3) == 0)
-            return g_languageIndex = 0x11;
-        return -1;
+        return g_languageIndex;
     }
     i32 NuIOS_HardwareSupportsRetina(void) {
         return 1;
@@ -2202,10 +2193,6 @@ extern "C" {
     void *NuMemReAllocFn(void *ptr, u32 size) {
         return NuMemoryGet()->GetThreadMem()->_BlockReAlloc(ptr, size, 4, 1, "", 0);
     }
-    void *NuPtrBlockRead(NUFILE file) {
-        void *block = NuMemFileAddr(file);
-        return NuPtrBlockFix(block);
-    }
 
     static void *dirnames[16];
     static i32 numdirs;
@@ -2229,37 +2216,6 @@ extern "C" {
     // Math / geometry
     // ---------------------------------------------------------------------------
 
-    f32 NuLog2(f32 value) {
-        return NuLog10(value) * 3.321928f;
-    }
-    static f32 pow_x[32], pow_y[32], pow_rv[32];
-    static i32 pow_cache_free;
-    f32 NuPow(f32 x, f32 y) {
-        if (x == 0.0f)
-            return 0.0f;
-        static i32 first_time = 1;
-        if (first_time != 0) {
-            first_time = 0;
-            for (i32 i = 0; i < 32; ++i)
-                pow_x[i] = FLT_MAX;
-        }
-        for (i32 i = 0; i < 32; ++i) {
-            if (pow_x[i] == x && pow_y[i] == y)
-                return pow_rv[i];
-        }
-        f32 result = static_cast<f32>(exp(static_cast<double>(y) * log(static_cast<double>(x))));
-        pow_x[pow_cache_free] = x;
-        pow_y[pow_cache_free] = y;
-        pow_rv[pow_cache_free] = result;
-        pow_cache_free = (pow_cache_free + 1) & 31;
-        return result;
-    }
-    i32 NuPower2(i32 value) {
-        i32 power = value > 127 ? 128 : 1;
-        while (power < value)
-            power += power;
-        return power;
-    }
     // ---------------------------------------------------------------------------
     // Quick-font platform rendering (the generic font run lives in nuqfnt.cpp)
     // ---------------------------------------------------------------------------
@@ -3219,8 +3175,6 @@ extern "C" {
         maximum.z = center->z + extent->z;
         light->testShadowExtrusions(minimum, maximum);
     }
-    extern "C++" NuWindGType *NuWindAllocateGrp();
-    extern "C++" void NuWindFreeGrp(NuWindGType *group);
 
     i32 NuWindLoad(NUWIND *wind, i32 index, char *name, VARIPTR *buffer, VARIPTR buffer_end) {
         if (wind != NULL) {
@@ -4282,21 +4236,6 @@ extern "C" {
             touch->unknown_10 = old_y;
         }
     }
-    i32 NuPs2ApplyDeadZone(i32 raw_value, i32 dead_zone) {
-        i32 value = raw_value - 128;
-        if (value > 0) {
-            if (value < dead_zone) {
-                value = 0;
-            } else {
-                value = (value - dead_zone) * 255 / (255 - dead_zone);
-            }
-        } else if (value > -dead_zone) {
-            value = 0;
-        } else {
-            value = (value + dead_zone) * 255 / (255 - dead_zone);
-        }
-        return value;
-    }
     // ---------------------------------------------------------------------------
     // Culling / visibility / portals / occlusion
     // ---------------------------------------------------------------------------
@@ -4662,15 +4601,6 @@ struct nuframebuffer_s;
 struct nushaderobject_s;
 union variptr_u;
 
-static char g_smbPath[256];
-
-void Nu360ConfigureSMBSharing(char **path) {
-    NuFileSetCurrentDirectory("d:\\");
-    if (static_cast<bool>(NuFileLoadBuffer("smbpath.txt", g_smbPath, sizeof(g_smbPath)))) {
-        NuFileSetCurrentDirectory(g_smbPath);
-        *path = g_smbPath;
-    }
-}
 void NuLgtSetArcMatEx(i32 type, numtl_s *material, f32 u0, f32 v0, f32 u1, f32 v1) {
     if (type > 3)
         return;

@@ -18,6 +18,7 @@ extern i32 memcard_loadneeded;
 struct MENU_s;
 void MenuEnterNewGame(MENU_s *menu);
 void MenuExitNewGame(MENU_s *menu);
+void MenuInitEpisodes(MENU_s *menu);
 
 void MakeMenuPacket();
 

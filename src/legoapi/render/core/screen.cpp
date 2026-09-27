@@ -18,6 +18,7 @@
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nurndrstat.h"
+#include "nu2api/nu3d/nuprim_internal.h"
 #include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/nu3d/nuvport.h"
 #include "nu2api/nu3d/NuRenderDevice.h"
@@ -38,25 +39,18 @@ void ClearScreen() {
     ++NuPrimCSPos;
     NuPrimSetCoordinateSystem(NUPRIM_SCALEMODE_NORMALISED);
     NuPrim2DBegin(1, 7, NULL);
-
-#define CLEAR_VERTEX(X, Y, U, V, HU, HV)                                                                               \
-    do {                                                                                                                \
-        PrimVertexRaw *vertex = static_cast<PrimVertexRaw *>(g_NuPrim_StreamBufferPtr->void_ptr);                        \
-        vertex->color = 0x80000000;                                                                                     \
-        if (g_NuPrim_NeedsHalfUVs != 0) {                                                                                \
-            vertex->half_uv[0] = HU;                                                                                    \
-            vertex->half_uv[1] = HV;                                                                                    \
-        } else {                                                                                                        \
-            vertex->float_uv[0] = U;                                                                                    \
-            vertex->float_uv[1] = V;                                                                                    \
-        }                                                                                                               \
-        NuPrim2DAddXYZ(X, Y, 0.0f);                                                                                     \
-    } while (0)
-    CLEAR_VERTEX(-1.0f, -1.0f, 0.0f, 0.0f, 0, 0);
-    CLEAR_VERTEX(1.0f, -1.0f, 1.0f, 0.0f, 0x3c00, 0);
-    CLEAR_VERTEX(-1.0f, 1.0f, 0.0f, 1.0f, 0, 0x3c00);
-    CLEAR_VERTEX(1.0f, 1.0f, 1.0f, 1.0f, 0x3c00, 0x3c00);
-#undef CLEAR_VERTEX
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(0.0f, 0.0f);
+    NuPrim2DAddXYZ(-1.0f, -1.0f, 0.0f);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(1.0f, 0.0f);
+    NuPrim2DAddXYZ(1.0f, -1.0f, 0.0f);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(0.0f, 1.0f);
+    NuPrim2DAddXYZ(-1.0f, 1.0f, 0.0f);
+    NuRndrPrimSetColour(0x80000000);
+    NuRndrPrimUV(1.0f, 1.0f);
+    NuPrim2DAddXYZ(1.0f, 1.0f, 0.0f);
     NuPrim2DEnd();
     --NuPrimCSPos;
     NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
@@ -380,35 +374,6 @@ void PreRenderFlashHack() {
         specVisibilityFlashHack = NuSpecialGetVisibilityFn(hackFlashingSpecial);
         NuSpecialSetVisibility(hackFlashingSpecial, 0);
     }
-}
-
-void UCStretchToCorners(i16 *x_out, i16 *y_out) {
-    f32 x = *x_out;
-    f32 y = *y_out;
-    f32 abs_x = NuFabs(x);
-    f32 abs_y = NuFabs(y);
-    f32 length = NuFsqrt(abs_x * abs_x + abs_y * abs_y);
-    f32 scale;
-    if (abs_y > abs_x)
-        scale = 32767.0f / abs_y;
-    else if (abs_x != 0.0f)
-        scale = 32767.0f / abs_x;
-    else
-        scale = 1.0f;
-    length *= scale;
-    scale = length / 32768.0f;
-    x *= scale;
-    y *= scale;
-    if (x < -32767.0f)
-        x = -32767.0f;
-    if (x > 32767.0f)
-        x = 32767.0f;
-    if (y < -32767.0f)
-        y = -32767.0f;
-    if (y > 32767.0f)
-        y = 32767.0f;
-    *x_out = static_cast<i16>(x);
-    *y_out = static_cast<i16>(y);
 }
 
 void PostRenderFlashHack() {

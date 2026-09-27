@@ -75,10 +75,10 @@ void ResetGizAIMessageSys(GIZAIMESSAGESYS_s *sys) {
 }
 
 GIZAIMESSAGESYS_s *CreateGizAIMessageSys(VARIPTR *buf, VARIPTR *buf_end, i32 size) {
-    GIZAIMESSAGESYS_s *sys = (GIZAIMESSAGESYS_s *)AISysBufferAlloc(buf, buf_end, 0x18);
+    GIZAIMESSAGESYS_s *sys = (GIZAIMESSAGESYS_s *)AISysBufferAlloc(buf, buf_end, sizeof(GIZAIMESSAGESYS_s));
     if (sys != NULL) {
-        memset(sys, 0, 0x18);
-        sys->messages = (GIZAIMESSAGE_s *)AISysBufferAlloc(buf, buf_end, (u32)size * 0x38);
+        memset(sys, 0, sizeof(GIZAIMESSAGESYS_s));
+        sys->messages = (GIZAIMESSAGE_s *)AISysBufferAlloc(buf, buf_end, (u32)size * sizeof(GIZAIMESSAGE_s));
         if (sys->messages != NULL) {
             sys->count = size;
             ResetGizAIMessageSys(sys);

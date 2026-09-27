@@ -35,6 +35,7 @@ extern "C" void TerrainSetWallDeflectYScale(f32 scale);
 extern "C" void FullDeflect(nuvec_s *normal, nuvec_s *movement, nuvec_s *result);
 void FullDeflectSmallY(nuvec_s *normal, nuvec_s *movement, nuvec_s *result);
 extern "C" void FullReflect(nuvec_s *normal, nuvec_s *movement, nuvec_s *result);
+extern "C" void CubeImpact(NUMTX *current, NUMTX *previous, nuvec_s *normal, f32 scale, nuvec_s *impact);
 extern "C" void NewTerrainScaleYMask(nuvec_s *position, nuvec_s *movement, u8 *hit_flags, i32 object_index, f32 radius,
                                      f32 collision_radius, f32 object_scale, i32 embedded_retry, i32 scan_flags,
                                      i32 terrain_mask);
@@ -51,16 +52,16 @@ extern "C" i32 NewRayCast(nuvec_s *origin, nuvec_s *direction, f32 distance, i32
 extern "C" i32 NewRayCastEx(nuvec_s *position, nuvec_s *movement, f32 radius, i32 scan_flags);
 extern "C" i32 NewRayCastMask(nuvec_s *position, nuvec_s *movement, f32 radius, i32 terrain_mask, i32 scan_flags);
 extern "C" i32 NewRayCastScaleY(nuvec_s *position, nuvec_s *movement, f32 radius, f32 scale_y, i32 scan_flags);
-extern "C" i32 NewRayCastScaleYMask(nuvec_s *position, nuvec_s *movement, f32 radius, f32 scale_y,
-                                   i32 scan_flags, u32 terrain_mask);
+extern "C" i32 NewRayCastScaleYMask(nuvec_s *position, nuvec_s *movement, f32 radius, f32 scale_y, i32 scan_flags,
+                                    u32 terrain_mask);
 extern "C" i32 NewRayCastSet(nuvec_s *position, nuvec_s *movement, f32 radius, f32 separation_epsilon,
-                            f32 compare_epsilon, i32 scan_type, i32 scan_flags);
+                             f32 compare_epsilon, i32 scan_type, i32 scan_flags);
 extern "C" i32 NewRayCastSetMask(nuvec_s *position, nuvec_s *movement, f32 radius, f32 separation_epsilon,
-                                f32 compare_epsilon, i32 scan_type, i32 terrain_mask, i32 scan_flags);
+                                 f32 compare_epsilon, i32 scan_type, i32 terrain_mask, i32 scan_flags);
 extern "C" i32 NewRayCastPlatForm(nuvec_s *position, nuvec_s *movement, f32 radius, f32 separation_epsilon,
-                                 i32 platform_index, i32 terrain_mask);
+                                  i32 platform_index, i32 terrain_mask);
 extern "C" i32 NewRayCastSetHandel(nuvec_s *position, nuvec_s *movement, f32 radius, f32 separation_epsilon,
-                                  f32 compare_epsilon, i16 *handle, i32 scan_type);
+                                   f32 compare_epsilon, i16 *handle, i32 scan_type);
 extern "C" void NewRayCastGetImpactNormal(nuvec_s *normal);
 extern "C" i32 NewRayCastGetImpactTerrainType(void);
 extern "C" f32 NewRayCastGetTOFI(void);

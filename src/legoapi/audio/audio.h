@@ -16,6 +16,8 @@ void GameAudio_PlaySfxAndSetVolume(i32 sfx, nuvec_s *position, f32 volume);
 i16 GetMusicIndex(char *name, nusound_filename_info_s *table, i32 default_index);
 f32 GameSetSoundVolume(OPTIONSSAVE_s *options);
 f32 GameSetMusicVolume(OPTIONSSAVE_s *options);
+f32 GameGetMusicVolume(OPTIONSSAVE_s *options);
+void legoSetMusicVolume(f32 volume);
 
 extern i32 MusicOther;
 extern i32 PlayersUnderAttack;

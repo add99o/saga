@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/cutscenes/cutscenes.h"
+#include "legoapi/characters/core/character.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/gizmos/transport/gizportal.h"
@@ -159,9 +160,16 @@ static void D_next_sock(NUFPAR *parser) {
 }
 
 static void D_vehicle(NUFPAR *parser) {
-    // Vehicle names are consumed here exactly as a list on the current
-    // line. Their name-to-type callback is registered by the game layer.
-    while (NuFParGetWord(parser) != 0) {
+    if (NuFParGetWord(parser) != 0) {
+        if (NuStrICmp(parser->word_buf, "all") == 0) {
+            D_door->takeover_character_mask = 0xffff;
+        } else {
+            i32 type = static_cast<u8>(LevelCharacterTypeIDFn(parser->word_buf));
+            if (type < 64) {
+                // Retail shifts a 32-bit value, so types 32..63 alias 0..31.
+                D_door->takeover_character_mask |= static_cast<u64>(1u << (type & 31));
+            }
+        }
     }
 }
 

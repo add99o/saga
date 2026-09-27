@@ -1,38 +1,21 @@
 #include "nu2api/nuandroid/nuphoneos.h"
 
 #include "nu2api/nucore/common.h"
-#include "nu2api/nucore/android/NuThread_android.h"
+#include "nu2api/nucore/nuthreadqueue.h"
 
 static PHONEEVENTCALLBACK *s_phoneOSEventCallbacks[7];
+typedef NuThreadQueue<NuPhoneOSMessage, 128> NuPhoneOSQueue;
+static NuPhoneOSQueue s_phoneOSMessageQueue;
+
+DECOMP_ASSERT(sizeof(NuPhoneOSQueue) == 0xe5c, "PhoneOS message queue target layout");
+DECOMP_ASSERT(offsetof(NuPhoneOSQueue, write_count) == 0x50, "PhoneOS queue write counter");
+DECOMP_ASSERT(offsetof(NuPhoneOSQueue, read_count) == 0x54, "PhoneOS queue read counter");
+DECOMP_ASSERT(offsetof(NuPhoneOSQueue, records) == 0x58, "PhoneOS queue records");
+DECOMP_ASSERT(offsetof(NuPhoneOSQueue, waiting_token) == 0xe58, "PhoneOS queue token");
 
 i32 g_systemPauseReceived;
 i32 g_systemResumeReceived;
 i32 g_systemDidBecomeActiveReceived;
-
-struct PhoneOSMessageQueue {
-    NuThreadSemaphore free_slots;
-    NuThreadSemaphore pending;
-    NuThreadSemaphore processed;
-    NuThreadSemaphore empty;
-    NuThreadSemaphore occupied;
-    u32 head;
-    u32 tail;
-    struct Entry {
-        NuPhoneOSMessage message;
-        u32 completion_id;
-    } entries[128];
-    u32 completion_id;
-
-    PhoneOSMessageQueue()
-        : free_slots(128), pending(128), processed(1), empty(1), occupied(1), head(0), tail(0),
-          completion_id(0x0fffffff) {
-        for (i32 index = 0; index < 128; ++index)
-            free_slots.Signal();
-    }
-};
-DECOMP_ASSERT(sizeof(PhoneOSMessageQueue::Entry) == 0x1c, "PhoneOS queue entry ABI");
-DECOMP_ASSERT(sizeof(PhoneOSMessageQueue) == 0xe5c, "PhoneOS queue ABI");
-static PhoneOSMessageQueue s_phoneOSMessageQueue;
 
 void NuPhoneOSRegisterEventCallback(i32 type, PHONEEVENTCALLBACK *callback_fn) {
     s_phoneOSEventCallbacks[type] = callback_fn;
@@ -40,24 +23,13 @@ void NuPhoneOSRegisterEventCallback(i32 type, PHONEEVENTCALLBACK *callback_fn) {
 
 extern "C" void NuPhoneOSMessagePost(const NuPhoneOSMessage *message, i32 nonblocking, i32 wait_until_processed) {
     if (nonblocking != 0) {
-        if (!s_phoneOSMessageQueue.free_slots.TryWait())
+        if (!s_phoneOSMessageQueue.TryPost(*message))
             return;
     } else {
-        s_phoneOSMessageQueue.free_slots.Wait();
+        s_phoneOSMessageQueue.Post(*message);
     }
-
-    PhoneOSMessageQueue::Entry &entry = s_phoneOSMessageQueue.entries[s_phoneOSMessageQueue.head & 127];
-    entry.message = *message;
-    entry.completion_id = 0x0fffffff;
-    if (s_phoneOSMessageQueue.head == s_phoneOSMessageQueue.tail) {
-        s_phoneOSMessageQueue.empty.TryWait();
-        s_phoneOSMessageQueue.occupied.TryWait();
-        s_phoneOSMessageQueue.occupied.Signal();
-    }
-    ++s_phoneOSMessageQueue.head;
-    s_phoneOSMessageQueue.pending.Signal();
-    if (wait_until_processed != 0 && s_phoneOSMessageQueue.tail != s_phoneOSMessageQueue.head)
-        s_phoneOSMessageQueue.processed.Wait();
+    if (wait_until_processed != 0)
+        s_phoneOSMessageQueue.WaitUntilEmpty();
 }
 
 extern "C" void NuPhoneOSMessagePump(void) {
@@ -76,19 +48,9 @@ extern "C" void NuPhoneOSMessagePump(void) {
             s_phoneOSEventCallbacks[PHONE_EVENT_BECOME_ACTIVE](NULL);
         g_systemDidBecomeActiveReceived = 0;
     }
-
-    while (s_phoneOSMessageQueue.pending.TryWait()) {
-        const PhoneOSMessageQueue::Entry entry = s_phoneOSMessageQueue.entries[s_phoneOSMessageQueue.tail & 127];
-        if (entry.completion_id == s_phoneOSMessageQueue.completion_id)
-            s_phoneOSMessageQueue.processed.Signal();
-        ++s_phoneOSMessageQueue.tail;
-        if (s_phoneOSMessageQueue.tail == s_phoneOSMessageQueue.head) {
-            s_phoneOSMessageQueue.occupied.TryWait();
-            s_phoneOSMessageQueue.empty.TryWait();
-            s_phoneOSMessageQueue.empty.Signal();
-        }
-        s_phoneOSMessageQueue.free_slots.Signal();
-        if (s_phoneOSEventCallbacks[entry.message.type] != NULL)
-            s_phoneOSEventCallbacks[entry.message.type](&entry.message.data);
+    NuPhoneOSMessage message;
+    while (s_phoneOSMessageQueue.TryPop(message)) {
+        if (s_phoneOSEventCallbacks[message.type] != NULL)
+            s_phoneOSEventCallbacks[message.type](&message.data);
     }
 }

@@ -1,13 +1,15 @@
+#include "legoapi/characters/motion/chris.h"
+
 #include "decomp.h"
 #include "globals.h"
 #include "legoapi/items/collect/spacelevel.h"
 #include "legoapi/items/objects/gameobjects.h"
+#include "legoapi/legoapi_types.h"
 #include "legoapi/props/system/socksys.h"
 #include "legoapi/render/core/terrain.h"
-#include "legoapi/legoapi_types.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/world/world.h"
 #include "nu2api/numath/nurand.h"
-#include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nuvec4.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/nuhspecial.h"
@@ -39,6 +41,25 @@ void ChrisAnakinCReset();
 static NUVEC4 RadialMoveCentre;
 static __used__ f32 RadialPlayerRadius[2];
 static __used__ f32 MaxRadialCamY;
+
+anakin_door_setup_s DoorSetupList[15] = {
+    {"door1", "door1r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door2", "door2r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door3", "door3r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door4", "door4r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door5", "door5r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door6", "door6r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door7", "door7r", 15.0f, 1.0f, 0, {}, {1.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door8", "door8r", 15.0f, 1.0f, 0, {}, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door9", "door9r", 15.0f, 1.0f, 0, {}, {0.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door10", "door10r", 15.0f, 1.0f, 0, {}, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door11", "door11r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door12", "door12r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door15", "door15r", 15.0f, 1.0f, 0, {}, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door16", "door16r", 15.0f, 1.0f, 0, {}, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    // The retail table stores an empty string here, not a null name.
+    {"", NULL, 0.0f, 0.0f, 0, {}, {0.0f, 0.0f, 0.0f}, 0.0f, 0.0f},
+};
 
 void ResetSpaceLevel(WORLDINFO_s *, spacelevel_s *) __asm__("_ZL15ResetSpaceLevelP11WORLDINFO_sP12spacelevel_s")
     __attribute__((visibility("hidden")));
@@ -370,91 +391,36 @@ void ChrisAnakinAReset(WORLDINFO_s *world) {
 void ChrisAnakinBReset() {
 }
 
-struct AnakinCEntry {
-    NUMTX draw_matrix[2];
-    NUMTX transform_matrix[2];
-    NUVEC local_position;
-    u32 reserved_10c;
-    nuhspecial_s special[2];
-    f32 minimum_scale;
-    f32 scale;
-    f32 scale_speed;
-    f32 secondary_scale;
-    u8 active;
-    u8 type;
-    i16 has_second_special;
-    i16 platform_id;
-    u8 reserved_13e[2];
-};
-DECOMP_ASSERT(sizeof(AnakinCEntry) == 0x140, "Anakin C entry ABI");
-extern GameObject_s *volatile AnakinC;
-
-struct DoorSetupEntry {
-    char *first_name;
-    char *second_name;
-    f32 start_scale;
-    f32 scale_speed;
-    f32 type;
-    NUVEC local_position;
-    f32 secondary_scale;
-    f32 minimum_scale;
-};
-DECOMP_ASSERT(sizeof(DoorSetupEntry) == 0x28, "Door setup entry ABI");
-
-DoorSetupEntry DoorSetupList[15] = {
-    {"door1", "door1r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door2", "door2r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door3", "door3r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door4", "door4r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door5", "door5r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door6", "door6r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door7", "door7r", 15.0f, 1.0f, 0.0f, {1.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
-    {"door8", "door8r", 15.0f, 1.0f, 0.0f, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
-    {"door9", "door9r", 15.0f, 1.0f, 0.0f, {0.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
-    {"door10", "door10r", 15.0f, 1.0f, 0.0f, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
-    {"door11", "door11r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door12", "door12r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door15", "door15r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {"door16", "door16r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
-    {},
-};
-
 void ChrisAnakinCReset() {
-    AnakinCEntry *entry = reinterpret_cast<AnakinCEntry *>(AnakinC);
-    DoorSetupEntry *setup = DoorSetupList;
+    anakin_door_s *door = AnakinC;
     i32 count = 0;
-    while (setup->first_name != NULL) {
-        if (NuSpecialFind(WORLD->current_gscn, &entry->special[0], setup->first_name, 1) != 0 &&
-            NuSpecialExistsFn(&entry->special[0]) != 0) {
-            if (NuSpecialFind(WORLD->current_gscn, &entry->special[1], setup->second_name, 1) != 0)
-                entry->has_second_special = static_cast<i16>(NuSpecialExistsFn(&entry->special[1]));
-
-            NuMtxSetIdentity(&entry->transform_matrix[0]);
-            entry->transform_matrix[0] = *NuSpecialGetMtx(&entry->special[0]);
-            entry->draw_matrix[0] = entry->transform_matrix[0];
-            if (entry->has_second_special != 0) {
-                NuMtxSetIdentity(&entry->transform_matrix[1]);
-                entry->transform_matrix[1] = *NuSpecialGetMtx(&entry->special[1]);
-                entry->draw_matrix[1] = entry->transform_matrix[1];
-            }
-            entry->platform_id = static_cast<i16>(FindPlatInst(NuSpecialGetInstanceix(&entry->special[0])));
-            entry->active = 1;
-            entry->type = static_cast<u8>(*reinterpret_cast<u16 *>(&setup->type));
-            entry->local_position = setup->local_position;
-            entry->scale = setup->start_scale;
-            entry->scale_speed = setup->scale_speed;
-            entry->minimum_scale = setup->minimum_scale;
-            entry->secondary_scale = setup->secondary_scale;
-            ++entry;
-            ++count;
-        }
-        if (count > 11)
+    for (anakin_door_setup_s *setup = DoorSetupList; count < 12; ++setup) {
+        if (setup->name == NULL) {
+            for (; count < 12; ++count, ++door)
+                door->active = 0;
             return;
-        ++setup;
-    }
-    while (count < 12) {
-        entry->active = 0;
-        ++entry;
+        }
+        if (!NuSpecialFind(WORLD->current_gscn, &door->special, setup->name, 1) || !NuSpecialExistsFn(&door->special))
+            continue;
+
+        if (NuSpecialFind(WORLD->current_gscn, &door->secondary_special, setup->secondary_name, 1))
+            door->has_secondary = static_cast<i16>(NuSpecialExistsFn(&door->secondary_special));
+
+        NuMtxSetIdentity(&door->original_matrix);
+        door->matrix = door->original_matrix = *NuSpecialGetMtx(&door->special);
+        if (door->has_secondary != 0) {
+            NuMtxSetIdentity(&door->original_secondary_matrix);
+            door->secondary_matrix = door->original_secondary_matrix = *NuSpecialGetMtx(&door->secondary_special);
+        }
+        door->platform_id = static_cast<i16>(FindPlatInst(NuSpecialGetInstanceix(&door->special)));
+        door->active = 1;
+        door->flags = static_cast<u8>(setup->flags);
+        door->direction = setup->direction;
+        door->offset = setup->initial_offset;
+        door->speed = setup->speed;
+        door->minimum_offset = setup->minimum_offset;
+        door->unknown_134 = setup->unknown_20;
+        ++door;
         ++count;
     }
 }
@@ -467,29 +433,31 @@ void ChrisAnakinBUpdate() {
 }
 
 void ChrisAnakinCUpdate() {
-    AnakinCEntry *entries = reinterpret_cast<AnakinCEntry *>(AnakinC);
-    AnakinCEntry *end = entries + 12;
-    NUVEC scaled, position;
-    for (AnakinCEntry *entry = entries; entry != end; ++entry) {
-        if (entry->active == 0)
+    anakin_door_s *door = AnakinC;
+    anakin_door_s *end = door + 12;
+    for (; door != end; ++door) {
+        if (door->active == 0)
             continue;
-        const f32 next_scale = entry->scale - FRAMETIME * entry->scale_speed;
-        if (entry->minimum_scale < next_scale)
-            entry->scale = next_scale;
+
+        const f32 offset = door->offset - door->speed * FRAMETIME;
+        if (offset <= door->minimum_offset)
+            door->offset = door->minimum_offset;
         else
-            entry->scale = entry->minimum_scale;
-        scaled.x = entry->local_position.x * entry->scale;
-        scaled.y = entry->local_position.y * entry->scale;
-        scaled.z = entry->local_position.z * entry->scale;
-        NuVecMtxTransform(&position, &scaled, &entry->transform_matrix[0]);
-        memcpy(&entry->draw_matrix[0].m30, &position, sizeof(position));
-        entry->draw_matrix[0].m33 = 1.0f;
-        NuSpecialSetDrawMtx(&entry->special[0], &entry->draw_matrix[0]);
-        if (entry->has_second_special != 0) {
-            NuVecMtxTransform(&position, &scaled, &entry->transform_matrix[1]);
-            memcpy(&entry->draw_matrix[1].m30, &position, sizeof(position));
-            entry->draw_matrix[1].m33 = 1.0f;
-            NuSpecialSetDrawMtx(&entry->special[1], &entry->draw_matrix[1]);
+            door->offset = offset;
+
+        // The retail transform temporaries require a 16-byte-aligned stack.
+        NUVEC_ALIGNED16 translation = {door->direction.x * door->offset, door->direction.y * door->offset,
+                                       door->direction.z * door->offset};
+        NUVEC_ALIGNED16 position;
+        NuVecMtxTransform(&position, &translation, &door->original_matrix);
+        memcpy(&door->matrix.m30, &position, sizeof(position));
+        door->matrix.m33 = 1.0f;
+        NuSpecialSetDrawMtx(&door->special, &door->matrix);
+        if (door->has_secondary != 0) {
+            NuVecMtxTransform(&position, &translation, &door->original_secondary_matrix);
+            memcpy(&door->secondary_matrix.m30, &position, sizeof(position));
+            door->secondary_matrix.m33 = 1.0f;
+            NuSpecialSetDrawMtx(&door->secondary_special, &door->secondary_matrix);
         }
     }
 }
@@ -502,95 +470,35 @@ void ChrisAfterBurnerCam(nuvec_s *, nuvec_s *camera) {
 }
 
 void ChrisAllocLevelStuff(WORLDINFO_s *world) {
-    i32 *has_chris_data = reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(world) + 0x511c);
-    *has_chris_data = 1;
+    world->has_level_specific_data = 1;
     if (world->current_level == DOGFIGHTA_LDATA) {
-        spacelevel_s *space =
-            static_cast<spacelevel_s *>(GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, 0x63ef4));
-        world->space_level = space;
-        space->reset_buffer = reinterpret_cast<u8 *>(space) + 0x5ce90;
-        space->reset_buffer_count = 0x100;
-        *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(space) + 0x62ee4) = 1.0f;
-        const f32 speed = world->sock_sys->sock[0].current_speed;
-        if (speed != 0.0f)
-            *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(space) + 0x62ee4) = speed / 11.0f;
-        *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(space) + 0x62ef0) = 0;
+        world->space_level = static_cast<spacelevel_s *>(
+            GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, sizeof(spacelevel_s)));
+        spacelevel_s *space = world->space_level;
+        space->reset_buffer = space->unknown_5ce90;
+        space->reset_buffer_count = 256;
+        world->space_level->normalized_speed = 1.0f;
+        if (world->current_level == DOGFIGHTA_LDATA && world->sock_sys->sock[0].current_speed != 0.0f) {
+            world->space_level->normalized_speed = world->sock_sys->sock[0].current_speed / 11.0f;
+        }
+        world->space_level->unknown_62ef0 = 0;
     } else if (world->current_level == PODRACEA_LDATA || world->current_level == PODRACEB_LDATA ||
                world->current_level == PODRACEC_LDATA) {
-        world->podrace = GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, 0xaf24);
+        world->podrace = GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, sizeof(PODRACE_s));
     } else {
-        *has_chris_data = 0;
+        world->has_level_specific_data = 0;
     }
 }
 
 i32 DidBoltHitChrisJobby(WORLDINFO_s *, BOLT_s *) {
+    STUBBED();
     return 0;
 }
 
-// The collision helper uses the original local symbol name so callers in
-// other translation units can share the same implementation.
-#if defined(__i386__) && defined(__SSE__)
-#define CHRIS_STARFIGHTER_COLLIDE_CALL __attribute__((regparm(2), sseregparm, force_align_arg_pointer))
-#else
-#define CHRIS_STARFIGHTER_COLLIDE_CALL
-#endif
-CHRIS_STARFIGHTER_COLLIDE_CALL i32 CollideBoltStarFighter(BOLT_s *, starfighter_s *, _vuv_s *, _vuv_s *) __asm__(
-    "_ZL22CollideBoltStarFighterP6BOLT_sP13starfighter_sP6_vuv_sS4_") __attribute__((visibility("hidden")));
-
-__attribute__((force_align_arg_pointer)) i32 ChrisExtraBoltCollision(BOLT_s *bolt, nuvec_s *points) {
-    WORLDINFO_s *world = WORLD;
-    if (*reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(world) + 0x511c) == 0 || world->space_level == NULL ||
-        (bolt->flags & 3) == 0)
-        return 0;
-
-    _vuv_s second;
-    _vuv_s first;
-    memcpy(&first, &points[1], sizeof(NUVEC));
-    memcpy(&second, &bolt->velocity, sizeof(NUVEC));
-
-    spacelevel_s *space = world->space_level;
-#define CHRIS_CHECK_FIGHTER(fighter)                                                                                   \
-    do {                                                                                                               \
-        if ((fighter).reset_timer != 0 &&                                                                              \
-            CollideBoltStarFighter(bolt, reinterpret_cast<starfighter_s *>(&(fighter)), &first, &second) != 0)         \
-            return 1;                                                                                                  \
-    } while (0)
-#define CHRIS_CHECK_GROUP(index)                                                                                       \
-    do {                                                                                                               \
-        spacelevel_fighter_group_s *group = &space->fighter_groups[index];                                             \
-        if (group->trooper_team.reset_effect != 0) {                                                                   \
-            CHRIS_CHECK_FIGHTER(group->fighters[0]);                                                                   \
-            CHRIS_CHECK_FIGHTER(group->fighters[1]);                                                                   \
-            CHRIS_CHECK_FIGHTER(group->fighters[2]);                                                                   \
-            CHRIS_CHECK_FIGHTER(group->fighters[3]);                                                                   \
-            CHRIS_CHECK_FIGHTER(group->trooper_team);                                                                  \
-        }                                                                                                              \
-    } while (0)
-    CHRIS_CHECK_GROUP(0);
-    CHRIS_CHECK_GROUP(1);
-    CHRIS_CHECK_GROUP(2);
-    CHRIS_CHECK_GROUP(3);
-    CHRIS_CHECK_GROUP(4);
-    CHRIS_CHECK_GROUP(5);
-    CHRIS_CHECK_GROUP(6);
-#undef CHRIS_CHECK_GROUP
-    if (space->last_starfighter.reset_effect != 0) {
-        CHRIS_CHECK_FIGHTER(space->final_fighters[0]);
-        CHRIS_CHECK_FIGHTER(space->final_fighters[1]);
-        CHRIS_CHECK_FIGHTER(space->final_fighters[2]);
-        CHRIS_CHECK_FIGHTER(space->final_fighters[3]);
-        CHRIS_CHECK_FIGHTER(space->last_starfighter);
-    }
-#undef CHRIS_CHECK_FIGHTER
-    for (i32 i = 0; i < 96; ++i) {
-        spacelevel_starfighter_s *fighter = &space->queued_starfighters[i];
-        if (fighter->reset_state != 0 &&
-            CollideBoltStarFighter(bolt, reinterpret_cast<starfighter_s *>(fighter), &first, &second) != 0)
-            return 1;
-    }
+i32 ChrisExtraBoltCollision(BOLT_s *, nuvec_s *) {
+    STUBBED();
     return 0;
 }
-#undef CHRIS_STARFIGHTER_COLLIDE_CALL
 
 void ChrisGetSpaceShipMatrix(GameObject_s *object, numtx_s *matrix) {
     *matrix = object->apiobj.field_0xb8;

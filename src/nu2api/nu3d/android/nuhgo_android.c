@@ -1,10 +1,10 @@
 #include "nu2api/nucore/nuhgobj.h"
 #include "nu2api/numath/vuvec_internal.h"
 
-nuhgobj_s *NuHGobjRead(variptr_u *buffer, char *path) {
-    VARIPTR end;
-    end.addr = static_cast<usize>(-1);
-    return NuGHGRead(path, buffer, end);
+nuhgobj_s *NuHGobjRead(VARIPTR *buffer, char *path) {
+    VARIPTR buffer_end;
+    buffer_end.addr = static_cast<usize>(-1);
+    return NuGHGRead(path, buffer, buffer_end);
 }
 
 extern "C" void NuHGobjPOILocalMtxFromIX(nuhgobj_s *object, u8 index, NUMTX *joint_matrices, NUMTX *result) {

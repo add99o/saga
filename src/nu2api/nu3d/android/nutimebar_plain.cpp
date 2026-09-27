@@ -268,11 +268,11 @@ extern "C" void NuQFntPrintEx(NUQFNT *font, i32 x, i32 y, i32 alignment, const c
 
 static f32 timebar_unsigned_float(u32 value) {
     // Preserve the retail conversion for values whose sign bit is set.
-    return static_cast<f32>(value & 0xffff) + static_cast<f32>(value >> 16) * 65536.0f;
+    return static_cast<f32>(static_cast<i32>(value & 0xffff)) +
+           static_cast<f32>(static_cast<i32>(value >> 16)) * 65536.0f;
 }
 
 extern "C" void NuTimeBarSetRenderHorizontal(i32 set) {
-    static i32 tmppeak_reset = 30;
     if (set == -1 && NuTimeBar_EngineEnabled == 0)
         return;
 
@@ -282,90 +282,79 @@ extern "C" void NuTimeBarSetRenderHorizontal(i32 set) {
     NuQFntSetColour(system_qfont, 0xe0e0e0e0);
     NuQFntSetScale(system_qfont, 0.85f, 0.85f);
 
-    TimeBarSet *timebar = NuTimeBar_SetList[set + 1];
     const f32 vertical_scale = 120.0f / static_cast<f32>(PS2_VREZ_H);
-    const i32 screen_width = PS2_VREZ_W << 4;
-    const i32 screen_height = PS2_VREZ_H << 4;
-    f32 longest_name = 0.0f;
+    TimeBarSet *timebar = NuTimeBar_SetList[set + 1];
+    f32 name_width = 0.0f;
     for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
         if (timebar->slot_names[slot] != NULL) {
-            f32 length = NuQFntPrintLenU(system_qfont, const_cast<char *>(timebar->slot_names[slot]));
-            if (length > longest_name)
-                longest_name = length;
+            f32 width = NuQFntPrintLenU(system_qfont, const_cast<char *>(timebar->slot_names[slot]));
+            if (width > name_width)
+                name_width = width;
         }
     }
     NuQFntPopPrintMode();
     NuQFntPopCoordinateSystem();
+    name_width /= static_cast<f32>(PS2_VREZ_W << 4);
 
-    const f32 name_fraction = longest_name / static_cast<f32>(screen_width);
     for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
-        const i32 buffer = timebar->toggle_flags[slot];
-        u32 value = static_cast<u32>(timebar->accumulators[buffer][slot]);
         u32 &maximum = reinterpret_cast<u32 *>(timebar->field_14)[slot];
         u32 &recent_peak = reinterpret_cast<u32 *>(timebar->field_18)[slot];
+        u32 value = static_cast<u32>(timebar->accumulators[timebar->toggle_flags[slot]][slot]);
         if (value > maximum)
             maximum = value;
-        if (tmppeak_reset == 0)
+        if (NuTimeBar_RenderPeakReset == 0)
             recent_peak = 0;
+        value = static_cast<u32>(timebar->accumulators[timebar->toggle_flags[slot]][slot]);
         if (value > recent_peak)
             recent_peak = value;
 
         if (recent_peak != 0) {
-            const f32 slot_fraction = 0.15f + static_cast<f32>(slot + 1) * 0.025f * 2.0f;
-            const i32 bar_x = static_cast<i32>((name_fraction + 0.045f) * screen_width);
-            const i32 bar_y = static_cast<i32>(slot_fraction * screen_height);
-            const i32 bar_height = static_cast<i32>(0.025f * screen_height);
-            const f32 frames = timebar_unsigned_float(recent_peak) * 60.0f / 1000000.0f;
-            const i32 bar_width =
-                static_cast<i32>(((frames * vertical_scale + name_fraction) - name_fraction) * screen_width);
-            NuRndrRect2di(bar_x, bar_y, bar_width, bar_height, timebar->colours[slot], NULL);
+            const f32 left = name_width + 0.045f;
+            const f32 top = static_cast<f32>(slot + 1) * 0.025f * 2.0f + 0.15f;
+            const f32 right = left + timebar_unsigned_float(recent_peak) * 60.0f / 1000000.0f * vertical_scale;
+            const i32 x = static_cast<i32>(left * (PS2_VREZ_W << 4));
+            const i32 y = static_cast<i32>(top * (PS2_VREZ_H << 4));
+            const i32 width = static_cast<i32>((right - left) * (PS2_VREZ_W << 4));
+            const i32 height = static_cast<i32>((top + 0.025f - top) * (PS2_VREZ_H << 4));
+            NuRndrRect2di(x, y, width, height, timebar->colours[slot], NULL);
 
             NuQFntPushPrintMode(2);
             NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
             NuQFntSet(system_qfont);
             NuQFntSetColour(system_qfont, 0xe0e0e0e0);
             NuQFntSetScale(system_qfont, 0.85f, 0.85f);
-            const i32 label_y = bar_y + bar_height - static_cast<i32>(NuQFntHeight(system_qfont) * 2.0f);
-            if (timebar->slot_names[slot] != NULL) {
-                NuQFntPrintEx(system_qfont, static_cast<i32>(0.025f * screen_height), label_y, 0x10,
+            const i32 text_y = y + height - static_cast<i32>(NuQFntHeight(system_qfont) * 0.25f);
+            if (timebar->slot_names[slot] != NULL)
+                NuQFntPrintEx(system_qfont, static_cast<i32>(0.025f * (PS2_VREZ_W << 4)), text_y, 0x10,
                               timebar->slot_names[slot]);
-            }
-            if (recent_peak != 0) {
-                const i32 recent_value = static_cast<i32>(timebar_unsigned_float(recent_peak) * 15734.0f / 1000000.0f);
-                NuQFntPrintEx(system_qfont, bar_x, label_y, 0x10, "%i", recent_value);
-            }
-            if (maximum != 0) {
-                const i32 maximum_value = static_cast<i32>(timebar_unsigned_float(maximum) * 15734.0f / 1000000.0f);
-                NuQFntPrintEx(system_qfont, static_cast<i32>(0.975f * screen_height), label_y, 0x20, "%i",
-                              maximum_value);
-            }
+            if (timebar->field_18[slot] != 0)
+                NuQFntPrintEx(system_qfont, x, text_y, 0x10, "%i",
+                              static_cast<i32>(timebar_unsigned_float(static_cast<u32>(timebar->field_18[slot])) *
+                                               15734.0f / 1000000.0f));
+            if (timebar->field_14[slot] != 0)
+                NuQFntPrintEx(system_qfont, static_cast<i32>(0.975f * (PS2_VREZ_W << 4)), text_y, 0x20, "%i",
+                              static_cast<i32>(timebar_unsigned_float(static_cast<u32>(timebar->field_14[slot])) *
+                                               15734.0f / 1000000.0f));
             NuQFntPopPrintMode();
             NuQFntPopCoordinateSystem();
         }
-
         if (timebar->field_28 != 0)
             NuTimeBarSlotReset(set, slot);
         if (NuTimeBar_PeakReset != 0)
-            maximum = 0;
+            timebar->field_14[slot] = 0;
     }
     NuTimeBar_PeakReset = 0;
-    --tmppeak_reset;
-    if (tmppeak_reset < 0)
-        tmppeak_reset = 30;
+    --NuTimeBar_RenderPeakReset;
+    if (NuTimeBar_RenderPeakReset < 0)
+        NuTimeBar_RenderPeakReset = 30;
 }
 
 extern "C" void NuTimeBarSetRender(i32 set) {
-    if (set < -1 || set >= kMaxTimeBarSets - 1) {
-        return;
-    }
+    // Like the horizontal renderer, active rendering requires a created set.
     TimeBarSet *timebar = NuTimeBar_SetList[set + 1];
-    if (timebar == NULL) {
-        return;
-    }
-
     f32 gpu_frames = 0.0f;
     if (set == -1) {
-        if (NuTimeBar_GpuFrameOutEnabled != 0 && timebar->slot_count > 1) {
+        if (NuTimeBar_GpuFrameOutEnabled != 0) {
             i32 buffer = timebar->toggle_flags[1];
             u32 gpu_time = static_cast<u32>(timebar->accumulators[buffer][1]);
             gpu_frames = timebar_unsigned_float(gpu_time) * nuapi.fps / 1000000.0f;
@@ -376,10 +365,8 @@ extern "C" void NuTimeBarSetRender(i32 set) {
     }
 
     NuRndrBeginScene(-1);
-    if (set >= 0 || NuTimeBar_EngineEnabled != 0) {
+    if (set >= 0 || (set == -1 && NuTimeBar_EngineEnabled != 0)) {
         const f32 vertical_scale = 120.0f / static_cast<f32>(PS2_VREZ_H);
-        const i32 screen_width = PS2_VREZ_W << 4;
-        const i32 screen_height = PS2_VREZ_H << 4;
 
         for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
             i32 buffer = timebar->toggle_flags[slot];
@@ -392,17 +379,19 @@ extern "C" void NuTimeBarSetRender(i32 set) {
             if (NuTimeBar_RenderPeakReset == 0) {
                 recent_peak = 0;
             }
+            value = static_cast<u32>(timebar->accumulators[timebar->toggle_flags[slot]][slot]);
             if (value > recent_peak) {
                 recent_peak = value;
             }
 
             if (recent_peak != 0) {
-                const f32 x_fraction = static_cast<f32>(slot + 1) * 0.025f * 3.0f;
-                const i32 x = static_cast<i32>(x_fraction * screen_width);
-                const i32 y = static_cast<i32>(0.05f * screen_height);
-                const i32 width = static_cast<i32>(0.025f * screen_width);
-                const f32 frame_fraction = timebar_unsigned_float(recent_peak) * 60.0f / 1000000.0f;
-                const i32 height = static_cast<i32>(frame_fraction * vertical_scale * screen_height);
+                const f32 left = static_cast<f32>(slot + 1) * 0.025f * 3.0f;
+                const f32 top = 0.05f;
+                const f32 bottom = top + timebar_unsigned_float(recent_peak) * 60.0f / 1000000.0f * vertical_scale;
+                const i32 x = static_cast<i32>(left * (PS2_VREZ_W << 4));
+                const i32 y = static_cast<i32>(top * (PS2_VREZ_H << 4));
+                const i32 width = static_cast<i32>((left + 0.025f - left) * (PS2_VREZ_W << 4));
+                const i32 height = static_cast<i32>((bottom - top) * (PS2_VREZ_H << 4));
                 NuRndrRect2di(x, y, width, height, timebar->colours[slot], NULL);
 
                 NuQFntPushPrintMode(2);
@@ -411,18 +400,53 @@ extern "C" void NuTimeBarSetRender(i32 set) {
                 NuQFntSetScale(system_qfont, 1.0f, 1.0f);
                 NuQFntSetColour(system_qfont, 0xe0e0e0e0);
 
-                const i32 centre_x = x + width / 2;
-                const i32 recent_value = static_cast<i32>(timebar_unsigned_float(recent_peak) * 15734.0f /
-                                                          1000000.0f);
-                const i32 maximum_value = static_cast<i32>(timebar_unsigned_float(maximum) * 15734.0f /
-                                                           1000000.0f);
-                NuQFntPrintEx(system_qfont, centre_x, y + height, 0x40, "%d", MIN(recent_value, 9999));
-                NuQFntPrintEx(system_qfont, centre_x, screen_height - static_cast<i32>(NuQFntHeight(system_qfont) * 2.0f),
-                              0x40, "%d", maximum_value);
+                const i32 text_width = PS2_VREZ_W;
+                NuQFntBaseline(system_qfont);
+                if (timebar->field_18[slot] != 0) {
+                    i32 value = static_cast<i32>(timebar_unsigned_float(static_cast<u32>(timebar->field_18[slot])) *
+                                                 15734.0f / 1000000.0f);
+                    i32 text_y = static_cast<i32>(static_cast<f32>(PS2_VREZ_H) * 0.05f) * 16;
+                    if (value > 9999)
+                        value = 9999;
+                    text_y += static_cast<i32>(NuQFntHeight(system_qfont)) * (value > 999 ? 5 : 4);
+                    const f32 column = static_cast<f32>(text_width) * 0.025f;
+                    const i32 text_x =
+                        (static_cast<i32>(column) * ((slot + 1) * 3) + static_cast<i32>(column * 0.5f)) * 16;
+                    // Retail stacks three digits bottom-up, plus a fourth for
+                    // values >= 1000; the final height query occurs either way.
+                    for (i32 digit = 0; digit < 3; ++digit) {
+                        text_y -= static_cast<i32>(NuQFntHeight(system_qfont));
+                        NuQFntPrintEx(system_qfont, text_x, text_y, 0x40, "%d", value % 10);
+                        value /= 10;
+                    }
+                    const f32 last_height = NuQFntHeight(system_qfont);
+                    if (value != 0) {
+                        text_y -= static_cast<i32>(last_height);
+                        NuQFntPrintEx(system_qfont, text_x, text_y, 0x40, "%d", value % 10);
+                    }
+                }
+                if (timebar->field_14[slot] != 0) {
+                    const f32 column = static_cast<f32>(PS2_VREZ_W) * 0.025f;
+                    const i32 text_x =
+                        (static_cast<i32>(column) * ((slot + 1) * 3) + static_cast<i32>(column * 0.5f)) * 16;
+                    i32 text_y = PS2_VREZ_H * 16;
+                    text_y -= static_cast<i32>(NuQFntHeight(system_qfont)) * 2;
+                    text_y += static_cast<i32>(NuQFntBaseline(system_qfont));
+                    if ((slot & 1) != 0)
+                        text_y -= 320;
+                    NuQFntPrintEx(system_qfont, text_x, text_y, 0x40, "%d",
+                                  static_cast<i32>(timebar_unsigned_float(static_cast<u32>(timebar->field_14[slot])) *
+                                                   15734.0f / 1000000.0f));
+                }
                 if (timebar->slot_names[slot] != NULL) {
-                    NuQFntPrintEx(system_qfont, centre_x,
-                                  screen_height - static_cast<i32>(NuQFntHeight(system_qfont) * 3.0f), 0x40, "%s",
-                                  timebar->slot_names[slot]);
+                    const f32 column = static_cast<f32>(PS2_VREZ_W) * 0.025f;
+                    const i32 text_x =
+                        (static_cast<i32>(column) * ((slot + 1) * 3) + static_cast<i32>(column * 0.5f)) * 16;
+                    i32 text_y = PS2_VREZ_H * 16;
+                    text_y -= static_cast<i32>(NuQFntHeight(system_qfont));
+                    text_y += static_cast<i32>(NuQFntBaseline(system_qfont));
+                    text_y -= (slot & 1) != 0 ? 640 : 320;
+                    NuQFntPrintEx(system_qfont, text_x, text_y, 0x40, timebar->slot_names[slot]);
                 }
                 NuQFntPopPrintMode();
                 NuQFntPopCoordinateSystem();
@@ -432,7 +456,7 @@ extern "C" void NuTimeBarSetRender(i32 set) {
                 NuTimeBarSlotReset(set, slot);
             }
             if (NuTimeBar_PeakReset != 0) {
-                maximum = 0;
+                timebar->field_14[slot] = 0;
             }
         }
 

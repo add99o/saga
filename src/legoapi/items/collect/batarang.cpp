@@ -37,27 +37,37 @@ i32 Batarang_SeekToTarget(BATARANG_s *);
 i32 Batarang_StartTargetting(GameObject_s *);
 i32 Batarang_GetObjectFromCharID(i32);
 
-static inline bool Batarang_TargetPosition(BATARANG_s *batarang, i32 index, NUVEC *position) {
-    if (index < 0 || index >= batarang->active || batarang->targets[index].lost != 0 ||
-        batarang->targets[index].object == NULL) {
-        return false;
+// Keep the original local entry point while its other retail caller (the
+// target-marker path in Batarang_MoveCode) remains unreconstructed.
+static __used__ unsigned int Batarang_GetTargetPos(BATARANG_s *batarang, int index, nuvec_s *position) {
+    if (batarang->field_0x7d != 0 && batarang->active != 0 && batarang->active == index) {
+        GameObject_s *owner = batarang->owner;
+        *position = owner->apiobj.collision_position;
+        if ((owner->field_0xe24 & 8) != 0) {
+            i32 joint = static_cast<i8>(owner->apiobj.character_data->player_config->unknown_112[0]);
+            if (joint != -1 && owner->apiobj.character_model->points_of_interest[joint] != NULL)
+                *position = *NUMTX_GET_ROW_VEC(&owner->joint_matrices[joint], 3);
+        }
+        return 1;
     }
-    BATARANG_TARGET_s &target = batarang->targets[index];
-    switch (target.type) {
+    if (index >= batarang->active)
+        return 0;
+    BATARANG_TARGET_s *target = &batarang->targets[index];
+    switch (target->type) {
         case 0:
-            *position = static_cast<GameObject_s *>(target.object)->apiobj.collision_position;
-            return true;
+            *position = static_cast<GameObject_s *>(target->object)->apiobj.collision_position;
+            return 1;
         case 1:
-            *position = static_cast<DETONATOR_s *>(target.object)->field_0x0c;
-            return true;
+            *position = static_cast<DETONATOR_s *>(target->object)->field_0x0c;
+            return 1;
         case 2:
-            *position = static_cast<GIZMOBLOWUP_s *>(target.object)->mid_position;
-            return true;
+            *position = static_cast<GIZMOBLOWUP_s *>(target->object)->mid_position;
+            return 1;
         case 3:
-            *position = *static_cast<NUVEC *>(target.object);
-            return true;
+            *position = *static_cast<NUVEC *>(target->object);
+            return 1;
         default:
-            return false;
+            return 0;
     }
 }
 
@@ -246,8 +256,9 @@ void Batarang_Ricochet(BATARANG_s *batarang) {
     if (batarang == NULL || (batarang->ricochet_flags & 1) == 0) {
         return;
     }
-    batarang->ricochet_timer += FRAMETIME;
-    if (batarang->ricochet_timer >= 0.2f) {
+    if (batarang->ricochet_timer < 0.2f) {
+        batarang->ricochet_timer += FRAMETIME;
+    } else {
         batarang->ricochet_timer = 0.0f;
         batarang->ricochet_flags &= ~1u;
         batarang->ricochet_normal = v000;
@@ -279,35 +290,73 @@ i32 Batarang_InitRicochet(BATARANG_s *batarang, nuvec_s *normal) {
         batarang->ricochet_normal = v000;
         return 0;
     }
+    batarang->ricochet_flags |= 1;
     batarang->ricochet_normal = *normal;
     ++batarang->ricochet_count;
-    batarang->ricochet_flags |= 1;
     batarang->ricochet_timer = 0.0f;
-    NUVEC unit = *normal;
-    NuVecNorm(&unit, &unit);
-    const f32 projection = NuVecDot(&batarang->velocity, &unit);
-    batarang->velocity.x = (batarang->velocity.x - 2.0f * projection * unit.x) * 0.75f;
-    batarang->velocity.y = (batarang->velocity.y - 2.0f * projection * unit.y) * 0.75f;
-    batarang->velocity.z = (batarang->velocity.z - 2.0f * projection * unit.z) * 0.75f;
+    NUVEC original_velocity = batarang->velocity;
+    NUVEC reflected_velocity = batarang->velocity;
+    NUVEC axis;
+    NuVecCross(&axis, &batarang->ricochet_normal, &reflected_velocity);
+    NuVecNorm(&axis, &axis);
+    NUMTX rotation;
+    NuMtxSetIdentity(&rotation);
+    f32 magnitudes = NuVecMag(&batarang->ricochet_normal) * NuVecMag(&reflected_velocity);
+    f32 dot = NuVecDot(&batarang->ricochet_normal, &reflected_velocity);
+    f32 cosine = magnitudes == 0.0f || dot == 0.0f ? 0.0f : dot / magnitudes;
+    i16 angle = 0x4000 - NuASin(cosine);
+    NuMtxSetRotationAxis(&rotation, 0x8000 - angle * 2, &axis);
+    NuVecMtxRotate(&reflected_velocity, &reflected_velocity, &rotation);
+    f32 speed = NuVecNorm(&original_velocity, &original_velocity);
+    NuVecNorm(&reflected_velocity, &reflected_velocity);
+    NuVecAdd(&reflected_velocity, &reflected_velocity, &original_velocity);
+    NuVecNorm(&reflected_velocity, &reflected_velocity);
+    NuVecScale(&reflected_velocity, &reflected_velocity, speed * 0.8f);
+    batarang->velocity.x = SeekLinearF(batarang->velocity.x, reflected_velocity.x, 10.0f);
+    batarang->velocity.y = SeekLinearF(batarang->velocity.y, reflected_velocity.y, 10.0f);
+    batarang->velocity.z = SeekLinearF(batarang->velocity.z, reflected_velocity.z, 10.0f);
     return 1;
 }
 
 i32 Batarang_SeekToTarget(BATARANG_s *batarang) {
-    if (batarang == NULL || batarang->owner == NULL) {
+    if (batarang == NULL) {
         return 0;
     }
     NUVEC target;
-    if (batarang->current_target >= batarang->active ||
-        !Batarang_TargetPosition(batarang, batarang->current_target, &target)) {
+    if (batarang->current_target > batarang->active || batarang->targets[batarang->current_target].lost != 0) {
         target = batarang->owner->apiobj.collision_position;
+    } else if (!Batarang_GetTargetPos(batarang, batarang->current_target, &target)) {
+        return 0;
     }
 
-    NUVEC travel;
-    NuVecScale(&travel, &batarang->velocity, FRAMETIME * 2.0f);
-    if (GameRayCast(&batarang->position, &travel, 0.1f, 0x1f) != 0) {
-        NUVEC normal;
-        NewRayCastGetImpactNormal(&normal);
-        Batarang_InitRicochet(batarang, &normal);
+    const f32 rate = batarang->flight_time > 1.0f ? (batarang->flight_time - 1.0f) * 5.0f + 5.0f : 5.0f;
+    if (batarang->flight_time < 4.0f) {
+        NUVEC travel, destination;
+        NuVecScale(&travel, &batarang->velocity, FRAMETIME * 2.0f);
+        NuVecAdd(&destination, &batarang->position, &travel);
+        if (GameRayCast(&batarang->position, &travel, 0.1f, 0x1f) != 0) {
+            i32 platform = TerrainPlatId();
+            bool ricochet = batarang->field_0x7d != 0 && batarang->current_target >= batarang->active;
+            if (!ricochet) {
+                BATARANG_TARGET_s *current = &batarang->targets[batarang->current_target];
+                switch (current->type) {
+                    case 0:
+                    case 1:
+                    case 3:
+                        ricochet = true;
+                        break;
+                    case 2:
+                        ricochet = platform != static_cast<GIZMOBLOWUP_s *>(current->object)->platform_id;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            if (ricochet) {
+                NewRayCastGetImpactNormal(&travel);
+                Batarang_InitRicochet(batarang, &travel);
+            }
+        }
     }
     if ((batarang->ricochet_flags & 1) != 0) {
         Batarang_Ricochet(batarang);
@@ -316,15 +365,19 @@ i32 Batarang_SeekToTarget(BATARANG_s *batarang) {
         NuVecSub(&desired, &target, &batarang->position);
         NuVecNorm(&desired, &desired);
         NuVecScale(&desired, &desired, 5.0f);
-        const f32 rate = batarang->flight_time > 1.0f ? batarang->flight_time * 2.0f : 2.0f;
         batarang->velocity.x = SeekValF(batarang->velocity.x, desired.x, rate);
         batarang->velocity.y = SeekValF(batarang->velocity.y, desired.y, rate);
         batarang->velocity.z = SeekValF(batarang->velocity.z, desired.z, rate);
+        batarang->ricochet_timer += FRAMETIME;
+        if (batarang->ricochet_timer > 0.2f && batarang->ricochet_count > 0) {
+            --batarang->ricochet_count;
+            batarang->ricochet_timer = 0.0f;
+        }
     }
     batarang->position.x += batarang->velocity.x * FRAMETIME;
     batarang->position.y += batarang->velocity.y * FRAMETIME;
     batarang->position.z += batarang->velocity.z * FRAMETIME;
-    return NuVecDistSqr(&batarang->position, &target, NULL) < 0.25f;
+    return NuVecDistSqr(&batarang->position, &target, NULL) < 0.0625f;
 }
 
 void Batarangs_CheckLostData(void *data) {

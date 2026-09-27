@@ -2,6 +2,8 @@
 #include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/nu3d/nuhspecial.h"
 #include <string.h>
+#include <stdio.h>
+#include "nu2api/nucore/nustring.h"
 // nudlist.cpp — Display-list manager
 //
 // Transcribed from libTTapp.so (Android x86). Builds and executes the
@@ -1423,18 +1425,16 @@ extern "C" void NuDisplayListBurstRndrSpecial(nuhspecial_s *handle, u32 count, N
     }
 }
 
-extern "C" i32 DisplayListDebugPS(NUDISPLAYLISTITEM *item, char *text);
-extern "C" void DisplayListPrintItemPS(NUDISPLAYLISTITEM *item, i32 file_handle);
-
-__attribute__((force_align_arg_pointer)) void DisplayListPrintItem(nudisplaylistitem_s *item, i32 index, i32 type_count,
-                                                                   i32 *types, i32 file_handle) {
+void DisplayListPrintItem(nudisplaylistitem_s *item, i32 index, i32 type_count, i32 *types, i32 file_handle) {
     char text[256];
     char detail[256];
     text[0] = '\0';
     if (file_handle != 0) {
-        strcpy(text, item->id == 0 ? "<font color = \"#00a000\">" : "<font color = \"#0000a0\">");
+        if (item->id == 0)
+            strcpy(text, "<font color = \"#00a000\">");
+        else
+            strcpy(text, "<font color = \"#0000a0\">");
     }
-
     sprintf(detail, "%d: ", index);
     NuStrCat(text, detail);
     switch (item->type) {
@@ -1530,27 +1530,23 @@ __attribute__((force_align_arg_pointer)) void DisplayListPrintItem(nudisplaylist
     NuStrCat(text, detail);
     sprintf(detail, "(%x)", static_cast<u32>(reinterpret_cast<usize>(item->next)));
     NuStrCat(text, detail);
-
-    bool write_html = false;
-    if (type_count == 0) {
-        write_html = nudlist_debug_level > 0;
-    } else if (type_count > 0) {
-        for (i32 i = 0; i < type_count; ++i) {
-            if (types[i] == item->type) {
-                write_html = true;
-                break;
-            }
+    bool selected = type_count == 0;
+    for (i32 type_index = 0; type_index < type_count; ++type_index) {
+        if (types[type_index] == item->type) {
+            selected = true;
+            break;
         }
     }
-    if (file_handle == 0)
-        return;
-    if (write_html) {
-        NuHtmlWrite(text);
-        NuHtmlWrite("</br>\n");
-        if (item->id == 0)
-            NuHtmlWrite("<font color = \"#000000\">");
+    if (selected && nudlist_debug_level > 0) {
+        if (file_handle != 0) {
+            NuHtmlWrite(text);
+            NuHtmlWrite("</br>\n");
+            if (item->id == 0)
+                NuHtmlWrite("<font color = \"#000000\">");
+        }
     }
-    DisplayListPrintItemPS(item, file_handle);
+    if (file_handle != 0)
+        DisplayListPrintItemPS(item, file_handle);
 }
 
 void DisplayListCreateDynMtlList(variptr_u *buffer, variptr_u buffer_end) {

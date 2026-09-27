@@ -358,7 +358,7 @@ void BountyHunterPursuitA_Update(WORLDINFO_s *world) {
     if (zamarrow.object != NULL && (zamarrow.object->apiobj.field_0x1f8 & 0x1000) != 0 &&
         zamarrow.object->apiobj.field_0x287 == 0) {
         if (FadeSys.fade == 0.0f && pause_rndr_on == 0) {
-            zamarrow.timer = MIN(1.0f, zamarrow.timer + FRAMETIME + FRAMETIME);
+            zamarrow.timer = MIN(1.0f, (FRAMETIME + FRAMETIME) + zamarrow.timer);
             if (0.1f > NuFmod(GameTimer.time_elapsed_mod_seconds, 0.2f)) {
                 UpdateZamArrow(world);
             }
@@ -375,7 +375,7 @@ void BountyHunterPursuitB_Update(WORLDINFO_s *world) {
     }
 
     if (FadeSys.fade == 0.0f && pause_rndr_on == 0) {
-        zamarrow.timer = MIN(1.0f, zamarrow.timer + FRAMETIME + FRAMETIME);
+        zamarrow.timer = MIN(1.0f, (FRAMETIME + FRAMETIME) + zamarrow.timer);
         if (0.1f > NuFmod(GameTimer.time_elapsed_mod_seconds, 0.2f)) {
             UpdateZamArrow(world);
         }
@@ -388,7 +388,7 @@ void BountyHunterPursuitC_Update(WORLDINFO_s *world) {
     if (zamarrow.object != NULL && (zamarrow.object->apiobj.field_0x1f8 & 0x1000) != 0 &&
         zamarrow.object->apiobj.field_0x287 == 0) {
         if (FadeSys.fade == 0.0f && pause_rndr_on == 0) {
-            zamarrow.timer = MIN(1.0f, zamarrow.timer + FRAMETIME + FRAMETIME);
+            zamarrow.timer = MIN(1.0f, (FRAMETIME + FRAMETIME) + zamarrow.timer);
             if (0.1f > NuFmod(GameTimer.time_elapsed_mod_seconds, 0.2f)) {
                 UpdateZamArrow(world);
             }
@@ -402,7 +402,7 @@ void BountyHunterPursuitC_Update(WORLDINFO_s *world) {
         return;
     }
 
-    if (traffic_test_z <= player->apiobj.position.z) {
+    if (!(traffic_test_z > player->apiobj.position.z)) {
         if (traffic->side == 1) {
             return;
         }

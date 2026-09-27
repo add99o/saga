@@ -7,6 +7,7 @@
 #include "gamelib/util/CRC16.h"
 #include "gameapi/edtools/edfile.h"
 #include "gameapi/edtools/EdObjectNotifier.h"
+#include "nu2api/nu3d/nurndr.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -139,9 +140,12 @@ struct ReplicatorData {
     u8 *start;
     u8 *end;
     u8 *cursor;
+    // Retail AllowPush copies all four words; the final word is otherwise unused.
+    u8 reserved_0c[4];
 };
-DECOMP_ASSERT(sizeof(ReplicatorData) == 0xc, "ReplicatorData ABI");
+DECOMP_ASSERT(sizeof(ReplicatorData) == 0x10, "ReplicatorData ABI");
 DECOMP_ASSERT(offsetof(ReplicatorData, cursor) == 8, "ReplicatorData cursor offset");
+DECOMP_ASSERT(offsetof(ReplicatorData, reserved_0c) == 0xc, "ReplicatorData reserved word offset");
 struct WORLDINFO_s;
 struct ePeerLeftReason {
     i32 value;
@@ -205,7 +209,8 @@ struct NetReplicator {
     u16 message_size;
 
     NetReplicator(i32, float, float);
-    virtual bool AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) = 0;
+    // PushObject tests the full EAX return value at retail 0x532847.
+    virtual i32 AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) = 0;
     virtual i32 SerialiseObject(EdStream &, NetPeer *, EdClass const *, void *, ReplicatorData &, i16 *);
     virtual i32 DoPrediction(EdClass const *, void *, ReplicatorData &, i32);
 };
@@ -213,13 +218,13 @@ struct NetChangedReplicator : NetReplicator {
     static i16 mTableInited;
     static i16 mCrc32Table[256];
 
-    bool AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
+    i32 AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
     void CheckSum(unsigned char const *, u32, u32 &) const;
     void CheckSumObject(EdClass const *, void const *, u32 &) const;
     void InitTable();
 };
 struct NetConstReplicator : NetReplicator {
-    bool AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
+    i32 AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
 };
 struct NetMessage {
     struct MessageData {
@@ -407,7 +412,7 @@ struct NetPredictor : NetReplicator {
     f32 minimum_value;
     f32 maximum_value;
 
-    bool AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
+    i32 AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
     virtual i32 CheckPredictionError(EdClass const *, void *, float *, float *, i32);
     i32 DoPrediction(EdClass const *, void *, ReplicatorData &, NetPredictor::PredictorTime *, i32);
     i32 DoPrediction(EdClass const *, void *, ReplicatorData &, i32) override;
@@ -439,7 +444,7 @@ DECOMP_ASSERT(sizeof(void *) != 4 || sizeof(NetPredictor) == 0x28, "NetPredictor
 DECOMP_ASSERT(sizeof(void *) != 4 || offsetof(NetPeer, time_offset) == 0x29c, "NetPeer::time_offset 32-bit offset");
 DECOMP_ASSERT(offsetof(NetPeer, stats) == 0x10, "NetPeer stats offset");
 struct NetSimpleReplicator : NetReplicator {
-    bool AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
+    i32 AllowPush(EdClass const *, void const *, ReplicatorData &, i32, i32) override;
 };
 DECOMP_ASSERT(sizeof(void *) != 4 || sizeof(NetReplicator) == 0x18, "NetReplicator 32-bit size");
 DECOMP_ASSERT(offsetof(NetReplicator, next) == 4, "NetReplicator next offset");
@@ -670,7 +675,7 @@ struct TouchHacks {
     static bool TouchControlsActive;
 
     struct TintStack {
-        float ambient[3];
+        NUCOLOUR3 ambient;
 
         TintStack();
         ~TintStack();

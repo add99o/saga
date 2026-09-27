@@ -494,11 +494,6 @@ namespace nu2api {
           {0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u, 0x0u}}},
     };
 
-    // Uber-shader identity used by key generation (first 8 bytes of the MD5).
-    static const u8 kUberShaderHash[16] = {
-        0x38, 0x2a, 0x9d, 0x15, 0xf8, 0xfa, 0xbf, 0x09, 0xcb, 0xcc, 0x9b, 0xec, 0x5e, 0xb7, 0x62, 0x40,
-    };
-
     extern "C" void glUniform1fv(GLint, GLsizei, const GLfloat *);
     extern "C" void glUniform2fv(GLint, GLsizei, const GLfloat *);
     extern "C" void glUniform3fv(GLint, GLsizei, const GLfloat *);
@@ -720,37 +715,6 @@ namespace nu2api {
 
 } // namespace nu2api
 
-extern "C" u8 uberShader2_md5[16];
-
-extern "C" void NuShaderObjectKeyGenerate4(u32 *key, i32 value, i32 variant) {
-    u8 block[0x68] = {};
-    block[0x14] = 1;
-    for (i32 i = 0; i < 8; ++i) {
-        block[0x0c + i] = uberShader2_md5[i];
-    }
-    block[0x04] = static_cast<u8>(value);
-    block[0x05] = static_cast<u8>(value >> 8);
-    block[0x06] = static_cast<u8>(value >> 16);
-    block[0x07] = static_cast<u8>(value >> 24);
-    block[0x08] = static_cast<u8>(variant & 0xf);
-    block[0x09] = static_cast<u8>(value);
-    block[0x0a] = static_cast<u8>(value >> 8);
-    block[0x0b] = static_cast<u8>(value >> 16);
-    *key = CRC16::hashInverse(block, sizeof(block)) << 16;
-    *key |= CRC16::hash(block, sizeof(block)) & 0xffff;
-}
-
-extern "C" void NuShaderObjectKeySetUberShaderHash(const u8 *hash) {
-    static u8 defaultHash16[16];
-    const u8 *source = hash;
-    if (source == NULL) {
-        source = defaultHash16;
-    }
-    for (i32 i = 0; i < 16; ++i) {
-        uberShader2_md5[i] = source[i];
-    }
-}
-
 namespace nu2api {
 
     // ---------------------------------------------------------------------------
@@ -774,14 +738,14 @@ namespace nu2api {
 
         if (!pixelStage) {
             // Vertex path carries the uber-shader identity.
-            block[0x0c] = kUberShaderHash[0];
-            block[0x0d] = kUberShaderHash[1];
-            block[0x0e] = kUberShaderHash[2];
-            block[0x0f] = kUberShaderHash[3];
-            block[0x10] = kUberShaderHash[4];
-            block[0x11] = kUberShaderHash[5];
-            block[0x12] = kUberShaderHash[6];
-            block[0x13] = kUberShaderHash[7];
+            block[0x0c] = uberShader2_md5[0];
+            block[0x0d] = uberShader2_md5[1];
+            block[0x0e] = uberShader2_md5[2];
+            block[0x0f] = uberShader2_md5[3];
+            block[0x10] = uberShader2_md5[4];
+            block[0x11] = uberShader2_md5[5];
+            block[0x12] = uberShader2_md5[6];
+            block[0x13] = uberShader2_md5[7];
 
             if (filter->variant != 0) {
                 flagsWord = 0x1000;
@@ -902,6 +866,47 @@ namespace nu2api {
     }
 
 } // namespace nu2api
+
+extern "C" void NuShaderObjectKeyGenerate2(u32 *key, const NUSHADERMTLDESC *desc, const NUMTL *material, i32 flags,
+                                           i32 variant, i32 pixel_stage) {
+    ShaderMtlDescFilter filter;
+    filter.internalInit(desc, material, flags, variant);
+    NuShaderObjectKeyGenerate3(key, &filter, pixel_stage);
+}
+
+extern "C" void NuShaderObjectKeyGenerate4(u32 *key, i32 flags, i32 selector) {
+    // Serialized hash input, not a native pointer-bearing material structure.
+    u8 block[0x68] = {};
+    block[0x14] = 1;
+    block[0x0c] = uberShader2_md5[0];
+    block[0x0d] = uberShader2_md5[1];
+    block[0x0e] = uberShader2_md5[2];
+    block[0x0f] = uberShader2_md5[3];
+    block[0x10] = uberShader2_md5[4];
+    block[0x11] = uberShader2_md5[5];
+    block[0x12] = uberShader2_md5[6];
+    block[0x13] = uberShader2_md5[7];
+    block[0x04] = static_cast<u8>(flags);
+    block[0x05] = static_cast<u8>(flags >> 8);
+    block[0x06] = static_cast<u8>(flags >> 16);
+    block[0x07] = static_cast<u8>(flags >> 24);
+    block[0x08] = static_cast<u8>(selector & 0xf);
+    block[0x09] = block[0x04];
+    block[0x0a] = block[0x05];
+    block[0x0b] = block[0x06];
+    *key = CRC16::hashInverse(block, sizeof(block)) << 16;
+    *key |= CRC16::hash(block, sizeof(block)) & 0xffff;
+}
+
+extern "C" void NuShaderObjectKeySetUberShaderHash(const u8 *hash) {
+    static u8 defaultHash16[16];
+    if (hash == NULL) {
+        hash = defaultHash16;
+    }
+    for (i32 i = 0; i < 16; ++i) {
+        uberShader2_md5[i] = hash[i];
+    }
+}
 
 namespace nu2api {
 

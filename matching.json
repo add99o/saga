@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.36291,
+    "fuzzy_match_percent": 65.21492,
     "total_code": "4722419",
-    "matched_code": "517759",
-    "matched_code_percent": 10.963851,
+    "matched_code": "520312",
+    "matched_code_percent": 11.017913,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6247,
-    "matched_functions_percent": 46.415035,
+    "matched_functions": 6259,
+    "matched_functions_percent": 46.504196,
     "total_units": 1
   },
   "text": {
@@ -15724,7 +15724,7 @@
           "address": 4469408,
           "offset": 3579440,
           "size": 524,
-          "match_percent": 62.436974
+          "match_percent": 61.596638
         },
         {
           "name": "_ZN20MechTouchTaskBuildIt6UpdateEv",
@@ -18209,7 +18209,7 @@
           "address": 4573456,
           "offset": 3683488,
           "size": 873,
-          "match_percent": 5.295238
+          "match_percent": 44.909523
         },
         {
           "name": "_ZN11MechSystems3GetEv",
@@ -24088,6 +24088,14 @@
           "match_percent": 65.81287
         },
         {
+          "name": "_ZL18ParseAIPathCnxFlagPc",
+          "demangled_name": "ParseAIPathCnxFlag(char*)",
+          "address": 1646672,
+          "offset": 756704,
+          "size": 202,
+          "match_percent": 86.05357
+        },
+        {
           "name": "_ZL20Action_CnxControllerP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
           "demangled_name": "Action_CnxController(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
           "address": 1646880,
@@ -25823,12 +25831,20 @@
           "match_percent": 90.346306
         },
         {
+          "name": "_Z18Action_MoveForwardP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
+          "demangled_name": "Action_MoveForward(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
+          "address": 1619680,
+          "offset": 729712,
+          "size": 851,
+          "match_percent": 98.82039
+        },
+        {
           "name": "_ZL22Action_FollowCharacterP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
           "demangled_name": "Action_FollowCharacter(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
           "address": 1666784,
           "offset": 776816,
           "size": 466,
-          "match_percent": 33.104477
+          "match_percent": 33.328358
         },
         {
           "name": "_ZL28Action_CreateSplineCreaturesP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -36207,7 +36223,7 @@
           "address": 4390272,
           "offset": 3500304,
           "size": 1440,
-          "match_percent": 1.308411
+          "match_percent": 99.267914
         }
       ]
     },
@@ -36611,6 +36627,14 @@
           "offset": 2281416,
           "size": 119,
           "match_percent": 99.97222
+        },
+        {
+          "name": "_Z13NuWindFreeGrpP11NuWindGType",
+          "demangled_name": "NuWindFreeGrp(NuWindGType*)",
+          "address": 3171503,
+          "offset": 2281535,
+          "size": 20,
+          "match_percent": 100.0
         },
         {
           "name": "NuWindCreateMtx",
@@ -37181,7 +37205,7 @@
           "address": 5432736,
           "offset": 4542768,
           "size": 300,
-          "match_percent": 0.0
+          "match_percent": 57.085365
         },
         {
           "name": "_ZN19NetSimpleReplicator9AllowPushEPK7EdClassPKvR14ReplicatorDataii",
@@ -37605,7 +37629,7 @@
           "address": 5445936,
           "offset": 4555968,
           "size": 810,
-          "match_percent": 0.0
+          "match_percent": 74.92857
         },
         {
           "name": "_ZN20NetworkObjectManager11NetPeerPush13FlushMessagesEv",
@@ -37685,7 +37709,7 @@
           "address": 5449440,
           "offset": 4559472,
           "size": 549,
-          "match_percent": 54.875
+          "match_percent": 54.94079
         },
         {
           "name": "_ZN20NetworkObjectManager6UpdateEv",
@@ -37693,7 +37717,7 @@
           "address": 5450000,
           "offset": 4560032,
           "size": 755,
-          "match_percent": 23.057692
+          "match_percent": 23.0625
         },
         {
           "name": "_ZN20NetworkObjectManager22CalcReplicatorDataSizeEP13NetReplicatorPK7EdClassRiS5_",
@@ -37701,7 +37725,7 @@
           "address": 5450768,
           "offset": 4560800,
           "size": 496,
-          "match_percent": 69.32143
+          "match_percent": 69.21429
         },
         {
           "name": "_ZN20NetworkObjectManager14BindReplicatorEP13NetReplicatorPK7EdClass",
@@ -37725,7 +37749,7 @@
           "address": 5452000,
           "offset": 4562032,
           "size": 784,
-          "match_percent": 65.72523
+          "match_percent": 65.76576
         },
         {
           "name": "_ZN20NetworkObjectManager18SendAcquireMessageEP13NetworkObject",
@@ -38323,6 +38347,38 @@
           "offset": 3619200,
           "size": 508,
           "match_percent": 55.04032
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackC1Ev",
+          "demangled_name": "TouchHacks::TintStack::TintStack()",
+          "address": 4509680,
+          "offset": 3619712,
+          "size": 40,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackC2Ev",
+          "demangled_name": "TouchHacks::TintStack::TintStack()",
+          "address": 4509680,
+          "offset": 3619712,
+          "size": 40,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackD1Ev",
+          "demangled_name": "TouchHacks::TintStack::~TintStack()",
+          "address": 4509728,
+          "offset": 3619760,
+          "size": 56,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackD2Ev",
+          "demangled_name": "TouchHacks::TintStack::~TintStack()",
+          "address": 4509728,
+          "offset": 3619760,
+          "size": 56,
+          "match_percent": 100.0
         },
         {
           "name": "_ZN10TouchHacks11ShouldFlashEf",
@@ -38955,45 +39011,6 @@
       ]
     },
     {
-      "name": "gamelib/util/gamelib_util_misc.cpp.o",
-      "source": "src/gamelib/util/gamelib_util_misc.cpp",
-      "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_gamelib/gamelib_util_misc.o",
-      "functions": [
-        {
-          "name": "_ZN10TouchHacks9TintStackC1Ev",
-          "demangled_name": "TouchHacks::TintStack::TintStack()",
-          "address": 4509680,
-          "offset": 3619712,
-          "size": 40,
-          "match_percent": 45.846153
-        },
-        {
-          "name": "_ZN10TouchHacks9TintStackC2Ev",
-          "demangled_name": "TouchHacks::TintStack::TintStack()",
-          "address": 4509680,
-          "offset": 3619712,
-          "size": 40,
-          "match_percent": 45.846153
-        },
-        {
-          "name": "_ZN10TouchHacks9TintStackD1Ev",
-          "demangled_name": "TouchHacks::TintStack::~TintStack()",
-          "address": 4509728,
-          "offset": 3619760,
-          "size": 56,
-          "match_percent": 26.470589
-        },
-        {
-          "name": "_ZN10TouchHacks9TintStackD2Ev",
-          "demangled_name": "TouchHacks::TintStack::~TintStack()",
-          "address": 4509728,
-          "offset": 3619760,
-          "size": 56,
-          "match_percent": 26.470589
-        }
-      ]
-    },
-    {
       "name": "globals.cpp.o",
       "source": "src/globals.cpp",
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_root/globals.o",
@@ -39590,7 +39607,7 @@
           "address": 2100240,
           "offset": 1210272,
           "size": 2256,
-          "match_percent": 71.8875
+          "match_percent": 71.8525
         },
         {
           "name": "_Z19ProcessCurrentSpeedP11WORLDINFO_sP9speedup_s",
@@ -39622,7 +39639,7 @@
           "address": 2345536,
           "offset": 1455568,
           "size": 249,
-          "match_percent": 99.55
+          "match_percent": 99.63333
         },
         {
           "name": "_Z20SpeederChaseA_UpdateP11WORLDINFO_s",
@@ -39630,7 +39647,7 @@
           "address": 2345792,
           "offset": 1455824,
           "size": 3125,
-          "match_percent": 72.15524
+          "match_percent": 72.16224
         },
         {
           "name": "_Z19SpeederChaseA_PanelP11WORLDINFO_s",
@@ -39663,6 +39680,14 @@
           "offset": 1459504,
           "size": 93,
           "match_percent": 100.0
+        },
+        {
+          "name": "_Z25Action_SpeederBeingChasedP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
+          "demangled_name": "Action_SpeederBeingChased(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
+          "address": 2349568,
+          "offset": 1459600,
+          "size": 2436,
+          "match_percent": 52.583004
         },
         {
           "name": "_Z24SpeederChaseATATInOutMulP7nuvec_sS0_",
@@ -40339,7 +40364,7 @@
           "address": 1418672,
           "offset": 528704,
           "size": 486,
-          "match_percent": 67.037384
+          "match_percent": 75.85981
         },
         {
           "name": "_Z15MovingBackwardsP12GameObject_s",
@@ -43571,7 +43596,7 @@
           "address": 1083584,
           "offset": 193616,
           "size": 868,
-          "match_percent": 0.0
+          "match_percent": 29.765217
         },
         {
           "name": "_Z11LSW_SetIndyi",
@@ -43742,14 +43767,6 @@
           "match_percent": 32.035713
         },
         {
-          "name": "_Z9MapToGridP7nuvec_sS0_PiS1_S0_P14nutexmanager_s",
-          "demangled_name": "MapToGrid(nuvec_s*, nuvec_s*, int*, int*, nuvec_s*, nutexmanager_s*)",
-          "address": 3128384,
-          "offset": 2238416,
-          "size": 333,
-          "match_percent": 86.710846
-        },
-        {
           "name": "_Z14CharIDFromNamePc",
           "demangled_name": "CharIDFromName(char*)",
           "address": 4586880,
@@ -43914,7 +43931,7 @@
           "address": 4590720,
           "offset": 3700752,
           "size": 112,
-          "match_percent": 99.67391
+          "match_percent": 100.0
         },
         {
           "name": "_Z23CharCategory_IsCategoryP12GameObject_si",
@@ -43930,7 +43947,7 @@
           "address": 4594640,
           "offset": 3704672,
           "size": 428,
-          "match_percent": 56.123077
+          "match_percent": 60.753845
         },
         {
           "name": "_Z17CharVariants_InitP11CHARVARIANTi",
@@ -45578,7 +45595,7 @@
           "address": 4625328,
           "offset": 3735360,
           "size": 1633,
-          "match_percent": 58.023476
+          "match_percent": 58.0
         },
         {
           "name": "_Z23CharConfig_ConfigureAlliP12nufpcomjmp_s",
@@ -45603,6 +45620,14 @@
       "source": "src/legoapi/characters/core/customiser.cpp",
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_legoapi/customiser.o",
       "functions": [
+        {
+          "name": "_ZL26Customiser_FindSetFromNamePc.part.0",
+          "demangled_name": "Customiser_FindSetFromName(char*) [clone .part.0]",
+          "address": 891708,
+          "offset": 1740,
+          "size": 140,
+          "match_percent": 61.88095
+        },
         {
           "name": "_GLOBAL__sub_I_customiser.cpp",
           "demangled_name": "_GLOBAL__sub_I_customiser.cpp",
@@ -45657,7 +45682,7 @@
           "address": 4850080,
           "offset": 3960112,
           "size": 909,
-          "match_percent": 47.90698
+          "match_percent": 24.209303
         },
         {
           "name": "_Z29Customiser_AddPartAccessoriesP10CUSTOMISERP12GameObject_siif",
@@ -45665,7 +45690,7 @@
           "address": 4850992,
           "offset": 3961024,
           "size": 553,
-          "match_percent": 36.643837
+          "match_percent": 35.9863
         },
         {
           "name": "_Z26Customiser_DumpAccessoriesP10CUSTOMISER",
@@ -45673,7 +45698,7 @@
           "address": 4851552,
           "offset": 3961584,
           "size": 2136,
-          "match_percent": 95.78728
+          "match_percent": 97.15706
         },
         {
           "name": "_Z18Customiser_LoadAllP10CUSTOMISERP11WORLDINFO_s",
@@ -45689,7 +45714,7 @@
           "address": 4855680,
           "offset": 3965712,
           "size": 232,
-          "match_percent": 73.4058
+          "match_percent": 73.62319
         },
         {
           "name": "_Z31Customiser_ResetModelTextureIDsP10CUSTOMISER",
@@ -45705,7 +45730,7 @@
           "address": 4856128,
           "offset": 3966160,
           "size": 255,
-          "match_percent": 63.613335
+          "match_percent": 78.4
         },
         {
           "name": "_Z33Customiser_RestoreModelTextureIDsP10CUSTOMISER",
@@ -45713,7 +45738,7 @@
           "address": 4856384,
           "offset": 3966416,
           "size": 277,
-          "match_percent": 52.628204
+          "match_percent": 99.089745
         },
         {
           "name": "_Z30Customiser_Set100PercentPiecesP10CUSTOMISER",
@@ -45721,7 +45746,7 @@
           "address": 4856672,
           "offset": 3966704,
           "size": 102,
-          "match_percent": 58.2
+          "match_percent": 78.25
         },
         {
           "name": "_Z34Customiser_CopyDefaultPiecesToSaveP10CUSTOMISERP15CUSTOMISESAVE_s",
@@ -45737,7 +45762,7 @@
           "address": 4857024,
           "offset": 3967056,
           "size": 3117,
-          "match_percent": 35.94702
+          "match_percent": 44.30331
         },
         {
           "name": "_Z26Customiser_FindPieceByNameP10CUSTOMISERPcPiS2_",
@@ -46031,7 +46056,7 @@
           "address": 1089600,
           "offset": 199632,
           "size": 1295,
-          "match_percent": 0.0
+          "match_percent": 45.804348
         },
         {
           "name": "_Z11FixUpLayersv",
@@ -46460,7 +46485,7 @@
           "address": 1110000,
           "offset": 220032,
           "size": 23545,
-          "match_percent": 41.195763
+          "match_percent": 41.195988
         },
         {
           "name": "_Z24InitCameraTargetMaterialv",
@@ -46856,7 +46881,7 @@
           "address": 2312272,
           "offset": 1422304,
           "size": 392,
-          "match_percent": 70.50538
+          "match_percent": 75.58064
         },
         {
           "name": "_Z17ChrisAnakinCResetv",
@@ -46864,7 +46889,7 @@
           "address": 2312672,
           "offset": 1422704,
           "size": 1070,
-          "match_percent": 0.0
+          "match_percent": 76.780304
         },
         {
           "name": "_Z16ChrisAnakinCInitv",
@@ -47008,7 +47033,7 @@
           "address": 2339392,
           "offset": 1449424,
           "size": 322,
-          "match_percent": 62.373135
+          "match_percent": 99.970146
         },
         {
           "name": "_Z23ChrisExtraBoltCollisionP6BOLT_sP7nuvec_s",
@@ -47016,7 +47041,7 @@
           "address": 2341456,
           "offset": 1451488,
           "size": 3106,
-          "match_percent": 56.42799
+          "match_percent": 0.597826
         }
       ]
     },
@@ -47156,7 +47181,7 @@
           "address": 1490816,
           "offset": 600848,
           "size": 1139,
-          "match_percent": 33.038166
+          "match_percent": 58.801525
         },
         {
           "name": "_Z15Animate_DEFAULTP12GameObject_s",
@@ -47268,7 +47293,7 @@
           "address": 1519872,
           "offset": 629904,
           "size": 501,
-          "match_percent": 0.595238
+          "match_percent": 54.31746
         },
         {
           "name": "_Z11Animate_PODP12GameObject_s",
@@ -48988,6 +49013,14 @@
           "match_percent": 99.61539
         },
         {
+          "name": "RenderFileSel2",
+          "demangled_name": "RenderFileSel2",
+          "address": 3831168,
+          "offset": 2941200,
+          "size": 114,
+          "match_percent": 99.96154
+        },
+        {
           "name": "_Z18FS_GetDirTextWidthv",
           "demangled_name": "FS_GetDirTextWidth()",
           "address": 3831344,
@@ -49060,6 +49093,38 @@
           "match_percent": 99.75
         },
         {
+          "name": "_Z15ProcessFileSel3fP7nupad_s",
+          "demangled_name": "ProcessFileSel3(float, nupad_s*)",
+          "address": 3835024,
+          "offset": 2945056,
+          "size": 1169,
+          "match_percent": 98.37405
+        },
+        {
+          "name": "ProcessFileSel2",
+          "demangled_name": "ProcessFileSel2",
+          "address": 3836208,
+          "offset": 2946240,
+          "size": 46,
+          "match_percent": 100.0
+        },
+        {
+          "name": "FileSelKill",
+          "demangled_name": "FileSelKill",
+          "address": 3836256,
+          "offset": 2946288,
+          "size": 60,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_Z14ProcessFileSelfP7nupad_s",
+          "demangled_name": "ProcessFileSel(float, nupad_s*)",
+          "address": 3836320,
+          "offset": 2946352,
+          "size": 79,
+          "match_percent": 100.0
+        },
+        {
           "name": "FS_SetFileSelPathFromName",
           "demangled_name": "FS_SetFileSelPathFromName",
           "address": 3836400,
@@ -49068,12 +49133,20 @@
           "match_percent": 68.985504
         },
         {
+          "name": "StartFileSel",
+          "demangled_name": "StartFileSel",
+          "address": 3836656,
+          "offset": 2946688,
+          "size": 219,
+          "match_percent": 100.0
+        },
+        {
           "name": "SaveSystemInitialiseEx",
           "demangled_name": "SaveSystemInitialiseEx",
           "address": 4364464,
           "offset": 3474496,
           "size": 297,
-          "match_percent": 99.98649
+          "match_percent": 99.10811
         },
         {
           "name": "SetSaveSuccessFn",
@@ -49448,7 +49521,7 @@
           "address": 4755936,
           "offset": 3865968,
           "size": 707,
-          "match_percent": 0.951515
+          "match_percent": 36.563637
         },
         {
           "name": "_Z13TakeHitRumbleP12GameObject_sf",
@@ -49961,21 +50034,6 @@
           "offset": 3873872,
           "size": 430,
           "match_percent": 99.87069
-        }
-      ]
-    },
-    {
-      "name": "legoapi/core/startup/startup.cpp.o",
-      "source": "src/legoapi/core/startup/startup.cpp",
-      "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_legoapi/startup.o",
-      "functions": [
-        {
-          "name": "_Z16ParseCommandLinev",
-          "demangled_name": "ParseCommandLine()",
-          "address": 2532062,
-          "offset": 1642094,
-          "size": 291,
-          "match_percent": 99.72603
         }
       ]
     },
@@ -51517,6 +51575,14 @@
           "match_percent": 74.06896
         },
         {
+          "name": "_Z14FindMtlInHGObjP8nugscn_si",
+          "demangled_name": "FindMtlInHGObj(nugscn_s*, int)",
+          "address": 4418720,
+          "offset": 3528752,
+          "size": 85,
+          "match_percent": 100.0
+        },
+        {
           "name": "_Z24instGetLookAtLocatorInfoP17instNUGCUTSCENE_sP18instNUGCUTLOOKAT_s",
           "demangled_name": "instGetLookAtLocatorInfo(instNUGCUTSCENE_s*, instNUGCUTLOOKAT_s*)",
           "address": 4418896,
@@ -51927,7 +51993,7 @@
           "address": 4913632,
           "offset": 4023664,
           "size": 317,
-          "match_percent": 5.443299
+          "match_percent": 24.793814
         },
         {
           "name": "_Z22GizmoTypeStoreProgressP10GIZMOSYS_sPviiPc",
@@ -53813,7 +53879,7 @@
           "address": 4912112,
           "offset": 4022144,
           "size": 719,
-          "match_percent": 73.70642
+          "match_percent": 71.43578
         },
         {
           "name": "_Z26GizmoSysClearLevelProgressPvi",
@@ -54084,7 +54150,7 @@
           "address": 4915328,
           "offset": 4025360,
           "size": 589,
-          "match_percent": 7.857988
+          "match_percent": 55.266273
         },
         {
           "name": "_Z17GizmoSysAddGizmosP10GIZMOSYS_sP9GIZFLOW_sPv",
@@ -54110,20 +54176,12 @@
           "match_percent": 85.05
         },
         {
-          "name": "_Z18Action_MoveForwardP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
-          "demangled_name": "Action_MoveForward(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
-          "address": 1619680,
-          "offset": 729712,
-          "size": 851,
-          "match_percent": 73.16505
-        },
-        {
           "name": "_Z16Action_PullLeverP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
           "demangled_name": "Action_PullLever(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
           "address": 1627792,
           "offset": 737824,
           "size": 809,
-          "match_percent": 22.01064
+          "match_percent": 75.989365
         },
         {
           "name": "_Z16Action_UseTechnoP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -54131,7 +54189,7 @@
           "address": 1628608,
           "offset": 738640,
           "size": 684,
-          "match_percent": 84.8869
+          "match_percent": 81.82143
         },
         {
           "name": "_Z15Action_UsePanelP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -54219,7 +54277,7 @@
           "address": 1709328,
           "offset": 819360,
           "size": 2451,
-          "match_percent": 81.48785
+          "match_percent": 82.43229
         },
         {
           "name": "_Z21Action_BoulderSectionP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -54228,14 +54286,6 @@
           "offset": 1271616,
           "size": 972,
           "match_percent": 71.12766
-        },
-        {
-          "name": "_Z25Action_SpeederBeingChasedP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
-          "demangled_name": "Action_SpeederBeingChased(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
-          "address": 2349568,
-          "offset": 1459600,
-          "size": 2436,
-          "match_percent": 32.292492
         },
         {
           "name": "_Z15Action_SetStateP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -54742,7 +54792,7 @@
           "address": 5037712,
           "offset": 4147744,
           "size": 1574,
-          "match_percent": 85.918564
+          "match_percent": 86.60912
         },
         {
           "name": "_Z22GizGetBuildItPlayerPosP12GameObject_sP7nuvec_sS2_",
@@ -54750,7 +54800,7 @@
           "address": 5039296,
           "offset": 4149328,
           "size": 792,
-          "match_percent": 76.416245
+          "match_percent": 93.20305
         },
         {
           "name": "_Z27GizBuildItPushAwayFromStartP12GameObject_sP12GIZBUILDIT_s",
@@ -55092,7 +55142,7 @@
           "address": 4946160,
           "offset": 4056192,
           "size": 345,
-          "match_percent": 0.13253
+          "match_percent": 17.27711
         },
         {
           "name": "_ZL20Blowup_SetVisibilityP7GIZMO_si",
@@ -55100,7 +55150,7 @@
           "address": 4946512,
           "offset": 4056544,
           "size": 171,
-          "match_percent": 99.565216
+          "match_percent": 99.23913
         },
         {
           "name": "_ZL27Blowup_AllocateProgressDataP9variptr_uS0_",
@@ -55116,7 +55166,7 @@
           "address": 4946752,
           "offset": 4056784,
           "size": 142,
-          "match_percent": 87.93023
+          "match_percent": 87.5814
         },
         {
           "name": "_ZL20Blowup_StoreProgressPvS_S_",
@@ -55452,7 +55502,7 @@
           "address": 4970640,
           "offset": 4080672,
           "size": 1469,
-          "match_percent": 38.623146
+          "match_percent": 38.65282
         },
         {
           "name": "_Z21GizmoBlowup_HitBlowupP12GameObject_sP13GIZMOBLOWUP_siP6BOLT_sP7nuvec_sPhji",
@@ -57313,7 +57363,7 @@
           "address": 4900880,
           "offset": 4010912,
           "size": 1028,
-          "match_percent": 7.728395
+          "match_percent": 60.98354
         },
         {
           "name": "_Z22GizObstacle_FindByNameP16GIZOBSTACLESYS_sPc",
@@ -58014,7 +58064,7 @@
           "address": 1904720,
           "offset": 1014752,
           "size": 1008,
-          "match_percent": 81.0237
+          "match_percent": 81.04739
         }
       ]
     },
@@ -58348,7 +58398,7 @@
           "address": 5068048,
           "offset": 4178080,
           "size": 642,
-          "match_percent": 54.44186
+          "match_percent": 54.40698
         },
         {
           "name": "_Z22Grapples_RegisterGizmoi",
@@ -58420,7 +58470,7 @@
           "address": 5075120,
           "offset": 4185152,
           "size": 69,
-          "match_percent": 67.5
+          "match_percent": 100.0
         }
       ]
     },
@@ -59941,7 +59991,7 @@
           "address": 5002848,
           "offset": 4112880,
           "size": 936,
-          "match_percent": 83.51892
+          "match_percent": 76.951355
         },
         {
           "name": "_ZL18GizTurrets_BoltHitPvS_S_P7nuvec_sifS1_S1_P6BOLT_sjPh",
@@ -59949,7 +59999,7 @@
           "address": 5003792,
           "offset": 4113824,
           "size": 1146,
-          "match_percent": 1.856061
+          "match_percent": 9.037879
         },
         {
           "name": "_ZL22GizTurrets_BoltHitPlatPvS_P6BOLT_sPh",
@@ -61018,6 +61068,14 @@
           "match_percent": 90.06383
         },
         {
+          "name": "_ZL15UpdateAnimTimerP16CHARACTERMODEL_sP12ANIMPACKET_ssfffiPcif",
+          "demangled_name": "UpdateAnimTimer(CHARACTERMODEL_s*, ANIMPACKET_s*, short, float, float, float, int, char*, int, float)",
+          "address": 3989699,
+          "offset": 3099731,
+          "size": 1057,
+          "match_percent": 63.810997
+        },
+        {
           "name": "UpdateAnimPacket",
           "demangled_name": "UpdateAnimPacket",
           "address": 3990756,
@@ -61893,6 +61951,14 @@
           "match_percent": 99.979164
         },
         {
+          "name": "_ZL21Batarang_GetTargetPosP10BATARANG_siP7nuvec_s",
+          "demangled_name": "Batarang_GetTargetPos(BATARANG_s*, int, nuvec_s*)",
+          "address": 1928384,
+          "offset": 1038416,
+          "size": 325,
+          "match_percent": 71.9802
+        },
+        {
           "name": "_Z16Batarang_ReleaseP12GameObject_si",
           "demangled_name": "Batarang_Release(GameObject_s*, int)",
           "address": 1931168,
@@ -61922,7 +61988,7 @@
           "address": 1932096,
           "offset": 1042128,
           "size": 1101,
-          "match_percent": 6.628458
+          "match_percent": 85.604744
         },
         {
           "name": "_Z17Batarang_RicochetP10BATARANG_s",
@@ -61930,7 +61996,7 @@
           "address": 1933200,
           "offset": 1043232,
           "size": 132,
-          "match_percent": 68.3871
+          "match_percent": 99.96774
         },
         {
           "name": "_Z21Batarang_SeekToTargetP10BATARANG_s",
@@ -61938,7 +62004,7 @@
           "address": 1933344,
           "offset": 1043376,
           "size": 914,
-          "match_percent": 0.641509
+          "match_percent": 93.26887
         },
         {
           "name": "_Z14Batarangs_Drawv",
@@ -62129,14 +62195,6 @@
           "offset": 939616,
           "size": 240,
           "match_percent": 96.95652
-        },
-        {
-          "name": "_ZL21Batarang_GetTargetPosP10BATARANG_siP7nuvec_s",
-          "demangled_name": "Batarang_GetTargetPos(BATARANG_s*, int, nuvec_s*)",
-          "address": 1928384,
-          "offset": 1038416,
-          "size": 325,
-          "match_percent": 71.9802
         },
         {
           "name": "_ZL16StarFighterAlignP13starfighter_sP6_vuv_sfi",
@@ -62631,7 +62689,7 @@
           "address": 1919840,
           "offset": 1029872,
           "size": 1899,
-          "match_percent": 60.04918
+          "match_percent": 30.370024
         },
         {
           "name": "_Z18Detonator_DetonateP11DETONATOR_s",
@@ -62663,7 +62721,7 @@
           "address": 1925152,
           "offset": 1035184,
           "size": 3211,
-          "match_percent": 8.095589
+          "match_percent": 37.04706
         }
       ]
     },
@@ -62782,7 +62840,7 @@
           "address": 2439264,
           "offset": 1549296,
           "size": 2855,
-          "match_percent": 35.198895
+          "match_percent": 73.41437
         },
         {
           "name": "_Z13MiniKits_InitP9variptr_uS0_",
@@ -63108,7 +63166,7 @@
           "address": 1844192,
           "offset": 954224,
           "size": 976,
-          "match_percent": 2.02439
+          "match_percent": 32.18049
         },
         {
           "name": "_Z8DetonateP7nuvec_st",
@@ -67053,14 +67111,6 @@
           "match_percent": 29.411764
         },
         {
-          "name": "_Z14FindMtlInHGObjP8nugscn_si",
-          "demangled_name": "FindMtlInHGObj(nugscn_s*, int)",
-          "address": 4418720,
-          "offset": 3528752,
-          "size": 85,
-          "match_percent": 0.0
-        },
-        {
           "name": "_Z18CreateThingManagerv",
           "demangled_name": "CreateThingManager()",
           "address": 5147472,
@@ -67479,7 +67529,7 @@
           "address": 4869344,
           "offset": 3979376,
           "size": 1129,
-          "match_percent": 15.32549
+          "match_percent": 15.192157
         },
         {
           "name": "_Z14AddGameMessagePcP7nuvec_sfS1_fhhhjf",
@@ -67598,7 +67648,7 @@
           "address": 1845168,
           "offset": 955200,
           "size": 736,
-          "match_percent": 2.043478
+          "match_percent": 73.875
         },
         {
           "name": "_ZL15Move_UpdateHintP6HINT_s",
@@ -67751,6 +67801,22 @@
           "offset": 1398944,
           "size": 110,
           "match_percent": 100.0
+        },
+        {
+          "name": "_Z15MenuUpdateHintsP6MENU_s",
+          "demangled_name": "MenuUpdateHints(MENU_s*)",
+          "address": 2289024,
+          "offset": 1399056,
+          "size": 423,
+          "match_percent": 75.79808
+        },
+        {
+          "name": "_Z13MenuDrawHintsP6MENU_s",
+          "demangled_name": "MenuDrawHints(MENU_s*)",
+          "address": 2289456,
+          "offset": 1399488,
+          "size": 1672,
+          "match_percent": 84.412544
         },
         {
           "name": "_Z19GetHintFromUIButtonv",
@@ -68570,7 +68636,7 @@
           "address": 1730528,
           "offset": 840560,
           "size": 190,
-          "match_percent": 99.59091
+          "match_percent": 99.931816
         },
         {
           "name": "_Z16Arcade_DrawPaneli",
@@ -68578,7 +68644,7 @@
           "address": 1730720,
           "offset": 840752,
           "size": 327,
-          "match_percent": 99.650795
+          "match_percent": 99.888885
         },
         {
           "name": "_Z17Arcade_AwardPointiii",
@@ -68586,7 +68652,7 @@
           "address": 1731056,
           "offset": 841088,
           "size": 338,
-          "match_percent": 77.52439
+          "match_percent": 100.0
         },
         {
           "name": "_Z19Arcade_PlayerKilledii",
@@ -68602,7 +68668,7 @@
           "address": 1731568,
           "offset": 841600,
           "size": 389,
-          "match_percent": 90.406975
+          "match_percent": 99.27907
         },
         {
           "name": "_Z20Arcade_CoinCollectediPjj",
@@ -68610,7 +68676,7 @@
           "address": 1731968,
           "offset": 842000,
           "size": 369,
-          "match_percent": 85.11702
+          "match_percent": 99.35107
         },
         {
           "name": "_Z11Arcade_Killii",
@@ -68618,7 +68684,7 @@
           "address": 1732352,
           "offset": 842384,
           "size": 102,
-          "match_percent": 99.46429
+          "match_percent": 100.0
         },
         {
           "name": "_Z20Arcade_UpdateEndMenuP6MENU_s",
@@ -68634,7 +68700,7 @@
           "address": 1732624,
           "offset": 842656,
           "size": 209,
-          "match_percent": 99.625
+          "match_percent": 100.0
         }
       ]
     },
@@ -68657,7 +68723,7 @@
           "address": 5109952,
           "offset": 4219984,
           "size": 2516,
-          "match_percent": 24.381819
+          "match_percent": 39.103638
         },
         {
           "name": "_Z12Credits_InitP11WORLDINFO_s",
@@ -68673,7 +68739,7 @@
           "address": 5112592,
           "offset": 4222624,
           "size": 744,
-          "match_percent": 69.8875
+          "match_percent": 99.9125
         },
         {
           "name": "_Z18Credits_UpdateMenuP6MENU_s",
@@ -68681,7 +68747,7 @@
           "address": 5113344,
           "offset": 4223376,
           "size": 835,
-          "match_percent": 59.18132
+          "match_percent": 81.0
         },
         {
           "name": "_Z15Credits_GetInfoPfPiS_",
@@ -68712,7 +68778,7 @@
           "address": 1806112,
           "offset": 916144,
           "size": 101,
-          "match_percent": 99.828575
+          "match_percent": 99.97143
         },
         {
           "name": "_Z20Customiser_InitNamesP10CUSTOMISER",
@@ -68736,7 +68802,7 @@
           "address": 1806784,
           "offset": 916816,
           "size": 266,
-          "match_percent": 0.0
+          "match_percent": 99.791664
         },
         {
           "name": "_Z15Customiser_InitP10CUSTOMISER",
@@ -68943,7 +69009,7 @@
           "address": 1146336,
           "offset": 256368,
           "size": 1091,
-          "match_percent": 0.0
+          "match_percent": 65.126434
         },
         {
           "name": "_Z14MakeMenuPacketv",
@@ -68968,14 +69034,6 @@
           "offset": 284160,
           "size": 520,
           "match_percent": 99.99
-        },
-        {
-          "name": "_Z16MenuInitEpisodesP6MENU_s",
-          "demangled_name": "MenuInitEpisodes(MENU_s*)",
-          "address": 1785648,
-          "offset": 895680,
-          "size": 264,
-          "match_percent": 85.46479
         },
         {
           "name": "_Z18MenuUpdateEpisodesP6MENU_s",
@@ -69032,22 +69090,6 @@
           "offset": 905216,
           "size": 39,
           "match_percent": 100.0
-        },
-        {
-          "name": "_Z15MenuUpdateHintsP6MENU_s",
-          "demangled_name": "MenuUpdateHints(MENU_s*)",
-          "address": 2289024,
-          "offset": 1399056,
-          "size": 423,
-          "match_percent": 11.644231
-        },
-        {
-          "name": "_Z13MenuDrawHintsP6MENU_s",
-          "demangled_name": "MenuDrawHints(MENU_s*)",
-          "address": 2289456,
-          "offset": 1399488,
-          "size": 1672,
-          "match_percent": 6.046205
         },
         {
           "name": "_Z15EndMissionsMenuv",
@@ -69167,15 +69209,7 @@
           "address": 3831120,
           "offset": 2941152,
           "size": 37,
-          "match_percent": 100.0
-        },
-        {
-          "name": "RenderFileSel2",
-          "demangled_name": "RenderFileSel2",
-          "address": 3831168,
-          "offset": 2941200,
-          "size": 114,
-          "match_percent": 99.96154
+          "match_percent": 0.0
         },
         {
           "name": "_Z13RenderFileSelv",
@@ -69183,46 +69217,6 @@
           "address": 3831296,
           "offset": 2941328,
           "size": 34,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_Z15ProcessFileSel3fP7nupad_s",
-          "demangled_name": "ProcessFileSel3(float, nupad_s*)",
-          "address": 3835024,
-          "offset": 2945056,
-          "size": 1169,
-          "match_percent": 90.599236
-        },
-        {
-          "name": "ProcessFileSel2",
-          "demangled_name": "ProcessFileSel2",
-          "address": 3836208,
-          "offset": 2946240,
-          "size": 46,
-          "match_percent": 100.0
-        },
-        {
-          "name": "FileSelKill",
-          "demangled_name": "FileSelKill",
-          "address": 3836256,
-          "offset": 2946288,
-          "size": 60,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_Z14ProcessFileSelfP7nupad_s",
-          "demangled_name": "ProcessFileSel(float, nupad_s*)",
-          "address": 3836320,
-          "offset": 2946352,
-          "size": 79,
-          "match_percent": 100.0
-        },
-        {
-          "name": "StartFileSel",
-          "demangled_name": "StartFileSel",
-          "address": 3836656,
-          "offset": 2946688,
-          "size": 219,
           "match_percent": 100.0
         },
         {
@@ -69687,7 +69681,7 @@
           "address": 4357584,
           "offset": 3467616,
           "size": 400,
-          "match_percent": 70.36735
+          "match_percent": 69.95918
         },
         {
           "name": "_Z20MenuEnterSaveConfirmP6MENU_s",
@@ -69815,7 +69809,7 @@
           "address": 4376336,
           "offset": 3486368,
           "size": 2474,
-          "match_percent": 0.843585
+          "match_percent": 87.16696
         },
         {
           "name": "_Z19MenuDrawFileCorruptP6MENU_s",
@@ -70094,7 +70088,7 @@
           "address": 1735600,
           "offset": 845632,
           "size": 689,
-          "match_percent": 95.588234
+          "match_percent": 99.70588
         },
         {
           "name": "_Z20InitStatusScreen_LSWP11WORLDINFO_sP14STATUSPACKET_s",
@@ -70190,7 +70184,7 @@
           "address": 2021008,
           "offset": 1131040,
           "size": 838,
-          "match_percent": 46.775146
+          "match_percent": 70.88166
         },
         {
           "name": "_Z14Coins_LSW_SkipP14STATUS_STAGE_sP14STATUSPACKET_s",
@@ -71027,7 +71021,7 @@
           "address": 4818144,
           "offset": 3928176,
           "size": 96,
-          "match_percent": 37.772728
+          "match_percent": 99.681816
         },
         {
           "name": "_Z20Movies_ConfigureListPcP9variptr_uS1_",
@@ -71035,7 +71029,7 @@
           "address": 4818240,
           "offset": 3928272,
           "size": 275,
-          "match_percent": 90.75949
+          "match_percent": 90.822784
         },
         {
           "name": "_Z10Movie_PlayPcP9variptr_uS1_fPFivEf",
@@ -71043,7 +71037,7 @@
           "address": 4818528,
           "offset": 3928560,
           "size": 481,
-          "match_percent": 84.77391
+          "match_percent": 99.94782
         }
       ]
     },
@@ -71426,14 +71420,6 @@
           "match_percent": 100.0
         },
         {
-          "name": "_Z26GetNativeTextureFormatName11NUTEXFORMAT",
-          "demangled_name": "GetNativeTextureFormatName(NUTEXFORMAT)",
-          "address": 2748752,
-          "offset": 1858784,
-          "size": 255,
-          "match_percent": 99.68132
-        },
-        {
           "name": "_Z9DieRumbleP12GameObject_s",
           "demangled_name": "DieRumble(GameObject_s*)",
           "address": 4756656,
@@ -71458,20 +71444,12 @@
           "match_percent": 45.039513
         },
         {
-          "name": "_ZL13_fseek64_wrapP7__sFILExi",
-          "demangled_name": "_fseek64_wrap(__sFILE*, long long, int)",
-          "address": 5256272,
-          "offset": 4366304,
-          "size": 63,
-          "match_percent": 100.0
-        },
-        {
           "name": "_Z9charToIntPKc",
           "demangled_name": "charToInt(char const*)",
           "address": 5420400,
           "offset": 4530432,
           "size": 136,
-          "match_percent": 88.46809
+          "match_percent": 77.44681
         }
       ]
     },
@@ -71738,7 +71716,7 @@
           "address": 2567216,
           "offset": 1677248,
           "size": 1001,
-          "match_percent": 86.67281
+          "match_percent": 75.059906
         },
         {
           "name": "_Z9RndrArrowfffii",
@@ -71746,7 +71724,7 @@
           "address": 2568224,
           "offset": 1678256,
           "size": 890,
-          "match_percent": 74.303665
+          "match_percent": 99.534035
         },
         {
           "name": "_Z14bgProcAbortAllv",
@@ -71890,7 +71868,7 @@
           "address": 3056512,
           "offset": 2166544,
           "size": 1536,
-          "match_percent": 72.560814
+          "match_percent": 49.5473
         },
         {
           "name": "_Z25DebrisGetControlStackLockv",
@@ -72034,7 +72012,7 @@
           "address": 4751696,
           "offset": 3861728,
           "size": 659,
-          "match_percent": 55.178772
+          "match_percent": 62.782124
         },
         {
           "name": "_Z9TBCLOSEFNPci",
@@ -72042,7 +72020,7 @@
           "address": 4752368,
           "offset": 3862400,
           "size": 431,
-          "match_percent": 51.48
+          "match_percent": 91.928
         },
         {
           "name": "_Z5unrefPhS_",
@@ -72198,7 +72176,7 @@
           "address": 4785360,
           "offset": 3895392,
           "size": 81,
-          "match_percent": 95.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z25SphereSphereOverlapScaleYP7nuvec_sffS0_ff",
@@ -72605,7 +72583,7 @@
           "address": 4743680,
           "offset": 3853712,
           "size": 186,
-          "match_percent": 16.755556
+          "match_percent": 94.62222
         },
         {
           "name": "_ZL11D_cut_sceneP8nufpar_s",
@@ -72653,7 +72631,7 @@
           "address": 4744704,
           "offset": 3854736,
           "size": 678,
-          "match_percent": 8.651316
+          "match_percent": 8.684211
         },
         {
           "name": "_Z10Door_Resetv",
@@ -72733,7 +72711,7 @@
           "address": 4750992,
           "offset": 3861024,
           "size": 366,
-          "match_percent": 99.32727
+          "match_percent": 99.41818
         }
       ]
     },
@@ -73082,7 +73060,7 @@
           "address": 1889968,
           "offset": 1000000,
           "size": 2426,
-          "match_percent": 0.924856
+          "match_percent": 95.302505
         },
         {
           "name": "_ZL17Signals_AddGizmosP10GIZMOSYS_siPvS1_",
@@ -73146,7 +73124,7 @@
           "address": 1894704,
           "offset": 1004736,
           "size": 378,
-          "match_percent": 98.578125
+          "match_percent": 98.65625
         },
         {
           "name": "_Z15Signal_MoveCodeP11WORLDINFO_sP12GameObject_s",
@@ -73154,7 +73132,7 @@
           "address": 1895088,
           "offset": 1005120,
           "size": 1027,
-          "match_percent": 0.0
+          "match_percent": 33.404446
         },
         {
           "name": "_Z17SetTexAnimSignalsv",
@@ -73257,7 +73235,7 @@
           "address": 1944096,
           "offset": 1054128,
           "size": 409,
-          "match_percent": 81.91262
+          "match_percent": 81.76699
         },
         {
           "name": "_ZL21Technos_ClearProgressPvS_",
@@ -73281,7 +73259,7 @@
           "address": 1944608,
           "offset": 1054640,
           "size": 168,
-          "match_percent": 24.415094
+          "match_percent": 88.58491
         },
         {
           "name": "_ZL12Technos_DrawPvS_f",
@@ -73297,7 +73275,7 @@
           "address": 1946064,
           "offset": 1056096,
           "size": 152,
-          "match_percent": 99.96296
+          "match_percent": 99.68519
         },
         {
           "name": "_ZL17Technos_AddGizmosP10GIZMOSYS_siPvS1_",
@@ -73393,7 +73371,7 @@
           "address": 1949248,
           "offset": 1059280,
           "size": 719,
-          "match_percent": 26.120253
+          "match_percent": 30.22152
         },
         {
           "name": "_Z19Techno_FindOperatorPvPP9GAMEPAD_sPP12GameObject_s",
@@ -73790,7 +73768,7 @@
           "address": 1910608,
           "offset": 1020640,
           "size": 4982,
-          "match_percent": 19.040192
+          "match_percent": 19.959808
         },
         {
           "name": "_Z17ZipUps_UpdateHintP6HINT_s",
@@ -73854,6 +73832,14 @@
           "offset": 3026543,
           "size": 220,
           "match_percent": 99.13158
+        },
+        {
+          "name": "_ZL12SplineLengthP11nugspline_si",
+          "demangled_name": "SplineLength(nugspline_s*, int)",
+          "address": 3916731,
+          "offset": 3026763,
+          "size": 276,
+          "match_percent": 72.5814
         },
         {
           "name": "_ZL16OnOrOutsidePlaneP7nuvec_sS0_S0_",
@@ -73941,7 +73927,7 @@
           "address": 3925313,
           "offset": 3035345,
           "size": 292,
-          "match_percent": 68.406975
+          "match_percent": 100.0
         },
         {
           "name": "_ZL16FillSockPositionP7SOCKSYSP14SOCKPOSITION_s",
@@ -74005,7 +73991,7 @@
           "address": 3932758,
           "offset": 3042790,
           "size": 79,
-          "match_percent": 22.806452
+          "match_percent": 82.58064
         },
         {
           "name": "SockBitSet",
@@ -74013,7 +73999,7 @@
           "address": 3932837,
           "offset": 3042869,
           "size": 74,
-          "match_percent": 15.290322
+          "match_percent": 85.6129
         },
         {
           "name": "MidDistanceFromSockStart",
@@ -74405,7 +74391,7 @@
           "address": 3937101,
           "offset": 3047133,
           "size": 373,
-          "match_percent": 79.06796
+          "match_percent": 99.93204
         },
         {
           "name": "_Z15GetSockEdgeEnumPc",
@@ -74422,6 +74408,86 @@
           "offset": 3047611,
           "size": 174,
           "match_percent": 70.13725
+        },
+        {
+          "name": "_ZL15SockCamATSTLIFTP8nufpar_sPv",
+          "demangled_name": "SockCamATSTLIFT(nufpar_s*, void*)",
+          "address": 3937753,
+          "offset": 3047785,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL15SockCamATSTDISTP8nufpar_sPv",
+          "demangled_name": "SockCamATSTDIST(nufpar_s*, void*)",
+          "address": 3937818,
+          "offset": 3047850,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL19SockCamATSTCAMRANGEP8nufpar_sPv",
+          "demangled_name": "SockCamATSTCAMRANGE(nufpar_s*, void*)",
+          "address": 3937883,
+          "offset": 3047915,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL15SockCamATSTTILTP8nufpar_sPv",
+          "demangled_name": "SockCamATSTTILT(nufpar_s*, void*)",
+          "address": 3937948,
+          "offset": 3047980,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL19SockCamATSTTILTRATEP8nufpar_sPv",
+          "demangled_name": "SockCamATSTTILTRATE(nufpar_s*, void*)",
+          "address": 3938013,
+          "offset": 3048045,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL24SockCamCAMERARAYTILTDISTP8nufpar_sPv",
+          "demangled_name": "SockCamCAMERARAYTILTDIST(nufpar_s*, void*)",
+          "address": 3938078,
+          "offset": 3048110,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL26SockCamCAMERARAYTILTHEIGHTP8nufpar_sPv",
+          "demangled_name": "SockCamCAMERARAYTILTHEIGHT(nufpar_s*, void*)",
+          "address": 3938143,
+          "offset": 3048175,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL16SockManCam_MAX_XP8nufpar_sPv",
+          "demangled_name": "SockManCam_MAX_X(nufpar_s*, void*)",
+          "address": 3938208,
+          "offset": 3048240,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL16SockManCam_MAX_YP8nufpar_sPv",
+          "demangled_name": "SockManCam_MAX_Y(nufpar_s*, void*)",
+          "address": 3938273,
+          "offset": 3048305,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL22SockTerrainCamInActiveP8nufpar_sPv",
+          "demangled_name": "SockTerrainCamInActive(nufpar_s*, void*)",
+          "address": 3938338,
+          "offset": 3048370,
+          "size": 34,
+          "match_percent": 100.0
         },
         {
           "name": "SockSysConfigureNuFPar",
@@ -74525,7 +74591,7 @@
           "address": 3957753,
           "offset": 3067785,
           "size": 140,
-          "match_percent": 78.51111
+          "match_percent": 100.0
         }
       ]
     },
@@ -74947,14 +75013,6 @@
           "offset": 1224336,
           "size": 309,
           "match_percent": 87.02128
-        },
-        {
-          "name": "_ZL20DrawFalconSpotLightsP12GameObject_s",
-          "demangled_name": "DrawFalconSpotLights(GameObject_s*)",
-          "address": 2195760,
-          "offset": 1305792,
-          "size": 706,
-          "match_percent": 97.87334
         },
         {
           "name": "_Z12DrawHint_LSWP6HINT_si",
@@ -75904,7 +75962,7 @@
           "address": 3847927,
           "offset": 2957959,
           "size": 402,
-          "match_percent": 26.7
+          "match_percent": 98.291664
         },
         {
           "name": "_ZL15InsertAntiLightP5rtl_sP10rtlidata_sf",
@@ -75912,7 +75970,7 @@
           "address": 3848329,
           "offset": 2958361,
           "size": 71,
-          "match_percent": 19.384615
+          "match_percent": 100.0
         },
         {
           "name": "_ZL15ApplyAntilightsP5rtl_sP10rtlidata_sf",
@@ -75952,7 +76010,7 @@
           "address": 3848891,
           "offset": 2958923,
           "size": 2252,
-          "match_percent": 27.301027
+          "match_percent": 30.31865
         },
         {
           "name": "_ZL10GetNextRTLPvP5rtl_sPcPi",
@@ -75984,7 +76042,7 @@
           "address": 3851389,
           "offset": 2961421,
           "size": 4488,
-          "match_percent": 7.0784
+          "match_percent": 7.2048
         },
         {
           "name": "_ZL13rtlCalcShadowP10rtlidata_s",
@@ -77290,14 +77348,6 @@
           "match_percent": 99.97854
         },
         {
-          "name": "_Z18UCStretchToCornersPsS_",
-          "demangled_name": "UCStretchToCorners(short*, short*)",
-          "address": 2556788,
-          "offset": 1666820,
-          "size": 497,
-          "match_percent": 5.059259
-        },
-        {
           "name": "_Z14GetAspectRatiov",
           "demangled_name": "GetAspectRatio()",
           "address": 2567152,
@@ -77311,7 +77361,7 @@
           "address": 3032864,
           "offset": 2142896,
           "size": 465,
-          "match_percent": 75.76596
+          "match_percent": 93.12766
         },
         {
           "name": "_Z11RenderQuadsPs",
@@ -78288,6 +78338,14 @@
           "match_percent": 78.78673
         },
         {
+          "name": "CubeImpact",
+          "demangled_name": "CubeImpact",
+          "address": 3691984,
+          "offset": 2802016,
+          "size": 2128,
+          "match_percent": 99.55556
+        },
+        {
           "name": "TerrainWallSideSlide",
           "demangled_name": "TerrainWallSideSlide",
           "address": 3694112,
@@ -78772,7 +78830,7 @@
           "address": 3470912,
           "offset": 2580944,
           "size": 967,
-          "match_percent": 5.372549
+          "match_percent": 70.15686
         },
         {
           "name": "DebrisEmitterOrientationMtx",
@@ -79199,14 +79257,6 @@
           "match_percent": 87.17647
         },
         {
-          "name": "CubeImpact",
-          "demangled_name": "CubeImpact",
-          "address": 3691984,
-          "offset": 2802016,
-          "size": 2128,
-          "match_percent": 99.55556
-        },
-        {
           "name": "NewTerrainScaleY",
           "demangled_name": "NewTerrainScaleY",
           "address": 3697120,
@@ -79444,7 +79494,7 @@
           "address": 4343168,
           "offset": 3453200,
           "size": 668,
-          "match_percent": 33.613094
+          "match_percent": 58.410713
         },
         {
           "name": "_Z14Particles_LoadP11WORLDINFO_sPPcii",
@@ -79475,7 +79525,7 @@
           "address": 2314208,
           "offset": 1424240,
           "size": 1092,
-          "match_percent": 15.711934
+          "match_percent": 53.312756
         },
         {
           "name": "_Z23CalcSplinePointFromDistP14flightspline_sP6_vuv_sf",
@@ -79483,7 +79533,7 @@
           "address": 2328848,
           "offset": 1438880,
           "size": 192,
-          "match_percent": 60.074074
+          "match_percent": 99.98148
         },
         {
           "name": "_Z17FlightSpline_InitP11WORLDINFO_sP14flightspline_si",
@@ -79491,7 +79541,7 @@
           "address": 2329040,
           "offset": 1439072,
           "size": 3057,
-          "match_percent": 58.916668
+          "match_percent": 84.71167
         },
         {
           "name": "_Z24LevelSplines_InitForGameP11LEVELSPLINE",
@@ -79539,7 +79589,7 @@
           "address": 4797232,
           "offset": 3907264,
           "size": 973,
-          "match_percent": 50.67364
+          "match_percent": 78.17155
         },
         {
           "name": "_Z17OutSideSplineAreaP7nuvec_sP11nugspline_sS0_S0_i",
@@ -79579,7 +79629,7 @@
           "address": 5577904,
           "offset": 4687936,
           "size": 272,
-          "match_percent": 55.880596
+          "match_percent": 54.97015
         }
       ]
     },
@@ -81085,7 +81135,7 @@
           "address": 4760736,
           "offset": 3870768,
           "size": 152,
-          "match_percent": 99.61539
+          "match_percent": 77.0
         },
         {
           "name": "_Z19CreateFadeMaterialsv",
@@ -81101,7 +81151,7 @@
           "address": 4764272,
           "offset": 3874304,
           "size": 601,
-          "match_percent": 87.58594
+          "match_percent": 95.984375
         },
         {
           "name": "_ZN8FadeBaseD1Ev",
@@ -83640,14 +83690,6 @@
           "offset": 4272512,
           "size": 1412,
           "match_percent": 48.33775
-        },
-        {
-          "name": "_ZL10seed_chasePfil",
-          "demangled_name": "seed_chase(float*, int, long)",
-          "address": 5348304,
-          "offset": 4458336,
-          "size": 640,
-          "match_percent": 19.169083
         }
       ]
     },
@@ -83718,7 +83760,7 @@
           "address": 2078240,
           "offset": 1188272,
           "size": 1474,
-          "match_percent": 42.724636
+          "match_percent": 43.628986
         },
         {
           "name": "_Z18NegotiationsA_InitP11WORLDINFO_s",
@@ -83926,7 +83968,7 @@
           "address": 2092496,
           "offset": 1202528,
           "size": 1815,
-          "match_percent": 36.43073
+          "match_percent": 36.29219
         },
         {
           "name": "_Z14Action_SebulbaP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -84629,7 +84671,7 @@
           "address": 2359056,
           "offset": 1469088,
           "size": 287,
-          "match_percent": 83.77778
+          "match_percent": 84.333336
         },
         {
           "name": "_Z25BountyHunterPursuitB_InitP11WORLDINFO_s",
@@ -84653,7 +84695,7 @@
           "address": 2359728,
           "offset": 1469760,
           "size": 276,
-          "match_percent": 60.984375
+          "match_percent": 64.03125
         },
         {
           "name": "_Z25BountyHunterPursuitC_InitP11WORLDINFO_s",
@@ -84677,7 +84719,7 @@
           "address": 2360368,
           "offset": 1470400,
           "size": 412,
-          "match_percent": 4.802084
+          "match_percent": 20.864584
         },
         {
           "name": "_Z25BountyHunterPursuitD_InitP11WORLDINFO_s",
@@ -85514,7 +85556,7 @@
           "address": 1359440,
           "offset": 469472,
           "size": 1612,
-          "match_percent": 75.38957
+          "match_percent": 75.573616
         },
         {
           "name": "_ZL17Asteroid_AddPartsP13GIZMOBLOWUP_s",
@@ -85538,7 +85580,15 @@
           "address": 2194880,
           "offset": 1304912,
           "size": 878,
-          "match_percent": 80.797356
+          "match_percent": 80.7533
+        },
+        {
+          "name": "_ZL20DrawFalconSpotLightsP12GameObject_s",
+          "demangled_name": "DrawFalconSpotLights(GameObject_s*)",
+          "address": 2195760,
+          "offset": 1305792,
+          "size": 706,
+          "match_percent": 99.92667
         },
         {
           "name": "_Z16HothEscapeA_InitP11WORLDINFO_s",
@@ -85674,7 +85724,7 @@
           "address": 2202928,
           "offset": 1312960,
           "size": 473,
-          "match_percent": 85.89524
+          "match_percent": 99.48572
         },
         {
           "name": "_Z20AsteroidChaseB_ResetP11WORLDINFO_s",
@@ -85690,7 +85740,7 @@
           "address": 2203424,
           "offset": 1313456,
           "size": 997,
-          "match_percent": 77.879166
+          "match_percent": 91.375
         },
         {
           "name": "_Z19AsteroidChaseB_DrawP11WORLDINFO_s",
@@ -85698,7 +85748,7 @@
           "address": 2204432,
           "offset": 1314464,
           "size": 101,
-          "match_percent": 29.923077
+          "match_percent": 99.92308
         },
         {
           "name": "_Z19AsteroidChaseC_InitP11WORLDINFO_s",
@@ -85706,7 +85756,7 @@
           "address": 2204544,
           "offset": 1314576,
           "size": 567,
-          "match_percent": 99.731346
+          "match_percent": 99.6194
         },
         {
           "name": "_Z20AsteroidChaseC_ResetP11WORLDINFO_s",
@@ -85722,7 +85772,7 @@
           "address": 2205136,
           "offset": 1315168,
           "size": 638,
-          "match_percent": 81.048485
+          "match_percent": 90.684845
         },
         {
           "name": "_Z19AsteroidChaseD_InitP11WORLDINFO_s",
@@ -85738,7 +85788,7 @@
           "address": 2207920,
           "offset": 1317952,
           "size": 2073,
-          "match_percent": 99.685715
+          "match_percent": 99.77755
         },
         {
           "name": "_Z20AsteroidChaseD_PanelP11WORLDINFO_s",
@@ -85770,7 +85820,7 @@
           "address": 2210304,
           "offset": 1320336,
           "size": 312,
-          "match_percent": 99.986664
+          "match_percent": 99.58667
         },
         {
           "name": "_Z19CloudCityTrapB_InitP11WORLDINFO_s",
@@ -85786,7 +85836,7 @@
           "address": 2210880,
           "offset": 1320912,
           "size": 312,
-          "match_percent": 99.975
+          "match_percent": 99.6
         },
         {
           "name": "_Z20CloudCityTrapC_ResetP11WORLDINFO_s",
@@ -85810,7 +85860,7 @@
           "address": 2211792,
           "offset": 1321824,
           "size": 104,
-          "match_percent": 99.96774
+          "match_percent": 99.48387
         },
         {
           "name": "_Z21CloudCityEscapeA_InitP11WORLDINFO_s",
@@ -86010,7 +86060,7 @@
           "address": 2219440,
           "offset": 1329472,
           "size": 2403,
-          "match_percent": 15.295752
+          "match_percent": 78.59314
         },
         {
           "name": "_Z24isHothBattleWaveCreatureP12GameObject_s",
@@ -86034,7 +86084,7 @@
           "address": 2224000,
           "offset": 1334032,
           "size": 1898,
-          "match_percent": 49.678402
+          "match_percent": 71.57746
         },
         {
           "name": "_Z22HothBattleE_UpdateWavev",
@@ -86042,7 +86092,7 @@
           "address": 2225904,
           "offset": 1335936,
           "size": 3136,
-          "match_percent": 54.275257
+          "match_percent": 82.541725
         },
         {
           "name": "_Z18HothBattleE_UpdateP11WORLDINFO_s",
@@ -86113,7 +86163,7 @@
           "address": 2231760,
           "offset": 1341792,
           "size": 1136,
-          "match_percent": 78.383965
+          "match_percent": 93.08017
         },
         {
           "name": "_Z25DeathStar2BattleFire_InitP11WORLDINFO_s",
@@ -86129,7 +86179,7 @@
           "address": 2233120,
           "offset": 1343152,
           "size": 1680,
-          "match_percent": 82.72189
+          "match_percent": 94.21597
         },
         {
           "name": "_Z38DeathStar2BattleFire_UpdateSlowDownMulf",
@@ -86145,7 +86195,7 @@
           "address": 2234880,
           "offset": 1344912,
           "size": 4549,
-          "match_percent": 41.40868
+          "match_percent": 99.41373
         },
         {
           "name": "_Z35DeathStar2BattleFire_GetSlowDownMulP12GameObject_s",
@@ -86257,7 +86307,7 @@
           "address": 2249344,
           "offset": 1359376,
           "size": 2887,
-          "match_percent": 0.0
+          "match_percent": 75.96774
         },
         {
           "name": "_Z19JabbasPalaceE_PanelP11WORLDINFO_s",
@@ -86289,7 +86339,7 @@
           "address": 2252752,
           "offset": 1362784,
           "size": 1580,
-          "match_percent": 29.748676
+          "match_percent": 99.849205
         },
         {
           "name": "_Z21SarlaccPitDiscoActiveP11WORLDINFO_s",
@@ -86313,7 +86363,7 @@
           "address": 2255536,
           "offset": 1365568,
           "size": 1045,
-          "match_percent": 87.18142
+          "match_percent": 92.04425
         },
         {
           "name": "_Z18SarlaccPitB_UpdateP11WORLDINFO_s",
@@ -86321,7 +86371,7 @@
           "address": 2256592,
           "offset": 1366624,
           "size": 4747,
-          "match_percent": 5.182755
+          "match_percent": 51.337395
         },
         {
           "name": "_Z16SarlaccPitC_InitP11WORLDINFO_s",
@@ -86345,7 +86395,7 @@
           "address": 2263536,
           "offset": 1373568,
           "size": 957,
-          "match_percent": 88.29851
+          "match_percent": 88.44776
         },
         {
           "name": "_Z13LegoCity_InitP11WORLDINFO_s",
@@ -86369,7 +86419,7 @@
           "address": 2264736,
           "offset": 1374768,
           "size": 2241,
-          "match_percent": 61.362705
+          "match_percent": 57.65574
         },
         {
           "name": "_Z12SenateA_InitP11WORLDINFO_s",
@@ -86401,7 +86451,7 @@
           "address": 2267536,
           "offset": 1377568,
           "size": 1753,
-          "match_percent": 66.41161
+          "match_percent": 59.512627
         },
         {
           "name": "_Z17EndorBattleA_InitP11WORLDINFO_s",
@@ -86715,12 +86765,20 @@
           "match_percent": 84.28175
         },
         {
+          "name": "_Z16MenuInitEpisodesP6MENU_s",
+          "demangled_name": "MenuInitEpisodes(MENU_s*)",
+          "address": 1785648,
+          "offset": 895680,
+          "size": 264,
+          "match_percent": 85.253525
+        },
+        {
           "name": "_Z18MenuInitSelectModeP6MENU_s",
           "demangled_name": "MenuInitSelectMode(MENU_s*)",
           "address": 1790144,
           "offset": 900176,
           "size": 214,
-          "match_percent": 99.82758
+          "match_percent": 99.655174
         },
         {
           "name": "_Z20MenuUpdateSelectModeP6MENU_s",
@@ -86736,7 +86794,7 @@
           "address": 1790384,
           "offset": 900416,
           "size": 903,
-          "match_percent": 37.162437
+          "match_percent": 33.517765
         },
         {
           "name": "_Z17MenuInitBonusModeP6MENU_s",
@@ -86760,7 +86818,7 @@
           "address": 1794160,
           "offset": 904192,
           "size": 974,
-          "match_percent": 88.42157
+          "match_percent": 88.34804
         },
         {
           "name": "_Z20Hub_ActivateDoorMenuPP11LEVELDATA_s",
@@ -87492,6 +87550,14 @@
       "source": "src/legogame/startup.cpp",
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_legogame/startup.o",
       "functions": [
+        {
+          "name": "_GLOBAL__sub_I_startup.cpp",
+          "demangled_name": "_GLOBAL__sub_I_startup.cpp",
+          "address": 896448,
+          "offset": 6480,
+          "size": 93,
+          "match_percent": 0.0
+        },
         {
           "name": "_ZL12LoadPermDataP12bgprocinfo_s",
           "demangled_name": "LoadPermData(bgprocinfo_s*)",
@@ -89845,7 +89911,7 @@
           "address": 2702916,
           "offset": 1812948,
           "size": 309,
-          "match_percent": 94.85714
+          "match_percent": 96.11905
         },
         {
           "name": "_Z17DumpProgramSourcej",
@@ -89877,7 +89943,7 @@
           "address": 2703552,
           "offset": 1813584,
           "size": 371,
-          "match_percent": 98.47863
+          "match_percent": 99.97436
         },
         {
           "name": "_Z26NuIOSDLPreWarmGeomCallbackPv",
@@ -90930,6 +90996,14 @@
           "match_percent": 88.386665
         },
         {
+          "name": "_Z26GetNativeTextureFormatName11NUTEXFORMAT",
+          "demangled_name": "GetNativeTextureFormatName(NUTEXFORMAT)",
+          "address": 2748752,
+          "offset": 1858784,
+          "size": 255,
+          "match_percent": 99.68132
+        },
+        {
           "name": "_Z22GetNativeTextureFormat11NUTEXFORMATRiRjS1_S1_RbRS_",
           "demangled_name": "GetNativeTextureFormat(NUTEXFORMAT, int&, unsigned int&, unsigned int&, unsigned int&, bool&, NUTEXFORMAT&)",
           "address": 2749008,
@@ -90991,7 +91065,7 @@
           "address": 2753072,
           "offset": 1863104,
           "size": 477,
-          "match_percent": 85.340576
+          "match_percent": 85.37681
         },
         {
           "name": "_Z25NuIOS_CreateGLTexFromHashj",
@@ -91038,7 +91112,7 @@
           "address": 2978960,
           "offset": 2088992,
           "size": 408,
-          "match_percent": 99.15385
+          "match_percent": 99.31868
         },
         {
           "name": "NuTimeBarSlotReset",
@@ -91158,7 +91232,7 @@
           "address": 3115024,
           "offset": 2225056,
           "size": 1349,
-          "match_percent": 60.28213
+          "match_percent": 78.29467
         },
         {
           "name": "NuTimeBarSetRender",
@@ -91166,7 +91240,7 @@
           "address": 3116384,
           "offset": 2226416,
           "size": 2320,
-          "match_percent": 5.972875
+          "match_percent": 60.0
         }
       ]
     },
@@ -91759,7 +91833,7 @@
           "address": 3065168,
           "offset": 2175200,
           "size": 2201,
-          "match_percent": 76.20066
+          "match_percent": 78.70395
         },
         {
           "name": "NuDisplayListDebugToFile",
@@ -92037,7 +92111,7 @@
           "address": 3092848,
           "offset": 2202880,
           "size": 241,
-          "match_percent": 97.9403
+          "match_percent": 93.50746
         },
         {
           "name": "NuMtlFindVariantMtl",
@@ -92650,7 +92724,7 @@
           "address": 3105200,
           "offset": 2215232,
           "size": 283,
-          "match_percent": 94.91549
+          "match_percent": 94.985916
         },
         {
           "name": "NuQFntPrintCharW",
@@ -92880,7 +92954,7 @@
           "address": 3087232,
           "offset": 2197264,
           "size": 1033,
-          "match_percent": 60.92118
+          "match_percent": 93.0936
         },
         {
           "name": "_Z17NuRndrInitGenericv",
@@ -93534,7 +93608,15 @@
           "address": 3184160,
           "offset": 2294192,
           "size": 1201,
-          "match_percent": 42.394905
+          "match_percent": 44.0828
+        },
+        {
+          "name": "NuShaderObjectKeyGenerate2",
+          "demangled_name": "NuShaderObjectKeyGenerate2",
+          "address": 3185376,
+          "offset": 2295408,
+          "size": 104,
+          "match_percent": 100.0
         },
         {
           "name": "NuShaderObjectKeyGenerate4",
@@ -93542,7 +93624,7 @@
           "address": 3185488,
           "offset": 2295520,
           "size": 249,
-          "match_percent": 63.666668
+          "match_percent": 39.23611
         },
         {
           "name": "NuShaderObjectKeySetUberShaderHash",
@@ -93550,7 +93632,7 @@
           "address": 3185744,
           "offset": 2295776,
           "size": 186,
-          "match_percent": 98.644066
+          "match_percent": 100.0
         },
         {
           "name": "_ZN19ShaderManagerOpenGL35adaptShaderMaterialForShaderVersionEP17nushadermtldesc_s",
@@ -94413,6 +94495,14 @@
           "match_percent": 100.0
         },
         {
+          "name": "_Z9MapToGridP7nuvec_sS0_PiS1_S0_P14nutexmanager_s",
+          "demangled_name": "MapToGrid(nuvec_s*, nuvec_s*, int*, int*, nuvec_s*, nutexmanager_s*)",
+          "address": 3128384,
+          "offset": 2238416,
+          "size": 333,
+          "match_percent": 91.46988
+        },
+        {
           "name": "_Z18NuTexManagerStreamP8nugscn_s",
           "demangled_name": "NuTexManagerStream(nugscn_s*)",
           "address": 3128720,
@@ -94806,7 +94896,7 @@
           "address": 932592,
           "offset": 42624,
           "size": 261,
-          "match_percent": 7.682539
+          "match_percent": 99.90476
         },
         {
           "name": "Nu360_dxClear",
@@ -94853,7 +94943,7 @@
           "address": 2576736,
           "offset": 1686768,
           "size": 659,
-          "match_percent": 28.453947
+          "match_percent": 33.480263
         },
         {
           "name": "NuPhoneOSMessagePump",
@@ -94861,7 +94951,23 @@
           "address": 2577408,
           "offset": 1687440,
           "size": 440,
-          "match_percent": 81.652176
+          "match_percent": 10.278261
+        },
+        {
+          "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED1Ev",
+          "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
+          "address": 2577856,
+          "offset": 1687888,
+          "size": 94,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED2Ev",
+          "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
+          "address": 2577856,
+          "offset": 1687888,
+          "size": 94,
+          "match_percent": 100.0
         }
       ]
     },
@@ -95051,7 +95157,7 @@
           "address": 2580640,
           "offset": 1690672,
           "size": 313,
-          "match_percent": 33.773586
+          "match_percent": 16.320755
         },
         {
           "name": "_ZN13NuInputDevice6UpdateEfb",
@@ -95888,7 +95994,7 @@
           "address": 1012640,
           "offset": 122672,
           "size": 868,
-          "match_percent": 58.650864
+          "match_percent": 59.405174
         },
         {
           "name": "_ZN12NuMemoryPoolD1Ev",
@@ -95912,7 +96018,7 @@
           "address": 1013648,
           "offset": 123680,
           "size": 508,
-          "match_percent": 56.019356
+          "match_percent": 3.483871
         },
         {
           "name": "_ZN12NuMemoryPool15ReleaseAllPagesEv",
@@ -95960,7 +96066,7 @@
           "address": 1014656,
           "offset": 124688,
           "size": 289,
-          "match_percent": 35.37895
+          "match_percent": 38.157894
         }
       ]
     },
@@ -96707,6 +96813,22 @@
           "offset": 1665924,
           "size": 10,
           "match_percent": 100.0
+        },
+        {
+          "name": "NuPs2ApplyDeadZone",
+          "demangled_name": "NuPs2ApplyDeadZone",
+          "address": 2555912,
+          "offset": 1665944,
+          "size": 152,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_Z24Nu360ConfigureSMBSharingPPc",
+          "demangled_name": "Nu360ConfigureSMBSharing(char**)",
+          "address": 2556074,
+          "offset": 1666106,
+          "size": 106,
+          "match_percent": 99.93104
         }
       ]
     },
@@ -96817,6 +96939,14 @@
           "offset": 1666740,
           "size": 10,
           "match_percent": 100.0
+        },
+        {
+          "name": "_Z18UCStretchToCornersPsS_",
+          "demangled_name": "UCStretchToCorners(short*, short*)",
+          "address": 2556788,
+          "offset": 1666820,
+          "size": 497,
+          "match_percent": 99.89629
         },
         {
           "name": "_Z11NuPadReadPSiPhS_S_S_S_S_S_S_PjS_S0_",
@@ -97607,7 +97737,7 @@
           "address": 2549254,
           "offset": 1659286,
           "size": 132,
-          "match_percent": 88.475
+          "match_percent": 99.975
         },
         {
           "name": "ExplodeBufferNoHeader",
@@ -97889,14 +98019,6 @@
           "match_percent": 100.0
         },
         {
-          "name": "_Z18NuFrameEndBgLoadPSi",
-          "demangled_name": "NuFrameEndBgLoadPS(int)",
-          "address": 2530385,
-          "offset": 1640417,
-          "size": 333,
-          "match_percent": 0.0
-        },
-        {
           "name": "_Z12NuErrorPrintPc",
           "demangled_name": "NuErrorPrint(char*)",
           "address": 2557769,
@@ -97926,7 +98048,7 @@
           "address": 2746288,
           "offset": 1856320,
           "size": 2449,
-          "match_percent": 26.419777
+          "match_percent": 27.199627
         },
         {
           "name": "_Z29NuIOS_CopyBackbufferToTextureP13nunativetex_sb",
@@ -98017,14 +98139,6 @@
           "match_percent": 40.229393
         },
         {
-          "name": "_Z13NuWindFreeGrpP11NuWindGType",
-          "demangled_name": "NuWindFreeGrp(NuWindGType*)",
-          "address": 3171503,
-          "offset": 2281535,
-          "size": 20,
-          "match_percent": 54.875
-        },
-        {
           "name": "_Z25NuIOS_GetShaderProgramKeyRK15ShaderObjectKey",
           "demangled_name": "NuIOS_GetShaderProgramKey(ShaderObjectKey const&)",
           "address": 3201424,
@@ -98078,7 +98192,7 @@
           "address": 4424288,
           "offset": 3534320,
           "size": 937,
-          "match_percent": 15.3125
+          "match_percent": 44.898438
         },
         {
           "name": "_Z7NuATanff",
@@ -98473,7 +98587,15 @@
           "address": 2527774,
           "offset": 1637806,
           "size": 2532,
-          "match_percent": 19.534592
+          "match_percent": 19.691824
+        },
+        {
+          "name": "_Z16ParseCommandLinev",
+          "demangled_name": "ParseCommandLine()",
+          "address": 2532062,
+          "offset": 1642094,
+          "size": 291,
+          "match_percent": 99.72603
         },
         {
           "name": "NuDisableOSMenuFreeze",
@@ -99642,6 +99764,14 @@
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_nu2api/nucore_frame.o",
       "functions": [
         {
+          "name": "_Z18NuFrameEndBgLoadPSi",
+          "demangled_name": "NuFrameEndBgLoadPS(int)",
+          "address": 2530385,
+          "offset": 1640417,
+          "size": 333,
+          "match_percent": 99.90804
+        },
+        {
           "name": "NuFrameSetMinDelay",
           "demangled_name": "NuFrameSetMinDelay",
           "address": 2530718,
@@ -99710,7 +99840,7 @@
           "address": 931392,
           "offset": 41424,
           "size": 1197,
-          "match_percent": 2.857724
+          "match_percent": 99.532524
         },
         {
           "name": "NuIOS_RecordFlurryEvent",
@@ -99753,30 +99883,6 @@
           "match_percent": 66.0
         },
         {
-          "name": "NuPtrBlockRead",
-          "demangled_name": "NuPtrBlockRead",
-          "address": 2542854,
-          "offset": 1652886,
-          "size": 51,
-          "match_percent": 54.294117
-        },
-        {
-          "name": "NuPs2ApplyDeadZone",
-          "demangled_name": "NuPs2ApplyDeadZone",
-          "address": 2555912,
-          "offset": 1665944,
-          "size": 152,
-          "match_percent": 25.727272
-        },
-        {
-          "name": "_Z24Nu360ConfigureSMBSharingPPc",
-          "demangled_name": "Nu360ConfigureSMBSharing(char**)",
-          "address": 2556074,
-          "offset": 1666106,
-          "size": 106,
-          "match_percent": 39.689655
-        },
-        {
           "name": "NuPad_Interface_TouchScreenInput",
           "demangled_name": "NuPad_Interface_TouchScreenInput",
           "address": 2562672,
@@ -99807,30 +99913,6 @@
           "offset": 1686720,
           "size": 9,
           "match_percent": 100.0
-        },
-        {
-          "name": "NuPower2",
-          "demangled_name": "NuPower2",
-          "address": 2686542,
-          "offset": 1796574,
-          "size": 45,
-          "match_percent": 28.285715
-        },
-        {
-          "name": "NuLog2",
-          "demangled_name": "NuLog2",
-          "address": 2686640,
-          "offset": 1796672,
-          "size": 75,
-          "match_percent": 48.636364
-        },
-        {
-          "name": "NuPow",
-          "demangled_name": "NuPow",
-          "address": 2686715,
-          "offset": 1796747,
-          "size": 370,
-          "match_percent": 5.111111
         },
         {
           "name": "NuSpecialDrawAtAlpha",
@@ -101438,7 +101520,7 @@
           "address": 3121072,
           "offset": 2231104,
           "size": 833,
-          "match_percent": 56.324444
+          "match_percent": 56.057777
         },
         {
           "name": "NuWindLoad",
@@ -102224,7 +102306,7 @@
           "address": 2973968,
           "offset": 2084000,
           "size": 1925,
-          "match_percent": 60.507427
+          "match_percent": 84.74505
         },
         {
           "name": "NuHtmlVBarGraph",
@@ -102232,7 +102314,7 @@
           "address": 2975904,
           "offset": 2085936,
           "size": 1498,
-          "match_percent": 66.88418
+          "match_percent": 88.47458
         },
         {
           "name": "_Z8setpointf",
@@ -102264,7 +102346,7 @@
           "address": 2977664,
           "offset": 2087696,
           "size": 1129,
-          "match_percent": 59.34884
+          "match_percent": 84.15891
         }
       ]
     },
@@ -103940,14 +104022,6 @@
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_nu2api/nupad_interface.o",
       "functions": [
         {
-          "name": "_GLOBAL__sub_I_nupad_interface.cpp",
-          "demangled_name": "_GLOBAL__sub_I_nupad_interface.cpp",
-          "address": 901344,
-          "offset": 11376,
-          "size": 93,
-          "match_percent": 99.35294
-        },
-        {
           "name": "_ZN15NuInputDevicePS15GetIdentifierPSEj",
           "demangled_name": "NuInputDevicePS::GetIdentifierPS(unsigned int)",
           "address": 976576,
@@ -104025,7 +104099,7 @@
           "address": 2569120,
           "offset": 1679152,
           "size": 573,
-          "match_percent": 41.44643
+          "match_percent": 99.92857
         },
         {
           "name": "_ZN18NuTouchInputButton6RenderEv",
@@ -104033,7 +104107,7 @@
           "address": 2569696,
           "offset": 1679728,
           "size": 247,
-          "match_percent": 91.03571
+          "match_percent": 100.0
         },
         {
           "name": "_ZN14NuButtonLayout13UpdateButtonsEi",
@@ -104362,6 +104436,14 @@
       "source": "src/nu2api/nucore/nuptrblock.cpp",
       "object": "bazel-out/x64_windows-fastbuild/bin/src/_objs/saga_target_nu2api/nuptrblock.o",
       "functions": [
+        {
+          "name": "NuPtrBlockRead",
+          "demangled_name": "NuPtrBlockRead",
+          "address": 2542854,
+          "offset": 1652886,
+          "size": 51,
+          "match_percent": 100.0
+        },
         {
           "name": "NuPtrBlockFix",
           "demangled_name": "NuPtrBlockFix",
@@ -105618,7 +105700,7 @@
           "address": 2931760,
           "offset": 2041792,
           "size": 998,
-          "match_percent": 69.39502
+          "match_percent": 81.50178
         },
         {
           "name": "NuTexAnimEnvProc",
@@ -105982,14 +106064,6 @@
           "address": 3182496,
           "offset": 2292528,
           "size": 22,
-          "match_percent": 100.0
-        },
-        {
-          "name": "NuShaderObjectKeyGenerate2",
-          "demangled_name": "NuShaderObjectKeyGenerate2",
-          "address": 3185376,
-          "offset": 2295408,
-          "size": 104,
           "match_percent": 100.0
         }
       ]
@@ -108170,86 +108244,6 @@
           "offset": 1604066,
           "size": 137,
           "match_percent": 100.0
-        },
-        {
-          "name": "_ZL15SockCamATSTLIFTP8nufpar_sPv",
-          "demangled_name": "SockCamATSTLIFT(nufpar_s*, void*)",
-          "address": 3937753,
-          "offset": 3047785,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL15SockCamATSTDISTP8nufpar_sPv",
-          "demangled_name": "SockCamATSTDIST(nufpar_s*, void*)",
-          "address": 3937818,
-          "offset": 3047850,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL19SockCamATSTCAMRANGEP8nufpar_sPv",
-          "demangled_name": "SockCamATSTCAMRANGE(nufpar_s*, void*)",
-          "address": 3937883,
-          "offset": 3047915,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL15SockCamATSTTILTP8nufpar_sPv",
-          "demangled_name": "SockCamATSTTILT(nufpar_s*, void*)",
-          "address": 3937948,
-          "offset": 3047980,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL19SockCamATSTTILTRATEP8nufpar_sPv",
-          "demangled_name": "SockCamATSTTILTRATE(nufpar_s*, void*)",
-          "address": 3938013,
-          "offset": 3048045,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL24SockCamCAMERARAYTILTDISTP8nufpar_sPv",
-          "demangled_name": "SockCamCAMERARAYTILTDIST(nufpar_s*, void*)",
-          "address": 3938078,
-          "offset": 3048110,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL26SockCamCAMERARAYTILTHEIGHTP8nufpar_sPv",
-          "demangled_name": "SockCamCAMERARAYTILTHEIGHT(nufpar_s*, void*)",
-          "address": 3938143,
-          "offset": 3048175,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL16SockManCam_MAX_XP8nufpar_sPv",
-          "demangled_name": "SockManCam_MAX_X(nufpar_s*, void*)",
-          "address": 3938208,
-          "offset": 3048240,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL16SockManCam_MAX_YP8nufpar_sPv",
-          "demangled_name": "SockManCam_MAX_Y(nufpar_s*, void*)",
-          "address": 3938273,
-          "offset": 3048305,
-          "size": 65,
-          "match_percent": 100.0
-        },
-        {
-          "name": "_ZL22SockTerrainCamInActiveP8nufpar_sPv",
-          "demangled_name": "SockTerrainCamInActive(nufpar_s*, void*)",
-          "address": 3938338,
-          "offset": 3048370,
-          "size": 34,
-          "match_percent": 100.0
         }
       ]
     },
@@ -108615,6 +108609,30 @@
           "offset": 1749371,
           "size": 78,
           "match_percent": 100.0
+        },
+        {
+          "name": "NuPower2",
+          "demangled_name": "NuPower2",
+          "address": 2686542,
+          "offset": 1796574,
+          "size": 45,
+          "match_percent": 54.95238
+        },
+        {
+          "name": "NuLog2",
+          "demangled_name": "NuLog2",
+          "address": 2686640,
+          "offset": 1796672,
+          "size": 75,
+          "match_percent": 99.954544
+        },
+        {
+          "name": "NuPow",
+          "demangled_name": "NuPow",
+          "address": 2686715,
+          "offset": 1796747,
+          "size": 370,
+          "match_percent": 99.7
         },
         {
           "name": "NuPowFast",
@@ -118899,18 +118917,6 @@
       ]
     },
     {
-      "name": "_GLOBAL__sub_I_startup.cpp",
-      "demangled_name": "_GLOBAL__sub_I_startup.cpp",
-      "address": 896448,
-      "offset": 6480,
-      "size": 93,
-      "match_percent": 0.0,
-      "candidate_units": [
-        "legoapi/core/startup/startup.cpp.o",
-        "legogame/startup.cpp.o"
-      ]
-    },
-    {
       "name": "_GLOBAL__sub_I_gizforce.cpp",
       "demangled_name": "_GLOBAL__sub_I_gizforce.cpp",
       "address": 897120,
@@ -119071,18 +119077,6 @@
       ]
     },
     {
-      "name": "_ZL18ParseAIPathCnxFlagPc",
-      "demangled_name": "ParseAIPathCnxFlag(char*)",
-      "address": 1646672,
-      "offset": 756704,
-      "size": 202,
-      "match_percent": 7.5,
-      "candidate_units": [
-        "editor/edpath.cpp.o",
-        "gameapi/ai/aisys/aisys.cpp.o"
-      ]
-    },
-    {
       "name": "_ZL17Action_SetLocatorP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
       "demangled_name": "Action_SetLocator(AISYS_s*, AISCRIPTPROCESS_s*, AIPACKET_s*, char**, int, int, float)",
       "address": 1657184,
@@ -119146,7 +119140,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119187,7 +119180,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119229,7 +119221,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119287,7 +119278,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119326,6 +119316,7 @@
         "legoapi/props/system/socksysall.cpp.o",
         "legoapi/render/core/rtl.c.o",
         "nu2api/nu3d/nubridge.cpp.o",
+        "nu2api/nucore/android/nupad_android.cpp.o",
         "nu2api/numath/nufloat.c.o",
         "nu2api/numath/numtx.cpp.o",
         "nu2api/numath/nuplane.cpp.o",
@@ -119363,7 +119354,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119420,7 +119410,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119477,7 +119466,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119534,7 +119522,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119591,7 +119578,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119648,7 +119634,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119861,6 +119846,7 @@
         "legoapi/props/system/socksysall.cpp.o",
         "legoapi/render/core/rtl.c.o",
         "nu2api/nu3d/nubridge.cpp.o",
+        "nu2api/nucore/android/nupad_android.cpp.o",
         "nu2api/numath/nufloat.c.o",
         "nu2api/numath/numtx.cpp.o",
         "nu2api/numath/nuplane.cpp.o",
@@ -119914,7 +119900,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -119971,7 +119956,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120028,7 +120012,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120134,7 +120117,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120203,7 +120185,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120361,7 +120342,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120470,7 +120450,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120579,7 +120558,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120636,7 +120614,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120693,7 +120670,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120750,7 +120726,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120833,7 +120808,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120890,7 +120864,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -120958,7 +120931,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121015,7 +120987,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121085,7 +121056,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121142,7 +121112,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121181,6 +121150,7 @@
         "legoapi/props/system/socksysall.cpp.o",
         "legoapi/render/core/rtl.c.o",
         "nu2api/nu3d/nubridge.cpp.o",
+        "nu2api/nucore/android/nupad_android.cpp.o",
         "nu2api/numath/nufloat.c.o",
         "nu2api/numath/numtx.cpp.o",
         "nu2api/numath/nuplane.cpp.o",
@@ -121218,7 +121188,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121275,7 +121244,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121332,7 +121300,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121389,7 +121356,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121509,7 +121475,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121558,7 +121523,7 @@
       "address": 3239642,
       "offset": 2349674,
       "size": 373,
-      "match_percent": 99.7,
+      "match_percent": 0.0,
       "candidate_units": [
         "MechInputTouch/MechObjectInterface.cpp.o",
         "editor/creature_editor.cpp.o",
@@ -121566,7 +121531,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121623,7 +121587,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -121954,6 +121917,7 @@
         "legoapi/props/system/socksysall.cpp.o",
         "legoapi/render/core/rtl.c.o",
         "nu2api/nu3d/nubridge.cpp.o",
+        "nu2api/nucore/android/nupad_android.cpp.o",
         "nu2api/numath/nufloat.c.o",
         "nu2api/numath/numtx.cpp.o",
         "nu2api/numath/nuplane.cpp.o",
@@ -122025,7 +121989,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122064,6 +122027,7 @@
         "legoapi/props/system/socksysall.cpp.o",
         "legoapi/render/core/rtl.c.o",
         "nu2api/nu3d/nubridge.cpp.o",
+        "nu2api/nucore/android/nupad_android.cpp.o",
         "nu2api/numath/nufloat.c.o",
         "nu2api/numath/numtx.cpp.o",
         "nu2api/numath/nuplane.cpp.o",
@@ -122104,18 +122068,6 @@
       ]
     },
     {
-      "name": "_ZL12SplineLengthP11nugspline_si",
-      "demangled_name": "SplineLength(nugspline_s*, int)",
-      "address": 3916731,
-      "offset": 3026763,
-      "size": 276,
-      "match_percent": 72.5814,
-      "candidate_units": [
-        "legoapi/props/system/socksysall.cpp.o",
-        "legoapi/render/fx/edsplines.cpp.o"
-      ]
-    },
-    {
       "name": "_ZL12InsideLineXZffffff",
       "demangled_name": "InsideLineXZ(float, float, float, float, float, float)",
       "address": 3917181,
@@ -122141,7 +122093,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122180,6 +122131,7 @@
         "legoapi/props/system/socksysall.cpp.o",
         "legoapi/render/core/rtl.c.o",
         "nu2api/nu3d/nubridge.cpp.o",
+        "nu2api/nucore/android/nupad_android.cpp.o",
         "nu2api/numath/nufloat.c.o",
         "nu2api/numath/numtx.cpp.o",
         "nu2api/numath/nuplane.cpp.o",
@@ -122231,18 +122183,6 @@
       ]
     },
     {
-      "name": "_ZL15UpdateAnimTimerP16CHARACTERMODEL_sP12ANIMPACKET_ssfffiPcif",
-      "demangled_name": "UpdateAnimTimer(CHARACTERMODEL_s*, ANIMPACKET_s*, short, float, float, float, int, char*, int, float)",
-      "address": 3989699,
-      "offset": 3099731,
-      "size": 1057,
-      "match_percent": 63.810997,
-      "candidate_units": [
-        "legoapi/items/base/apiobject.cpp.o",
-        "legoapi/render/fx/parts.cpp.o"
-      ]
-    },
-    {
       "name": "_Z41__static_initialization_and_destruction_0ii",
       "demangled_name": "__static_initialization_and_destruction_0(int, int)",
       "address": 4006085,
@@ -122256,7 +122196,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122695,7 +122634,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -122752,7 +122690,6 @@
         "legoapi/ai/core/ai_sys.cpp.o",
         "legoapi/ai/core/legoai.cpp.o",
         "legoapi/characters/motion/chris_stubs.cpp.o",
-        "legoapi/core/startup/startup.cpp.o",
         "legoapi/items/base/apiobject.cpp.o",
         "legoapi/items/objects/things.cpp.o",
         "legoapi/misc/buffers.cpp.o",
@@ -123228,14 +123165,6 @@
       "match_percent": 0.0
     },
     {
-      "name": "_ZL26Customiser_FindSetFromNamePc.part.0",
-      "demangled_name": "Customiser_FindSetFromName(char*) [clone .part.0]",
-      "address": 891708,
-      "offset": 1740,
-      "size": 140,
-      "match_percent": 0.0
-    },
-    {
       "name": "_ZL35GizObstacle_SatisfyingTerrainChecksP13GIZOBSTACLE_sP12GameObject_s",
       "demangled_name": "GizObstacle_SatisfyingTerrainChecks(GIZOBSTACLE_s*, GameObject_s*)",
       "address": 891848,
@@ -123408,6 +123337,14 @@
       "demangled_name": "_GLOBAL__sub_I_legoapi_tag.cpp",
       "address": 901056,
       "offset": 11088,
+      "size": 93,
+      "match_percent": 0.0
+    },
+    {
+      "name": "_GLOBAL__sub_I_nupad_interface.cpp",
+      "demangled_name": "_GLOBAL__sub_I_nupad_interface.cpp",
+      "address": 901344,
+      "offset": 11376,
       "size": 93,
       "match_percent": 0.0
     },
@@ -124476,22 +124413,6 @@
       "match_percent": 0.0
     },
     {
-      "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED1Ev",
-      "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
-      "address": 2577856,
-      "offset": 1687888,
-      "size": 94,
-      "match_percent": 0.0
-    },
-    {
-      "name": "_ZN13NuThreadQueueI16NuPhoneOSMessageLj128EED2Ev",
-      "demangled_name": "NuThreadQueue<NuPhoneOSMessage, (unsigned int)128>::~NuThreadQueue()",
-      "address": 2577856,
-      "offset": 1687888,
-      "size": 94,
-      "match_percent": 0.0
-    },
-    {
       "name": "_GLOBAL__sub_I_numath_includes.c",
       "demangled_name": "_GLOBAL__sub_I_numath_includes.c",
       "address": 2689793,
@@ -125306,6 +125227,14 @@
       "offset": 4096960,
       "size": 1193,
       "match_percent": 0.0
+    },
+    {
+      "name": "_ZL13_fseek64_wrapP7__sFILExi",
+      "demangled_name": "_fseek64_wrap(__sFILE*, long long, int)",
+      "address": 5256272,
+      "offset": 4366304,
+      "size": 63,
+      "match_percent": 100.0
     },
     {
       "name": "_ZL14_get_next_pageP14OggVorbis_FileP8ogg_pagex.constprop.13",
@@ -126313,6 +126242,14 @@
       "address": 5348256,
       "offset": 4458288,
       "size": 39,
+      "match_percent": 100.0
+    },
+    {
+      "name": "_ZL10seed_chasePfil",
+      "demangled_name": "seed_chase(float*, int, long)",
+      "address": 5348304,
+      "offset": 4458336,
+      "size": 640,
       "match_percent": 100.0
     },
     {
@@ -127589,10 +127526,10 @@
     }
   ],
   "summary": {
-    "bazel_units": 454,
+    "bazel_units": 452,
     "functions": 13454,
-    "assigned_functions": 12664,
-    "ambiguous_functions": 242,
+    "assigned_functions": 12668,
+    "ambiguous_functions": 238,
     "unassigned_functions": 548
   }
 }

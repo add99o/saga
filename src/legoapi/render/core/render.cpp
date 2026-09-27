@@ -4,6 +4,7 @@
 #include "legoapi/render/core/render.h"
 #include "legoapi/items/collect/torpedo.h"
 #include "legoapi/items/collect/spacelevel.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/actions/character/transform.h"
 #include "legoapi/actions/movement/carrying.h"
 #include "legoapi/actions/character/snake.h"
@@ -2031,12 +2032,15 @@ void DrawGameMessages() {
         u8 field_0xfd;
         u8 field_0xfe;
         u8 field_0xff;
-        u32 field_0x100;
-        u32 field_0x104;
+        void (*delay_fn)(GAMEMESSAGE_s *);
+        void (*tick_fn)(GAMEMESSAGE_s *);
         void (*update_fn)(GAMEMESSAGE_s *);
         void (*draw_fn)(GAMEMESSAGE_s *, NUVEC *, f32);
         void (*end_fn)(GAMEMESSAGE_s *);
     };
+    static_assert(sizeof(RENDER_MESSAGE) == sizeof(GAMEMESSAGE_s), "render message backing layout");
+    static_assert(offsetof(RENDER_MESSAGE, draw_fn) == offsetof(GAMEMESSAGE_s, draw_callback),
+                  "render message callback offset");
     extern GAMEMESSAGE_s GameMessage[128];
     extern i32 DrawPanel3DObjectNoAlpha(float, float, float, float, float, float, u16, u16, u16, nuhspecial_s *, i32);
 
@@ -4022,95 +4026,6 @@ static void DrawParaphernalia(GameObject_s *object) {
     }
 }
 
-static f32 spotLightA_yrot[2];
-static f32 spotLightA_zrot[2];
-static f32 spotLightB_yrot[2] = {0.5f, 0.5f};
-static f32 spotLightB_zrot[2] = {0.5f, 0.5f};
-
-static __used__ void DrawFalconSpotLights(GameObject_s *object) {
-    if (static_cast<u8>(object->apiobj.field_0x27c) > 1 || object->id != id_MILLENNIUMFALCON ||
-        WORLD->lev_objs[0x127].active == 0)
-        return;
-    NUMTX matrix __attribute__((aligned(16)));
-    if (object->apiobj.character_model->points_of_interest[4] != NULL) {
-        matrix = object->joint_matrices[4];
-        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
-    }
-    spotLightA_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightA_yrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightA_yrot[object->apiobj.field_0x27c] -= 1.0f;
-    spotLightA_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightA_zrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightA_zrot[object->apiobj.field_0x27c] -= 1.0f;
-    if (object->apiobj.character_model->points_of_interest[5] != NULL) {
-        matrix = object->joint_matrices[5];
-        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
-    }
-    spotLightB_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightB_yrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightB_yrot[object->apiobj.field_0x27c] -= 1.0f;
-    spotLightB_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
-    if (spotLightB_zrot[object->apiobj.field_0x27c] > 1.0f)
-        spotLightB_zrot[object->apiobj.field_0x27c] -= 1.0f;
-}
-
-void DrawSpaceLevel(spacelevel_s *) __asm__("_ZL14DrawSpaceLevelP12spacelevel_s")
-    __attribute__((used, visibility("hidden")));
-void DrawSpaceLevel(spacelevel_s *space) {
-    if (space->player_matrix_state != 0) {
-        NuVecMtxTransform(reinterpret_cast<NUVEC *>(&space->player_matrix.m30),
-                          reinterpret_cast<NUVEC *>(&space->player_matrix.m10), &GameCam->render_mtx);
-        DrawCross_Now(reinterpret_cast<_vuv_s *>(&space->player_matrix.m30), 1.0f, space->player_colour, 1);
-    }
-    if (space->camera_matrix_state != 0) {
-        NuVecMtxTransform(reinterpret_cast<NUVEC *>(&space->camera_matrix.m30),
-                          reinterpret_cast<NUVEC *>(&space->camera_matrix.m10), &GameCam->render_mtx);
-        DrawCross_Now(reinterpret_cast<_vuv_s *>(&space->camera_matrix.m30), 1.0f, space->camera_colour, 1);
-    }
-
-    for (i32 group_index = 0; group_index < 7; ++group_index) {
-        spacelevel_fighter_group_s &group = space->fighter_groups[group_index];
-        if (group.trooper_team.reset_effect == 0)
-            continue;
-        for (i32 fighter_index = 0; fighter_index < 4; ++fighter_index) {
-            spacelevel_starfighter_s &fighter = group.fighters[fighter_index];
-            if (fighter.reset_timer != 0)
-                DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
-        }
-        if (group.trooper_team.reset_effect_timer != 0) {
-            u8 *team = reinterpret_cast<u8 *>(&group.trooper_team);
-            DrawCross_Now(reinterpret_cast<_vuv_s *>(team + 0x78), 3.0f, 0xffffff, 1);
-        }
-    }
-    if (space->last_starfighter.reset_effect != 0) {
-        for (i32 fighter_index = 0; fighter_index < 4; ++fighter_index) {
-            spacelevel_starfighter_s &fighter = space->final_fighters[fighter_index];
-            if (fighter.reset_timer != 0)
-                DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
-        }
-        if (space->last_starfighter.reset_effect_timer != 0) {
-            u8 *last = reinterpret_cast<u8 *>(&space->last_starfighter);
-            DrawCross_Now(reinterpret_cast<_vuv_s *>(last + 0x78), 3.0f, 0xffffff, 1);
-        }
-    }
-    for (i32 index = 0; index < 96; ++index) {
-        spacelevel_starfighter_s &fighter = space->queued_starfighters[index];
-        if (fighter.reset_state != 0)
-            DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
-    }
-}
-
-void DrawFalconSpotLightsForChase(GameObject_s *object) {
-    DrawFalconSpotLights(object);
-}
-
-void ResetFalconSpotLightsForChase(void) {
-    spotLightA_yrot[0] = spotLightA_yrot[1] = 0.0f;
-    spotLightA_zrot[0] = spotLightA_zrot[1] = 0.0f;
-    spotLightB_yrot[0] = spotLightB_yrot[1] = 0.5f;
-    spotLightB_zrot[0] = spotLightB_zrot[1] = 0.5f;
-}
-
 static __used__ void DisplayListMaterialClipUpdate(nudisplayscene_s *scene) {
     if (scene == NULL || scene->mtls == NULL || scene->mtls[0] == NULL)
         return;
@@ -4303,5 +4218,51 @@ void BackDrop_Draw(float alpha, i32 flags) {
             NuSpecialDrawAtAlpha(special, &mtx, alpha);
             angle = (u16)(angle + 0x5555);
         }
+    }
+}
+
+void DrawSpaceLevel(spacelevel_s *) __asm__("_ZL14DrawSpaceLevelP12spacelevel_s")
+    __attribute__((used, visibility("hidden")));
+void DrawSpaceLevel(spacelevel_s *space) {
+    if (space->player_matrix_state != 0) {
+        NuVecMtxTransform(reinterpret_cast<NUVEC *>(&space->player_matrix.m30),
+                          reinterpret_cast<NUVEC *>(&space->player_matrix.m10), &GameCam->render_mtx);
+        DrawCross_Now(reinterpret_cast<_vuv_s *>(&space->player_matrix.m30), 1.0f, space->player_colour, 1);
+    }
+    if (space->camera_matrix_state != 0) {
+        NuVecMtxTransform(reinterpret_cast<NUVEC *>(&space->camera_matrix.m30),
+                          reinterpret_cast<NUVEC *>(&space->camera_matrix.m10), &GameCam->render_mtx);
+        DrawCross_Now(reinterpret_cast<_vuv_s *>(&space->camera_matrix.m30), 1.0f, space->camera_colour, 1);
+    }
+
+    for (i32 group_index = 0; group_index < 7; ++group_index) {
+        spacelevel_fighter_group_s &group = space->fighter_groups[group_index];
+        if (group.trooper_team.reset_effect == 0)
+            continue;
+        for (i32 fighter_index = 0; fighter_index < 4; ++fighter_index) {
+            spacelevel_starfighter_s &fighter = group.fighters[fighter_index];
+            if (fighter.reset_timer != 0)
+                DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
+        }
+        if (group.trooper_team.reset_effect_timer != 0) {
+            u8 *team = reinterpret_cast<u8 *>(&group.trooper_team);
+            DrawCross_Now(reinterpret_cast<_vuv_s *>(team + 0x78), 3.0f, 0xffffff, 1);
+        }
+    }
+    if (space->last_starfighter.reset_effect != 0) {
+        for (i32 fighter_index = 0; fighter_index < 4; ++fighter_index) {
+            spacelevel_starfighter_s &fighter = space->final_fighters[fighter_index];
+            if (fighter.reset_timer != 0)
+                DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
+        }
+        if (space->last_starfighter.reset_effect_timer != 0) {
+            u8 *last = reinterpret_cast<u8 *>(&space->last_starfighter);
+            DrawCross_Now(reinterpret_cast<_vuv_s *>(last + 0x78), 3.0f, 0xffffff, 1);
+        }
+    }
+    for (i32 index = 0; index < 96; ++index) {
+        spacelevel_starfighter_s &fighter = space->queued_starfighters[index];
+        if (fighter.reset_state != 0)
+            DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
     }
 }

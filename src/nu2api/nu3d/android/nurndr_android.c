@@ -345,65 +345,60 @@ void NuIOSDLGeom2DCallback(void *arg) {
 }
 
 void DumpAttributeBindings() {
-    for (i32 index = 0; index <= 15; ++index) {
+    for (GLint index = 0; index < 16; ++index) {
         GLint enabled;
-        GLint buffer;
-        GLint size;
-        GLint stride;
-        GLint type;
-        GLint normalized;
-        void *pointer;
         glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
-        if (enabled == 0) {
-            continue;
+        if (enabled != 0) {
+            GLint buffer, size, stride, type, normalized;
+            void *pointer;
+            glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
+            glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
+            glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+            glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+            glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+            glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
         }
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &buffer);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
-        glGetVertexAttribiv(index, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
-        glGetVertexAttribPointerv(index, GL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
     }
 }
 
 void MultilineDump(char const *text) {
+    // Logging was stripped from this build, but its temporary line splitting
+    // remains. Despite the original const signature, callers supply writable,
+    // nonempty strings. Searching starts after the first character.
     char *newline = const_cast<char *>(text);
-    char *next = newline;
-    goto search;
-    do {
+    const char *line = newline;
+    while ((newline = strchr(newline + 1, '\n')) != NULL) {
         *newline = '\0';
         *newline = '\n';
-        next = newline + 1;
-    search:
-        newline = strchr(newline + 1, '\n');
-    } while (newline != NULL);
+        line = newline + 1;
+    }
+    (void)line;
 }
 
 void DumpShaderSource(u32 shader) {
-    GLint sourceLength;
-    glGetShaderiv(shader, GL_SHADER_SOURCE_LENGTH, &sourceLength);
-    char *source = static_cast<char *>(NuMemoryGet()->GetThreadMem()->_BlockAlloc(sourceLength, 4, 1, "", 0));
-    glGetShaderSource(shader, sourceLength, NULL, source);
-
-    u32 shaderKey = 0;
-    for (i32 index = 0; static_cast<u32>(index) <= 1; ++index) {
-        NUSHADEROBJECT *object = NuShaderManagerGetShaderById(
-            reinterpret_cast<i16 *>(g_LastMtl)[index + 0xfa]);
+    GLint length;
+    glGetShaderiv(shader, GL_SHADER_SOURCE_LENGTH, &length);
+    char *source = static_cast<char *>(NU_ALLOC(length, 4, 1, "", 0));
+    glGetShaderSource(shader, length, NULL, source);
+    u32 key = 0;
+    for (u32 index = 0; index < 2; ++index) {
+        NUSHADEROBJECT *object = NuShaderManagerGetShaderById(g_LastMtl->shader_desc.shader_ids[index]);
         if (object != NULL && (object->glsl.vertex_shader == shader || object->glsl.fragment_shader == shader)) {
-            shaderKey = object->glsl.base.key;
+            key = object->glsl.base.key;
             break;
         }
     }
-
+    // The key was part of the stripped diagnostic heading.
+    (void)key;
     MultilineDump(source);
-    NuMemoryGet()->GetThreadMem()->BlockFree(source, 0);
+    NU_FREE(source);
 }
 
 void DumpProgramSource(u32 program) {
     GLuint shaders[2];
     GLsizei count;
     glGetAttachedShaders(program, 2, &count, shaders);
-    for (i32 index = 0; index < count; ++index) {
+    for (GLsizei index = 0; index < count; ++index) {
         DumpShaderSource(shaders[index]);
     }
 }
@@ -411,53 +406,55 @@ void DumpProgramSource(u32 program) {
 void DumpShaderAttributes(u32 program) {
     static char attributeName[256];
     GLint count;
-    GLsizei size;
-    GLenum type;
     glGetProgramiv(program, GL_ACTIVE_ATTRIBUTES, &count);
-    for (i32 index = 0; index < count; ++index) {
+    for (GLint index = 0; index < count; ++index) {
+        GLint size;
+        GLenum type;
         glGetActiveAttrib(program, index, sizeof(attributeName), NULL, &size, &type, attributeName);
         GLint location = glGetAttribLocation(program, attributeName);
-        char *bracket = strchr(attributeName, '[');
-        if (bracket != NULL) {
-            *bracket = '\0';
+        char *array_suffix = strchr(attributeName, '[');
+        if (array_suffix != NULL) {
+            *array_suffix = '\0';
         }
+        (void)location;
     }
 }
 
 // The original 0x2940a6 helper and its counter belong to this VAO family.
-static i32 g_vaoRecordCount;
-struct VAORecord {
-    u32 vertex_buffer;
-    u32 index_buffer;
+static u32 g_vaoRecordCount;
+
+// Retail stores 2,048 twenty-byte records; the format pointer stays native
+// width on host builds. The three unsigned values are opaque lookup keys.
+struct NuVAORecord {
+    u32 first_key;
+    u32 second_key;
     NuVertexFormatPS *format;
-    u32 attribute_flags;
+    u32 third_key;
     i32 vao;
 };
-static VAORecord g_vaoRecords[2048];
+DECOMP_ASSERT(sizeof(NuVAORecord) == 20, "NuVAORecord target layout");
+static NuVAORecord g_vaoRecords[2048];
 
 void NuIOS_ResetVAODuplicateFinder() {
     g_vaoRecordCount = 0;
 }
 
-// Original 0x2940c0: deduplicate the five-word VAO records.
-static i32 NuIOS_GetOrCreateVAO(u32 vertex_buffer, u32 index_buffer, u32 attribute_flags,
-                                NuVertexFormatPS *format) {
-    i32 index = 0;
-    index = 0;
-    for (; static_cast<u32>(index) < static_cast<u32>(g_vaoRecordCount); ++index) {
-        if (g_vaoRecords[index].vertex_buffer == vertex_buffer &&
-            g_vaoRecords[index].index_buffer == index_buffer &&
-            g_vaoRecords[index].format == format &&
-            g_vaoRecords[index].attribute_flags == attribute_flags) {
-            return g_vaoRecords[index].vao;
+// Original 0x2940c0. Retail only records keys and returns the existing
+// handle; it does not generate a GL object or clear reused handles here.
+static i32 NuIOS_GetOrCreateVAO(u32 first, u32 second, u32 third, NuVertexFormatPS *format) {
+    u32 i = 0;
+    for (i = 0; i < g_vaoRecordCount; ++i) {
+        if (g_vaoRecords[i].first_key == first && g_vaoRecords[i].second_key == second &&
+            g_vaoRecords[i].format == format && g_vaoRecords[i].third_key == third) {
+            return g_vaoRecords[i].vao;
         }
     }
-    g_vaoRecords[index].vertex_buffer = vertex_buffer;
-    g_vaoRecords[index].index_buffer = index_buffer;
-    g_vaoRecords[index].format = format;
-    g_vaoRecords[index].attribute_flags = attribute_flags;
+    g_vaoRecords[i].first_key = first;
+    g_vaoRecords[i].second_key = second;
+    g_vaoRecords[i].format = format;
+    g_vaoRecords[i].third_key = third;
     ++g_vaoRecordCount;
-    return g_vaoRecords[index].vao;
+    return g_vaoRecords[i].vao;
 }
 
 // original 0x294233 — records the material's vertex format on static geometry

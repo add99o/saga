@@ -1548,51 +1548,39 @@ static void Blowup_Activate(GIZMO *gizmo, i32 enabled) {
         return;
 
     GIZMOBLOWUP_s *blowup = static_cast<GIZMOBLOWUP_s *>(gizmo->object);
-    u8 activated = enabled != 0;
+    bool activated = enabled != 0;
     blowup->state_flags = (blowup->state_flags & 0x7f) | (activated << 7);
 
     nuinstanim_s *animation = NuSpecialGetInstAnim(&blowup->type->animated_special);
-    u8 state_flags;
     if (animation != NULL) {
-        if (enabled == 0) {
+        if (enabled != 0) {
+            if ((blowup->state_flags & GIZMOBLOWUP_STATE_ANIMATION_PLAYING) != 0)
+                animation->playing = 1;
+        } else {
             animation->playing = 0;
-            return;
         }
-        state_flags = blowup->state_flags;
-        if ((state_flags & GIZMOBLOWUP_STATE_ANIMATION_PLAYING) != 0) {
-            animation->playing = 1;
-            state_flags = blowup->state_flags;
-        }
-    } else if (activated == 0) {
-        return;
-    } else {
-        state_flags = blowup->state_flags;
     }
 
-    blowup->output_flags &= ~GIZMOBLOWUP_OUTPUT_BLOWN_UP;
-    blowup->field_0x9f &= ~1;
-    blowup->visibility_flags = (blowup->visibility_flags | GIZMOBLOWUP_VISIBLE) & 0x7f;
-    blowup->state_flags = state_flags | ~0x7f;
-    blowup->saved_state_1 = blowup->initial_state_1;
-    blowup->saved_state_0 = blowup->initial_state_0;
+    if (activated) {
+        blowup->output_flags &= ~GIZMOBLOWUP_OUTPUT_BLOWN_UP;
+        blowup->field_0x9f &= ~1;
+        blowup->visibility_flags |= GIZMOBLOWUP_VISIBLE;
+        blowup->visibility_flags &= 0x7f;
+        blowup->state_flags |= 0x80;
+        blowup->saved_state_1 = blowup->initial_state_1;
+        blowup->saved_state_0 = blowup->initial_state_0;
 
-    animation = NuSpecialGetInstAnim(&blowup->type->animated_special);
-    if (animation == NULL) {
-        state_flags = blowup->state_flags;
-    } else {
-        u8 previous_state_flags = blowup->state_flags;
-        state_flags = previous_state_flags;
-        if (animation->playing != 0) {
-            state_flags = previous_state_flags | GIZMOBLOWUP_STATE_ANIMATION_PLAYING;
-            blowup->state_flags = state_flags;
-            if (animation->repeating != 0) {
-                state_flags = previous_state_flags | GIZMOBLOWUP_STATE_REPEAT_ANIMATION |
-                              GIZMOBLOWUP_STATE_ANIMATION_PLAYING | GIZMOBLOWUP_STATE_REPEATING;
-                blowup->state_flags = state_flags;
+        animation = NuSpecialGetInstAnim(&blowup->type->animated_special);
+        if (animation != NULL) {
+            if (animation->playing != 0) {
+                blowup->state_flags |= GIZMOBLOWUP_STATE_ANIMATION_PLAYING;
+                if (animation->repeating != 0) {
+                    blowup->state_flags |= GIZMOBLOWUP_STATE_REPEAT_ANIMATION | GIZMOBLOWUP_STATE_REPEATING;
+                }
             }
         }
+        blowup->state_flags |= GIZMOBLOWUP_STATE_ACTIVE;
     }
-    blowup->state_flags = state_flags | GIZMOBLOWUP_STATE_ACTIVE;
 }
 
 static void Blowup_SetVisibility(GIZMO *gizmo, i32 visible) {
@@ -1983,8 +1971,6 @@ i32 gizmoblowup_Load(void *world_ptr, void *) {
     }
     return 1;
 }
-
-bool SphereSphereOverlap(NUVEC *, f32, NUVEC *, f32);
 
 u32 GetLevelExBlowupFlags(void) {
     return EXBLOWUPFLAGS;

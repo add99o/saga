@@ -6,11 +6,13 @@
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/core/charconfig.h"
+#include "legoapi/characters/motion.h"
 #include "legoapi/gizmo/base/gizactions.h"
 #include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/props/doors/door.h"
+#include "legoapi/props/objects/techno.h"
 #include "legoapi/world/level.h"
 #include "legoapi/world/world.h"
 #include "nu2api/nucore/nustring.h"
@@ -50,8 +52,6 @@ i32 Action_SetState(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *, char 
 f32 GameShadow(GameObject_s *, NUVEC *, f32, i32);
 void AISysGetPathPos2(AISYS_s *, NUVEC *, AIPATHINFO_s *, NUVEC *, AIPATH_s *, i32);
 void GameObjectSetCanUse(GameObject_s *, void *, u8, u8, f32);
-extern u32 GAMEPAD_TOGGLERIGHT;
-extern f32 ai_moveradius;
 
 i32 Action_UsePanel(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
                     i32 first_time, f32 elapsed) {
@@ -98,43 +98,44 @@ i32 Action_UsePanel(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *p
 }
 
 i32 Action_CameraCut(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
-                     i32 first_time, float) {
+                     i32 first_time, f32) {
     NUVEC target_position = {1000000000.0f, 1000000000.0f, 1000000000.0f};
     NUVEC camera_position = {1000000000.0f, 1000000000.0f, 1000000000.0f};
-    NUVEC camera_offset = {0.0f, 0.0f, 0.0f};
+    NUVEC camera_delta = {0.0f, 0.0f, 0.0f};
     if (first_time == 0 || param_count <= 0)
         return 1;
+
     f32 range = 1.0f;
-    f32 start_time = 0.0f;
-    f32 end_time = 1000000000.0f;
-    f32 blend_in_time = 0.0f;
-    f32 blend_out_time = 0.0f;
     i32 rotation_x = 0;
     i32 rotation_y = 0;
-    i32 follow_target = 0;
-    i32 borders = 1;
-    i32 use_current_position = 0;
     char *target_locator = NULL;
     char *target_character = NULL;
     char *target_object = NULL;
     char *camera_locator = NULL;
+    i32 follow_target = 0;
+    i32 borders = 1;
+    i32 use_current_camera = 0;
+    f32 start = 0.0f;
+    f32 end = 1000000000.0f;
+    f32 blend_in = 0.0f;
+    f32 blend_out = 0.0f;
     for (i32 index = 0; index < param_count; ++index) {
         char *value;
         if (NuStrICmp("Reset", params[index]) == 0) {
             GameCameraMakeMiniCut2(NULL, NULL, 0, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0);
             return 1;
         } else if (NuStrICmp("use_current_campos", params[index]) == 0) {
-            use_current_position = 1;
+            use_current_camera = 1;
         } else if ((value = NuStrIStr(params[index], "start_time=")) != NULL) {
-            start_time = AIParamToFloat(processor, value + 11);
+            start = AIParamToFloat(processor, value + 11);
         } else if (NuStrICmp("end_time=infinite", params[index]) == 0) {
-            end_time = 1000000000.0f;
+            end = 1000000000.0f;
         } else if ((value = NuStrIStr(params[index], "end_time=")) != NULL) {
-            end_time = AIParamToFloat(processor, value + 9);
+            end = AIParamToFloat(processor, value + 9);
         } else if ((value = NuStrIStr(params[index], "blend_in_time=")) != NULL) {
-            blend_in_time = AIParamToFloat(processor, value + 14);
+            blend_in = AIParamToFloat(processor, value + 14);
         } else if ((value = NuStrIStr(params[index], "blend_out_time=")) != NULL) {
-            blend_out_time = AIParamToFloat(processor, value + 15);
+            blend_out = AIParamToFloat(processor, value + 15);
         } else if ((value = NuStrIStr(params[index], "tgt_locator=")) != NULL) {
             target_locator = value + 12;
         } else if ((value = NuStrIStr(params[index], "tgt_character=")) != NULL) {
@@ -146,19 +147,17 @@ i32 Action_CameraCut(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *
         } else if ((value = NuStrIStr(params[index], "range=")) != NULL) {
             range = AIParamToFloat(processor, value + 6);
         } else if ((value = NuStrIStr(params[index], "roty=")) != NULL) {
-            rotation_y =
-                static_cast<i32>(static_cast<i32>(AIParamToFloat(processor, value + 5)) * 182.0444488525390625f);
+            rotation_y = static_cast<i32>(AIParamToFloat(processor, value + 5)) * (65536 / 360.0f);
         } else if ((value = NuStrIStr(params[index], "rotx=")) != NULL) {
-            rotation_x =
-                static_cast<i32>(-static_cast<i32>(AIParamToFloat(processor, value + 5)) * 182.0444488525390625f);
-        } else if (NuStrICmp("FollowTgt", params[index]) == 0) {
+            rotation_x = -static_cast<i32>(AIParamToFloat(processor, value + 5)) * (65536 / 360.0f);
+        } else if (NuStrICmp(params[index], "FollowTgt") == 0) {
             follow_target = 1;
         } else if ((value = NuStrIStr(params[index], "dcampos_x=")) != NULL) {
-            camera_offset.x = AIParamToFloat(processor, value + 10);
+            camera_delta.x = AIParamToFloat(processor, value + 10);
         } else if ((value = NuStrIStr(params[index], "dcampos_y=")) != NULL) {
-            camera_offset.y = AIParamToFloat(processor, value + 10);
+            camera_delta.y = AIParamToFloat(processor, value + 10);
         } else if ((value = NuStrIStr(params[index], "dcampos_z=")) != NULL) {
-            camera_offset.z = AIParamToFloat(processor, value + 10);
+            camera_delta.z = AIParamToFloat(processor, value + 10);
         } else if ((value = NuStrIStr(params[index], "campos_x=")) != NULL) {
             camera_position.x = AIParamToFloat(processor, value + 9);
         } else if ((value = NuStrIStr(params[index], "campos_y=")) != NULL) {
@@ -190,7 +189,7 @@ i32 Action_CameraCut(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *
             object = GetNamedGameObject(system, target_character);
         if (object == NULL)
             return 1;
-        target = &object->apiobj.collision_position;
+        target = &object->apiobj.position;
     } else if (target_object != NULL) {
         nuhspecial_s special;
         if (NuSpecialFind(WORLD->current_gscn, &special, target_object, 1) == 0)
@@ -205,74 +204,42 @@ i32 Action_CameraCut(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *
         target = &target_position;
     }
 
-    if (use_current_position != 0) {
+    if (use_current_camera != 0) {
         NUMTX *matrix = NuCameraGetMtx();
         if (matrix != NULL) {
             camera_position.x = matrix->m30;
             camera_position.y = matrix->m31;
             camera_position.z = matrix->m32;
-            NuVecAdd(&camera_position, &camera_position, &camera_offset);
-            GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
-                                   follow_target, 0, borders);
-            return 1;
+            NuVecAdd(&camera_position, &camera_position, &camera_delta);
+            goto camera_ready;
         }
-    } else if (camera_position.x != 1000000000.0f && camera_position.y != 1000000000.0f &&
-               camera_position.z != 1000000000.0f) {
-        GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
-                               follow_target, 0, borders);
-        return 1;
-    } else if (camera_locator != NULL) {
-        AILOCATOR *locator = AIPathFindLocator(system, camera_locator);
-        if (locator != NULL) {
-            camera_position = locator->position;
-            GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
-                                   follow_target, 0, borders);
-            return 1;
+    } else {
+        if (camera_position.x != 1000000000.0f && camera_position.y != 1000000000.0f &&
+            camera_position.z != 1000000000.0f)
+            goto camera_ready;
+        if (camera_locator != NULL) {
+            AILOCATOR *locator = AIPathFindLocator(system, camera_locator);
+            if (locator != NULL) {
+                camera_position = locator->position;
+                goto camera_ready;
+            }
         }
     }
-
     camera_position.x = 0.0f;
     camera_position.y = 0.0f;
     camera_position.z = range;
     NuVecRotateX(&camera_position, &camera_position, rotation_x);
     NuVecRotateY(&camera_position, &camera_position, rotation_y);
     NuVecAdd(&camera_position, &camera_position, target);
-    GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
-                           follow_target, 0, borders);
+camera_ready:
+    GameCameraMakeMiniCut2(&camera_position, target, 0, start, end, blend_in, blend_out, follow_target, 0, borders);
     return 1;
 }
 
-i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_PullLever(AISYS_s *system, AISCRIPTPROCESS_s *processor,
-                                                                        AIPACKET_s *packet, char **params,
-                                                                        i32 param_count, i32 first_time, f32 elapsed) {
-    if (__builtin_expect(first_time != 0, 0))
-        goto initialize;
-
-perform: {
-    LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
-    if (lever == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
-        return 1;
-    GameObject_s *object = packet->owner->apiobj.objptr;
-    AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
-    if ((object->field_0xefe & 0x80) != 0) {
-        f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
-        if (distance < ai_moveradius * ai_moveradius) {
-            packet->movement_look_target = &lever->position;
-            object->pad_gamepad->buttons_down_08 |= GAMEPAD_SPECIAL;
-        }
-    } else if (FreePlay != 0) {
-        processor->action_timer -= elapsed;
-        if (processor->action_timer < 0.0f) {
-            processor->action_timer = 0.5f;
-            object->pad_gamepad->buttons_down_08 |= GAMEPAD_TOGGLERIGHT;
-        }
-    }
-    return object->character_context == 0x4a && object->field_0x788 == lever;
-}
-
-initialize:
-    if (param_count > 0) {
-        i32 instant = 0;
+i32 Action_PullLever(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
+                     i32 first_time, f32 elapsed) {
+    i32 instant = 0;
+    if (first_time != 0) {
         for (i32 index = 0; index < param_count; ++index) {
             char *name = NuStrIStr(params[index], "lever=");
             if (name != NULL) {
@@ -281,7 +248,7 @@ initialize:
                     continue;
                 LEVER *lever = static_cast<LEVER *>(gizmo->object);
                 processor->action_data_3 = lever;
-                if ((lever->flags & LEVER_FLAG_BEING_PULLED) != 0)
+                if (lever->being_pulled)
                     continue;
                 processor->action_pos = lever->floor_position;
                 f32 height = GameShadow(NULL, &processor->action_pos, 5.0f, -1);
@@ -293,22 +260,38 @@ initialize:
                 instant = 1;
             }
         }
-        LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
-        if (lever == NULL)
-            return 1;
-        if (instant != 0) {
-            lever->flags |= LEVER_FLAG_BEING_PULLED;
-            lever->animation_frame = 0x8000;
-            lever->pull_progress = 1.0f;
-            return 1;
+    }
+    LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
+    if (lever == NULL)
+        return 1;
+    if (instant != 0) {
+        lever->being_pulled = 1;
+        lever->animation_frame = 0x8000;
+        lever->pull_progress = 1.0f;
+        return 1;
+    }
+    if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 1;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
+    if ((object->field_0xefe & 0x80) != 0) {
+        f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
+        if (distance < ai_moveradius * ai_moveradius) {
+            packet->movement_look_target = &lever->position;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_SPECIAL;
+        }
+    } else if (FreePlay != 0) {
+        processor->action_timer -= elapsed;
+        if (processor->action_timer < 0.0f) {
+            processor->action_timer = 0.5f;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_TOGGLERIGHT;
         }
     }
-    goto perform;
+    return object->field_0x7a5 == 0x4a && object->field_0x788 == lever;
 }
 
-i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s *system, AISCRIPTPROCESS_s *processor,
-                                                                        AIPACKET_s *packet, char **params,
-                                                                        i32 param_count, i32 first_time, f32 elapsed) {
+i32 Action_UseTechno(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
+                     i32 first_time, f32 elapsed) {
     if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
         return 1;
     GameObject_s *object = packet->owner->apiobj.objptr;
@@ -330,10 +313,8 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s 
         }
     }
     TECHNO *techno = static_cast<TECHNO *>(processor->action_data_3);
-    if (techno == NULL || (techno->flags & TECHNO_FLAG_ACTIVE) == 0 || (techno->flags & TECHNO_FLAG_VISIBLE) == 0 ||
-        (techno->flags & TECHNO_FLAG_COMPLETE) != 0)
+    if (techno == NULL || !techno->active || !techno->visible || techno->complete)
         return 1;
-
     AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
     if (GizTechno_CanUseTechno(object, techno) != 0) {
         f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
@@ -345,63 +326,8 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s 
         processor->action_timer -= elapsed;
         if (processor->action_timer < 0.0f) {
             processor->action_timer = 0.5f;
-            object->pad_gamepad->buttons_down_08 |= GAMEPAD_TOGGLERIGHT;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_TOGGLERIGHT;
         }
-    }
-    return 0;
-}
-
-i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *processor,
-                                                                          AIPACKET_s *packet, char **params,
-                                                                          i32 param_count, i32 first_time, f32) {
-    if (player == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
-        return 0;
-    GameObject_s *object = packet->owner->apiobj.objptr;
-    if (first_time != 0) {
-        processor->action_data_4 = static_cast<f32>(object->apiobj.field_0x276);
-        if (param_count > 0) {
-            i32 min_turn = 0;
-            i32 max_turn = 0;
-            i32 turn = 0;
-            i32 random_direction = 0;
-            for (i32 index = 0; index < param_count; ++index) {
-                if (AIActionParseSpeedFn != NULL && AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0)
-                    continue;
-                char *value = NuStrIStr(params[index], "min_turn");
-                if (value != NULL) {
-                    min_turn = static_cast<i32>(
-                        static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) * 182.04444885253906f);
-                    continue;
-                }
-                value = NuStrIStr(params[index], "max_turn");
-                if (value != NULL) {
-                    max_turn = static_cast<i32>(
-                        static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) * 182.04444885253906f);
-                    continue;
-                }
-                if (NuStrIStr(params[index], "rand_turn_dir") != NULL) {
-                    random_direction = 1;
-                    continue;
-                }
-                value = NuStrIStr(params[index], "turn");
-                if (value != NULL)
-                    turn = static_cast<i32>(static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 5))) *
-                                            182.04444885253906f);
-            }
-            if (max_turn != 0)
-                turn = min_turn + static_cast<i32>(static_cast<f32>(max_turn - min_turn) * NuRandFloat());
-            if (turn != 0) {
-                if (random_direction != 0 && (NuRand(NULL) & 1) != 0)
-                    turn = -turn;
-                processor->action_data_4 = static_cast<f32>(NuAngAdd(static_cast<i32>(processor->action_data_4), turn));
-            }
-        }
-    }
-    if ((packet->path_info.flags & AIPATHINFO_FLAG_ON_PATH) != 0) {
-        NUVEC destination = {0.0f, 0.0f, 10.0f};
-        NuVecRotateY(&destination, &destination, static_cast<i32>(processor->action_data_4));
-        NuVecAdd(&destination, &destination, &object->apiobj.position);
-        AIMoveInstruction(packet, &destination, 0.0f, &packet->path_info, 1, 0.01f);
     }
     return 0;
 }
@@ -409,12 +335,13 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_MoveForward(AISYS_
 i32 Action_EndCameraCut(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *, char **params, i32 param_count,
                         i32 first_time, float) {
     if (first_time != 0 && MiniCutCam != 0) {
-        for (i32 index = 0; index < param_count; ++index) {
-            char *value = NuStrIStr(params[index], "end_time=");
+        for (i32 i = 0; i < param_count; ++i) {
+            char *value = NuStrIStr(params[i], "end_time=");
             if (value != NULL) {
-                ObstacleCamEnd = ObstacleCamTime + AIParamToFloat(processor, value + 9);
+                const f32 duration = AIParamToFloat(processor, value + 9);
+                ObstacleCamEnd = duration + ObstacleCamTime;
             } else {
-                value = NuStrIStr(params[index], "blend_out_time=");
+                value = NuStrIStr(params[i], "blend_out_time=");
                 if (value != NULL) {
                     ObstacleCamBlendOutTime = AIParamToFloat(processor, value + 15);
                 }
@@ -456,8 +383,8 @@ i32 Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **par
                         float) {
     if (first_time != 0) {
         char *name = NULL;
-        for (i32 index = 0; index < param_count; ++index) {
-            char *value = NuStrIStr(params[index], "name");
+        for (i32 i = 0; i < param_count; ++i) {
+            char *value = NuStrIStr(params[i], "name");
             if (value != NULL) {
                 name = value + 5;
             }
@@ -1217,192 +1144,6 @@ i32 Action_AssignLocatorInSet(AISYS_s *sys, AISCRIPTPROCESS_s *, AIPACKET_s *pac
         }
     }
     return 1;
-}
-
-extern i32 players_going_forward;
-extern i32 speeder_hitpoints_lost;
-f32 zoom_ahead_extra = 3.0f;
-f32 zoom_ahead_extra_time = 5.0f;
-f32 speeder_level_height_lerpf = 5.0f;
-f32 speeder_level_height = 1.0f;
-f32 speedervals[4][7] = {
-    {9.0f, -3.0f, 1.5f, 5.0f, 10.0f, 0.5f, 5.0f},
-    {-3.0f, -3.0f, 1.5f, 5.0f, 5.0f, 0.3f, 5.0f},
-    {-3.0f, -3.0f, 1.5f, 5.0f, 2.0f, 0.3f, 5.0f},
-    {4.0f, -3.0f, 1.5f, 5.0f, 10.0f, 0.5f, 5.0f},
-};
-f32 speederfirerange = -1.0f;
-f32 speeder_shootrate = 1.0f;
-f32 speeder_kill_dist = 75.0f;
-f32 speeder_midrange_time = 10.0f;
-f32 speeder_ahead_time = 15.0f;
-f32 speeder_mode_ahead_timer;
-f32 SeekValF(f32, f32, f32);
-
-i32 Action_SpeederBeingChased(AISYS_s *, AISCRIPTPROCESS_s *process, AIPACKET_s *packet, char **, i32, i32 first_time,
-                              float elapsed) {
-    if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
-        return 0;
-    GameObject_s *object = packet->owner->apiobj.objptr;
-    if (first_time != 0) {
-        object->run_speed_override = object->apiobj.character_data->game_character->run_speed;
-        process->action_data_1 = 0;
-        process->action_timer = 0.0f;
-        process->action_data_2 = object->current_hp;
-        set_speedermode = 0;
-        speeder_hitpoints_lost = 0;
-        speeder_mode_ahead_timer = 0.0f;
-    } else if (process->action_data_1 > 4) {
-        process->action_data_1 = 0;
-    }
-
-    const f32 base_speed = object->apiobj.character_data->game_character->run_speed;
-    const u8 mode = process->action_data_1;
-    f32 separation = 0.0f;
-    i32 in_fire_range = 0;
-    if (player->field_0x661 == 1) {
-        GameObject_s *lead_player = player;
-        if (player2 != NULL) {
-            f32 between_players = MidDistanceFromSockStart(WORLD->sock_sys, &player2->sock_position) -
-                                  MidDistanceFromSockStart(WORLD->sock_sys, &player->sock_position);
-            f32 circuit_length = *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(WORLD->sock_sys->sock->cam) + 0x1d4);
-            if (between_players > circuit_length * 0.5f)
-                between_players -= circuit_length;
-            else if (between_players < circuit_length * -0.5f)
-                between_players += circuit_length;
-            if ((speedervals[mode][0] <= 0.0f && between_players > 0.0f) ||
-                (speedervals[mode][0] > 0.0f && between_players <= 0.0f))
-                lead_player = player2;
-        }
-        separation = MidDistanceFromSockStart(WORLD->sock_sys, &object->sock_position) -
-                     MidDistanceFromSockStart(WORLD->sock_sys, &lead_player->sock_position);
-        f32 circuit_length = *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(WORLD->sock_sys->sock->cam) + 0x1d4);
-        if (separation > circuit_length * 0.5f)
-            separation -= circuit_length;
-        else if (separation < circuit_length * -0.5f)
-            separation += circuit_length;
-        in_fire_range = separation < speederfirerange;
-        if (separation >= speeder_kill_dist && separation != speeder_kill_dist) {
-            KillGameObject(object, 4, 0);
-            return 1;
-        }
-    }
-
-    f32 speed_delta = separation - speedervals[mode][0];
-    if (mode == 0) {
-        if (process->action_timer < zoom_ahead_extra_time)
-            speed_delta -= (zoom_ahead_extra_time - process->action_timer) / zoom_ahead_extra_time * zoom_ahead_extra;
-        if (speeder_mode_ahead_timer < 0.0f)
-            speeder_hitpoints_lost = 0;
-    }
-    f32 amount;
-    f32 factor;
-    f32 seek;
-    if (speed_delta > 0.0f) {
-        amount = speed_delta / speedervals[mode][4];
-        factor = speedervals[mode][5];
-        seek = speedervals[mode][6];
-    } else {
-        amount = speed_delta / speedervals[mode][1];
-        factor = speedervals[mode][2];
-        seek = speedervals[mode][3];
-    }
-    if (amount > 1.0f)
-        amount = 1.0f;
-    f32 multiplier = 1.0f - amount + factor * amount;
-    object->run_speed_override = SeekValF(object->run_speed_override, multiplier * base_speed, seek);
-    if (process->action_data_3 == NULL) {
-        if (separation > 0.0f)
-            process->action_data_3 = reinterpret_cast<void *>(1);
-        else
-            process->action_timer = 0.0f;
-    } else {
-        speeder_mode_ahead_timer += elapsed;
-    }
-    f32 &level_height = *reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(object) + 0xe94);
-    level_height = SeekValF(level_height, mode == 1 || process->action_data_3 == NULL ? speeder_level_height : 0.0f,
-                            speeder_level_height_lerpf);
-    if (object->current_hp < static_cast<i8>(process->action_data_2)) {
-        process->action_data_2 = object->current_hp;
-        ++speeder_hitpoints_lost;
-    }
-    if (object->field_0x7a5 != 0xff)
-        return 0;
-
-    if (mode != static_cast<u8>(set_speedermode)) {
-        process->action_data_1 = set_speedermode;
-        process->action_timer = set_speedermode == 1 ? 0.25f : 0.0f;
-    }
-    switch (process->action_data_1) {
-        case 0:
-            if (players_going_forward == 0) {
-                process->action_timer = 0.0f;
-                break;
-            }
-            if (separation <= speedervals[0][0] * 1.25f && process->action_timer <= 0.0f)
-                break;
-            if (speeder_hitpoints_lost < 2) {
-                process->action_timer += elapsed;
-                if (process->action_timer <= speeder_ahead_time)
-                    break;
-            }
-            set_speedermode = process->action_data_1 = 1;
-            process->action_timer = 0.0f;
-            speeder_hitpoints_lost = 0;
-            speeder_mode_ahead_timer = 0.0f;
-            object->pad_gamepad->buttons_pressed |= GAMEPAD_JUMP;
-            break;
-        case 1:
-            if (players_going_forward == 0)
-                goto reset_mode;
-            if (separation < 0.0f) {
-                set_speedermode = process->action_data_1 = 2;
-                goto reset_mode;
-            }
-            process->action_timer -= elapsed;
-            if (process->action_timer <= 0.0f && player->field_0x7a5 == '6') {
-                set_speedermode = process->action_data_1 = 3;
-                goto reset_mode;
-            }
-            break;
-        case 2:
-            if (players_going_forward != 0) {
-                if (player->field_0x7a5 == '6') {
-                    set_speedermode = process->action_data_1 = 3;
-                    process->action_timer = 0.0f;
-                    speeder_hitpoints_lost = 0;
-                    speeder_mode_ahead_timer = 0.0f;
-                }
-                if (speeder_shootrate > 0.0f) {
-                    process->action_timer -= elapsed;
-                    if (process->action_timer <= 0.0f) {
-                        process->action_timer = speeder_shootrate * 0.5f + NuRandFloat() * speeder_shootrate;
-                        if (in_fire_range)
-                            object->pad_gamepad->buttons_pressed |= GAMEPAD_ACTION;
-                    }
-                }
-            } else {
-                goto reset_mode;
-            }
-            break;
-        case 3:
-            if (players_going_forward == 0)
-                goto reset_mode;
-            if (speeder_hitpoints_lost < 3) {
-                process->action_timer += elapsed;
-                if (process->action_timer <= speeder_midrange_time)
-                    break;
-            }
-            goto reset_mode;
-    }
-    return 0;
-reset_mode:
-    set_speedermode = 0;
-    process->action_data_1 = 0;
-    process->action_timer = 0.0f;
-    speeder_hitpoints_lost = 0;
-    speeder_mode_ahead_timer = 0.0f;
-    return 0;
 }
 
 namespace {

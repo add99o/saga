@@ -7,6 +7,7 @@ struct GameObject_s;
 struct WORLDINFO_s;
 struct nuvec_s;
 struct HUBMINIKITPIECES_s;
+struct GAMEMESSAGE_s;
 
 extern "C" HUBMINIKITPIECES_s **Char_MiniKit;
 
@@ -17,3 +18,5 @@ void CollectAllMiniKits(AREASAVE_s *save);
 void CharacterMiniKits_Dump(WORLDINFO_s *world);
 void ResetMinikitCounter(void);
 void IncrementMinikitCounter(GameObject_s *object);
+void MiniKit_GameMsg_Update(GAMEMESSAGE_s *message);
+void MiniKit_GameMsg_End(GAMEMESSAGE_s *message);

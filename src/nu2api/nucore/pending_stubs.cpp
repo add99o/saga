@@ -21,11 +21,6 @@
 #include "nu2api/nucore/nutime.h"
 #include <string.h>
 
-extern "C" {
-    u8 uberShader2_md5[16] = {0x38, 0x2a, 0x9d, 0x15, 0xf8, 0xfa, 0xbf, 0x09,
-                              0xcb, 0xcc, 0x9b, 0xec, 0x5e, 0xb7, 0x62, 0x40};
-}
-
 extern "C" void NuShaderManagerForceShader(void) {
 }
 
@@ -42,13 +37,6 @@ extern "C" void NuShaderManagerLoadCompiledShaders(void) {
 
 extern "C" void NuShaderManagerSetShininessFactor(f32 shininess) {
     ShaderManagerTemplate<NuShaderObject>::shininessFactor = shininess;
-}
-
-extern "C" void NuShaderObjectKeyGenerate2(u32 *key, const nushadermtldesc_s *description, const numtl_s *material,
-                                           i32 flags, i32 variant, i32 pixel_stage) {
-    ShaderMtlDescFilter filter;
-    filter.internalInit(description, material, flags, variant);
-    NuShaderObjectKeyGenerate3(key, &filter, pixel_stage);
 }
 
 extern NUQFNT *system_qfont;

@@ -7,16 +7,16 @@
 #include "nu2api/nucore/NuVirtualTouchDevice.h"
 #include "nu2api/nucore/nupad.h"
 #include "nu2api/numath/nutrig.h"
-#include "MechInputTouch/MechInputTouch_types.h"
-
-i32 RndrUnfilledCircle(f32, f32, f32, f32, f32, i32, f32, f32, numtl_s *);
-void RndrArrow(f32, f32, f32, i32, i32);
+#include "legoapi/misc/supportall.h"
+#include "legoapi/render/core/screen.h"
 extern "C" i32 NuRndrBeginScene(i32 begin_flags);
 extern "C" void NuRndrEndScene(void);
 
 NuInputManager *inputManager;
 NuVirtualTouchDevice *inputTouchDevice;
 bool used_touch_IDs[10];
+i32 white = 0x32ffffff;
+i32 grey = 0x32646464;
 
 void NuPad_Interface_Render(void) {
     NuRndrBeginScene(-1);
@@ -213,14 +213,15 @@ u32 NuInputDevicePS::GetIdentifierPS(u32) {
 }
 
 void NuTouchInputStick::Render() {
-    const i32 grey = 0x32646464;
-    const i32 white = 0x32ffffff;
-    RndrUnfilledCircle(x, y, width, 0.005f, GetAspectRatio(), 128,
-                       static_cast<f32>(unknown_3c ? white : grey), 0.0f, NULL);
-    RndrArrow(x, y + 0.3f * height, 0.0075f, 0, stick_y > 0.2f ? white : grey);
-    RndrArrow(x - 0.3f * width, y, 0.0075f, 0x4000, stick_x < -0.2f ? white : grey);
-    RndrArrow(x, y - 0.3f * height, 0.0075f, 0x8000, stick_y < -0.2f ? white : grey);
-    RndrArrow(x + 0.3f * width, y, 0.0075f, 0xc000, stick_x > 0.2f ? white : grey);
+    const f32 progress = unknown_3c ? white : grey;
+    const f32 aspect = GetAspectRatio();
+    // This argument order is intentional: retail uses colour 128 and converts
+    // the selected packed colour to the circle helper's progress parameter.
+    RndrUnfilledCircle(x, y, width, 0.005f, aspect, 128, progress, 0.0f, NULL);
+    RndrArrow(x, height * 0.3f + y, 0.0075f, 0, stick_y > 0.2f ? white : grey);
+    RndrArrow(x - width * 0.3f, y, 0.0075f, 0x4000, stick_x < -0.2f ? white : grey);
+    RndrArrow(x, y - height * 0.3f, 0.0075f, 0x8000, stick_y < -0.2f ? white : grey);
+    RndrArrow(width * 0.3f + x, y, 0.0075f, 0xc000, stick_x > 0.2f ? white : grey);
 }
 
 void NuTouchInputStick::Update(NuInputTouchData const *data) {
@@ -270,15 +271,17 @@ void NuTouchInputStick::Update(NuInputTouchData const *data) {
 }
 
 void NuTouchInputButton::Render() {
-    const i32 colour = pressed ? 0x32ffffff : 0x32646464;
-    RndrUnfilledCircle(x, y, width, 0.005f, GetAspectRatio(), 128, static_cast<f32>(colour), 0.0f, NULL);
-
+    i32 colour = grey;
+    if (pressed)
+        colour = white;
+    const f32 aspect = GetAspectRatio();
+    RndrUnfilledCircle(x, y, width, 0.005f, aspect, 128, static_cast<f32>(colour), 0.0f, NULL);
     i32 angle = 0;
-    if (id == 0x80)
+    if (index == 0x80)
         angle = 0x4000;
-    else if (id == 0x10)
+    else if (index == 0x10)
         angle = 0x8000;
-    else if (id == 0x20)
+    else if (index == 0x20)
         angle = 0xc000;
     RndrArrow(x, y, 0.02f, angle, colour);
 }

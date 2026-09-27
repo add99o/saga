@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "legoapi/actions/character/suit.h"
 #include "legoapi/actions/movement/jumping.h"
+#include "legoapi/characters/motion.h"
 #include "legoapi/characters/motion/action_info.h"
 #include "legoapi/characters/motion/animlist.h"
 #include "legoapi/characters/motion/gameanim.h"
@@ -13,6 +14,7 @@
 #include "legoapi/items/base/apiobject.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
+#include "legoapi/menus/core/gamemessages.h"
 #include "legoapi/render/core/terrain.h"
 #include "legoapi/world/level.h"
 #include "legoapi/world/world.h"
@@ -159,8 +161,55 @@ static void Signals_Draw(void *world_info, void *, float) {
     }
 }
 
-static void Signals_Update(void *, void *, float) {
-    UNIMPLEMENTED();
+static void Signals_Update(void *world_info, void *, float) {
+    WORLDINFO *world = static_cast<WORLDINFO *>(world_info);
+    SIGNAL *signal = world->signals;
+    for (i32 i = 0; i < world->signal_count; ++i, ++signal) {
+        signal->radius = QRAND_FLOAT() * 0.1f + 0.8f;
+        if ((signal->flags & (SIGNAL::FLAG_VISIBLE | SIGNAL::FLAG_ACTIVE)) !=
+            (SIGNAL::FLAG_VISIBLE | SIGNAL::FLAG_ACTIVE)) {
+            signal->scale = 0.0f;
+            signal->flags &= ~SIGNAL::FLAG_IN_USE;
+            continue;
+        }
+
+        f32 target_scale = 0.0f;
+        if ((signal->flags & SIGNAL::FLAG_IN_USE) == 0) {
+            ADDGAMEMSG message = AddGameMsg_Default;
+            message.text = TTab[*signal->suit->text_id];
+            message.position = &signal->target_position;
+            message.scale = 1.0f;
+            message.red = 0xff;
+            message.green = 0xff;
+            message.blue = 0;
+            message.alpha = 0x30;
+            message.flags = 0x87;
+            AddGameMsg(&message);
+            target_scale = 1.0f;
+        } else {
+            i32 player_index;
+            for (player_index = 0; player_index < 8; ++player_index) {
+                GameObject_s *player = Player[player_index];
+                if (player != NULL && (player->apiobj.field_0x1f8 & 0x1001) == 0x1001 &&
+                    player->id == signal->suit->character_id &&
+                    NuVecDistSqr(&player->apiobj.collision_position, &signal->target_position, NULL) <
+                        (0.6f + 0.1f) * (0.6f + 0.1f)) {
+                    NUVEC offset;
+                    NuVecSub(&offset, &player->apiobj.collision_position, &signal->position);
+                    f32 along_normal = NuVecDot(&offset, &signal->normal);
+                    f32 distance = NuVecMag(&offset);
+                    f32 radius = player->apiobj.field_0x1dc + 0.3f;
+                    if (distance * distance - along_normal * along_normal < radius * radius) {
+                        break;
+                    }
+                }
+            }
+            if (player_index == 8) {
+                signal->flags &= ~SIGNAL::FLAG_IN_USE;
+            }
+        }
+        signal->scale = SeekLinearF(signal->scale, target_scale, 3.0f * FRAMETIME);
+    }
 }
 
 static void Signals_AddGizmos(GIZMOSYS *gizmo_sys, i32 type_id, void *world_info, void *) {
@@ -302,8 +351,7 @@ SIGNAL *Signal_FindNearest(WORLDINFO_s *world, nuvec_s *position, GameObject_s *
     for (i32 index = 0; index < world->signal_count; ++index, ++signal) {
         f32 signal_distance;
         if (object != NULL) {
-            if (!signal->visible || !signal->active || signal->in_use ||
-                signal->suit->character_id != object->id) {
+            if (!signal->visible || !signal->active || signal->in_use || signal->suit->character_id != object->id) {
                 continue;
             }
             signal_distance = NuVecDistSqr(position, &signal->target_position, NULL);
@@ -360,76 +408,69 @@ ADDGIZMOTYPE *Signals_RegisterGizmo(i32 type_id) {
 }
 
 void Signal_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
-    if (object->character_context != 0x4c) {
+    if (object->character_context != CHARACTER_CONTEXT_SIGNAL) {
         if (object->apiobj.field_0x27d != 0 || object->character_context == 0x1f ||
-            object->character_context == 0x2b || object->character_context == 0x4b ||
-            static_cast<i8>(object->apiobj.flags_low) >= 0 || (CInfo[object->character_context].flags & 0x800) != 0)
+            object->character_context == CHARACTER_CONTEXT_DOOMED || object->character_context == 0x4b ||
+            static_cast<i8>(object->apiobj.flags_low) >= 0 || (CInfo[object->character_context].flags & 0x800) != 0) {
             return;
-
+        }
         f32 distance;
         SIGNAL *signal = Signal_FindNearest(world, &object->apiobj.collision_position, object, &distance);
-        if (signal == NULL || distance >= 0.0625f)
-            return;
-
-        object->field_0x788 = signal;
-        object->context_animation_timer = 0.0f;
-        object->character_context = 0x4c;
-        object->context_animation = 0x96;
-        f32 duration = AnimDuration(object->id, 0x96, 0.0f, 0.0f, 1);
-        object->context_flags &= ~0x40;
-        object->airborne_action_duration = duration <= 0.0f ? 1.0f : duration;
-        return;
-    }
-
-    f32 *frame = NULL;
-    if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL) {
-        frame = AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0);
-        if (frame == NULL)
-            return;
-    }
-
-    object->context_animation_timer += FRAMETIME;
-    if (object->context_animation_timer >= object->airborne_action_duration) {
-        bool already_changed = (object->context_flags & 0x40) != 0;
-        object->character_context = -1;
-        StartEndOfJump(object);
-        if (already_changed)
-            return;
-        goto switch_suit;
-    }
-
-    if ((object->context_flags & 0x40) != 0)
-        return;
-    if (frame != NULL) {
-        f32 switch_frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 0);
-        if (switch_frame >= 1.0f && *frame >= switch_frame)
-            goto switch_suit;
-    }
-    goto rumble;
-
-switch_suit:
-    {
-        SIGNAL *signal = static_cast<SIGNAL *>(object->field_0x788);
-        signal->in_use = 1;
-        object->context_flags |= 0x40;
-        SUIT_s *old_suit = static_cast<SUIT_s *>(object->suit);
-        SUIT_s *new_suit = signal->suit;
-        object->suit = new_suit;
-        signal->suit = old_suit;
-        object->ai.capabilities = (object->ai.capabilities & ~old_suit->character_flags) | new_suit->character_flags;
-        for (i32 i = 0; i < 10; i++) {
-            if (new_suit == &Suit[i]) {
-                areaSuitBits |= 1u << i;
-                break;
+        if (signal != NULL && distance < 0.0625f) {
+            object->signal_target = signal;
+            object->context_animation_timer = 0.0f;
+            object->character_context = CHARACTER_CONTEXT_SIGNAL;
+            object->context_animation = 0x96;
+            object->airborne_action_duration = AnimDuration(object->id, 0x96, 0.0f, 0.0f, 1);
+            if (object->airborne_action_duration <= 0.0f) {
+                object->airborne_action_duration = 1.0f;
+            }
+            object->context_flags &= ~0x40;
+        }
+    } else {
+        f32 *animation_time = NULL;
+        if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL) {
+            animation_time = AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0);
+            if (animation_time == NULL) {
+                return;
             }
         }
-        NewBuzz(object->pad_gamepad->pad, 0.1f, 0);
-        NewRumble(object->pad_gamepad->pad, 0.6f, 0);
-        return;
-    }
 
-rumble:
-    NewRumble(object->pad_gamepad->pad, static_cast<f32>(qrand()) * (1.0f / 65535.0f) * 0.4f, 0);
+        object->context_animation_timer += FRAMETIME;
+        bool exchange = false;
+        if (object->context_animation_timer >= object->airborne_action_duration) {
+            u8 exchanged = object->context_flags & 0x40;
+            object->character_context = CHARACTER_CONTEXT_NONE;
+            StartEndOfJump(object);
+            exchange = exchanged == 0;
+        } else if ((object->context_flags & 0x40) == 0 && animation_time != NULL) {
+            f32 frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 0);
+            exchange = frame >= 1.0f && *animation_time >= frame;
+        }
+
+        if (exchange) {
+            object->signal_target->flags |= SIGNAL::FLAG_IN_USE;
+            SIGNAL *signal = object->signal_target;
+            SUIT_s *old_suit = static_cast<SUIT_s *>(object->suit);
+            object->context_flags |= 0x40;
+            SUIT_s *new_suit = signal->suit;
+            object->suit = new_suit;
+            object->ai.capabilities &= ~old_suit->character_flags;
+            signal->suit = old_suit;
+            object->ai.capabilities |= new_suit->character_flags;
+            for (i32 i = 0; i < 10; ++i) {
+                if (new_suit == &Suit[i]) {
+                    areaSuitBits |= 1 << i;
+                    break;
+                }
+            }
+            NewBuzz(object->pad_gamepad->pad, 0.1f, 0);
+            NewRumble(object->pad_gamepad->pad, 0.6f, 0);
+        }
+        if ((object->context_flags & 0x40) == 0) {
+            NewRumble(object->pad_gamepad->pad, QRAND_FLOAT() * 0.4f, 0);
+        }
+    }
 }
 
 void SetTexAnimSignals() {

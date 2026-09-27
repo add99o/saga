@@ -8,7 +8,6 @@
 #include "nu2api/numath/nurand.h"
 #include "nu2api/nufile/nufile.h"
 #include "nu2api/nufile/nufilepak.h"
-#include "nu2api/nufile/nufpar.h"
 
 static u32 nta_sig_old;
 static u32 nta_sig_off;
@@ -16,7 +15,6 @@ static u32 nta_sig_on;
 static i32 nta_iframetime;
 static u16 nta_script_mask;
 static nutexanimprog_s *sys_progs;
-extern "C" i32 nutexanim_usepakfile = 1;
 static nutexanimprog_s *parprog;
 static char labtab[64][21];
 static i32 labtabcnt;
@@ -27,6 +25,7 @@ nutexanimlist_s ntalsysbuff[64];
 nutexanimlist_s *ntal_first;
 nutexanimlist_s *ntal_free;
 i32 g_texAnimCriticalSection;
+i32 nutexanim_usepakfile = 1;
 
 extern "C" void NuTexAnimSetMask(i32 mask) {
     script_mask = static_cast<u16>(mask);
@@ -758,96 +757,92 @@ extern "C" nutexanimprog_s *NuTexAnimProgRead(VARIPTR *buffer, char *path) {
     return program;
 }
 
-extern "C" void NuTexAnimProgReadCFG(char *path, VARIPTR *buffer, VARIPTR buffer_end) {
+extern "C" void NuTexAnimProgReadCFG(char *path, VARIPTR *buffer, VARIPTR end) {
     char filename[128];
-    char *script_names = buffer_end.char_ptr - 1;
-    VARIPTR script_end = buffer_end;
-    void *package = NULL;
-
+    VARIPTR cursor;
     if (nutexanim_usepakfile != 0) {
         NuStrCpy(filename, path);
         char *extension = NuStrRChr(filename, '.');
         if (extension != NULL)
             *extension = '\0';
         NuStrCat(filename, ".pak");
-        const i32 package_size = static_cast<i32>(NuFileSize(filename));
-        if (package_size == 0)
+        i32 size = static_cast<i32>(NuFileSize(filename));
+        if (size == 0)
             return;
 
-        script_end.addr = (buffer_end.addr - package_size) & ~static_cast<usize>(15);
-        VARIPTR package_cursor = script_end;
-        package = NuFilePakLoad(filename, &package_cursor, buffer_end, 16);
-        if (package == NULL) {
-            buffer->addr = ALIGN(buffer->addr, 16);
-            return;
-        }
-        script_names = script_end.char_ptr;
+        cursor.addr = (end.addr - size) & ~static_cast<usize>(15);
+        // Script names grow below the archive's original start, not its advanced load cursor.
+        VARIPTR list = cursor;
+        void *pak = NuFilePakLoad(filename, &cursor, end, 16);
+        if (pak != NULL) {
+            char *name = NuStrRChr(path, '/');
+            if (name == NULL)
+                name = NuStrRChr(path, '\\');
+            name = name != NULL ? name + 1 : path;
+            NuStrCpy(filename, name);
+            extension = NuStrRChr(filename, '.');
+            if (extension != NULL)
+                *extension = '\0';
+            NuStrCat(filename, ".cfg");
 
-        char *basename = NuStrRChr(path, '/');
-        if (basename == NULL)
-            basename = NuStrRChr(path, '\\');
-        NuStrCpy(filename, basename != NULL ? basename + 1 : path);
-        extension = NuStrRChr(filename, '.');
-        if (extension != NULL)
-            *extension = '\0';
-        NuStrCat(filename, ".cfg");
-
-        i32 item = NuFilePakGetItem(package, filename);
-        void *address;
-        i32 item_size;
-        NuFilePakGetItemInfo(package, item, &address, &item_size);
-        NUFILE file = NuMemFileOpen(address, item_size, NUFILE_READ);
-        if (file != 0) {
-            NUFPAR *parser = NuFParOpen(file);
-            if (parser != NULL) {
-                script_names = script_end.char_ptr - 1;
-                *script_names = '\0';
-                while (NuFParGetLine(parser) != 0) {
-                    NuFParGetWord(parser);
-                    char *name = NuStrRChr(parser->word_buf, '/');
-                    if (name == NULL)
-                        name = NuStrRChr(parser->word_buf, '\\');
-                    name = name != NULL ? name + 1 : parser->word_buf;
-                    script_names -= NuStrLen(name) + 1;
-                    NuStrCpy(script_names, name);
-                }
-                NuFParClose(parser);
-            }
-            NuFileClose(file);
-        }
-
-        for (char *name = script_names; *name != '\0'; name += NuStrLen(name) + 1) {
-            item = NuFilePakGetItem(package, name);
-            NuFilePakGetItemInfo(package, item, &address, &item_size);
-            file = NuMemFileOpen(address, item_size, NUFILE_READ);
+            i32 item = NuFilePakGetItem(pak, filename);
+            void *data;
+            NuFilePakGetItemInfo(pak, item, &data, &size);
+            NUFILE file = NuMemFileOpen(data, size, NUFILE_READ);
             if (file != 0) {
-                NuTexAnimProgParseFile(file, buffer, script_end, 0);
+                nufpar_s *parser = NuFParOpen(file);
+                if (parser != NULL) {
+                    *--list.char_ptr = '\0';
+                    while (NuFParGetLine(parser)) {
+                        NuFParGetWord(parser);
+                        name = NuStrRChr(parser->word_buf, '/');
+                        if (name == NULL)
+                            name = NuStrRChr(parser->word_buf, '\\');
+                        name = name != NULL ? name + 1 : parser->word_buf;
+                        list.char_ptr -= NuStrLen(name) + 1;
+                        NuStrCpy(list.char_ptr, name);
+                    }
+                    NuFParClose(parser);
+                }
                 NuFileClose(file);
             }
-        }
-    } else {
-        *script_names = '\0';
-        NUFPAR *parser = NuFParCreate(path);
-        if (parser != NULL) {
-            while (NuFParGetLine(parser) != 0) {
-                NuFParGetWord(parser);
-                script_names -= NuStrLen(parser->word_buf) + 1;
-                NuStrCpy(script_names, parser->word_buf);
+            for (cursor = list; *cursor.char_ptr != '\0'; cursor.char_ptr += NuStrLen(cursor.char_ptr) + 1) {
+                item = NuFilePakGetItem(pak, cursor.char_ptr);
+                NuFilePakGetItemInfo(pak, item, &data, &size);
+                file = NuMemFileOpen(data, size, NUFILE_READ);
+                if (file != 0) {
+                    NuTexAnimProgParseFile(file, buffer, list, 0);
+                    NuFileClose(file);
+                }
             }
-            NuFParDestroy(parser);
+            return;
         }
-        for (char *name = script_names; *name != '\0'; name += NuStrLen(name) + 1)
-            NuTexAnimProgReadScript(name, buffer, script_end, 0);
+        buffer->addr = ALIGN(buffer->addr, 16);
     }
 
+    *end.char_ptr = '\0';
+    VARIPTR list;
+    list.char_ptr = end.char_ptr - 1;
+    nufpar_s *parser = NuFParCreate(path);
+    if (parser != NULL) {
+        *list.char_ptr = '\0';
+        while (NuFParGetLine(parser)) {
+            NuFParGetWord(parser);
+            list.char_ptr -= NuStrLen(parser->word_buf) + 1;
+            NuStrCpy(list.char_ptr, parser->word_buf);
+        }
+        NuFParDestroy(parser);
+    }
+    for (cursor = list; *cursor.char_ptr != '\0'; cursor.char_ptr += NuStrLen(cursor.char_ptr) + 1)
+        NuTexAnimProgReadScript(cursor.char_ptr, buffer, list, 0);
     buffer->addr = ALIGN(buffer->addr, 16);
 }
 
-extern "C" nutexanimprog_s *NuTexAnimProgReadScript(char *path, VARIPTR *buffer, VARIPTR buffer_end, i32 flags) {
+extern "C" nutexanimprog_s *NuTexAnimProgReadScript(char *path, VARIPTR *buffer, VARIPTR end, i32 fps) {
     NUFILE file = NuFileOpen(path, NUFILE_READ);
     nutexanimprog_s *program = NULL;
     if (file != 0) {
-        program = NuTexAnimProgParseFile(file, buffer, buffer_end, flags);
+        program = NuTexAnimProgParseFile(file, buffer, end, fps);
         NuFileClose(file);
     }
     return program;

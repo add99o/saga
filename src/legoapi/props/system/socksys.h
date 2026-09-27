@@ -2,6 +2,7 @@
 #define LEGOAPI_SOCKSYS_H
 
 #include "nu2api/nu3d/nugscn.h"
+#include "nu2api/nu3d/nuhspecial.h"
 #include "nu2api/nu3d/nuspline.h"
 #include "nu2api/nucore/common.h"
 #include "nu2api/numath/numtx.h"
@@ -163,8 +164,8 @@ typedef struct SOCK {
     u32 overlap_exclusion_mask[2];  // 0xdc — sockets whose bounds do not overlap
     char name[16];                  // 0xe4 — zero-padded socket index, e.g. "03"
     f32 overlap_blend_ratio;        // 0xf4 — default 0.5
-    u32 unknown_f8;                 // 0xf8 — array of scene specials shown on the socket
-    u16 unknown_fc;                 // 0xfc — count of specials at 0xf8
+    nuhspecial_s *objects;          // 0xf8 — array of scene specials shown on the socket
+    u16 object_count;               // 0xfc
     u8 unknown_fe;                  // 0xfe
     u8 unknown_ff;                  // 0xff
     struct {
@@ -176,24 +177,37 @@ typedef struct SOCK {
         u32 blend_count;
     }; // 0x110
     union {
-        u8 unknown_114[40]; // 0x114
+        u8 unknown_114[40];
         struct {
-            f32 camera_at_start_lift; // 0x114
-            f32 camera_at_start_distance; // 0x118
-            f32 camera_at_start_range; // 0x11c
-            f32 camera_at_start_tilt; // 0x120
-            f32 camera_at_start_tilt_rate; // 0x124
-            f32 camera_ray_tilt_distance; // 0x128
-            f32 camera_ray_tilt_height; // 0x12c
-            f32 manual_camera_max_x; // 0x130
-            f32 manual_camera_max_y; // 0x134
-            i32 terrain_camera_inactive; // 0x138
+            f32 camera_character_close_lift; // 0x114
+            f32 camera_min_distance;         // 0x118
+            f32 camera_range_of_effect;      // 0x11c
+            f32 camera_tilt_angle_change;    // 0x120
+            f32 camera_tilt_angle_rate;      // 0x124
+            f32 camera_tilt_distance;        // 0x128
+            f32 camera_tilt_height;          // 0x12c
+            f32 manual_camera_max_x;         // 0x130
+            f32 manual_camera_max_y;         // 0x134
+            i32 terrain_camera_inactive;     // 0x138
         };
     };
 } SOCK;
 
 DECOMP_ASSERT(offsetof(SOCK, looping) == 0x33, "SOCK loop flag offset");
 DECOMP_ASSERT(offsetof(SOCK, length) == 0x30, "SOCK rail length offset");
+DECOMP_ASSERT(offsetof(SOCK, flags) == 0x68, "SOCK flags offset");
+DECOMP_ASSERT(offsetof(SOCK, objects) == 0xf8, "SOCK scene-object array offset");
+DECOMP_ASSERT(offsetof(SOCK, object_count) == 0xfc, "SOCK scene-object count offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_character_close_lift) == 0x114, "SOCK close-lift offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_min_distance) == 0x118, "SOCK minimum camera-distance offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_range_of_effect) == 0x11c, "SOCK camera-range offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_angle_change) == 0x120, "SOCK camera-tilt change offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_angle_rate) == 0x124, "SOCK camera-tilt rate offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_distance) == 0x128, "SOCK camera-tilt distance offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_height) == 0x12c, "SOCK camera-tilt height offset");
+DECOMP_ASSERT(offsetof(SOCK, manual_camera_max_x) == 0x130, "SOCK manual-camera X offset");
+DECOMP_ASSERT(offsetof(SOCK, manual_camera_max_y) == 0x134, "SOCK manual-camera Y offset");
+DECOMP_ASSERT(offsetof(SOCK, terrain_camera_inactive) == 0x138, "SOCK terrain-camera gate offset");
 DECOMP_ASSERT(offsetof(SOCKPOSITION, midpoint_rotation) == 0x24, "SOCKPOSITION midpoint rotation offset");
 
 typedef struct SOCKSYS {
@@ -209,6 +223,8 @@ extern "C" {
     SOCK *FindSock(SOCKSYS *system, char *name);
     void SockOff(SOCKSYS *system, i32 index);
     void SockOn(SOCKSYS *system, i32 index);
+    void SockSysSetObjectVisibility(SOCKSYS *system, i32 index, i32 visible);
+    i32 SockSysTrackInSplineInfo(SOCKSYS *system, SOCKPOSITION *position, NUVEC *point, f32 *distance);
     void SetSockPostion(SOCKSYS *system, SOCKPOSITION *position, i32 index, i32 segment, f32 ratio);
     void MoveSockPosition(SOCKSYS *system, SOCKPOSITION *source, f32 distance, SOCKPOSITION *result);
     f32 MidDistanceFromSockStart(SOCKSYS *system, SOCKPOSITION *position);
@@ -222,6 +238,7 @@ extern "C" {
     i32 SockSysTrackInSplineInfo(SOCKSYS *sock_sys, SOCKPOSITION *position, NUVEC *track_position, f32 *distance);
     void SockRotationMatrix(SOCKSYS *system, SOCKPOSITION *position, NUMTX *out, i32 stride, i32 mode);
     void SetSockBit(SOCK *sock, i32 index);
+    i32 SockBitSet(SOCK *sock, i32 index);
     void ComplexSockPosition(SOCKSYS *sock_sys, NUVEC *position, i32 prior_sock, i32 prior_segment,
                              SOCKPOSITION *result);
     void ComplexSockAngles(SOCKROT *angles);

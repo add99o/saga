@@ -10,6 +10,7 @@
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/menus/screens/store.h"
+#include "legoapi/misc/utilities.h"
 #include "legoapi/props/system/socksys.h"
 #include "legoapi/world/levels/episode.h"
 #include "legoapi/world/world.h"
@@ -18,7 +19,6 @@
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numath/nuvec.h"
 #include <math.h>
-#include <stdio.h>
 #include <string.h>
 
 struct AIROW_s;
@@ -99,47 +99,10 @@ void ClearLastSafeTakeOver(GameObject_s *object) {
     }
 }
 
-const char *GetNativeTextureFormatName(NUTEXFORMAT format) {
-    switch (format) {
-    case 1: return "NUTEX_FMT_DXT1";
-    case 2: return "NUTEX_FMT_DXT1A";
-    case 6: return "NUTEX_FMT_DXT5";
-    case 7: return "NUTEX_FMT_8888";
-    case 8: return "NUTEX_FMT_A16B16G16R16F";
-    case 9: return "NUTEX_FMT_A32B32G32R32F";
-    case 16: return "NUTEX_FMT_L8";
-    case 17: return "NUTEX_FMT_ETC1";
-    case 20: return "NUTEX_FMT_PVRTC1_2_RGB";
-    case 21: return "NUTEX_FMT_PVRTC1_2";
-    case 22: return "NUTEX_FMT_PVRTC1_4_RGB";
-    case 23: return "NUTEX_FMT_PVRTC1_4";
-    case 24: return "NUTEX_FMT_ATITC_RGBA";
-    case 25: return "NUTEX_FMT_ATITC_RGB";
-    case 102: return "NUTEX_FMT_RT_RGBX32";
-    case 103: return "NUTEX_FMT_RT_RGBA32";
-    case 105: return "NUTEX_FMT_RT_D24S8";
-    case 110: return "NUTEX_FMT_RT_A16B16G16R16";
-    case 111: return "NUTEX_FMT_RT_R32F";
-    case 112: return "NUTEX_FMT_RT_ZBUFFER";
-    case 113: return "NUTEX_FMT_RT_SHADOWMAP_COLOR";
-    case 114: return "NUTEX_FMT_RT_SHADOWMAP_DEPTH";
-    case 116: return "NUTEX_FMT_RT_G16R16F";
-    case 117: return "NUTEX_FMT_RT_HDR";
-    case 118: return "NUTEX_FMT_RT_A16B16G16R16F";
-    case 119: return "NUTEX_FMT_RT_A2R10G10B10";
-    default: return "Not defined";
-    }
-}
-
-char *IToX(char *output, i32 value);
-char *I64ToX(char *output, i64 value);
-
-void CatIToX(char *text, i32 value) {
-    char *end = text;
-    while (*end != '\0') {
-        ++end;
-    }
-    *IToX(end, value) = '\0';
+void CatIToX(char *output, i32 value) {
+    while (*output != '\0')
+        ++output;
+    *IToX(output, value) = '\0';
 }
 
 void DoInput(WORLDINFO_s *world) {
@@ -193,41 +156,33 @@ void DoInput(WORLDINFO_s *world) {
     }
 }
 
-void CatI64ToX(char *text, i64 value) {
-    char *end = text;
-    while (*end != '\0') {
-        ++end;
-    }
-    *I64ToX(end, value) = '\0';
+void CatI64ToX(char *output, i64 value) {
+    while (*output != '\0')
+        ++output;
+    *I64ToX(output, value) = '\0';
 }
 
 void DieRumble(GameObject_s *object) {
-    if (object == NULL || static_cast<i8>(object->apiobj.field_0x1f8) >= 0)
-        return;
-    NewRumble(object->pad_gamepad->pad, 1.0f, 0);
-    NewBuzz(object->pad_gamepad->pad, 0.3f, 0);
+    if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0) {
+        NewRumble(object->pad_gamepad->pad, 1.0f, 0);
+        NewBuzz(object->pad_gamepad->pad, 0.3f, 0);
+    }
 }
 
 i32 charToInt(char const *text) {
-    i32 length = static_cast<i32>(strlen(text));
+    const i32 length = static_cast<i32>(strlen(text));
     i32 first = 0;
-    i32 sign = 1;
+    u32 sign = 1;
     if (length > 0 && text[0] == '-') {
         first = 1;
-        sign = -1;
+        sign = static_cast<u32>(-1);
     }
-    i32 value = 0;
-    i32 multiplier = 1;
-    for (i32 index = length - 1; index >= first; --index) {
-        value += (text[index] - '0') * multiplier;
-        multiplier *= 10;
+    // The original accepts signed non-digit bytes and wraps at 32 bits.
+    u32 result = 0;
+    u32 place = 1;
+    for (i32 index = static_cast<i32>(static_cast<u32>(length) - 1u); index >= first; --index) {
+        result += static_cast<u32>(static_cast<i8>(text[index]) - '0') * place;
+        place *= 10;
     }
-    return value * sign;
-}
-
-static __used__ i32 _fseek64_wrap(__sFILE *file, i64 offset, i32 origin) {
-    if (file == NULL) {
-        return -1;
-    }
-    return fseek(reinterpret_cast<FILE *>(file), static_cast<i32>(offset), origin);
+    return static_cast<i32>(result * sign);
 }

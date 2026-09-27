@@ -387,7 +387,6 @@ i32 DisplayListCreateInstSurfGeomPS(variptr_u *, numtx_s *) {
 }
 
 extern "C" void DisplayListPrintItemPS(nudisplaylistitem_s *, i32) {
-    // The original Android implementation is empty.
 }
 
 extern "C" void DisplayListSwapBuffersPS(void) {

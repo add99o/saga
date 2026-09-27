@@ -4,6 +4,7 @@
 #include "legoapi/items/base/collection.h"
 #include "legoapi/audio/sfx.h"
 #include "legoapi/gizmos/fx/gizmopickups.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/world/area.h"
 #include "legoapi/world/world.h"
@@ -20,13 +21,13 @@
 #include "legoapi/characters/motion.h"
 #include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/core/input/gamepads.h"
+#include "legoapi/core/input/qrand.h"
 #include "legoapi/core/input/timer.h"
 #include "legoapi/misc/utilities.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/render/fx.h"
 #include "legoapi/render/fx/parts.h"
 #include "legoapi/render/light/lighting.h"
-#include "legoapi/gizmo/object/gizmopickup.h"
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nutrig.h"
@@ -46,7 +47,6 @@ struct SHOPINPUT;
 
 HUBMINIKITPIECES_s **Char_MiniKit;
 static VARIPTR minikits_savecharacterbufferptr;
-PARTLIGHTSOURCE_s KitPartRTL;
 extern VARIPTR characterbuffer_ptr;
 extern VARIPTR characterbuffer_end;
 
@@ -105,40 +105,39 @@ void CharacterMiniKits_Load(COLLECTION_s *collection, WORLDINFO *world, VARIPTR 
     }
 }
 
-extern f32 KITPOSX, KITPOSY, PANEL_MINIKITY, PANEL_MINIKITSCALE;
-void Hint_SetHintFromId(i32, i32, i32);
+extern f32 KITPOSX, PANEL_MINIKITY, PANEL_MINIKITSCALE;
 void MiniKit_GameMsg_Update(GAMEMESSAGE_s *message);
 void MiniKit_GameMsg_End(GAMEMESSAGE_s *message);
+void Hint_SetHintFromId(i32, i32, i32);
 
 void CollectMinikit(nuvec_s *position, char *name, i32) {
     if (WORLD->lev_objs[0xce].active == 0) {
         return;
     }
-
-    const i32 area = WORLD->level_sub_id;
-    NUVEC target = {KITPOSX, KITPOSY + PANEL_MINIKITY, 1.0f};
+    const i32 area_id = WORLD->level_sub_id;
+    NUVEC target_position = {KITPOSX, KITPOSY + PANEL_MINIKITY, 1.0f};
     ADDGAMEMSG message = AddGameMsg_Default;
     message.position = position;
-    message.target_position = &target;
+    message.target_position = &target_position;
     message.scale = AreaPickupScale;
     message.target_scale = PANEL_MINIKITSCALE;
     message.flags = 0x2112d;
     message.duration = 1.0f;
     message.icon = 0xce;
     message.special = &WORLD->lev_objs[0xce].special;
-    message.message_callback = MiniKit_GameMsg_Update;
+    message.tick_fn = MiniKit_GameMsg_Update;
     message.end_fn = MiniKit_GameMsg_End;
     message.field_0x4d = 1;
     AddGameMsg(&message);
     DrawMiniKitTime = 2.0f;
 
-    if (area != -1 && Game.area_save[area].minikit_count <= 9) {
-        if (NuStrLen(name) > 8) {
-            NewMiniPiece[AreaGlobals.values.field_0x10].name[0] = '\0';
-        } else {
+    if (area_id != -1 && Game.area_save[area_id].minikit_count < 10) {
+        if (NuStrLen(name) <= 8) {
             NuStrCpy(NewMiniPiece[AreaGlobals.values.field_0x10].name, name);
+        } else {
+            NewMiniPiece[AreaGlobals.values.field_0x10].name[0] = '\0';
         }
-        NewMiniPiece[AreaGlobals.values.field_0x10].level = static_cast<i16>(WORLD->level_idx);
+        NewMiniPiece[AreaGlobals.values.field_0x10].level = WORLD->level_idx;
         ++AreaGlobals.values.field_0x10;
         ++AreaGlobals.values.field_0x0c;
         if (GAMEDEMO != 0) {
@@ -150,7 +149,7 @@ void CollectMinikit(nuvec_s *position, char *name, i32) {
         }
     }
     AddGameDebris(WORLD->debris_sys, 0x13, position);
-    GameAudio_PlaySfxById(GetSfxId("MK-Pickup"), position, 3, 0);
+    GameAudio_PlaySfxById(GetSfxId(const_cast<char *>("MK-Pickup")), position, 3, 0);
 }
 
 i32 AllMiniKitsDone(AREASAVE_s *save) {
@@ -563,58 +562,57 @@ void AllMiniKits_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *packet) {
     NextStatusStage(packet);
 }
 
+rtldata_s KitPartRTL;
+extern NUCOLOUR3 panelcol[3], panelamb;
+extern NUVEC paneldir[3];
+
 void AddStatusMiniKitParts() {
-    extern NUCOLOUR3 panelcol[3], panelamb;
-    extern NUVEC paneldir[3];
-    extern f32 COINMSGTIME;
-    extern i32 qrand();
-    memcpy(&KitPartRTL.values[0], panelcol, sizeof(panelcol));
-    memcpy(&KitPartRTL.values[3], paneldir, sizeof(paneldir));
-    memcpy(&KitPartRTL.values[6], &panelamb, sizeof(panelamb));
+    NUVEC target_position = {0.0f, STATSPOSY, 1.0f};
+    for (i32 i = 0; i < 3; ++i) {
+        KitPartRTL.intensity[i] = panelcol[i];
+        KitPartRTL.direction[i] = paneldir[i];
+    }
+    KitPartRTL.ambient.x = panelamb.r;
+    KitPartRTL.ambient.y = panelamb.g;
+    KitPartRTL.ambient.z = panelamb.b;
 
-    NUVEC target = {0.0f, STATSPOSY, 1.0f};
-    const GIZMO_PICKUP_TYPE *coin = &GizmoPickupType[2];
-    constexpr f32 random_scale = 1.0f / 65535.0f;
+    f32 delay = 0.0f;
     for (i32 i = 0; i < 10; ++i) {
-        if (KitPart[i].enabled == 0)
+        if (KitPart[i].enabled == 0) {
             continue;
-
-        NUVEC velocity = {0.0f, static_cast<f32>(qrand()) * random_scale * 0.25f + 0.25f, 0.0f};
+        }
+        NUVEC velocity = {0.0f, (static_cast<f32>(qrand()) * (1.0f / 65535.0f)) * 0.25f + 0.25f, 0.0f};
         NuVecRotateZ(&velocity, &velocity, qrand());
-
-        ADDPART_ALIGNED16 part = Default_ADDPART;
+        ADDPART_s part = Default_ADDPART;
         part.matrix = &KitPart[i].matrix;
         part.velocity = &velocity;
+        part.flags = 0x480;
         part.gravity = 0.0f;
         part.special = KitPart[i].special;
-        part.flags = 0x480;
+        part.lighting = reinterpret_cast<PARTLIGHTSOURCE_s *>(&KitPartRTL);
         part.time_step = FRAMETIME;
-        part.lighting = &KitPartRTL;
         AddPart(&part);
 
-        f32 delay = 0.0f;
-        for (i32 j = 0; j < 5; ++j) {
-            NUVEC position = {0.0f, static_cast<f32>(qrand()) * random_scale * 0.1f, 1.0f};
+        for (i32 coin = 0; coin < 5; ++coin) {
+            NUVEC position = {0.0f, (static_cast<f32>(qrand()) * (1.0f / 65535.0f)) * 0.1f, 1.0f};
             NuVecRotateZ(&position, &position, qrand());
-            const i32 player_index = qrand() / 32768;
-            target.x = cointotal_x[player_index];
-
             ADDGAMEMSG message = AddGameMsg_Default;
             message.position = &position;
-            message.target_position = &target;
+            message.target_scale = 0.75f;
+            message.player_index = qrand() / 0x8000;
+            target_position.x = cointotal_x[message.player_index];
+            message.target_position = &target_position;
             message.target_scale = COINTOTAL_COINSIZE;
+            message.icon = static_cast<i16>(GizmoPickupType[2].first_model_id);
+            message.special = &WORLD->lev_objs[message.icon].special;
             message.flags = 0x112d;
             message.duration = COINMSGTIME;
-            message.field_0x20 = delay;
-            message.icon = static_cast<i16>(coin->first_model_id);
-            message.special = &WORLD->lev_objs[message.icon].special;
-            message.score = coin->score;
-            message.update_fn = GameMsg_DrawAdjustNewPos_CoinToTotal;
+            message.score = GizmoPickupType[2].score;
             message.end_fn = EndScoreMessage;
-            message.player_index = static_cast<i8>(player_index);
+            message.update_fn = GameMsg_DrawAdjustNewPos_CoinToTotal;
+            message.field_0x20 = delay;
             message.field_0x4e = 1;
             AddGameMsg(&message);
-
             if (delay == 0.0f) {
                 NewStatusRumbleBuzz(-1, 0.0f, 0.0f, 1);
                 AddGameDebris(WORLD->debris_sys, 0x38, &position);

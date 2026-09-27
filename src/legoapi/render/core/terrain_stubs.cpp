@@ -404,7 +404,7 @@ extern "C" i32 PARTLookupTypePageOnly(char *, i32);
 extern "C" part_type_s part_types[128];
 extern "C" i32 part_types_used;
 extern "C" f32 partglobaltime;
-void edpartScaleType(i32 type, f32 scale);
+void edpartScaleType(i32 index, f32 scale);
 void *InitPartDebris(VARIPTR *buf, VARIPTR *, i32 capacity, i32 named_count, char **names, i32 page) {
     PARTDEBSYS_s *system = static_cast<PARTDEBSYS_s *>(BUFFER_ALLOC(buf, sizeof(PARTDEBSYS_s), 16));
     if (system == NULL)
@@ -579,98 +579,64 @@ extern "C" {
     }
 
     i32 CreateScaledPARTEffect(i32 effect_index, f32 requested_scale) {
-        if (effect_index < 1 || effect_index >= 128 || part_types[effect_index].effect_ids[0] == -1) {
+        // Retail uses this inclusive upper check; loaded type IDs are 0..127.
+        if (effect_index <= 0 || effect_index > 128 || part_types[effect_index].effect_ids[0] == -1) {
             return -1;
         }
-
         if (part_types[effect_index].scale != 1.0f) {
+            // The final word identifies the original, unscaled type.
             effect_index = part_types[effect_index].field_174;
-            if (effect_index >= 128 || part_types[effect_index].effect_ids[0] == -1) {
+            if (part_types[effect_index].effect_ids[0] == -1) {
                 return -1;
             }
         }
         if (requested_scale == 1.0f && effect_index != 0) {
             return effect_index;
         }
-
         if (requested_scale < 0.01f) {
             requested_scale = 0.01f;
         }
+
         i32 closest_index = effect_index;
         f32 ratio = requested_scale / part_types[effect_index].scale;
         f32 closest_distance = ratio <= 1.0f ? 1.0f - ratio : ratio - 1.0f;
         for (i32 i = 0; i < 128; ++i) {
-            part_type_s &candidate = part_types[i];
-            if (candidate.effect_ids[0] == -1 || candidate.field_174 != static_cast<u32>(effect_index)) {
+            if (part_types[i].effect_ids[0] != -1 && part_types[i].field_174 == static_cast<u32>(effect_index)) {
+                ratio = requested_scale / part_types[i].scale;
+                f32 distance = ratio <= 1.0f ? 1.0f - ratio : ratio - 1.0f;
+                if (distance < closest_distance) {
+                    closest_index = i;
+                    closest_distance = distance;
+                }
+            }
+        }
+        if (closest_index != 0 && closest_distance < 1.1f) {
+            return closest_index;
+        }
+
+        for (i32 i = 0; i < 128; ++i) {
+            if (part_types[i].effect_ids[0] != -1) {
                 continue;
             }
-            ratio = requested_scale / candidate.scale;
-            f32 distance = ratio <= 1.0f ? 1.0f - ratio : ratio - 1.0f;
-            if (distance < closest_distance) {
-                closest_distance = distance;
-                closest_index = i;
+            part_type_s *scaled = &part_types[i];
+            part_type_s *source = &part_types[effect_index];
+            *scaled = *source;
+            edpartScaleType(i, requested_scale);
+            scaled->last_used_time = partglobaltime;
+            scaled->scale = requested_scale;
+            scaled->field_174 = effect_index;
+            if (strlen(source->name) > 12) {
+                char shortened[16];
+                memcpy(shortened, source->name, strlen(source->name) + 1);
+                shortened[12] = '\0';
+                sprintf(scaled->name, "%s%03d", shortened, i);
+            } else {
+                sprintf(scaled->name, "%s%03d", source->name, i);
             }
+            ++part_types_used;
+            return i != 0 ? i : closest_index;
         }
-        if (closest_index != 0 && closest_distance < 0.1f) {
-            return closest_index;
-        }
-
-        i32 scaled_index = 0;
-        while (scaled_index < 128 && part_types[scaled_index].effect_ids[0] != -1) {
-            ++scaled_index;
-        }
-        if (scaled_index == 128) {
-            return closest_index;
-        }
-
-        part_type_s &scaled = part_types[scaled_index];
-        part_type_s &original = part_types[effect_index];
-        scaled = original;
-        edpartScaleType(scaled_index, requested_scale);
-        scaled.last_used_time = partglobaltime;
-        scaled.scale = requested_scale;
-        scaled.field_174 = effect_index;
-
-        char shortened[13];
-        const char *name = original.name;
-        if (strlen(name) > 12) {
-            memcpy(shortened, name, 12);
-            shortened[12] = '\0';
-            name = shortened;
-        }
-        sprintf(scaled.name, "%s%03d", name, scaled_index);
-        ++part_types_used;
-        return scaled_index != 0 ? scaled_index : closest_index;
-    }
-
-    void CubeImpact(NUMTX *matrix, NUMTX *cube_matrix, NUVEC *direction, f32 scale, NUVEC *impact) {
-        NUVEC4 cube_point;
-        NUVEC4 transformed[8];
-        const NUVEC corners[8] = {
-            {-1.0f, -1.0f, -1.0f}, {1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, -1.0f}, {-1.0f, 1.0f, -1.0f},
-            {-1.0f, -1.0f, 1.0f},  {1.0f, -1.0f, 1.0f},  {1.0f, 1.0f, 1.0f},  {-1.0f, 1.0f, 1.0f},
-        };
-        f32 nearest = 10000.0f;
-        i32 nearest_index = 0;
-        for (i32 i = 0; i < 8; ++i) {
-            transformed[i].x = corners[i].x;
-            transformed[i].y = corners[i].y;
-            transformed[i].z = corners[i].z;
-            transformed[i].w = 0.0f;
-            NuVec4MtxTransformVU0(&cube_point, &transformed[i], cube_matrix);
-            NuVec4MtxTransformVU0(&transformed[i], &transformed[i], matrix);
-            const f32 cube_depth =
-                direction->x * cube_point.x + direction->y * cube_point.y + direction->z * cube_point.z;
-            const f32 world_depth =
-                direction->x * transformed[i].x + direction->y * transformed[i].y + direction->z * transformed[i].z;
-            if (world_depth > cube_depth && world_depth < nearest) {
-                nearest = world_depth;
-                nearest_index = i;
-            }
-        }
-        impact->x = matrix->m30 + scale * transformed[nearest_index].x;
-        impact->y = matrix->m31 + scale * transformed[nearest_index].y;
-        impact->z = matrix->m32 + scale * transformed[nearest_index].z;
+        return closest_index;
     }
 
     void DebFreeAllCreatedEffects(void) {
@@ -809,15 +775,50 @@ extern "C" {
         if (handle == -1) {
             return;
         }
+        NuMtxSetIdentity(&debkeydata[handle].emitter_orientation);
         debkeydatatype_s &key = debkeydata[handle];
         NUMTX *mtx = &key.emitter_orientation;
-        NuMtxSetIdentity(mtx);
-        NuMtxRotateZ(mtx, z);
-        NuMtxRotateY(mtx, y);
-        NuMtxRotateX(mtx, x);
-        mtx->m30 = 0.0f;
-        mtx->m31 = 0.0f;
-        mtx->m32 = 0.0f;
+        // Retail performs these rotations locally after reloading debkeydata;
+        // it does not call the exported rotation helpers or clear translation.
+        {
+            const f32 cosine = NU_COS_LUT(z);
+            const f32 sine = NU_SIN_LUT(z);
+            const f32 m00 = mtx->m00, m10 = mtx->m10, m20 = mtx->m20, m30 = mtx->m30;
+            mtx->m00 = m00 * cosine - mtx->m01 * sine;
+            mtx->m01 = m00 * sine + mtx->m01 * cosine;
+            mtx->m10 = m10 * cosine - mtx->m11 * sine;
+            mtx->m11 = m10 * sine + mtx->m11 * cosine;
+            mtx->m20 = m20 * cosine - mtx->m21 * sine;
+            mtx->m21 = m20 * sine + mtx->m21 * cosine;
+            mtx->m30 = m30 * cosine - mtx->m31 * sine;
+            mtx->m31 = m30 * sine + mtx->m31 * cosine;
+        }
+        {
+            const f32 cosine = NU_COS_LUT(y);
+            const f32 sine = NU_SIN_LUT(y);
+            const f32 m00 = mtx->m00, m10 = mtx->m10, m20 = mtx->m20, m30 = mtx->m30;
+            mtx->m00 = m00 * cosine + mtx->m02 * sine;
+            mtx->m02 = mtx->m02 * cosine - m00 * sine;
+            mtx->m10 = m10 * cosine + mtx->m12 * sine;
+            mtx->m12 = mtx->m12 * cosine - m10 * sine;
+            mtx->m20 = m20 * cosine + mtx->m22 * sine;
+            mtx->m22 = mtx->m22 * cosine - m20 * sine;
+            mtx->m30 = m30 * cosine + mtx->m32 * sine;
+            mtx->m32 = mtx->m32 * cosine - m30 * sine;
+        }
+        {
+            const f32 cosine = NU_COS_LUT(x);
+            const f32 sine = NU_SIN_LUT(x);
+            const f32 m01 = mtx->m01, m11 = mtx->m11, m21 = mtx->m21, m31 = mtx->m31;
+            mtx->m01 = m01 * cosine - mtx->m02 * sine;
+            mtx->m02 = m01 * sine + mtx->m02 * cosine;
+            mtx->m11 = m11 * cosine - mtx->m12 * sine;
+            mtx->m12 = m11 * sine + mtx->m12 * cosine;
+            mtx->m21 = m21 * cosine - mtx->m22 * sine;
+            mtx->m22 = m21 * sine + mtx->m22 * cosine;
+            mtx->m31 = m31 * cosine - mtx->m32 * sine;
+            mtx->m32 = m31 * sine + mtx->m32 * cosine;
+        }
         key.orientation_dirty = 0.0f;
     }
 

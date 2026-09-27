@@ -12,6 +12,7 @@
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/core/config/cheat.h"
+#include "legoapi/core/config/fileselect.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/menus/screens/gamemenuall.h"
 #include "legoapi/menus/screens/gamestructure.h"
@@ -53,8 +54,6 @@ extern char FS_LastFileName[64];
 extern char *FS_CurrentCursorPos;
 extern "C" i32 MenuASCancelFinished;
 extern f32 memcard_autosavecanceldelay;
-u8 FS_Active;
-u8 FS_ShowVolumes;
 extern i32 FS_NumFiles;
 extern i32 FS_SortMode;
 void FS_GetDirList(char *, char *, char *);
@@ -96,6 +95,7 @@ extern char *apitxt_DOYOUWANTTOABORTFORMAT;
 extern char *apitxt_CONFIRMDELETE;
 extern char *apitxt_RETRY;
 extern char *apitxt_SLOT;
+extern char *apitxt_NEWSAVE;
 extern char *apitxt_CANCEL;
 extern char *apitxt_NODATAAVAILABLE;
 extern char *apitxt_NOTENOUGHSPACE;
@@ -168,23 +168,9 @@ extern "C" void Draw_SPACENEEDED(void);
 extern "C" void Draw_CHECKINGMEMORYCARD(void);
 extern "C" void Draw_DONOTREMOVEMEMORYCARD(void);
 void Draw_OK(MENU_s *menu);
-void RenderFileSel3(i32);
-extern "C" {
-    f32 FS_X = 50.0f;
-    f32 FS_Y = 40.0f;
-    f32 FS_W;
-    f32 FS_H;
-    char FS_Title[256] = "Title";
-    char FS_Filter[256] = "*.nup | *.hgp   ";
-    char FS_FilterOut[256] = "_PC. | _360. | _PS3.";
-    f32 FS_Width = 248.0f;
-    extern char FS_Path[256];
-    u8 FS_RefreshDir;
-    void *FS_Callback;
-}
-i32 ProcessFileSel3(float, nupad_s *);
 
 i32 memcard_cardchanged;
+i32 MenuASCancelFinished;
 i32 MenuCardWarningState;
 i32 ButtonScaleMode;
 i32 Menu_InLoadFlow;
@@ -262,8 +248,116 @@ static bool MenuCheatUnlocked(i32 cheat) {
     return (unlocked[cheat >> 5] & (1u << (cheat & 31))) != 0;
 }
 
-void APIMenuDrawMemCardSlots(MENU *menu, f32 time) {
-    UNIMPLEMENTED();
+static inline i32 MenuSlotColourLerp(u32 first, u32 second, f32 amount) {
+    return static_cast<i32>(first * amount + second * (1.0f - amount));
+}
+
+void APIMenuDrawMemCardSlots(MENU *menu, f32 y) {
+    if (slideright > 0) {
+        --slideright;
+    }
+    if (slideleft > 0) {
+        --slideleft;
+    }
+
+    i32 count = SAVESLOTS;
+    i32 first, last;
+    f32 x;
+    if (count > 3) {
+        if (menu->selected_column != lastslot) {
+            if (menu->selected_column < lastslot) {
+                slideright = 10;
+            } else {
+                slideleft = 10;
+            }
+            lastslot = menu->selected_column;
+        }
+        const f32 right_offset = slideright * 0.5f / 10.0f;
+        const f32 left_offset = slideleft * 0.5f / 10.0f;
+        first = slideleft != 0 ? menu->selected_column - 2 : menu->selected_column - 1;
+        last = slideright != 0 ? menu->selected_column + 2 : menu->selected_column + 1;
+        if (count > 6) {
+            count = memcard_slotsused;
+        }
+        x = 0.0f - (menu->selected_column - first) * 0.5f - right_offset + left_offset;
+    } else {
+        first = 0;
+        last = count - 1;
+        x = (count - 1) * -0.25f;
+    }
+
+    for (i32 slot = first; slot <= last; ++slot, x += 0.5f) {
+        const i32 highlight =
+            menu->selected_row == menu->first_row && menu->selected_column == slot && slideleft == 0 && slideright == 0;
+        if (slot < 0 || slot > menu->last_column) {
+            continue;
+        }
+        if (slot < count) {
+            drawslotinfofn(x, y, highlight, slot);
+        } else {
+            i32 red, green, blue;
+            if (menu->selected_column == count && menu->selected_row == 0 && TestForController()) {
+                if (menu_pulsate > 0.0f) {
+                    red = MenuSlotColourLerp(MENUFLASH0R, MENUFLASH1R, menu_pulsate);
+                    green = MenuSlotColourLerp(MENUFLASH0G, MENUFLASH1G, menu_pulsate);
+                    blue = MenuSlotColourLerp(MENUFLASH0B, MENUFLASH1B, menu_pulsate);
+                } else if (menu_flash != 0) {
+                    red = MENUFLASH0R;
+                    green = MENUFLASH0G;
+                    blue = MENUFLASH0B;
+                } else {
+                    red = MENUFLASH1R;
+                    green = MENUFLASH1G;
+                    blue = MENUFLASH1B;
+                }
+            } else if (menu_pulse > 0.0f) {
+                red = MenuSlotColourLerp(MENUFLASH0R, MENUNORMALR, menu_pulse);
+                green = MenuSlotColourLerp(MENUFLASH0G, MENUNORMALG, menu_pulse);
+                blue = MenuSlotColourLerp(MENUFLASH0B, MENUNORMALB, menu_pulse);
+            } else {
+                red = MENUENTRYR;
+                green = MENUENTRYG;
+                blue = MENUENTRYB;
+            }
+            MenuText3DEx(apitxt_NEWSAVE, x, y, 1.0f, MENUTEXTSCALE * 0.85f, MENUTEXTSCALE * 0.85f, MENUTEXTSCALE, 0,
+                         red, green, blue, static_cast<u8>(MenuA));
+        }
+    }
+
+    i32 red, green, blue;
+    if (menu->selected_row == 0 && TestForController()) {
+        if (menu_pulsate > 0.0f) {
+            red = MenuSlotColourLerp(MENUFLASH0R, MENUFLASH1R, menu_pulsate);
+            green = MenuSlotColourLerp(MENUFLASH0G, MENUFLASH1G, menu_pulsate);
+            blue = MenuSlotColourLerp(MENUFLASH0B, MENUFLASH1B, menu_pulsate);
+        } else if (menu_flash != 0) {
+            red = MENUFLASH0R;
+            green = MENUFLASH0G;
+            blue = MENUFLASH0B;
+        } else {
+            red = MENUFLASH1R;
+            green = MENUFLASH1G;
+            blue = MENUFLASH1B;
+        }
+    } else if (menu_pulse > 0.0f) {
+        red = MenuSlotColourLerp(MENUFLASH0R, MENUNORMALR, menu_pulse);
+        green = MenuSlotColourLerp(MENUFLASH0G, MENUNORMALG, menu_pulse);
+        blue = MenuSlotColourLerp(MENUFLASH0B, MENUNORMALB, menu_pulse);
+    } else {
+        red = MENUENTRYR;
+        green = MENUENTRYG;
+        blue = MENUENTRYB;
+    }
+    f32 scale = MENUTEXTSCALE;
+    if (slideleft == 0 && slideright == 0) {
+        scale *= 2.0f;
+        if (first > 0) {
+            MenuText3DEx("<", -0.8f, y, 1.0f, scale, scale, scale, 0, red, green, blue, static_cast<u8>(MenuA));
+        }
+        if (menu->last_column > last) {
+            MenuText3DEx(">", 0.8f, y, 1.0f, scale, scale, scale, 0, red, green, blue, static_cast<u8>(MenuA));
+        }
+    }
 }
 
 void MenuDrawLoad(MENU_s *menu) {
@@ -313,11 +407,6 @@ void MenuExitSave(MENU_s *) {
 }
 
 void MenuDrawClips(MENU_s *) {
-}
-
-void MenuDrawHints(MENU_s *menu) {
-    NuStrCpy(MenuHeader, TTab[tHOWTOPLAY]);
-    GameDrawMenuEntry(menu, TTab[tBACK]);
 }
 
 void MenuEnterLoad(MENU_s *menu) {
@@ -534,16 +623,6 @@ void MenuUpdateSave(MENU_s *menu) {
     } else if (menu->cancel_pressed != 0 && Menu_DisableCancel == 0) {
         MenuSFX = MENUSFX_MENUSELECT;
         BackupMenu();
-    }
-}
-
-extern "C" void FileSelKill(void);
-
-void ProcessFileSel(float elapsed, nupad_s *pad) {
-    ProcessFileSel3(elapsed, pad);
-    RenderFileSel();
-    if ((pad->digital_buttons & 0x10) != 0) {
-        FileSelKill();
     }
 }
 
@@ -792,106 +871,6 @@ i32 MenuIsAvailable() {
 void MenuUpdateClips(MENU_s *) {
 }
 
-void MenuUpdateHints(MENU_s *menu) {
-    if (menu->cancel_pressed != 0 || menu->confirm_pressed != 0) {
-        BackupMenu();
-        MenuSFX = GameAudio_GetSfxId(0x31);
-    }
-}
-
-i32 ProcessFileSel3(float elapsed, nupad_s *pad) {
-    if (FS_Active == 0)
-        return 0;
-
-    if (FS_RefreshDir != 0) {
-        FS_GetDirList(FS_Path, FS_Filter, FS_FilterOut);
-        NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
-        NuQFntSet(system_qfont);
-        NuQFntSetPointSize(system_qfont, 1.0f, 1.0f);
-        const f32 width = FS_GetDirTextWidth() * 0.0625f;
-        NuQFntPopCoordinateSystem();
-        FS_Width = fmaxf(240.0f, width) + 8.0f;
-        FS_GetPadWithRepeat(pad, 0.05f, elapsed);
-        if (FS_LastFileName[0] != '\0')
-            FS_SetCursorToLastFileName();
-        FS_RefreshDir = 0;
-    }
-
-    const i32 buttons = FS_GetPadWithRepeat(pad, 0.05f, elapsed);
-    if (buttons & 0x4000)
-        FS_MoveCursorDown(1);
-    if (buttons & 0x1000)
-        FS_MoveCursorUp(1);
-    if (buttons & 1)
-        FS_MoveCursorDown(14);
-    if (buttons & 4)
-        FS_MoveCursorUp(14);
-    if (buttons & 2)
-        FS_MoveCursorDown(FS_NumFiles);
-    if (buttons & 8)
-        FS_MoveCursorUp(FS_NumFiles);
-
-    if (buttons & 0x80) {
-        FS_RefreshDir = 2;
-        ++FS_SortMode;
-        if (FS_SortMode == 4)
-            FS_SortMode = 0;
-        NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
-    }
-
-    if (buttons & 0x20) {
-        i32 length = NuStrLen(FS_Path);
-        if (length != 0 && FS_Path[length - 1] == '\\')
-            FS_Path[length - 1] = '\0';
-        char *separator = NuStrRChr(FS_Path, '\\');
-        if (separator != NULL)
-            separator[1] = '\0';
-        else
-            NuStrCat(FS_Path, "\\");
-        FS_RefreshDir = 1;
-        FS_LastFileName[0] = '\0';
-    }
-
-    if ((buttons & 0x40) == 0)
-        return 0;
-
-    char *entry = FS_CurrentCursorPos;
-    if (entry[0] == 'V') {
-        FS_ShowVolumes = 0;
-        NuStrCpy(FS_Path, entry + 7);
-        FS_RefreshDir = 1;
-        FS_LastFileName[0] = '\0';
-        return 0;
-    }
-    if (entry[0] == 'D') {
-        if (entry[7] == '.' && entry[8] == '.' && entry[9] == '\0') {
-            i32 length = NuStrLen(FS_Path);
-            if (length != 0 && FS_Path[length - 1] == '\\')
-                FS_Path[length - 1] = '\0';
-            char *separator = NuStrRChr(FS_Path, '\\');
-            if (separator != NULL)
-                separator[1] = '\0';
-            else
-                NuStrCat(FS_Path, "\\");
-        } else {
-            const i32 length = NuStrLen(FS_Path);
-            if (length != 0 && FS_Path[length - 1] != '\\')
-                NuStrCat(FS_Path, "\\");
-            NuStrCat(FS_Path, entry + 7);
-            NuStrCat(FS_Path, "\\");
-        }
-        FS_RefreshDir = 1;
-        FS_LastFileName[0] = '\0';
-        return 0;
-    }
-
-    FS_Active = 0;
-    NuStrCpy(FS_LastFileName, entry + 7);
-    if (FS_Callback != NULL)
-        reinterpret_cast<void (*)(char *, char *)>(FS_Callback)(FS_Path, entry + 7);
-    return 1;
-}
-
 void MenuDrawDeleting(MENU_s *) {
     static i32 messageswitched;
     NuStrCpy(MenuHeader, apitxt_DELETEGAME);
@@ -996,31 +975,6 @@ void MenuEnterOptions(MENU_s *) {
     const i32 parent_menu = GetParentMenuID();
     if (parent_menu == 1 || parent_menu == 2) {
         TempOptions = Game.options_save;
-    }
-}
-
-i8 lastepisodesmode;
-i8 episodesmode;
-f32 episodestime;
-f32 episodesduration;
-i8 i_episodes;
-extern void *HubStartDoor;
-
-void MenuInitEpisodes(MENU_s *) {
-    lastepisodesmode = -1;
-    episodesmode = 0;
-    episodestime = 0;
-    episodesduration = 0.6f;
-    if (Game_AreaSave != NULL && Game_AreaSave[EDataList[i_episodes].area_ids[0]].complete == 0) {
-        i_episodes = 0;
-    }
-    if (hub_new_level != -1 && LDataList[hub_new_level].episode_index != -1) {
-        episodesmode = 2;
-        if (HubStartDoor == NULL) {
-            i_episodes = LDataList[hub_new_level].episode_index;
-        }
-    } else if (HubStartDoor != NULL) {
-        episodesmode = 2;
     }
 }
 
@@ -1136,59 +1090,75 @@ void MenuUpdateLoading(MENU_s *) {
     BackupMenu();
 }
 
+static f32 opts_sfx_wait = 1.5f;
+static i32 opts_sfx_i;
+
 void MenuUpdateOptions(MENU_s *menu) {
     GameSetSoundVolume(&TempOptions);
-    GameSetMusicVolume(&TempOptions);
+    if (WORLD->current_level != TITLES_LDATA)
+        GameSetMusicVolume(&TempOptions);
+    else
+        legoSetMusicVolume(SuperOptions.music_enabled != 0 ? GameGetMusicVolume(&TempOptions) : 0.0f);
+
+    i32 preview = 0;
+    opts_sfx_wait -= FRAMETIME;
+    if (opts_sfx_wait <= 0.0f) {
+        opts_sfx_wait += 1.5f;
+        opts_sfx_i = static_cast<i32>(static_cast<u32>(opts_sfx_i) + 1);
+        if (opts_sfx_i == 1)
+            opts_sfx_i = 0;
+        preview = 1;
+    }
 
     if (menu->cancel_pressed != 0) {
+        BackupMenu();
         MenuSFX = GameAudio_GetSfxId(0x31);
-        BackupMenu();
-        return;
-    }
-
-    if (menu->selected_item == 2) {
-        if (menu->left_pressed != 0 && TempOptions.field5_0x5 > 0) {
-            --TempOptions.field5_0x5;
-        } else if (menu->right_pressed != 0 && TempOptions.field5_0x5 < 10) {
-            ++TempOptions.field5_0x5;
-        }
-        menu->selected_item_column = TempOptions.field5_0x5;
-    }
-
-    if (menu->confirm_pressed == 0) {
-        return;
-    }
-
-    MenuSFX = GameAudio_GetSfxId(0x30);
-    const i32 accept_row = GAMEDEMO != 0 ? 4 : 5;
-    if (menu->selected_item == accept_row) {
-        MenuSFX = GameAudio_GetSfxId(memcmp(&TempOptions, &Game.options_save, sizeof(TempOptions)) == 0 ? 0x31 : 0x30);
-        Game.options_save = TempOptions;
-        BackupMenu();
-        SfxCheckMusicOnOff(&Game.options_save);
-        return;
-    }
-
-    switch (menu->selected_item) {
-        case 0:
-            if (TestForController() != 0) {
-                MenuSFX = GameAudio_GetSfxId(0x31);
-            } else {
+    } else {
+        i32 row = 0;
+        if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                MenuSFX = GameAudio_GetSfxId(0x30);
                 SuperOptions.touch_controls = SuperOptions.touch_controls == 0;
-                MechSystems::Get()->input_touch_system.control_mode = SuperOptions.touch_controls == 0 ? 1 : 2;
+                i32 control_mode = SuperOptions.touch_controls == 0 ? 1 : 2;
+                MechSystems::Get()->input_touch_system.control_mode = control_mode;
             }
-            break;
-        case 1:
-            TempOptions.field2_0x2 = TempOptions.field2_0x2 == 0;
-            break;
-        case 3:
-            TempOptions.field6_0x6 = TempOptions.field6_0x6 == 0;
-            break;
-        case 4:
-            TempOptions.field11_0xb = TempOptions.field11_0xb == 0;
-            break;
-        default:
-            break;
+        } else if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.surround_sound = TempOptions.surround_sound == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            } else if (preview != 0 && TempOptions.surround_sound != 0) {
+                i32 angle = static_cast<i32>(NuFmod(GlobalTimer.time_elapsed, 8.0f) * 0.125f * 65536.0f) & 0xffff;
+                NUVEC position;
+                position.x = GameCam->pos.x + NU_SIN_LUT(angle) * nusound_fade_start;
+                position.y = GameCam->pos.y;
+                position.z = GameCam->pos.z + NU_COS_LUT(angle) * nusound_fade_start;
+                PlaySfx("PickupCoinB", &position);
+            }
+        } else if (menu->selected_item == row++) {
+            menu->selected_item_column = TempOptions.master_volume;
+            if (menu->left_pressed != 0 && TempOptions.master_volume != 0)
+                --TempOptions.master_volume;
+            else if (menu->right_pressed != 0 && TempOptions.master_volume < 10)
+                ++TempOptions.master_volume;
+        } else if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.music_enabled = TempOptions.music_enabled == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            }
+        } else if (GAMEDEMO == 0 && menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.widescreen = TempOptions.widescreen == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            }
+        }
+        if (menu->selected_item == row && menu->confirm_pressed != 0) {
+            i32 sound =
+                GameAudio_GetSfxId(memcmp(&TempOptions, &Game.options_save, sizeof(TempOptions)) == 0 ? 0x31 : 0x30);
+            Game.options_save = TempOptions;
+            BackupMenu();
+            SfxCheckMusicOnOff(&Game.options_save);
+            MenuSFX = sound;
+        }
     }
 }
 
@@ -1289,6 +1259,8 @@ void MenuUpdateDeleting(MENU_s *) {
 }
 
 i8 i_clip[6];
+extern f32 episodestime, episodesduration;
+extern i8 episodesmode, lastepisodesmode, i_episodes;
 i32 hub_goto_clipsmenu_episode;
 extern f32 MainRenderTime;
 
@@ -1804,23 +1776,34 @@ void MenuEnterStartNewGame(MENU_s *) {
 }
 
 void MenuUpdateCardWarning(MENU_s *menu) {
-    const i32 state = MenuCardWarningState;
-    menu->previous_item = state;
-    if (state == 0) {
+    menu->previous_item = MenuCardWarningState;
+    if (MenuCardWarningState == 0) {
         if (saveload_status == 1) {
             MenuCardWarningState = 3;
             Menu_InWarningFlow = 1;
             Menu_LastFlow = 1;
             BackupMenu();
+            return;
         }
-    } else if (state == 7) {
+    } else if (MenuCardWarningState == 7) {
         if (menu->confirm_pressed != 0) {
             MenuCardWarningState = 3;
             MenuSFX = MENUSFX_MENUSELECT;
             BackupMenu();
+            return;
         }
-    } else if (state == 3) {
+    } else if (MenuCardWarningState == 3) {
         BackupMenu();
+        return;
+    } else {
+        return;
+    }
+    if (menu->previous_item != MenuCardWarningState) {
+        if (MenuCardWarningState != 0) {
+            MenuAlpha = 0.0f;
+            MenuA = 0;
+        }
+        menu->unk = 0.0f;
     }
 }
 
@@ -1885,8 +1868,6 @@ void MenuUpdateSaveConfirm(MENU_s *menu) {
         MenuSFX = MENUSFX_MENUSELECT;
     }
 }
-
-void Draw_AUTOSAVECANCEL();
 
 void MenuDrawAutoSaveCancel(MENU_s *menu) {
     if (MenuASCancelFinished == 0) {
@@ -1976,10 +1957,6 @@ void MenuDrawAutoSaveWarning(MENU_s *menu) {
 void MenuDrawDoNotRemoveCard(MENU_s *) {
     Draw_CHECKINGMEMORYCARD();
     Draw_DONOTREMOVEMEMORYCARD();
-}
-
-extern "C" {
-    i32 MenuASCancelFinished;
 }
 
 void MenuEnterAutoSaveCancel(MENU_s *menu) {
@@ -2441,15 +2418,10 @@ extern "C" {
     void Draw_SPACENEEDED(void) {
     }
 
-    void FileSelKill(void) {
-        NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
-        FS_Active = 0;
-    }
-
     void FlushMenuHighlights(eduimenu_s *menu) {
         for (eduiitem_s *item = menu->first; item != NULL; item = item->next) {
             if (item->type == 0) {
-                item->flags &= ~EDUI_ITEM_HIGHLIGHTED;
+                item->highlighted = 0;
             }
         }
     }
@@ -2632,47 +2604,12 @@ extern "C" {
         GameMenuLevel = 0;
     }
 
-    void ProcessFileSel2(f32 elapsed, nupad_s *pad) {
-        ProcessFileSel3(elapsed, pad);
-    }
-
     void RemapAddr(void *new_base, void *old_base, void **address) {
         *address = static_cast<u8 *>(new_base) + (static_cast<u8 *>(*address) - static_cast<u8 *>(old_base));
     }
 
-    void RenderFileSel2(i32 x, i32 y, i32 *width, i32 *height) {
-        extern f32 FS_X, FS_Y, FS_W, FS_H;
-        FS_X = static_cast<f32>(x);
-        FS_Y = static_cast<f32>(y) * 0.5f;
-        RenderFileSel3(0);
-        *height = static_cast<i32>(FS_H * 2.0f);
-        *width = static_cast<i32>(FS_W);
-    }
-
     void SetButtonScaleMode(i32 mode) {
         ButtonScaleMode = mode;
-    }
-
-    void StartFileSel(char *title, char *path, char *filter, char *filter_out, void *callback) {
-        if (title != NULL) {
-            NuStrCpy(FS_Title, title);
-        }
-        if (path != NULL) {
-            NuStrCpy(FS_Path, path);
-        }
-        if (filter != NULL) {
-            NuStrCpy(FS_Filter, filter);
-        } else {
-            FS_Filter[0] = 0;
-        }
-        if (filter_out != NULL) {
-            NuStrCpy(FS_FilterOut, filter_out);
-        } else {
-            FS_FilterOut[0] = 0;
-        }
-        FS_Active = 1;
-        FS_Callback = callback;
-        FS_RefreshDir = 2;
     }
 
     i32 UpdateMenu(u32 primary_held, u32 primary_pressed, u32 alternate_held, u32 alternate_pressed, f32 elapsed,
@@ -2908,32 +2845,44 @@ extern "C" {
         eduiMenuDetach(menu);
     }
 
-    i32 cbCompateDirentByDateAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return first->year - second->year;
+    i32 cbCompateDirentByDateAsc(const void *first, const void *second) {
+        return static_cast<const FilePickDirectoryEntry *>(first)->year -
+               static_cast<const FilePickDirectoryEntry *>(second)->year;
     }
 
-    i32 cbCompateDirentByDateDec(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return second->year - first->year;
+    i32 cbCompateDirentByDateDec(const void *first, const void *second) {
+        return static_cast<const FilePickDirectoryEntry *>(second)->year -
+               static_cast<const FilePickDirectoryEntry *>(first)->year;
     }
 
-    i32 cbCompateDirentByNameAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return NuStrCmp(reinterpret_cast<char *>(first) + 0x18, reinterpret_cast<char *>(second) + 0x18);
+    i32 cbCompateDirentByNameAsc(const void *first, const void *second) {
+        return NuStrCmp(static_cast<const FilePickDirectoryEntry *>(first)->name,
+                        static_cast<const FilePickDirectoryEntry *>(second)->name);
     }
 
-    i32 cbCompateDirentByNameDec(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return NuStrCmp(reinterpret_cast<char *>(second) + 0x18, reinterpret_cast<char *>(first) + 0x18);
+    i32 cbCompateDirentByNameDec(const void *first, const void *second) {
+        return NuStrCmp(static_cast<const FilePickDirectoryEntry *>(second)->name,
+                        static_cast<const FilePickDirectoryEntry *>(first)->name);
     }
 
-    i32 cbCompateDirentBySizeAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
-        const i32 first_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(first) + 4);
-        const i32 second_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(second) + 4);
-        return first_size < second_size ? -1 : (first_size > second_size);
+    i32 cbCompateDirentBySizeAsc(const void *first, const void *second) {
+        i32 first_size = static_cast<const FilePickDirectoryEntry *>(first)->size;
+        i32 second_size = static_cast<const FilePickDirectoryEntry *>(second)->size;
+        if (first_size < second_size)
+            return -1;
+        if (first_size > second_size)
+            return 1;
+        return 0;
     }
 
-    i32 cbCompateDirentBySizeDec(NUFILE_INFO *first, NUFILE_INFO *second) {
-        const i32 first_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(first) + 4);
-        const i32 second_size = *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(second) + 4);
-        return first_size < second_size ? 1 : (first_size <= second_size) - 1;
+    i32 cbCompateDirentBySizeDec(const void *first, const void *second) {
+        i32 first_size = static_cast<const FilePickDirectoryEntry *>(first)->size;
+        i32 second_size = static_cast<const FilePickDirectoryEntry *>(second)->size;
+        if (first_size < second_size)
+            return 1;
+        if (first_size > second_size)
+            return -1;
+        return 0;
     }
 
     void cbTriggerSubMenu(eduimenu_s *menu, eduiitem_s *item, u32) {

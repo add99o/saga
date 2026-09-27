@@ -23,6 +23,7 @@ void NuGCutSceneSysInitVfx(NUGCUTLOOKUPLOCATORVFXFN lookup, NUGCUTTRIGGERLOCATOR
                            NUGCUTRELEASELOCATORVFXFN release, NUGCUTUPDATELOCATORVFXFN update);
 
 void EvaluateJointOrientationMtx(nugscn_s *scene, i32 joint_index, numtx_s *matrix);
+i32 FindMtlInHGObj(nugscn_s *scene, i32 material_type);
 
 struct NUGCUTLOCATOR_s {
     NUMTX base_matrix;

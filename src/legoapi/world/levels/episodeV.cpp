@@ -4,20 +4,20 @@
 #include "gameapi/ai/aisys/aipath.h"
 #include "legoapi/ai/core/ai_sys_stubs.h"
 #include "legoapi/ai/core/legoai.h"
+#include "legoapi/ai/game/creature.h"
 #include "legoapi/audio/sfx.h"
 #include "legoapi/characters/core/players.h"
-#include "legoapi/characters/core/character.h"
 #include "legoapi/characters/motion.h"
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/gizmos/object/newblowup.h"
 #include "legoapi/gizmos/fx/gizmopickups.h"
-#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/gizmos/object/gizpanel.h"
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/gizmos/traps/gizbombgen.h"
 #include "legoapi/gizmos/traps/gizforce.h"
 #include "legoapi/gizmos/traps/gizturrets.h"
 #include "legoapi/gizmo/base/gizmo.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/gizmo/base/GizBlowupObjectInterface.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
@@ -64,13 +64,9 @@ void PartCollide_3D(PART_s *);
 void ResetTrooperCannons(WORLDINFO_s *, i32);
 void InitTrooperCannons(WORLDINFO_s *);
 void HothBattleE_UpdateWave();
-i32 HothBattle_StartNewWave();
-extern "C" void PlaySfxAndSetPitch(char *, NUVEC *, f32);
-extern "C" AIANTINODE_s *AIAntinodeCreateSingleFrame(NUVEC *, f32);
 void HothBattle_Melee_init(HOTHBATTLE_MELEE_s *);
+i32 HothBattle_StartNewWave();
 void HothBattle_ManageBackgroundCreatures();
-i32 SpawnMeleeCreatureType(i32);
-AILOCATOR *getSpawnLocator(f32, char *);
 void UpdateTrooperCannons(WORLDINFO_s *);
 EXPLOSION *Detonate(NUVEC *, u16);
 extern "C" void NewPartRotation(PART_s *);
@@ -81,30 +77,6 @@ extern i16 BoltType_FindIDByNameWide(char *, WORLDINFO_s *) asm("_Z21BoltType_Fi
 static GameObject_s *Vader_obj;
 static GIZAIMESSAGE_s *Vader_ai_message;
 static u8 turretAliveCount;
-static i32 lastPlaying;
-static u8 melee_wavePhase = 0xff;
-static f32 melee_waveDelay;
-u8 drawLights;
-static GIZMOBLOWUP_s *classicBlowups[8];
-nuhspecial_s escape[8];
-GIZTURRET_s *StarDestroyerTurrets[16];
-
-struct FinalAsteroidState {
-    nuhspecial_s special;
-    GIZMOBLOWUP_s *targets[8];
-    i16 target_count;
-    i16 rotation_x;
-    i16 rotation_y;
-    i16 rotation_z;
-    i16 current_x;
-    i16 current_y;
-    i16 current_z;
-    u8 reserved[2];
-};
-DECOMP_ASSERT(sizeof(FinalAsteroidState) == 60, "FinalAsteroidState ABI");
-FinalAsteroidState finalAsteroid;
-void *asteroidc_netpacket;
-NUMTX *mtxOrig;
 nuhspecial_s specialIcon;
 
 struct AIROW_s;
@@ -117,7 +89,16 @@ extern "C" {
     HOTHBATTLE_MELEE_s melee;
     u8 dagobahA_nodesNeedUpdating = 1;
 }
-void *hothbattlee_netpacket;
+struct HOTHBATTLEE_NETPACKET_s {
+    i16 targets[12];
+    char defeated[12];
+    f32 alpha[12];
+    i32 count;
+};
+DECOMP_ASSERT(sizeof(HOTHBATTLEE_NETPACKET_s) == 0x58, "Hoth panel packet size");
+DECOMP_ASSERT(offsetof(HOTHBATTLEE_NETPACKET_s, alpha) == 0x24, "Hoth panel packet alpha offset");
+DECOMP_ASSERT(offsetof(HOTHBATTLEE_NETPACKET_s, count) == 0x54, "Hoth panel packet count offset");
+HOTHBATTLEE_NETPACKET_s *hothbattlee_netpacket;
 
 void DagobahA_Init(WORLDINFO_s *world) {
     LevGizForce[0] = GizForce_FindByName(world->giz_force_sys, "force3");
@@ -539,7 +520,7 @@ void HothBattleE_Init(WORLDINFO_s *world) {
     trooper_side[9] = 1;
     if (NuIOS_IsLowEndDevice() == 0)
         InitMiniSnowTroopers(world, 10, 32, 0);
-    memset(reinterpret_cast<u8 *>(&melee) + 0xc, 0, sizeof(melee) - 0xc);
+    memset(melee.waves, 0, sizeof(melee) - offsetof(HOTHBATTLE_MELEE_s, waves));
     HothBattle_Melee_init(&melee);
     i32 count = NuSpecialFind(world->current_gscn, &LevHSpecial[0], "minifig_1_1", 1);
     count += NuSpecialFind(world->current_gscn, &LevHSpecial[1], "minifig_1_2", 1);
@@ -551,7 +532,7 @@ void HothBattleE_Init(WORLDINFO_s *world) {
         hothtroopers = LevHSpecial;
     if (netclient == 0)
         HothBattle_ManageBackgroundCreatures();
-    hothbattlee_netpacket = SetLevelHack(0x58);
+    hothbattlee_netpacket = static_cast<HOTHBATTLEE_NETPACKET_s *>(SetLevelHack(sizeof(HOTHBATTLEE_NETPACKET_s)));
 }
 
 void HothEscapeA_Init(WORLDINFO_s *world) {
@@ -659,55 +640,64 @@ void HothBattleC_Reset(WORLDINFO_s *world) {
 static f32 alpha[16];
 
 void HothBattleE_Panel(WORLDINFO_s *) {
-    if (MiniCutCam != 0)
+    if (MiniCutCam != 0) {
         return;
-
+    }
     if (netclient != 0) {
-        u8 *packet = static_cast<u8 *>(hothbattlee_netpacket);
-        DrawMeleeTargetsRows(reinterpret_cast<i16 *>(packet), reinterpret_cast<char *>(packet + 0x18),
-                             reinterpret_cast<f32 *>(packet + 0x24), *reinterpret_cast<i32 *>(packet + 0x54));
+        DrawMeleeTargetsRows(hothbattlee_netpacket->targets, hothbattlee_netpacket->defeated,
+                             hothbattlee_netpacket->alpha, hothbattlee_netpacket->count);
         return;
     }
 
     i16 targets[16];
-    char icons[16];
+    char defeated[16];
     i32 count = 0;
-    const u8 state = melee.field_0x0;
-    if (state == 1 || state == 2) {
-        const HOTHBATTLE_MELEE_WAVE_s &wave = melee.waves[0];
-        const i32 midpoint = static_cast<i32>(wave.field_0x19 / 2) + 1;
-        for (i32 index = 0; index < wave.field_0x19 && count < 16; ++index) {
-            if (index == midpoint && count < 16) {
-                targets[count] = -1;
-                icons[count++] = 0;
+    switch (melee.current_wave) {
+        case 1:
+        case 2:
+            for (i32 index = 0; index < melee.waves[0].initial_count; ++index) {
+                if (index == (melee.waves[0].initial_count >> 1) + 1) {
+                    targets[count] = -1;
+                    defeated[count] = 0;
+                    ++count;
+                }
+                targets[count] = melee.waves[0].character_id;
+                defeated[count] = index >= melee.waves[0].remaining_count;
+                ++count;
             }
-            if (count == 16)
-                break;
-            targets[count] = wave.character_id;
-            icons[count++] = index >= wave.field_0x18;
-        }
-    } else if (state == 3 || state == 4) {
-        const i32 wave_count = state == 4 ? 3 : 1;
-        for (i32 wave_index = 0; wave_index < wave_count; ++wave_index) {
-            if (wave_index != 0 && count < 16) {
-                targets[count] = -1;
-                icons[count++] = 0;
+            break;
+        case 3:
+            for (i32 index = 0; index < melee.waves[0].initial_count; ++index) {
+                targets[count] = melee.waves[0].character_id;
+                defeated[count] = index >= melee.waves[0].remaining_count;
+                ++count;
             }
-            const HOTHBATTLE_MELEE_WAVE_s &wave = melee.waves[wave_index];
-            for (i32 index = 0; index < wave.field_0x19 && count < 16; ++index) {
-                targets[count] = wave.character_id;
-                icons[count++] = index >= wave.field_0x18;
+            break;
+        case 4:
+            targets[count] = melee.waves[2].character_id;
+            defeated[count] = melee.waves[2].remaining_count == 0;
+            ++count;
+            for (i32 index = 0; index < melee.waves[0].initial_count; ++index) {
+                targets[count] = melee.waves[0].character_id;
+                defeated[count] = index >= melee.waves[0].remaining_count;
+                ++count;
             }
-        }
+            targets[count++] = -1;
+            for (i32 index = 0; index < melee.waves[1].initial_count; ++index) {
+                targets[count] = melee.waves[1].character_id;
+                defeated[count] = index >= melee.waves[1].remaining_count;
+                ++count;
+            }
+            break;
     }
-
     for (i32 index = 0; index < count; ++index) {
-        if (targets[index] == -1 || icons[index] == 0)
-            alpha[index] = 1.0f;
-        else
+        if (targets[index] != -1 && defeated[index] != 0) {
             alpha[index] = SeekLinearF(alpha[index], 0.4f, 0.1f);
+        } else {
+            alpha[index] = 1.0f;
+        }
     }
-    DrawMeleeTargetsRows(targets, icons, alpha, count);
+    DrawMeleeTargetsRows(targets, defeated, alpha, count);
 }
 
 void HothEscapeA_Reset(WORLDINFO_s *) {
@@ -930,7 +920,7 @@ void CloudCityTrapC_Update(WORLDINFO_s *) {
 
 void HothBattle_Melee_init(HOTHBATTLE_MELEE_s *melee) {
     if (melee != NULL) {
-        melee->waves[0].field_0x0 = 0;
+        melee->wave_delay = 0.0f;
         melee->field_0x0 = 0;
         melee->field_0x1 = 0;
         melee->field_0x2 = 1;
@@ -955,93 +945,105 @@ void CloudCityEscapeA_Reset(WORLDINFO_s *world) {
     LevGizmo[0] = GizmoFindByName(world->gizmo_sys, gizbuildit_gizmotype_id, "buildit2");
 }
 
+static inline void HothBattle_ClearBackgroundObjects() {
+    GameObject_s *object = Obj;
+    for (i32 index = 0; index < HIGHGAMEOBJECT; ++index, ++object) {
+        if ((object->apiobj.field_0x1f8 & 0x1001) == 0x1001 && object->id != id_ATAT &&
+            object->apiobj.field_0x27c == -1 && (object->apiobj.character_data->model_flags & 4) != 0) {
+            KillGameObject(object, 4, 0);
+        }
+    }
+    memset(melee.background_creatures, 0, sizeof(melee.background_creatures));
+}
+
 void HothBattleE_UpdateWave() {
-    if (melee.field_0x0 != melee.field_0x1) {
-        if (melee.field_0x4 == -1) {
-            f32 &delay = *reinterpret_cast<f32 *>(&melee.waves[0].field_0x0);
-            if (delay < 5.0f) {
-                if (melee.field_0x4 != 1)
-                    delay += FRAMETIME;
+    i32 pending = 0;
+    if (melee.current_wave != melee.next_wave) {
+        if (melee.transition_phase == -1) {
+            if (melee.wave_delay < 5.0f && melee.next_wave != 1) {
+                melee.wave_delay += FRAMETIME;
                 return;
             }
-            if (melee.field_0x1 == 5) {
-                memset(reinterpret_cast<u8 *>(&melee) + 0xc, 0, sizeof(melee) - 0xc);
-                if (FreePlay != 0)
+            if (melee.next_wave == 5) {
+                memset(melee.waves, 0, sizeof(melee) - offsetof(HOTHBATTLE_MELEE_s, waves));
+                if (FreePlay != 0) {
                     CompleteLevel(WORLD);
-                else
+                } else {
                     GoToNewLevel(HOTHBATTLEOUTRO_LDATA->idx);
-                return;
-            }
-            delay = 0.0f;
-            for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
-                GameObject_s *object = &Obj[index];
-                if ((object->apiobj.field_0x1f8 & 0x1001) == 0x1001 && object->apiobj.field_0x27c == -1 &&
-                    (object->apiobj.character_data->model_flags & 4) != 0 && object->id != id_ATAT)
-                    KillGameObject(object, 4, 0);
-            }
-            memset(melee.background_creatures, 0, sizeof(melee.background_creatures));
-            char state_name[32];
-            sprintf(state_name, g_lowEndLevelBehaviour != 0 ? "CamCutLow_%d" : "CamCut_%d", melee.field_0x1);
-            if (AIScriptSetBaseScriptStateByName(&WORLD->processors[0].processor, state_name) != 0)
-                AIScriptProcess(WORLD->ai_sys, NULL, NULL, &WORLD->processors[0].processor, FRAMETIME);
-            melee.field_0x4 = 0;
-            melee.field_0x2 = 1;
-        } else if (melee.field_0x4 == 0 && MiniCutCam != 0) {
-            melee.field_0x4 = 1;
-        } else if (melee.field_0x4 > 0 && MiniCutCam == 0) {
-            if (melee.field_0x4 == 1) {
-                for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
-                    GameObject_s *object = &Obj[index];
-                    if ((object->apiobj.field_0x1f8 & 0x1001) == 0x1001 && object->apiobj.field_0x27c == -1 &&
-                        (object->apiobj.character_data->model_flags & 4) != 0 && object->id != id_ATAT)
-                        KillGameObject(object, 4, 0);
                 }
-                memset(melee.background_creatures, 0, sizeof(melee.background_creatures));
-                melee.field_0x4 = 2;
             }
-            if (HothBattle_StartNewWave() != 0) {
-                melee.field_0x4 = -1;
-                melee.field_0x0 = melee.field_0x1;
-            }
-        }
-    }
-
-    for (i32 type = 0; type < melee.creature_count; ++type)
-        SpawnMeleeCreatureType(type);
-    HothBattle_ManageBackgroundCreatures();
-
-    if (melee.field_0x0 == 3 && melee.waves[0].creatures[0] != NULL && melee.waves[0].creatures[1] != NULL) {
-        GameObject_s *first = melee.waves[0].creatures[0];
-        GameObject_s *second = melee.waves[0].creatures[1];
-        AIANTINODE_s *node = AIAntinodeCreateSingleFrame(&first->apiobj.position, 3.0f * second->apiobj.field_0x1dc);
-        node->excluded_character_types = ~((u64)1 << second->apiobj.field_0x289);
-        node = AIAntinodeCreateSingleFrame(&second->apiobj.position, 3.0f * first->apiobj.field_0x1dc);
-        node->excluded_character_types = ~((u64)1 << first->apiobj.field_0x289);
-    }
-
-    i32 any_alive = 0;
-    for (i32 type = 0; type < 4; ++type) {
-        HOTHBATTLE_MELEE_WAVE_s &wave = melee.waves[type];
-        i32 alive = 0;
-        for (i32 index = 0; index < 4; ++index) {
-            GameObject_s *creature = wave.creatures[index];
-            if (creature == NULL)
-                continue;
-            if ((creature->apiobj.flags_high & 0x10) == 0 || creature->apiobj.field_0x287 != 0) {
-                wave.creatures[index] = NULL;
-                --wave.field_0x18;
-                --wave.reserved_1a;
-                PlaySfxAndSetPitch("TrueJedi_100pc", NULL, 1.5f);
+            melee.wave_delay = 0.0f;
+            HothBattle_ClearBackgroundObjects();
+            char state[16];
+            if (g_lowEndLevelBehaviour != 0) {
+                sprintf(state, "CamCutLow_%d", melee.next_wave);
             } else {
-                ++alive;
+                sprintf(state, "CamCut_%d", melee.next_wave);
+            }
+            if (AIScriptSetBaseScriptStateByName(&WORLD->processors[0].processor, state) != 0) {
+                AIScriptProcess(WORLD->ai_sys, NULL, NULL, &WORLD->processors[0].processor, FRAMETIME);
+            }
+            melee.transition_phase = 0;
+            melee.wave_delay = 0.0f;
+            melee.initialize_wave = 1;
+            pending = 1;
+        } else if (melee.transition_phase > 0) {
+            if (MiniCutCam == 0) {
+                if (melee.transition_phase == 1) {
+                    HothBattle_ClearBackgroundObjects();
+                    melee.transition_phase = 2;
+                }
+                if (HothBattle_StartNewWave() == 0) {
+                    return;
+                }
+                melee.transition_phase = -1;
+                melee.current_wave = melee.next_wave;
+                pending = 1;
+            }
+        } else if (melee.transition_phase == 0 && MiniCutCam != 0) {
+            melee.transition_phase = 1;
+        }
+    }
+
+    i32 type;
+    for (type = 0; type < melee.creature_count; ++type) {
+        SpawnMeleeCreatureType(type);
+    }
+    HothBattle_ManageBackgroundCreatures();
+    if (melee.current_wave == 3 && melee.waves[0].creatures[0] != NULL && melee.waves[0].creatures[1] != NULL) {
+        AIANTINODE_s *node = AIAntinodeCreateSingleFrame(&melee.waves[0].creatures[0]->apiobj.collision_position,
+                                                         melee.waves[0].creatures[type]->apiobj.field_0x1dc * 3.0f);
+        node->excluded_character_types = ~(1 << melee.waves[0].creatures[1]->apiobj.field_0x289);
+        node = AIAntinodeCreateSingleFrame(&melee.waves[0].creatures[1]->apiobj.collision_position,
+                                           melee.waves[0].creatures[type]->apiobj.field_0x1dc * 3.0f);
+        node->excluded_character_types = ~(1 << melee.waves[0].creatures[0]->apiobj.field_0x289);
+    }
+    for (i32 wave_index = 0; wave_index < 4; ++wave_index) {
+        HOTHBATTLE_MELEE_WAVE_s *wave = &melee.waves[wave_index];
+        i32 count = 0;
+        for (i32 index = 0; index < 4; ++index) {
+            GameObject_s *object = wave->creatures[index];
+            if (object != NULL) {
+                if ((object->apiobj.field_0x1f8 & 0x1000) == 0 || object->apiobj.field_0x287 != 0) {
+                    --wave->active_count;
+                    --wave->remaining_count;
+                    wave->creatures[index] = NULL;
+                    PlaySfxAndSetPitch("TrueJedi_100pc", NULL, 1.5f);
+                } else {
+                    ++count;
+                }
             }
         }
-        wave.reserved_1a = static_cast<u8>(alive);
-        if (wave.field_0x18 != 0)
-            any_alive = 1;
+        if (wave->active_count != count) {
+            wave->active_count = static_cast<u8>(count);
+        }
+        if (wave->remaining_count != 0) {
+            pending = 1;
+        }
     }
-    if (any_alive == 0 && MiniCutCam == 0 && melee.field_0x0 == melee.field_0x1)
-        ++melee.field_0x1;
+    if ((pending | MiniCutCam) == 0 && NOAICREATURES == 0 && melee.current_wave == melee.next_wave) {
+        ++melee.next_wave;
+    }
 }
 
 void CloudCityEscapeA_Update(WORLDINFO_s *) {
@@ -1157,88 +1159,86 @@ i32 isHothBattleWaveCreature(GameObject_s *object) {
     return 0;
 }
 
-void HothBattle_ManageBackgroundCreatures() {
-    AILOCATORSET *spawn_set = AIPathFindLocatorSet(WORLD->ai_sys, "spawn");
-    if (NOAICREATURES != 0 || melee.field_0x4 != -1)
-        return;
-
-    u8 wave_types = 0;
-    for (i32 wave = 0; wave < melee.creature_count; ++wave) {
-        const i16 type = melee.waves[wave].character_id;
-        if (type == id_PROBEDROID)
-            wave_types |= 1;
-        else if (type == id_SPEEDERBIKESNOW)
-            wave_types |= 2;
-        else if (type == id_ATST_LOWRES)
-            wave_types |= 4;
-        else if (type == id_ATAT)
-            wave_types |= 8;
-    }
-
-    const i32 atst_limit = g_lowEndLevelBehaviour < 1 ? 6 : 2;
-    const i32 probe_limit = g_lowEndLevelBehaviour < 1 ? 5 : 2;
-    const f32 probe_radius = apicharsys->char_data[id_PROBEDROID].collision_radius;
-
-    while (aicreature_sets_alive[0] < probe_limit && (wave_types & 1) == 0) {
-        AILOCATOR *spawn = getSpawnLocator(probe_radius, "spawn");
-        if (spawn == NULL)
-            return;
-        GameObject_s *probe = AddDynamicCreature(id_PROBEDROID, &spawn->position, spawn->direction, "Probe",
-                                                 &spawn->path_info, NULL, 1, NULL, NULL, 0, 1);
-        if (probe == NULL)
+static inline void HothBattle_AssignSpawnLocator(GameObject_s *object, AILOCATOR_s *locator, AILOCATORSET_s *set) {
+    for (i32 index = 0; index < set->locator_count; ++index) {
+        AILOCATOR_s *entry = &WORLD->ai_sys->locators[set->locator_entries[index]];
+        if (entry == locator) {
+            object->ai.locator = entry;
+            set->assigned[index] = object->apiobj.field_0x289;
             break;
-        probe->field_0xefb |= 0x10;
-        if (spawn_set != NULL && spawn_set->locator_count > 0) {
-            for (i32 index = 0; index < spawn_set->locator_count; ++index) {
-                AILOCATOR *candidate = &WORLD->ai_sys->locators[spawn_set->locator_entries[index]];
-                if (candidate == spawn) {
-                    probe->ai.locator = candidate;
-                    spawn_set->assigned[index] = probe->apiobj.field_0x289;
-                    break;
-                }
-            }
         }
     }
+}
 
-    i32 slot = -1;
+void HothBattle_ManageBackgroundCreatures() {
+    AILOCATORSET_s *set = AIPathFindLocatorSet(WORLD->ai_sys, "spawn");
+    if (NOAICREATURES != 0 || melee.transition_phase != -1) {
+        return;
+    }
+    u8 wave_types = 0;
+    for (i32 type = 0; type < melee.creature_count; ++type) {
+        i16 id = melee.waves[type].character_id;
+        if (id == id_PROBEDROID) {
+            wave_types |= 1;
+        } else if (id == id_SPEEDERBIKESNOW) {
+            wave_types |= 2;
+        } else if (id == id_ATST_LOWRES) {
+            wave_types |= 4;
+        } else if (id == id_ATAT) {
+            wave_types |= 8;
+        }
+    }
+    i32 atst_count = g_lowEndLevelBehaviour != 0 ? 2 : 6;
+    i32 probe_count = g_lowEndLevelBehaviour != 0 ? 2 : 5;
+    f32 radius = apicharsys->char_data[id_PROBEDROID].collision_radius;
+    while (probe_count > aicreature_sets_alive[0] && (wave_types & 1) == 0) {
+        AILOCATOR_s *spawn = getSpawnLocator(radius, "spawn");
+        if (spawn == NULL) {
+            return;
+        }
+        GameObject_s *object = AddDynamicCreature(id_PROBEDROID, &spawn->position, spawn->direction, "Probe",
+                                                  &spawn->path_info, NULL, 1, NULL, NULL, 0, 1);
+        if (object == NULL) {
+            break;
+        }
+        object->field_0xefb |= 0x10;
+        HothBattle_AssignSpawnLocator(object, spawn, set);
+    }
+
+    i32 last = -1;
     for (i32 index = 5; index >= 0; --index) {
-        GameObject_s *creature = melee.background_creatures[index];
-        if (creature != NULL && (creature->apiobj.flags_high & 0x10) != 0 && creature->apiobj.field_0x287 == 0 &&
-            creature->ai.creature_set == 3) {
-            if (slot == -1)
-                slot = index;
-        } else {
-            if (slot != -1) {
-                melee.background_creatures[index] = melee.background_creatures[slot];
-                melee.background_creatures[slot] = NULL;
-                --slot;
-            } else {
-                melee.background_creatures[index] = NULL;
+        GameObject_s *object = melee.background_creatures[index];
+        if (object == NULL) {
+            continue;
+        }
+        if ((object->apiobj.field_0x1f8 & 0x1000) != 0 && object->apiobj.field_0x287 == 0 &&
+            object->ai.creature_set == 3) {
+            if (last == -1) {
+                last = index;
             }
+        } else if (last == -1) {
+            melee.background_creatures[index] = NULL;
+        } else {
+            melee.background_creatures[index] = melee.background_creatures[last];
+            melee.background_creatures[last] = NULL;
+            --last;
         }
     }
 
-    const f32 atst_radius = apicharsys->char_data[id_ATST_LOWRES].collision_radius * 2.0f;
-    while (aicreature_sets_alive[2] < atst_limit && (wave_types & 4) == 0) {
-        AILOCATOR *spawn = getSpawnLocator(atst_radius, "spawn");
-        if (spawn == NULL)
+    radius = apicharsys->char_data[id_ATST_LOWRES].collision_radius * 2.0f;
+    while (atst_count > aicreature_sets_alive[2] && (wave_types & 4) == 0) {
+        AILOCATOR_s *spawn = getSpawnLocator(radius, "spawn");
+        if (spawn == NULL) {
             return;
-        GameObject_s *atst = AddDynamicCreature(id_ATST_LOWRES, &spawn->position, spawn->direction, "rider",
-                                                &spawn->path_info, NULL, 1, NULL, NULL, 0, 3);
-        melee.background_creatures[++slot] = atst;
-        if (atst == NULL)
-            return;
-        atst->field_0xefb |= 0x10;
-        if (spawn_set != NULL && spawn_set->locator_count > 0) {
-            for (i32 index = 0; index < spawn_set->locator_count; ++index) {
-                AILOCATOR *candidate = &WORLD->ai_sys->locators[spawn_set->locator_entries[index]];
-                if (candidate == spawn) {
-                    atst->ai.locator = candidate;
-                    spawn_set->assigned[index] = atst->apiobj.field_0x289;
-                    break;
-                }
-            }
         }
+        GameObject_s *object = AddDynamicCreature(id_ATST_LOWRES, &spawn->position, spawn->direction, "rider",
+                                                  &spawn->path_info, NULL, 1, NULL, NULL, 0, 3);
+        melee.background_creatures[++last] = object;
+        if (object == NULL) {
+            return;
+        }
+        object->field_0xefb |= 0x10;
+        HothBattle_AssignSpawnLocator(object, spawn, set);
     }
 }
 
@@ -1257,8 +1257,72 @@ struct ASTEROID_s {
 };
 DECOMP_ASSERT(sizeof(ASTEROID_s) == 0x18, "ASTEROID_s size");
 
+struct FINALASTEROID_s {
+    nuhspecial_s special;
+    GIZMOBLOWUP_s *blowups[8];
+    i16 blowup_count;
+    i16 rotation_speed_x;
+    i16 rotation_speed_y;
+    i16 rotation_speed_z;
+    i16 rotation_x;
+    i16 rotation_y;
+    i16 rotation_z;
+};
+DECOMP_ASSERT(sizeof(FINALASTEROID_s) == 0x3c, "final asteroid size");
+DECOMP_ASSERT(offsetof(FINALASTEROID_s, blowup_count) == 0x2c, "final asteroid blowup count offset");
+DECOMP_ASSERT(offsetof(FINALASTEROID_s, rotation_x) == 0x34, "final asteroid rotation offset");
+
+struct ASTEROIDCNETPACKET_s {
+    u16 rotation_x;
+    u16 rotation_y;
+    u16 rotation_z;
+    u16 reserved;
+};
+DECOMP_ASSERT(sizeof(ASTEROIDCNETPACKET_s) == 8, "asteroid C network packet size");
+
 i32 nasteroids;
 ASTEROID_s asteroids[128];
+FINALASTEROID_s finalAsteroid;
+ASTEROIDCNETPACKET_s *asteroidc_netpacket;
+static NUMTX *mtxOrig;
+GIZMOBLOWUP_s *classicBlowups[8];
+nuhspecial_s escape[8];
+GIZTURRET_s *StarDestroyerTurrets[16];
+static i32 lastPlaying;
+static i8 melee_wavePhase = -1;
+static f32 melee_waveDelay;
+static u8 drawLights;
+static f32 spotLightA_yrot[2];
+static f32 spotLightA_zrot[2];
+static f32 spotLightB_yrot[2] = {0.5f, 0.5f};
+static f32 spotLightB_zrot[2] = {0.5f, 0.5f};
+
+static void DrawFalconSpotLights(GameObject_s *object) {
+    if (static_cast<u8>(object->apiobj.field_0x27c) > 1 || object->id != id_MILLENNIUMFALCON ||
+        WORLD->lev_objs[0x127].active == 0)
+        return;
+    NUMTX matrix __attribute__((aligned(16)));
+    if (object->apiobj.character_model->points_of_interest[4] != NULL) {
+        matrix = object->joint_matrices[4];
+        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
+    }
+    spotLightA_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightA_yrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightA_yrot[object->apiobj.field_0x27c] -= 1.0f;
+    spotLightA_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightA_zrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightA_zrot[object->apiobj.field_0x27c] -= 1.0f;
+    if (object->apiobj.character_model->points_of_interest[5] != NULL) {
+        matrix = object->joint_matrices[5];
+        NuSpecialDrawAt(&WORLD->lev_objs[0x127].special, &matrix);
+    }
+    spotLightB_yrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightB_yrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightB_yrot[object->apiobj.field_0x27c] -= 1.0f;
+    spotLightB_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
+    if (spotLightB_zrot[object->apiobj.field_0x27c] > 1.0f)
+        spotLightB_zrot[object->apiobj.field_0x27c] -= 1.0f;
+}
 
 static void Asteroid_AddParts(GIZMOBLOWUP_s *blowup) {
     i32 special_indices[4] = {0, -1, -1, -1};
@@ -1413,34 +1477,39 @@ void AsteroidChaseB_Init(WORLDINFO_s *world) {
     NuSpecialFind(world->current_gscn, &LevHSpecial[1], "small_pop_bit2", 1);
     NuSpecialFind(world->current_gscn, &LevHSpecial[2], "small_pop_bit3", 1);
     NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
-
     memset(classicBlowups, 0, sizeof(classicBlowups));
-    i32 found = 0;
-    for (i32 index = 0; index < world->gizmo_blowup_count && found < 8; ++index) {
+    i32 count = 0;
+    for (i32 index = 0; index < world->gizmo_blowup_count && count < 8; ++index) {
         GIZMOBLOWUP_s *blowup = &world->gizmo_blowups[index];
-        if (NuStrIStr(blowup->name, const_cast<char *>("classic")) != NULL)
-            classicBlowups[found++] = blowup;
+        if (NuStrIStr(blowup->name, "classic") != NULL) {
+            classicBlowups[count++] = blowup;
+        }
     }
-
     LevFlag[0] = 0;
-    LevArea[0] = AISysFindArea(WORLD->ai_sys, const_cast<char *>("In_Cave"));
+    LevArea[0] = AISysFindArea(WORLD->ai_sys, "In_Cave");
     drawLights = 0;
     LevTime[0] = 0.0f;
     LevTime[1] = 0.0f;
-    ResetFalconSpotLightsForChase();
+    spotLightA_yrot[1] = 0.0f;
+    spotLightA_yrot[0] = 0.0f;
+    spotLightA_zrot[1] = 0.0f;
+    spotLightA_zrot[0] = 0.0f;
+    spotLightB_yrot[1] = 0.5f;
+    spotLightB_yrot[0] = 0.5f;
+    spotLightB_zrot[1] = 0.5f;
+    spotLightB_zrot[0] = 0.5f;
 }
 
 void AsteroidChaseB_Draw(WORLDINFO_s *) {
-    if (drawLights == 0)
-        return;
-    if (Player[0] != NULL)
-        DrawFalconSpotLightsForChase(Player[0]);
-    if (drawLights != 0 && Player[1] != NULL)
-        DrawFalconSpotLightsForChase(Player[1]);
+    for (i32 index = 0; index < 2; ++index) {
+        if (drawLights != 0 && Player[index] != NULL) {
+            DrawFalconSpotLights(Player[index]);
+        }
+    }
 }
 
 void AsteroidChaseC_Init(WORLDINFO_s *world) {
-    asteroidc_netpacket = SetLevelHack(8);
+    asteroidc_netpacket = static_cast<ASTEROIDCNETPACKET_s *>(SetLevelHack(8));
     memset(&finalAsteroid, 0, sizeof(finalAsteroid));
     NuSpecialFind(world->current_gscn, &LevHSpecial[0], "small_pop_bit1", 1);
     NuSpecialFind(world->current_gscn, &LevHSpecial[1], "small_pop_bit2", 1);
@@ -1448,20 +1517,24 @@ void AsteroidChaseC_Init(WORLDINFO_s *world) {
     NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
     NuSpecialFind(world->current_gscn, &finalAsteroid.special, "blockrock", 1);
 
-    finalAsteroid.rotation_x = static_cast<i16>(4551.0f - static_cast<f32>(qrand()) / 8.2000656f);
-    finalAsteroid.rotation_y = static_cast<i16>(4551.0f - static_cast<f32>(qrand()) / 8.2000656f);
-    finalAsteroid.rotation_z = static_cast<i16>(4551.0f - static_cast<f32>(qrand()) / 8.2000656f);
-    if (static_cast<u16>(finalAsteroid.rotation_x + 0x38d) <= 0x71a)
-        finalAsteroid.rotation_x = 0x555;
-    if (static_cast<u16>(finalAsteroid.rotation_y + 0x38d) <= 0x71a)
-        finalAsteroid.rotation_y = 0x555;
-    if (static_cast<u16>(finalAsteroid.rotation_z + 0x38d) <= 0x71a)
-        finalAsteroid.rotation_z = 0x555;
+    finalAsteroid.rotation_speed_x = static_cast<i16>(4551.0f - qrand() / (65535.0f / (4551.0f * 2.0f) + 1.0f));
+    finalAsteroid.rotation_speed_y = static_cast<i16>(4551.0f - qrand() / (65535.0f / (4551.0f * 2.0f) + 1.0f));
+    finalAsteroid.rotation_speed_z = static_cast<i16>(4551.0f - qrand() / (65535.0f / (4551.0f * 2.0f) + 1.0f));
+    if (finalAsteroid.rotation_speed_x > -910 && finalAsteroid.rotation_speed_x < 910) {
+        finalAsteroid.rotation_speed_x = 0x555;
+    }
+    if (finalAsteroid.rotation_speed_y > -910 && finalAsteroid.rotation_speed_y < 910) {
+        finalAsteroid.rotation_speed_y = 0x555;
+    }
+    if (finalAsteroid.rotation_speed_z > -910 && finalAsteroid.rotation_speed_z < 910) {
+        finalAsteroid.rotation_speed_z = 0x555;
+    }
 
-    for (i32 index = 0; index < world->gizmo_blowup_count && finalAsteroid.target_count < 8; ++index) {
+    for (i32 index = 0; index < world->gizmo_blowup_count && finalAsteroid.blowup_count < 8; ++index) {
         GIZMOBLOWUP_s *blowup = &world->gizmo_blowups[index];
-        if (NuStrIStr(blowup->name, const_cast<char *>("targ")) != NULL)
-            finalAsteroid.targets[finalAsteroid.target_count++] = blowup;
+        if (NuStrIStr(blowup->name, "targ") != NULL) {
+            finalAsteroid.blowups[finalAsteroid.blowup_count++] = blowup;
+        }
     }
 }
 
@@ -1477,19 +1550,18 @@ void AsteroidChaseD_Init(WORLDINFO_s *world) {
     NuSpecialFind(WORLD->current_gscn, &escape[4], "transport1", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[5], "rebelcruiser1", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[6], "transport4", 0);
-
     char name[16];
     for (i32 index = 0; index < 16; ++index) {
         sprintf(name, "turret%d", index + 1);
-        GIZMO *gizmo = GizmoFindByName(world->gizmo_sys, turret_gizmotype_id, name);
-        if (gizmo != NULL)
+        GIZMO_s *gizmo = GizmoFindByName(world->gizmo_sys, turret_gizmotype_id, name);
+        if (gizmo != NULL) {
             StarDestroyerTurrets[index] = static_cast<GIZTURRET_s *>(gizmo->object);
+        }
         if (StarDestroyerTurrets[index] != NULL) {
             StarDestroyerTurrets[index]->fire_interval = 0.5f;
             ++turretAliveCount;
         }
     }
-
     DrawMeleeTargetsNumber(&targets, &turretAliveCount, 1, 1, NULL);
     melee_wavePhase = 0;
 }
@@ -1517,180 +1589,151 @@ void AsteroidChaseA_Update(WORLDINFO_s *) {
 
 void AsteroidChaseB_Update(WORLDINFO_s *world) {
     Asteroids_Update();
-
     for (i32 index = 0; index < 4; ++index) {
         GIZMOBLOWUP_s *blowup = classicBlowups[index];
-        if (blowup == NULL)
-            continue;
-        const u8 bit = static_cast<u8>(1u << index);
-        if ((blowup->status_flags & 1) != 0) {
-            if ((LevFlag[0] & bit) == 0) {
-                LevFlag[0] |= bit;
-                AddMiscPickups(&blowup->position, -1, -1, 1);
+        if (blowup != NULL) {
+            const i32 mask = 1 << index;
+            if ((blowup->output_flags & 1) != 0) {
+                if ((LevFlag[0] & mask) == 0) {
+                    LevFlag[0] |= mask;
+                    AddMiscPickups(&blowup->position, -1, -1, 1);
+                }
+            } else if ((LevFlag[0] & mask) != 0) {
+                LevFlag[0] &= ~mask;
             }
-        } else if ((LevFlag[0] & bit) != 0) {
-            LevFlag[0] &= ~bit;
         }
     }
-
-    for (i32 slot = 0; slot < 2; ++slot) {
-        GameObject_s *object = Player[slot];
+    for (i32 index = 0; index < 2; ++index) {
+        GameObject_s *object = Player[index];
         if (object == NULL || object->id != id_MILLENNIUMFALCON) {
-            LevTime[slot] = 0.0f;
-            continue;
-        }
-
-        bool in_cave = false;
-        if (LevArea[0] != NULL) {
-            const i32 area_index = static_cast<i32>(LevArea[0] - world->ai_sys->areas);
-            const i32 area_bit = static_cast<i32>(1u << (area_index & 31));
-            const u64 area_mask = static_cast<i64>(area_bit);
-            in_cave = (object->apiobj.ai_area_mask & area_mask) != 0;
-        }
-
-        if (in_cave) {
-            if (LevTime[slot] < 2.0f) {
-                LevTime[slot] += FRAMETIME;
-            } else {
-                LevTime[slot] = 0.0f;
+            LevTime[index] = 0.0f;
+        } else if (LevArea[0] != NULL &&
+                   (object->apiobj.ai_area_mask & (1 << (LevArea[0] - world->ai_sys->areas))) != 0) {
+            if (LevTime[index] >= 2.0f) {
+                LevTime[index] = 2.0f;
                 object->field_0x1054 |= 8;
-                DrawFalconSpotLightsForChase(object);
+                DrawFalconSpotLights(object);
                 drawLights = 1;
+            } else {
+                LevTime[index] += FRAMETIME;
             }
-        } else if (LevTime[slot] > 0.0f) {
-            LevTime[slot] -= FRAMETIME;
+        } else if (LevTime[index] > 0.0f) {
+            LevTime[index] -= FRAMETIME;
         } else {
-            object->field_0x1054 &= ~8u;
+            object->field_0x1054 &= ~8;
             drawLights = 0;
-            LevTime[slot] = 0.0f;
+            LevTime[index] = 0.0f;
         }
     }
 }
 
 void AsteroidChaseC_Update(WORLDINFO_s *) {
     Asteroids_Update();
-    if (netclient != 0) {
-        const u16 *packet = static_cast<const u16 *>(asteroidc_netpacket);
-        finalAsteroid.current_x = SeekRot(finalAsteroid.current_x, packet[0], 7.0f);
-        finalAsteroid.current_y = SeekRot(finalAsteroid.current_y, packet[1], 7.0f);
-        finalAsteroid.current_z = SeekRot(finalAsteroid.current_z, packet[2], 7.0f);
-    } else {
-        finalAsteroid.current_x += static_cast<i32>(finalAsteroid.rotation_x * FRAMETIME);
-        finalAsteroid.current_y += static_cast<i32>(finalAsteroid.rotation_y * FRAMETIME);
-        finalAsteroid.current_z += static_cast<i32>(finalAsteroid.rotation_z * FRAMETIME);
+    if (netclient == 0) {
+        finalAsteroid.rotation_x += static_cast<i16>(finalAsteroid.rotation_speed_x * FRAMETIME);
+        finalAsteroid.rotation_y += static_cast<i16>(finalAsteroid.rotation_speed_y * FRAMETIME);
+        finalAsteroid.rotation_z += static_cast<i16>(finalAsteroid.rotation_speed_z * FRAMETIME);
         if (nethost != 0) {
-            u16 *packet = static_cast<u16 *>(asteroidc_netpacket);
-            packet[0] = finalAsteroid.current_x;
-            packet[1] = finalAsteroid.current_y;
-            packet[2] = finalAsteroid.current_z;
+            asteroidc_netpacket->rotation_x = finalAsteroid.rotation_x;
+            asteroidc_netpacket->rotation_y = finalAsteroid.rotation_y;
+            asteroidc_netpacket->rotation_z = finalAsteroid.rotation_z;
         }
+    } else {
+        finalAsteroid.rotation_x = SeekRot(finalAsteroid.rotation_x, asteroidc_netpacket->rotation_x, 7.0f);
+        finalAsteroid.rotation_y = SeekRot(finalAsteroid.rotation_y, asteroidc_netpacket->rotation_y, 7.0f);
+        finalAsteroid.rotation_z = SeekRot(finalAsteroid.rotation_z, asteroidc_netpacket->rotation_z, 7.0f);
     }
 
     mtxOrig = NuSpecialGetMtx(&finalAsteroid.special);
     if (mtxOrig != NULL) {
-        NUMTX matrix __attribute__((aligned(16))) = *mtxOrig;
-        NUVEC translation;
-        NuMtxGetTranslation(&matrix, &translation);
-        NuMtxRotateY(&matrix, finalAsteroid.current_y);
-        NuMtxPreRotateX(&matrix, finalAsteroid.current_x);
-        NuMtxPreRotateY(&matrix, finalAsteroid.current_z);
-        matrix.m30 = translation.x;
-        matrix.m31 = translation.y;
-        matrix.m32 = translation.z;
+        NUMTX matrix = *mtxOrig;
+        NUVEC position;
+        NuMtxGetTranslation(&matrix, &position);
+        NuMtxRotateY(&matrix, finalAsteroid.rotation_y);
+        NuMtxPreRotateX(&matrix, finalAsteroid.rotation_x);
+        NuMtxPreRotateY(&matrix, finalAsteroid.rotation_z);
+        matrix.m30 = position.x;
+        matrix.m31 = position.y;
+        matrix.m32 = position.z;
         NuSpecialSetDrawMtx(&finalAsteroid.special, &matrix);
         NuSpecialUpdate(&finalAsteroid.special);
     }
 
-    for (i32 index = 0; index < finalAsteroid.target_count; ++index) {
-        GIZMOBLOWUP_s *blowup = finalAsteroid.targets[index];
-        if (blowup == NULL)
-            continue;
-        blowup->field_0xf0 = finalAsteroid.current_x;
-        blowup->field_0xf2 = finalAsteroid.current_y;
-        blowup->field_0xf4 = finalAsteroid.current_z;
-        blowup->state_flags |= 1;
-        GizmoBlowupUpdateMatrix(blowup);
+    for (i32 index = 0; index < finalAsteroid.blowup_count; ++index) {
+        GIZMOBLOWUP_s *blowup = finalAsteroid.blowups[index];
+        if (blowup != NULL) {
+            blowup->field_0xf0 = finalAsteroid.rotation_x;
+            blowup->field_0xf2 = finalAsteroid.rotation_y;
+            blowup->field_0xf4 = finalAsteroid.rotation_z;
+            blowup->state_flags |= 1;
+            GizmoBlowupUpdateMatrix(blowup);
+        }
+    }
+}
+
+static inline void AsteroidChaseD_SetTurretTarget(i32 index, NUVEC *position) {
+    GIZTURRET_s *turret = StarDestroyerTurrets[index];
+    if (turret != NULL && turret->field_0xe4 == NULL) {
+        turret->field_0xe4 = position;
+        turret->field_0x12c = 2;
     }
 }
 
 void AsteroidChaseD_Update(WORLDINFO_s *) {
-    if (melee_wavePhase == 0 && MiniCutCam != 0)
+    if (melee_wavePhase == 0 && MiniCutCam != 0) {
         melee_wavePhase = 1;
-
+    }
     NuSpecialFind(WORLD->current_gscn, &escape[0], "rebelcruiser2", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[1], "transport3", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[2], "transport2", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[4], "transport1", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[5], "rebelcruiser1", 0);
     NuSpecialFind(WORLD->current_gscn, &escape[6], "transport4", 0);
-
     NUVEC *position = NuSpecialGetDrawPos(&escape[6]);
     for (i32 index = 0; index < 2; ++index) {
-        GIZTURRET_s *turret = StarDestroyerTurrets[index];
-        if (turret != NULL && turret->field_0xe4 == NULL) {
-            turret->field_0xe4 = position;
-            turret->field_0x12c = 2;
-        }
+        AsteroidChaseD_SetTurretTarget(index, position);
     }
     position = NuSpecialGetDrawPos(&escape[0]);
     for (i32 index = 2; index < 6; ++index) {
-        GIZTURRET_s *turret = StarDestroyerTurrets[index];
-        if (turret != NULL && turret->field_0xe4 == NULL) {
-            turret->field_0xe4 = position;
-            turret->field_0x12c = 2;
-        }
+        AsteroidChaseD_SetTurretTarget(index, position);
     }
     position = NuSpecialGetDrawPos(&escape[1]);
     for (i32 index = 6; index < 8; ++index) {
-        GIZTURRET_s *turret = StarDestroyerTurrets[index];
-        if (turret != NULL && turret->field_0xe4 == NULL) {
-            turret->field_0xe4 = position;
-            turret->field_0x12c = 2;
-        }
+        AsteroidChaseD_SetTurretTarget(index, position);
     }
     position = NuSpecialGetDrawPos(&escape[5]);
     for (i32 index = 10; index < 14; ++index) {
-        GIZTURRET_s *turret = StarDestroyerTurrets[index];
-        if (turret != NULL && turret->field_0xe4 == NULL) {
-            turret->field_0xe4 = position;
-            turret->field_0x12c = 2;
-        }
+        AsteroidChaseD_SetTurretTarget(index, position);
     }
     position = NuSpecialGetDrawPos(&escape[4]);
     for (i32 index = 14; index < 16; ++index) {
-        GIZTURRET_s *turret = StarDestroyerTurrets[index];
-        if (turret != NULL && turret->field_0xe4 == NULL) {
-            turret->field_0xe4 = position;
-            turret->field_0x12c = 2;
-        }
+        AsteroidChaseD_SetTurretTarget(index, position);
     }
-
     if (melee_wavePhase == 1 && MiniCutCam == 0) {
         for (i32 index = 0; index < 16; ++index) {
-            if (StarDestroyerTurrets[index] != NULL)
+            if (StarDestroyerTurrets[index] != NULL) {
                 StarDestroyerTurrets[index]->fire_interval = 2.0f;
+            }
         }
         melee_wavePhase = 2;
     }
-
-    u8 alive = turretAliveCount;
     for (i32 index = 0; index < 16; ++index) {
-        GIZTURRET_s *turret = StarDestroyerTurrets[index];
-        if (turret != NULL && (turret->flags & 0x20) != 0) {
-            --alive;
+        if (StarDestroyerTurrets[index] != NULL && (StarDestroyerTurrets[index]->flags & 0x20) != 0) {
+            --turretAliveCount;
             StarDestroyerTurrets[index] = NULL;
         }
     }
-    turretAliveCount = alive;
-    if (melee_waveDelay > 0.0f)
+    if (melee_waveDelay > 0.0f) {
         melee_waveDelay -= FRAMETIME;
-    if (alive == 0 && netclient == 0) {
+    }
+    if (turretAliveCount == 0 && netclient == 0) {
         LevTime[0] += FRAMETIME;
         if (melee_waveDelay <= 0.0f && LevTime[0] >= 12.0f) {
-            if (FreePlay != 0)
+            if (FreePlay != 0) {
                 GoToNewLevel(ASTEROIDCHASEA_LDATA->idx);
-            else
+            } else {
                 GoToNewLevel(ASTEROIDCHASEMITRO_LDATA->idx);
+            }
         }
     }
 }

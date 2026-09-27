@@ -4,6 +4,7 @@
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/items/collect/torpedo.h"
 #include "legoapi/items/collect/spacelevel.h"
+#include "legoapi/world/levels/podrace.h"
 #include "legoapi/actions/combat/hits.h"
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/gizmos/object/hatmachine.h"

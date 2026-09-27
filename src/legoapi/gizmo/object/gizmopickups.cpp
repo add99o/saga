@@ -265,14 +265,11 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
     }
 }
 
-void AddMiscPickups(nuvec_s *position, i32 player, i32 coins, i32 torpedoes) {
+void AddMiscPickups(nuvec_s *position, i32 player_id, i32 coins, i32 torpedoes) {
     if (torpedoes == 0) {
-        const i32 hearts = ReleaseHearts();
-        AddPickups(coins, hearts, 0, 0, position, &v010, 5.0f, player,
-                   1.0f, 2000000.0f, NULL, 1, 0, true);
+        AddPickups(coins, ReleaseHearts(), 0, 0, position, &v010, 5.0f, player_id, 1.0f, 2000000.0f, NULL, 1, 0, true);
     } else {
-        AddPickups(coins, 0, torpedoes, 0, position, &v010, 5.0f, player,
-                   1.0f, 2000000.0f, NULL, 1, 0, true);
+        AddPickups(coins, 0, torpedoes, 0, position, &v010, 5.0f, player_id, 1.0f, 2000000.0f, NULL, 1, 0, true);
     }
 }
 

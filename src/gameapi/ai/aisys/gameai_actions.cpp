@@ -103,38 +103,37 @@ static i32 Action_FollowCharacter(AISYS_s *system, AISCRIPTPROCESS_s *processor,
     return 0;
 }
 
-static i32 Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params,
-                              i32 param_count, i32 first_time, f32) {
-    GameObject_s *object = ActionOwner(packet);
-    if (Player[0] == NULL || packet == NULL || processor == NULL || object == NULL) {
+i32 Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
+                       i32 first_time, f32) {
+    if (player == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL) {
         return 0;
     }
+    GameObject_s *object = packet->owner->apiobj.objptr;
     if (first_time != 0) {
         processor->action_data_4 = static_cast<f32>(object->apiobj.field_0x276);
         i32 minimum_turn = 0;
         i32 maximum_turn = 0;
         i32 turn = 0;
-        bool random_direction = false;
+        i32 random_direction = 0;
         for (i32 index = 0; index < param_count; ++index) {
-            char *param = params[index];
-            if (AIActionParseSpeedFn != NULL && AIActionParseSpeedFn(param, &packet->goal_speed_mode) != 0) {
+            if (AIActionParseSpeedFn != NULL && AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0) {
                 continue;
             }
-            char *value = NuStrIStr(param, "min_turn");
+            char *value = NuStrIStr(params[index], "min_turn");
             if (value != NULL) {
                 minimum_turn = static_cast<i32>(AIParamToFloat(processor, value + 9)) * (65536 / 360.0f);
                 continue;
             }
-            value = NuStrIStr(param, "max_turn");
+            value = NuStrIStr(params[index], "max_turn");
             if (value != NULL) {
                 maximum_turn = static_cast<i32>(AIParamToFloat(processor, value + 9)) * (65536 / 360.0f);
                 continue;
             }
-            if (NuStrIStr(param, "rand_turn_dir") != NULL) {
-                random_direction = true;
+            if (NuStrIStr(params[index], "rand_turn_dir") != NULL) {
+                random_direction = 1;
                 continue;
             }
-            value = NuStrIStr(param, "turn=");
+            value = NuStrIStr(params[index], "turn");
             if (value != NULL) {
                 turn = static_cast<i32>(AIParamToFloat(processor, value + 5)) * (65536 / 360.0f);
             }

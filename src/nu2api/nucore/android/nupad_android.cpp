@@ -1,5 +1,35 @@
 #include "decomp.h"
 #include "nu2api/nucore/nupad.h"
+#include "nu2api/numath/nufloat.h"
+
+void UCStretchToCorners(i16 *horizontal, i16 *vertical) {
+    f32 x = *horizontal;
+    f32 y = *vertical;
+    f32 scale;
+    f32 abs_x = NuFabs(x);
+    f32 abs_y = NuFabs(y);
+    f32 radius = NuFsqrt(abs_x * abs_x + abs_y * abs_y);
+    if (abs_y > abs_x)
+        scale = 32767.0f / abs_y;
+    else if (abs_x != 0.0f)
+        scale = 32767.0f / abs_x;
+    else
+        scale = 1.0f;
+    radius *= scale;
+    scale = radius / 32768.0f;
+    x *= scale;
+    y *= scale;
+    if (x < -32767.0f)
+        x = -32767.0f;
+    if (x > 32767.0f)
+        x = 32767.0f;
+    if (y < -32767.0f)
+        y = -32767.0f;
+    if (y > 32767.0f)
+        y = 32767.0f;
+    *horizontal = static_cast<i16>(x);
+    *vertical = static_cast<i16>(y);
+}
 
 i32 NuPadReadPS(i32, u8 *, u8 *, u8 *, u8 *, u8 *, u8 *, u8 *, u8 *, u32 *, u8 *, u32 *) {
     i32 result = 0;

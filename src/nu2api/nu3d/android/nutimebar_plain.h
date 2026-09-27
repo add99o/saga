@@ -1,9 +1,10 @@
 // Time-bar profiling slots — lightweight microsecond stopwatches.
 //
 // Each "set" is a fixed-size array of slots created by NuTimeBarCreateSet
-// (only when profiling is enabled).  The render thread uses set -1
-// (aliased to set 0) to publish CPU/GPU timings for the on-screen HUD.
-// All calls no-op when no set has been created.  See nutimebar_plain.cpp
+// (only when profiling is enabled). The render thread uses set -1, stored
+// at list index 0, to publish CPU/GPU timings for the on-screen HUD.
+// Begin/end and slot setters are initialization-gated; queries and the
+// horizontal renderer require an existing set. See nutimebar_plain.cpp
 // for the double-buffered accumulator layout.
 #pragma once
 

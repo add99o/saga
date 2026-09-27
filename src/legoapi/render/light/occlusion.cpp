@@ -446,7 +446,6 @@ void OcclusionManager::OnCameraSet() {
 void OcclusionManager::RenderStats() const {
     if (!initialized || !enabled || NuRndrDoingScreenGrab != 0)
         return;
-
     NuQFntPushPrintMode(2);
     NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
     NuQFntSet(system_qfont);
@@ -454,16 +453,15 @@ void OcclusionManager::RenderStats() const {
     NuQFntSetPointSize(system_qfont, 0.7f, 0.7f);
     NuQFntMove2d(system_qfont, 112.0f, 112.0f, 0.0f);
     NuQFntSetColour2d(system_qfont, 0x80000000);
-
-    char stats[256];
-    sprintf(stats, "Occluders : %2d, Queries : %2d, Occluded : %2d, Visible : %2d", current_set->count,
-            unknown_164, unknown_160, unknown_164 - unknown_160);
-    NuQFntPrint2dU(system_qfont, stats);
-    f32 length = NuQFntLenScale();
+    char text[256];
+    sprintf(text, "Occluders : %2d, Queries : %2d, Occluded : %2d, Visible : %2d", static_cast<i32>(current_set->count),
+            static_cast<i32>(unknown_164), static_cast<i32>(unknown_160), static_cast<i32>(unknown_164 - unknown_160));
+    NuQFntPrint2dU(system_qfont, text);
+    f32 width = NuQFntLenScale();
     f32 height = NuQFntHeightScale();
-    NuQFntMove2d(system_qfont, 112.0f - length, 112.0f - height, 0.0f);
+    NuQFntMove2d(system_qfont, 112.0f - width, 112.0f - height, 0.0f);
     NuQFntSetColour2d(system_qfont, 0xff00ffff);
-    NuQFntPrint2dU(system_qfont, stats);
+    NuQFntPrint2dU(system_qfont, text);
     NuQFntPopCoordinateSystem();
     NuQFntPopPrintMode();
 }
@@ -480,8 +478,8 @@ void OcclusionManager::SetEnabled(bool value) {
 OcclusionManager::~OcclusionManager() {
 }
 
-static void BoxTreeRndrRec(nuvisiboxtree_s *tree, unsigned char *bits, nuvisiboxtreenode_s *node,
-                                    int instance_count, float far_clip, nugscn_s *scene) {
+static void BoxTreeRndrRec(nuvisiboxtree_s *tree, unsigned char *bits, nuvisiboxtreenode_s *node, int instance_count,
+                           float far_clip, nugscn_s *scene) {
     if (node->first_child != 0xffff) {
         do {
             i32 clip = NuCameraClipTestExtents(&node->minimum, &node->maximum, &numtx_identity, far_clip, 1);
@@ -510,8 +508,8 @@ extern "C" void NuVisiBoxTree(NuVisiBoxContext *context, NUGSCN *scene) {
     }
     for (u32 i = 0; i < context->tree->root_count; ++i) {
         nuvisiboxtree_s *tree = context->tree;
-        BoxTreeRndrRec(tree, context->visibility_bits, &tree->nodes[tree->root_indices[i]],
-                       context->instance_count, tree->root_far_clips[i], scene);
+        BoxTreeRndrRec(tree, context->visibility_bits, &tree->nodes[tree->root_indices[i]], context->instance_count,
+                       tree->root_far_clips[i], scene);
     }
     context->state |= 8;
 }

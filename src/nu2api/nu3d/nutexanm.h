@@ -97,9 +97,10 @@ extern i32 nta_labels[64];
 extern nutexanimlist_s ntalsysbuff[64];
 extern nutexanimlist_s *ntal_first;
 extern nutexanimlist_s *ntal_free;
+extern i32 nutexanim_usepakfile;
 
 void NuTexAnimProgInit(nutexanimprog_s *program);
-nutexanimprog_s *NuTexAnimProgParseFile(i32 file, VARIPTR *buffer, VARIPTR end, i32 flags);
+nutexanimprog_s *NuTexAnimProgParseFile(i32 file, VARIPTR *buffer, VARIPTR end, i32 fps);
 
 #ifdef __cplusplus
 extern "C" {
@@ -118,7 +119,9 @@ extern "C" {
     void NuTexAnimProgDestroy(nutexanimprog_s *program);
     nutexanimprog_s *NuTexAnimProgRead(VARIPTR *buffer, char *path);
     void NuTexAnimProgWrite(char *path, nutexanimprog_s *program);
-    nutexanimprog_s *NuTexAnimProgReadScript(char *path, VARIPTR *buffer, VARIPTR buffer_end, i32 flags);
+    // The scratch region includes the writable byte at end and space for the backwards-built name list.
+    void NuTexAnimProgReadCFG(char *path, VARIPTR *buffer, VARIPTR end);
+    nutexanimprog_s *NuTexAnimProgReadScript(char *path, VARIPTR *buffer, VARIPTR end, i32 fps);
     void NuTexAnimProgAssembleEnd(nutexanimprog_s *program);
     void NuTexAnimAddList(nutexanim_s *anim);
     void NuTexAnimProcessList(nutexanim_s *anim);

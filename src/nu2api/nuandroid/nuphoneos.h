@@ -41,8 +41,14 @@ enum {
 extern "C" {
 #endif
     void NuPhoneOSRegisterEventCallback(i32 type, PHONEEVENTCALLBACK *callback_fn);
+    // One producer posts valid event IDs [0, 6]; one consumer pumps them.
+    // A waiting post is released when the queue is drained, not necessarily
+    // after the final event callback has returned.
     void NuPhoneOSMessagePost(const NuPhoneOSMessage *message, i32 nonblocking, i32 wait_until_processed);
     void NuPhoneOSMessagePump(void);
+    extern i32 g_systemPauseReceived;
+    extern i32 g_systemResumeReceived;
+    extern i32 g_systemDidBecomeActiveReceived;
 #ifdef __cplusplus
 }
 #endif

@@ -3063,9 +3063,9 @@ void DumpAreaData(i32 mode, i32) {
     }
     vehicle_scene = NULL;
     if (Customiser_AccessoriesLoaded == 2) {
-        Customiser_RestoreModelTextureIDs(reinterpret_cast<CUSTOMISER *>(Game_Customiser));
+        Customiser_RestoreModelTextureIDs(Game_Customiser);
     } else if (Customiser_AccessoriesLoaded == 1) {
-        Customiser_DumpAccessories(reinterpret_cast<CUSTOMISER *>(Game_Customiser));
+        Customiser_DumpAccessories(Game_Customiser);
     }
     Customiser_AccessoriesLoaded = 0;
     IconScenes_Dump();

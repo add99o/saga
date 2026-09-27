@@ -92,10 +92,20 @@ struct AREA_GLOBAL_VALUES {
     i32 field_0x18;
     i32 field_0x1c;
     i32 field_0x20;
-    i32 field_0x24;
-    i32 field_0x28;
-    i32 field_0x2c;
-    i32 field_0x30;
+    union {
+        struct {
+            i32 field_0x24;
+            i32 field_0x28;
+        };
+        u32 arcade_player_kills[2];
+    };
+    union {
+        struct {
+            i32 field_0x2c;
+            i32 field_0x30;
+        };
+        u32 arcade_ai_kills[2];
+    };
 };
 
 union AREA_GLOBALS {
@@ -104,6 +114,8 @@ union AREA_GLOBALS {
 };
 
 DECOMP_ASSERT(sizeof(AREA_GLOBALS) == 0x34, "AREA_GLOBALS size");
+DECOMP_ASSERT(offsetof(AREA_GLOBAL_VALUES, arcade_player_kills) == 0x24, "arcade player kills offset");
+DECOMP_ASSERT(offsetof(AREA_GLOBAL_VALUES, arcade_ai_kills) == 0x2c, "arcade AI kills offset");
 
 // ----------------------------------------------------------------------
 // Placeholder save-game / model-list structures.
@@ -300,11 +312,7 @@ struct ARCADE_MODE_s {
 };
 DECOMP_ASSERT(sizeof(ARCADE_MODE_s) == 0xc, "Arcade mode ABI");
 
-struct GAME_CUSTOMISER_s {
-    undefined field0_0x0[0x6c];
-    i16 field6c_0x6c;
-    i16 field6e_0x6e;
-};
+struct CUSTOMISER;
 
 // ----------------------------------------------------------------------
 // Progress table for the shared animation system.
@@ -633,6 +641,7 @@ extern u64 _0xffffffffffffffff;
 extern f32 engagefiretime;
 extern f32 idealgoalrange;
 extern i32 LEGOHINT_BUILD;
+extern i32 LEGOHINT_SHOOTCAMERAS;
 extern i32 WeaponInOut_NoAIJediSfx;
 extern i32 Lap;
 extern PART_s *Part;
@@ -715,7 +724,7 @@ extern COLLECTION_s BountyHunterCollection;
 extern f32 COLLECTION_DEFAULTSCALE;
 extern ARCADEITEM_s ArcadeItem;
 extern ARCADE_MODE_s Arcade_Mode[];
-extern GAME_CUSTOMISER_s *Game_Customiser;
+extern CUSTOMISER *Game_Customiser;
 extern APICHARACTERMODELLIST_s FreePlayModelList[];
 extern APICHARACTERMODELLIST_s Hub_ModelList[];
 extern APICHARACTERMODELLIST_s *CurrentCList;

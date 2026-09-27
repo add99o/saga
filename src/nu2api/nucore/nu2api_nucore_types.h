@@ -4,6 +4,7 @@
 
 #include "nu2api/nucore/fixed_width.h"
 #include "nu2api/nucore/numem.h"
+#include "nu2api/nu3d/nugeom.h"
 
 #include "nu2api/nucore/NuCopyFilter.h"
 #include "nu2api/nucore/NuDataPortManager.h"
@@ -13,6 +14,7 @@
 #include "nu2api/nucore/NuDynamicLight.h"
 #include "nu2api/nucore/NuMainFilter.h"
 #include "nu2api/nucore/NuMainFilterGen.h"
+#include "nu2api/nucore/NuMemoryPool.h"
 #include "nu2api/nucore/NuMotionAccumFilter.h"
 #include "nu2api/nucore/NuMotionAccumFilterGen.h"
 #include "nu2api/nucore/NuMotionFilter.h"
@@ -58,7 +60,7 @@ struct NuMainFilter;
 struct NuMainFilterGen;
 struct NuMemory;
 struct NuMemoryManager;
-struct NuMemoryPool;
+class NuMemoryPool;
 struct NuMotionAccumFilter;
 struct NuMotionAccumFilterGen;
 struct NuMotionFilter;
@@ -149,7 +151,6 @@ struct nurenderscene_s;
 struct nudynamiclight_s {};
 struct nueffecttex_s;
 struct nuframebuffer_s {};
-struct nugeom_s {};
 struct nugscn_s;
 struct nuhspecial_s;
 struct numtl_s;
@@ -201,30 +202,6 @@ struct NuInputManager {
     void GetDevice(u32) const;
     void GetFirstDeviceByType(NUPADTYPE) const;
     void KillRumbleAll();
-};
-struct NuMemoryPool {
-    struct FreeBlock;
-    struct IEventHandler {};
-    struct IVisitor {};
-    struct Page;
-    u32 GetAllocatedBytes();
-    const char *GetDebugName() const;
-    u32 GetFreeBytes();
-    u32 GetLargeBlockBytes();
-    u32 GetPagedBytes();
-    static NuMemoryPool::FreeBlock volatile *InterlockedPop(NuMemoryPool::FreeBlock volatile **);
-    static void InterlockedPush(NuMemoryPool::FreeBlock volatile **, void *);
-    NuMemoryPool::FreeBlock volatile *Merge(NuMemoryPool::FreeBlock volatile *, NuMemoryPool::FreeBlock volatile *);
-    NuMemoryPool::Page *Merge(NuMemoryPool::Page *, NuMemoryPool::Page *);
-    NuMemoryPool::FreeBlock volatile *MergeSort(NuMemoryPool::FreeBlock volatile *, u32);
-    NuMemoryPool::Page *MergeSort(NuMemoryPool::Page *, u32);
-    NuMemoryPool(NuMemoryPool::IEventHandler *, u32, char const *);
-    void *PageAlloc(u32, char const *);
-    void ReleaseAllPages();
-    void ReleaseUnreferencedPages();
-    void ReleaseUnreferencedPages_OLD();
-    static void VisitPools(NuMemoryPool::IVisitor *);
-    ~NuMemoryPool();
 };
 struct NuMemoryManager {
     struct Context;

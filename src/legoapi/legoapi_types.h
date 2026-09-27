@@ -287,9 +287,7 @@ struct VuVec;
 struct WORLDINFO_s;
 struct __sFILE;
 struct _vum_s;
-struct _vuv_s {
-    f32 x, y, z, w;
-};
+struct _vuv_s;
 struct bgprocinfo_s;
 struct bitrate_manager_state;
 struct codebook;
@@ -366,18 +364,12 @@ struct ADDGAMEMSG {
         nuvec_s *extra_position;
         nuhspecial_s *special;
     }; // 0x28
-    u32 score;      // 0x2c
-    f32 field_0x30; // 0x30
-    f32 field_0x34; // 0x34
-    union {
-        f32 field_0x38;
-        void (*delay_fn)(GAMEMESSAGE_s *);
-    }; // 0x38
-    union {
-        f32 field_0x3c;
-        void (*message_callback)(GAMEMESSAGE_s *);
-    }; // 0x3c
-    void (*update_fn)(GAMEMESSAGE_s *); // 0x40
+    u32 score;                          // 0x2c
+    f32 field_0x30;                     // 0x30
+    f32 field_0x34;                     // 0x34
+    void (*delay_fn)(GAMEMESSAGE_s *);  // 0x38, called when the delay expires
+    void (*tick_fn)(GAMEMESSAGE_s *);   // 0x3c, called by UpdateGameMessages
+    void (*update_fn)(GAMEMESSAGE_s *); // 0x40, position adjustment during drawing
     void *field_0x44;                   // 0x44
     void (*end_fn)(GAMEMESSAGE_s *);    // 0x48
     i8 player_index;                    // 0x4c
@@ -387,6 +379,7 @@ struct ADDGAMEMSG {
 };
 DECOMP_ASSERT(sizeof(ADDGAMEMSG) == 0x50, "ADDGAMEMSG size");
 DECOMP_ASSERT(offsetof(ADDGAMEMSG, special) == 0x28, "game message special offset");
+DECOMP_ASSERT(offsetof(ADDGAMEMSG, tick_fn) == 0x3c, "game message tick callback offset");
 typedef ADDGAMEMSG ADDGAMEMSG_ALIGNED16 __attribute__((aligned(16)));
 struct PARTLIGHTSOURCE_s {
     u8 reserved_00[0x78];
@@ -808,7 +801,8 @@ struct CUSTOMISER {
     CUSTOMISESAVE_s *save;             // 0x174
     ANIMPACKET_s animation_packets[2]; // 0x178
     i32 model_texture_ids[18];         // 0x208
-    u8 pad_0x250[0x25c - 0x250];
+    i8 locator_indices[9];             // 0x250; -1 disables the category locator
+    u8 pad_0x259[0x25c - 0x259];
     i8 layer_indices[9]; // 0x25c; hierarchy layers shared by both preview characters
     u8 pad_0x265[0x268 - 0x265];
     NUMTX joint_matrices[2][16]; // 0x268
@@ -818,11 +812,35 @@ struct CUSTOMISER {
     f32 animation_values[2];     // 0xa70
     u8 pad_0xa78[0xc28 - 0xa78];
     i16 default_pieces[2][10]; // 0xc28; nine saved pieces plus one unused entry per character
+    f32 locator_x_offsets[9];  // 0xc50
+    f32 locator_y_offsets[9];  // 0xc74
+    NUVEC touch_positions[6];  // 0xc98; directional controls, randomise, toggle
+    f32 touch_widths[6];       // 0xce0
+    f32 touch_heights[6];      // 0xcf8
+    union {
+        u8 touch_requests[6]; // 0xd10; set by the menu touch controller
+        struct {
+            u8 field_0xd10;
+            u8 field_0xd11;
+            u8 field_0xd12;
+            u8 field_0xd13;
+            u8 unknown_d14[2];
+        };
+    };
+    u8 field_0xd16;
+    u8 field_0xd17;
 };
 DECOMP_ASSERT(offsetof(CUSTOMISER, piece_sets) == 0x24, "CUSTOMISER piece arrays");
 DECOMP_ASSERT(offsetof(CUSTOMISER, piece_counts) == 0x48, "CUSTOMISER piece counts");
 DECOMP_ASSERT(offsetof(CUSTOMISER, piece_available) == 0x170, "CUSTOMISER piece availability callback");
-DECOMP_ASSERT(sizeof(CUSTOMISER) == 0xc50, "CUSTOMISER recovered prefix size");
+DECOMP_ASSERT(sizeof(CUSTOMISER) == 0xd18, "CUSTOMISER size");
+DECOMP_ASSERT(offsetof(CUSTOMISER, locator_indices) == 0x250, "CUSTOMISER locator indices");
+DECOMP_ASSERT(offsetof(CUSTOMISER, locator_x_offsets) == 0xc50, "CUSTOMISER locator X offsets");
+DECOMP_ASSERT(offsetof(CUSTOMISER, locator_y_offsets) == 0xc74, "CUSTOMISER locator Y offsets");
+DECOMP_ASSERT(offsetof(CUSTOMISER, touch_positions) == 0xc98, "CUSTOMISER touch positions");
+DECOMP_ASSERT(offsetof(CUSTOMISER, touch_widths) == 0xce0, "CUSTOMISER touch widths");
+DECOMP_ASSERT(offsetof(CUSTOMISER, touch_heights) == 0xcf8, "CUSTOMISER touch heights");
+DECOMP_ASSERT(offsetof(CUSTOMISER, field_0xd10) == 0xd10, "CUSTOMISER trailing state");
 DECOMP_ASSERT(offsetof(CUSTOMISER, save) == 0x174, "CUSTOMISER save offset");
 DECOMP_ASSERT(offsetof(CUSTOMISER, default_pieces) == 0xc28, "CUSTOMISER default pieces offset");
 DECOMP_ASSERT(offsetof(CUSTOMISER, character_ids) == 0x6c, "CUSTOMISER character IDs offset");
@@ -865,7 +883,9 @@ struct CUSTOMPIECE {
         u8 unknown_08[0xa];
         struct {
             i16 weapon_model;
-            u8 reserved_0a[0x8];
+            i16 unknown_indices_0a[3];
+            i8 field_0x10;
+            i8 collection_type; // 0x11, -1 means no collection category requirement
         };
     };
     union {
@@ -881,6 +901,7 @@ struct CUSTOMPIECE {
 };
 DECOMP_ASSERT(sizeof(CUSTOMPIECE) == 0x28, "CUSTOMPIECE size");
 DECOMP_ASSERT(offsetof(CUSTOMPIECE, layer_flags) == 0x12, "CUSTOMPIECE layer flags offset");
+DECOMP_ASSERT(offsetof(CUSTOMPIECE, collection_type) == 0x11, "CUSTOMPIECE collection category offset");
 struct CUSTOMPIECERESOURCE {
     NUGSCN *scene;
     nuhspecial_s special;
@@ -1030,7 +1051,7 @@ struct ClassItem {
     EdRef *reference;
 };
 struct DETONATOR_s {
-    NUVEC field_0x00;
+    NUVEC position; // 0x00, logical position used by nearest-detonator queries
     NUVEC field_0x0c;
     NUVEC field_0x18;
     GameObject_s *object;
@@ -1435,6 +1456,7 @@ struct GAMEMESSAGE_s {
     u16 icon;
     union {
         NUVEC color;
+        nuhspecial_s special; // model messages store a handle, not three float coordinates
         struct {
             u32 color1;
             u32 color2;
@@ -1456,8 +1478,8 @@ struct GAMEMESSAGE_s {
         u8 target_type;
     };
     u8 field_0xff;
-    u32 field_0x100;
-    usize field_0x104;
+    void (*delay_fn)(GAMEMESSAGE_s *);
+    void (*tick_fn)(GAMEMESSAGE_s *);
     void (*update_fn)(GAMEMESSAGE_s *);
     void (*draw_callback)(GAMEMESSAGE_s *, NUVEC *, f32);
     void (*end_fn)(GAMEMESSAGE_s *);
@@ -1468,6 +1490,8 @@ DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, target_position) == 0x88, "game message ta
 DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, position) == 0x94, "game message current position offset");
 DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, rotation_y) == 0xe2, "game message rotation offset");
 DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, player_index) == 0xfd, "game message player index offset");
+DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, special) == 0xe8, "game message special storage offset");
+DECOMP_ASSERT(offsetof(GAMEMESSAGE_s, tick_fn) == 0x104, "game message runtime tick callback offset");
 // Rumble state packet embedded in GAMEPAD_s (20 bytes; floats driven by
 // NuSound3UpdateRumble / UpdateRumble).
 struct RUMBLEPACKET {
@@ -1574,7 +1598,8 @@ DECOMP_ASSERT(offsetof(FLOWBOXACTIONDATA_s, argument_count) == 8, "FLOWBOXACTION
 DECOMP_ASSERT(offsetof(FLOWBOXACTIONDATA_s, definition) == 0xc, "FLOWBOXACTIONDATA definition offset");
 DECOMP_ASSERT(offsetof(FLOWBOX_s, actions) == 0xc, "FLOWBOX actions offset");
 
-// The AI message system: a fixed pool of 0x38-byte messages; the free list
+// The AI message system: a fixed pool of 0x38-byte messages on Android x86;
+// pointer-bearing headers and messages grow on 64-bit diagnostic hosts. The free list
 // and the active list live in the header (ResetGizAIMessageSys fills the
 // free list from the pool, CheckGizAIMessage moves nodes free -> active).
 struct GIZAIMESSAGESYS_s {
@@ -1583,6 +1608,10 @@ struct GIZAIMESSAGESYS_s {
     NULISTHDR free_list;      // 0x08
     NULISTHDR active_list;    // 0x10
 };
+DECOMP_ASSERT(sizeof(GIZAIMESSAGESYS_s) == 0x18, "GIZAIMESSAGESYS_s ABI");
+DECOMP_ASSERT(offsetof(GIZAIMESSAGESYS_s, messages) == 0x4, "GIZAIMESSAGESYS_s messages offset");
+DECOMP_ASSERT(offsetof(GIZAIMESSAGESYS_s, free_list) == 0x8, "GIZAIMESSAGESYS_s free list offset");
+DECOMP_ASSERT(offsetof(GIZAIMESSAGESYS_s, active_list) == 0x10, "GIZAIMESSAGESYS_s active list offset");
 
 enum GIZAIMESSAGE_FLAGS {
     GIZAIMESSAGE_FLAG_ADD_GIZMO = 0x01,
@@ -2079,32 +2108,57 @@ struct HINTUIBUTTON_s {
 DECOMP_ASSERT(sizeof(HINTUIBUTTON_s) == 0xa8, "HINTUIBUTTON_s size");
 DECOMP_ASSERT(offsetof(HINTUIBUTTON_s, field_0x7c) == 0x7c, "HINTUIBUTTON_s pending hint offset");
 struct HOTHBATTLE_MELEE_WAVE_s {
-    i32 field_0x0;
     i16 character_id;
-    u8 reserved_06[2];
+    u8 reserved_02[2];
     GameObject_s *creatures[4];
-    u8 field_0x18;
-    u8 field_0x19;
-    u8 reserved_1a;
+    union {
+        u8 remaining_count;
+        u8 field_0x18;
+    };
+    union {
+        u8 initial_count;
+        u8 field_0x19;
+    };
+    union {
+        u8 active_count;
+        u8 reserved_1a;
+    };
     char name[0xd];
+    u8 reserved_24[4];
 };
 DECOMP_ASSERT(sizeof(HOTHBATTLE_MELEE_WAVE_s) == 0x28, "HOTHBATTLE_MELEE_WAVE_s ABI");
 
 struct HOTHBATTLE_MELEE_s {
-    u8 field_0x0;
-    u8 field_0x1;
-    u8 field_0x2;
+    union {
+        u8 current_wave;
+        u8 field_0x0;
+    };
+    union {
+        u8 next_wave;
+        u8 field_0x1;
+    };
+    union {
+        u8 initialize_wave;
+        u8 field_0x2;
+    };
     u8 field_0x3;
-    i8 field_0x4;
+    union {
+        i8 transition_phase;
+        i8 field_0x4;
+    };
     u8 field_0x5[3];
+    f32 wave_delay;
     HOTHBATTLE_MELEE_WAVE_s waves[4];
-    u8 reserved_0xa8[4];
     GameObject_s *background_creatures[6];
     u8 creature_count;
     u8 reserved_0xc5[3];
 };
 DECOMP_ASSERT(sizeof(HOTHBATTLE_MELEE_s) == 0xc8, "HOTHBATTLE_MELEE_s ABI");
+DECOMP_ASSERT(offsetof(HOTHBATTLE_MELEE_s, wave_delay) == 8, "HOTHBATTLE transition timer offset");
+DECOMP_ASSERT(offsetof(HOTHBATTLE_MELEE_s, waves) == 0xc, "HOTHBATTLE wave data offset");
 DECOMP_ASSERT(offsetof(HOTHBATTLE_MELEE_s, waves[0].creatures) == 0x10, "HOTHBATTLE melee creature offset");
+DECOMP_ASSERT(offsetof(HOTHBATTLE_MELEE_s, waves[0].active_count) == 0x22, "HOTHBATTLE active count offset");
+DECOMP_ASSERT(offsetof(HOTHBATTLE_MELEE_s, background_creatures) == 0xac, "HOTHBATTLE background creatures offset");
 DECOMP_ASSERT(offsetof(HOTHBATTLE_MELEE_s, creature_count) == 0xc4, "HOTHBATTLE melee count offset");
 struct HashRedirect;
 struct LANGUAGEDATA {
@@ -3340,7 +3394,7 @@ DECOMP_ASSERT(sizeof(edcam_s) == 0x94, "edcam_s size");
 struct eduiitem_s;
 struct eduimenu_s;
 struct envelope_lookup {};
-struct flightspline_s {};
+struct flightspline_s;
 struct instNUGCUTLOOKAT_s {};
 struct instNUGCUTSCENE_s;
 struct mdct_lookup {};

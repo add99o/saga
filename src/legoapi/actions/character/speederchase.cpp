@@ -31,6 +31,8 @@
 #include "gameapi/edtools/edcam.h"
 #include "gameapi/edtools/edui.h"
 #include "nu2api/numath/nuvec.h"
+#include "nu2api/numath/nurand.h"
+#include "legoapi/items/objects/gameobjects.h"
 #include "nu2api/nucore/nuanim3.h"
 #include "nu2api/nu3d/nutex.h"
 #include <string.h>
@@ -58,8 +60,27 @@ struct SPEEDERCHASEANETPACKET_s {
 SPEEDERCHASEANETPACKET_s *speederchasea_netpacket;
 
 u8 troopercannons_beenReset = 0;
-i32 players_going_forward = 0;
+i32 players_going_forward = 1;
 extern i32 players_cannot_exit_speeder;
+
+f32 zoom_ahead_extra = 3.0f;
+f32 zoom_ahead_extra_time = 5.0f;
+f32 speeder_level_height_lerpf = 5.0f;
+f32 speeder_level_height = 1.0f;
+SPEEDERCHASEVALUES speedervals[4] = {
+    {9.0f, -3.0f, 1.5f, 5.0f, 10.0f, 0.5f, 5.0f},
+    {-3.0f, -3.0f, 1.5f, 5.0f, 5.0f, 0.3f, 5.0f},
+    {-3.0f, -3.0f, 1.5f, 5.0f, 2.0f, 0.3f, 5.0f},
+    {4.0f, -3.0f, 1.5f, 5.0f, 10.0f, 0.5f, 5.0f},
+};
+f32 speederfirerange = -1.0f;
+f32 speeder_shootrate = 1.0f;
+f32 speeder_kill_dist = 75.0f;
+f32 speeder_midrange_time = 10.0f;
+f32 speeder_ahead_time = 15.0f;
+f32 speeder_mode_ahead_timer;
+DECOMP_ASSERT(sizeof(SPEEDERCHASEVALUES) == 0x1c, "Speeder chase tuning stride");
+DECOMP_ASSERT(sizeof(speedervals) == 0x70, "Speeder chase tuning table size");
 
 NuMechPtr<MechObjectInterface, 4> lungeTarget;
 NuMechPtr<MechObjectInterface, 4> forceNextAttackOpponent;
@@ -387,7 +408,7 @@ void ProcessCurrentSpeed(WORLDINFO_s *world, speedup_s *speedup) {
     world->sock_sys->sock[0].current_speed = vehicle_speed;
 
     if (world->current_level == DOGFIGHTA_LDATA && vehicle_speed != 0.0f) {
-        *reinterpret_cast<f32 *>(space->unknown_62ee4) = vehicle_speed / 11.0f;
+        space->normalized_speed = vehicle_speed / 11.0f;
     }
 }
 
@@ -444,6 +465,185 @@ void SpeederChaseA_Reset(WORLDINFO_s *) {
 
 i32 SpeedersDroppedBack() {
     return WORLD->current_level == SPEEDERCHASEA_LDATA && disable_narrow_socks == 0 && set_speedermode == 2;
+}
+
+i32 Action_SpeederBeingChased(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **, i32, i32 first_time,
+                              f32 elapsed) {
+    SOCK *socks = WORLD->sock_sys->sock;
+    if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 0;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    if (first_time != 0) {
+        object->run_speed_override = object->apiobj.character_data->game_character->run_speed;
+        processor->action_data_1 = 0;
+        processor->action_timer = 0.0f;
+        set_speedermode = 0;
+        processor->action_data_2 = object->current_hp;
+        speeder_hitpoints_lost = 0;
+        speeder_mode_ahead_timer = 0.0f;
+    } else if (processor->action_data_1 > 4) {
+        processor->action_data_1 = 0;
+    }
+    const f32 base_speed = object->apiobj.character_data->game_character->run_speed;
+    f32 distance = 0.0f;
+    f32 error = 0.0f;
+    i32 can_fire = 0;
+    if (player->sock_position.location.sock == 1) {
+        if (player2 != NULL) {
+            f32 player_distance = MidDistanceFromSockStart(WORLD->sock_sys, &player2->sock_position);
+            player_distance -= MidDistanceFromSockStart(WORLD->sock_sys, &player->sock_position);
+            const f32 length = socks[1].unknown_98;
+            if (player_distance > length * 0.5f)
+                player_distance -= length;
+            else if (player_distance < length * -0.5f)
+                player_distance += length;
+            GameObject_s *reference = player;
+            if (speedervals[processor->action_data_1].distance < 0.0f) {
+                if (!(player_distance > 0.0f))
+                    reference = player2;
+            } else if (player_distance > 0.0f) {
+                reference = player2;
+            }
+            distance = MidDistanceFromSockStart(WORLD->sock_sys, &object->sock_position);
+            distance -= MidDistanceFromSockStart(WORLD->sock_sys, &reference->sock_position);
+        } else {
+            distance = MidDistanceFromSockStart(WORLD->sock_sys, &object->sock_position);
+            distance -= MidDistanceFromSockStart(WORLD->sock_sys, &player->sock_position);
+        }
+        const f32 length = socks[1].unknown_98;
+        if (distance > length * 0.5f)
+            distance -= length;
+        else if (distance < length * -0.5f)
+            distance += length;
+        can_fire = distance < speederfirerange;
+        if (distance > speeder_kill_dist) {
+            KillGameObject(object, 4, 0);
+            return 1;
+        }
+        error = distance - speedervals[processor->action_data_1].distance;
+        if (processor->action_data_1 == 0) {
+            if (processor->action_timer < zoom_ahead_extra_time)
+                error -= (zoom_ahead_extra_time - processor->action_timer) / zoom_ahead_extra_time * zoom_ahead_extra;
+            if (speeder_mode_ahead_timer < 2.0f)
+                speeder_hitpoints_lost = 0;
+        }
+    }
+    // Retail has four tuning rows and only resets state bytes greater than 4.
+    // State 4 therefore remains an invalid-input table overrun, not a fifth mode.
+    SPEEDERCHASEVALUES *values = &speedervals[processor->action_data_1];
+    f32 ratio, speed, seek;
+    if (error > 0.0f) {
+        ratio = error / values->behind_range;
+        if (ratio > 1.0f)
+            ratio = 1.0f;
+        speed = values->behind_speed * ratio + (1.0f - ratio);
+        seek = values->behind_seek;
+    } else {
+        ratio = error / values->ahead_range;
+        if (ratio > 1.0f)
+            ratio = 1.0f;
+        speed = values->ahead_speed * ratio + (1.0f - ratio);
+        seek = values->ahead_seek;
+    }
+    object->run_speed_override = SeekValF(object->run_speed_override, speed * base_speed, seek);
+    if (processor->speeder_ahead_latched != 0)
+        speeder_mode_ahead_timer += elapsed;
+    else if (distance > 0.0f)
+        processor->speeder_ahead_latched = 1;
+    else
+        processor->action_timer = 0.0f;
+    if (processor->action_data_1 == 1 || processor->speeder_ahead_latched == 0)
+        object->movement_spline_offset.y =
+            SeekValF(object->movement_spline_offset.y, speeder_level_height, speeder_level_height_lerpf);
+    else
+        object->movement_spline_offset.y = SeekValF(object->movement_spline_offset.y, 0.0f, speeder_level_height_lerpf);
+    if (processor->action_data_2 > object->current_hp) {
+        processor->action_data_2 = object->current_hp;
+        ++speeder_hitpoints_lost;
+    }
+    if (object->character_context != -1)
+        return 0;
+    if (processor->action_data_1 != static_cast<u8>(set_speedermode)) {
+        processor->action_data_1 = set_speedermode;
+        processor->action_timer = set_speedermode == 1 ? 0.25f : 0.0f;
+    }
+    switch (processor->action_data_1) {
+        case 0:
+            if (players_going_forward == 0) {
+                processor->action_timer = 0.0f;
+                break;
+            }
+            if (distance > speedervals[0].distance * 0.8f || processor->action_timer > 0.0f) {
+                if (speeder_hitpoints_lost <= 1) {
+                    processor->action_timer += elapsed;
+                    if (!(processor->action_timer > speeder_ahead_time))
+                        break;
+                }
+                set_speedermode = 1;
+                processor->action_data_1 = 1;
+                processor->action_timer = 0.0f;
+                speeder_hitpoints_lost = 0;
+                speeder_mode_ahead_timer = 0.0f;
+                object->pad_gamepad->buttons_down_08 |= GAMEPAD_JUMP;
+            }
+            break;
+        case 1:
+            if (players_going_forward == 0)
+                goto reset_mode;
+            if (distance < 0.0f) {
+                set_speedermode = 2;
+                processor->action_data_1 = 2;
+                goto reset_timers;
+            }
+            processor->action_timer -= elapsed;
+            if (!(processor->action_timer > 0.0f)) {
+                if (processor->action_timer < -1.0f && player->character_context == 0x36) {
+                    set_speedermode = 3;
+                    processor->action_data_1 = 3;
+                    goto reset_timers;
+                }
+            } else if (processor->action_timer < 0.0f) {
+                processor->action_timer = 0.0f;
+                object->pad_gamepad->buttons_down_08 |= GAMEPAD_JUMP;
+            }
+            break;
+        case 2:
+            if (players_going_forward == 0)
+                goto reset_mode;
+            if (player->character_context == 0x36) {
+                set_speedermode = 3;
+                processor->action_data_1 = 3;
+                processor->action_timer = 0.0f;
+                speeder_hitpoints_lost = 0;
+                speeder_mode_ahead_timer = 0.0f;
+            }
+            if (speeder_shootrate > 0.0f) {
+                const f32 half_interval = speeder_shootrate * 0.5f;
+                processor->action_timer -= elapsed;
+                if (processor->action_timer <= 0.0f) {
+                    const f32 random = NuRandFloat();
+                    processor->action_timer = half_interval + random * speeder_shootrate;
+                    if (can_fire != 0)
+                        object->pad_gamepad->buttons_down_08 |= GAMEPAD_ACTION;
+                }
+            }
+            break;
+        case 3:
+            if (speeder_hitpoints_lost <= 2) {
+                processor->action_timer += elapsed;
+                if (!(processor->action_timer > speeder_midrange_time))
+                    break;
+            }
+        reset_mode:
+            set_speedermode = 0;
+            processor->action_data_1 = 0;
+        reset_timers:
+            processor->action_timer = 0.0f;
+            speeder_hitpoints_lost = 0;
+            speeder_mode_ahead_timer = 0.0f;
+            break;
+    }
+    return 0;
 }
 
 void SpeederChaseA_Update(WORLDINFO_s *world) {

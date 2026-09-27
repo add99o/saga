@@ -1,57 +1,37 @@
-#include "decomp.h"
-#include "globals.h"
-#include "legoapi/legoapi_types.h"
 #include "legoapi/menus/screens/movies.h"
-#include "nu2api/nucore/nustring.h"
+#include "globals.h"
+#include "legoapi/core/input/gamepads.h"
+#include "legoapi/legoapi_types.h"
 #include "nu2api/nu3d/android/nufmv_android.h"
+#include "nu2api/nucore/nustring.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nufile/nufpar.h"
+#include "nu2api/nusound/nusound.h"
 
 struct AIROW_s;
 struct nuqthdr_s;
 struct nunativegscene_s;
 struct SHOPINPUT;
 
-extern "C" void NuSound3KillAllAudio(void);
-i32 GamePads_SkipMovie();
-
-static char (*MovieList)[32];
-static i32 MovieCount;
 static i32 movie_skipped;
 static f32 MoviePlayTime;
 static f32 MovieFrameTime;
 static i32 (*MovieInputFn)();
-static i32 Movie_CallBack();
 
-__attribute__((force_align_arg_pointer)) i32 Movie_Play(char *movie, variptr_u *bufferStart, variptr_u *bufferEnd,
-               float frameTime, i32 (*inputFn)(),
-               float volume) {
-    movie_skipped = 0;
-    char moviePath[256];
-    char subtitlePath[256];
-    NuStrCpy(moviePath, const_cast<char *>("movies\\"));
-    if (PAL != 0) {
-        NuStrCat(moviePath, const_cast<char *>("pal\\"));
-    } else {
-        NuStrCat(moviePath, const_cast<char *>("ntsc\\"));
+static i32 Movie_CallBack() {
+    i32 skipped = MovieInputFn != NULL ? MovieInputFn() : 0;
+    if (skipped != 0) {
+        skipped = MoviePlayTime >= 0.2f;
+        if (skipped != 0) {
+            movie_skipped = 1;
+        }
     }
-    NuStrCat(moviePath, movie);
-    NuStrCpy(subtitlePath, moviePath);
-    NuStrCat(subtitlePath, const_cast<char *>(".sub"));
-    NuStrCat(moviePath, const_cast<char *>(".pss"));
-    if (NOSOUND == 0) {
-        NuSound3KillAllAudio();
-    }
-    MovieInputFn = inputFn != NULL ? inputFn : GamePads_SkipMovie;
-    MoviePlayTime = 0.0f;
-    MovieFrameTime = frameTime;
-    if (bufferStart == NULL || bufferEnd == NULL) {
-        return 0;
-    }
-    i32 result = NuFmvPlayV(2, moviePath, 3, 4, 2, 7, Movie_CallBack, 10, 0, 14, &volume, 8, bufferStart,
-                            bufferEnd->addr, 5, subtitlePath, 1);
-    return result != 0 ? (movie_skipped == 1 ? 1 : 2) : 0;
+    MoviePlayTime += MovieFrameTime;
+    return skipped;
 }
+
+static char (*MovieList)[32];
+static i32 MovieCount;
 
 void Movies_ConfigureList(char *path, variptr_u *buf, variptr_u *buf_end) {
     (void)buf_end;
@@ -89,12 +69,36 @@ done:
     }
 }
 
-static __used__ i32 Movie_CallBack() {
-    i32 skip = 0;
-    if (MovieInputFn != NULL && MovieInputFn() != 0 && MoviePlayTime >= 0.2f) {
-        movie_skipped = 1;
-        skip = 1;
+i32 Movie_Play(char *name, VARIPTR *buffer, VARIPTR *buffer_end, f32 frame_time, i32 (*input_fn)(), f32 volume) {
+    char path[256];
+    char subtitles[256];
+    movie_skipped = 0;
+    NuStrCpy(path, "movies\\");
+    if (PAL != 0) {
+        NuStrCat(path, "pal\\");
+    } else {
+        NuStrCat(path, "ntsc\\");
     }
-    MoviePlayTime += MovieFrameTime;
-    return skip;
+    NuStrCat(path, name);
+    NuStrCpy(subtitles, path);
+    NuStrCat(subtitles, ".sub");
+    NuStrCat(path, ".pss");
+    if (NOSOUND == 0) {
+        NuSound3KillAllAudio();
+    }
+    f32 movie_volume = volume;
+    MovieInputFn = input_fn;
+    MoviePlayTime = 0.0f;
+    MovieFrameTime = frame_time;
+    if (MovieInputFn == NULL) {
+        MovieInputFn = GamePads_SkipMovie;
+    }
+    if (buffer_end == NULL || buffer == NULL) {
+        return 0;
+    }
+    if (NuFmvPlayV(2, path, 3, 4, 2, 7, Movie_CallBack, 10, 0, 14, &movie_volume, 8, buffer, buffer_end->void_ptr, 5,
+                   subtitles, 1) == 0) {
+        return 0;
+    }
+    return movie_skipped != 0 ? 1 : 2;
 }
