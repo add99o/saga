@@ -438,8 +438,25 @@ void CustomiserMenu_Update(MENU_s *) {
     STUBBED();
 }
 
-void Customiser_PieceConfig(CUSTOMPIECE *, nufpar_s *) {
-    STUBBED();
+void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser) {
+    struct PieceConfigFlag {
+        const char *name;
+        u32 model_flags;
+        u32 gameplay_flags;
+    };
+    static PieceConfigFlag flags[] = {
+        {"bountyhunter", 0x01000000, 0}, {"jedi", 8, 0},
+        {"sith", 12, 2},              {"blaster", 0x00100080, 0x40000000},
+        {"alreadygotthat", 0, 0x10}, {"stormtrooperhelmet", 0, 0x40000},
+        {NULL, 0, 0},
+    };
+    for (PieceConfigFlag *entry = flags; entry->name != NULL; ++entry) {
+        if (NuStrICmp(parser->word_buf, entry->name) == 0) {
+            piece->model_flags |= entry->model_flags;
+            piece->gameplay_flags |= entry->gameplay_flags;
+            break;
+        }
+    }
 }
 
 i32 Customiser_MenuAvailable(CUSTOMISER *customiser) {
@@ -490,6 +507,18 @@ void Customiser_GetActiveWeirdoIndex(i32 *index, i32 *count) {
     *count = 2;
 }
 
-void Customise_GetToggleString(i32) {
-    STUBBED();
+extern i16 tCANCEL;
+extern i16 tEDITNAME;
+
+i32 Customise_GetToggleString(i32 player) {
+    i32 mode = CustomiseMode[player];
+    if (mode == 1) {
+        return tCANCEL;
+    }
+    if (mode != 0) {
+        do {
+            mode = (mode + 1) % 3;
+        } while (mode == 0);
+    }
+    return tEDITNAME;
 }

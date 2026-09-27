@@ -5,6 +5,7 @@
 #include "legoapi/core/input/qrand.h"
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nu3d/nuspecial.h"
+#include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nutrig.h"
 extern f32 FRAMETIME;
 extern i32 pause_rndr_on;
@@ -237,8 +238,14 @@ void FadeLoop_SetObj(nugscn_s *scene, char *name) {
     }
 }
 
-void FadeLoop_DrawObj(float) {
-    STUBBED();
+__attribute__((force_align_arg_pointer)) void FadeLoop_DrawObj(float alpha) {
+    if (FadeLoop_ObjScene != NULL && NuSpecialExistsFn(&FadeLoop_ObjHSpecial) != 0) {
+        NUVEC scale = {0.125f, 0.125f, 0.125f};
+        NUMTX matrix __attribute__((aligned(16)));
+        NuMtxSetScale(&matrix, &scale);
+        matrix.m32 = 1.0f;
+        NuSpecialDrawAtAlpha(&FadeLoop_ObjHSpecial, &matrix, alpha);
+    }
 }
 
 i32 FadeLoop_UsingObj() {

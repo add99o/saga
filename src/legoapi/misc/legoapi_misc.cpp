@@ -99,8 +99,36 @@ void ClearLastSafeTakeOver(GameObject_s *object) {
     }
 }
 
-void GetNativeTextureFormatName(NUTEXFORMAT) {
-    STUBBED();
+const char *GetNativeTextureFormatName(NUTEXFORMAT format) {
+    switch (format) {
+    case 1: return "NUTEX_FMT_DXT1";
+    case 2: return "NUTEX_FMT_DXT1A";
+    case 6: return "NUTEX_FMT_DXT5";
+    case 7: return "NUTEX_FMT_8888";
+    case 8: return "NUTEX_FMT_A16B16G16R16F";
+    case 9: return "NUTEX_FMT_A32B32G32R32F";
+    case 16: return "NUTEX_FMT_L8";
+    case 17: return "NUTEX_FMT_ETC1";
+    case 20: return "NUTEX_FMT_PVRTC1_2_RGB";
+    case 21: return "NUTEX_FMT_PVRTC1_2";
+    case 22: return "NUTEX_FMT_PVRTC1_4_RGB";
+    case 23: return "NUTEX_FMT_PVRTC1_4";
+    case 24: return "NUTEX_FMT_ATITC_RGBA";
+    case 25: return "NUTEX_FMT_ATITC_RGB";
+    case 102: return "NUTEX_FMT_RT_RGBX32";
+    case 103: return "NUTEX_FMT_RT_RGBA32";
+    case 105: return "NUTEX_FMT_RT_D24S8";
+    case 110: return "NUTEX_FMT_RT_A16B16G16R16";
+    case 111: return "NUTEX_FMT_RT_R32F";
+    case 112: return "NUTEX_FMT_RT_ZBUFFER";
+    case 113: return "NUTEX_FMT_RT_SHADOWMAP_COLOR";
+    case 114: return "NUTEX_FMT_RT_SHADOWMAP_DEPTH";
+    case 116: return "NUTEX_FMT_RT_G16R16F";
+    case 117: return "NUTEX_FMT_RT_HDR";
+    case 118: return "NUTEX_FMT_RT_A16B16G16R16F";
+    case 119: return "NUTEX_FMT_RT_A2R10G10B10";
+    default: return "Not defined";
+    }
 }
 
 char *IToX(char *output, i32 value);

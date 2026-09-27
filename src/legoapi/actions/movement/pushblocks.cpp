@@ -36,8 +36,15 @@ void ResetSinglePushBlockHeight(WORLDINFO_s *, pushblock_s *, i32);
 i32 TerrainBlockOnBlock(WORLDINFO_s *, pushblock_s *, NUVEC *, f32 *);
 f32 GameShadow(GameObject_s *, NUVEC *, f32, i32);
 
-void KnockPushBlock(pushblock_s *, nuvec_s *) {
-    STUBBED();
+__attribute__((force_align_arg_pointer)) void KnockPushBlock(pushblock_s *block, nuvec_s *direction) {
+    if (block == NULL) {
+        return;
+    }
+    block->velocity.x = -direction->x;
+    block->velocity.y = -direction->y;
+    block->velocity.z = -direction->z;
+    NuVecScale(&block->velocity, &block->velocity, 0.005f);
+    block->runtime_flags_0c8 |= 0x80;
 }
 
 i32 NewBlockAction(GameObject_s *object) {
