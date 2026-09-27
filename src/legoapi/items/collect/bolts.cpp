@@ -1585,9 +1585,60 @@ static __used__ void ProcessStarFighter(starfighter_s *, quickboltinfo *) {
     STUBBED();
 }
 
-static __used__ void StarFighterAlign(starfighter_s *, _vuv_s *, f32, i32) {
-    STUBBED();
+#if defined(__i386__) && defined(__SSE__)
+#define STARFIGHTER_ALIGN_CALL __attribute__((regparm(2), sseregparm, force_align_arg_pointer))
+#else
+#define STARFIGHTER_ALIGN_CALL
+#endif
+static __used__ STARFIGHTER_ALIGN_CALL void
+StarFighterAlign(starfighter_s *fighter, _vuv_s *target_direction, f32 transition, i32 fixed_roll) {
+    NUMTX *transform = reinterpret_cast<NUMTX *>(fighter);
+    NUVEC *target = reinterpret_cast<NUVEC *>(target_direction);
+    NUVEC direction;
+    NuVecInvMtxRotate(&direction, target, transform);
+
+    i32 yaw = static_cast<i16>(NuAtan2D(direction.x, direction.z));
+    *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(fighter) + 0xc4) = yaw;
+    NuVecRotateY(&direction, &direction, -yaw);
+    i32 pitch = static_cast<i16>(NuAtan2D(direction.y, direction.z));
+    *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(fighter) + 0xc0) = pitch;
+    NuMtxPreRotateY(transform, yaw);
+    NuMtxPreRotateX(transform, -pitch);
+
+    if (fixed_roll != 0) {
+        NuMtxPreRotateZ(transform, 0x200);
+        return;
+    }
+
+    i32 target_yaw = static_cast<i16>(NuAtan2D(target->x, target->z));
+    NUVEC roll_direction;
+    NuVecRotateY(&roll_direction, target, -target_yaw);
+    i32 target_pitch = static_cast<i16>(NuAtan2D(roll_direction.y, roll_direction.z));
+    NUVEC roll_axis = {1.0f, 0.0f, 0.0f};
+    i32 banking = static_cast<i16>(static_cast<i32>(*reinterpret_cast<f32 *>(reinterpret_cast<u8 *>(fighter) + 0x8c)));
+    NuVecRotateZ(&roll_axis, &roll_axis, banking + 0x4000);
+    NuVecRotateX(&roll_axis, &roll_axis, -target_pitch);
+    NuVecRotateY(&roll_axis, &roll_axis, target_yaw);
+    NuVecInvMtxRotate(&roll_axis, &roll_axis, transform);
+
+    f32 roll = static_cast<f32>(static_cast<i16>(NuAtan2D(roll_axis.x, roll_axis.y)));
+    f32 maximum_roll = 24000.0f * FRAMETIME;
+    if (roll > maximum_roll)
+        roll = static_cast<f32>(static_cast<i16>(static_cast<i32>(maximum_roll)));
+    f32 minimum_roll = -24000.0f * FRAMETIME;
+    if (roll < minimum_roll)
+        roll = static_cast<f32>(static_cast<i16>(static_cast<i32>(minimum_roll)));
+
+    i32 applied_roll = 0;
+    if (transition <= 2.0f) {
+        if (transition > 1.0f)
+            applied_roll = -static_cast<i16>(static_cast<i32>((2.0f - transition) * roll));
+        else
+            applied_roll = -static_cast<i16>(static_cast<i32>(roll));
+    }
+    NuMtxPreRotateZ(transform, applied_roll);
 }
+#undef STARFIGHTER_ALIGN_CALL
 
 void BoltTypes_Init(WORLDINFO_s *world) {
     BOLTTYPE_s *type = BoltSys->types;
