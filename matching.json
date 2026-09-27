@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.20592,
+    "fuzzy_match_percent": 64.21304,
     "total_code": "4722419",
-    "matched_code": "517077",
-    "matched_code_percent": 10.9494095,
+    "matched_code": "517114",
+    "matched_code_percent": 10.950192,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6240,
-    "matched_functions_percent": 46.36303,
+    "matched_functions": 6241,
+    "matched_functions_percent": 46.37046,
     "total_units": 1
   },
   "text": {
@@ -68991,7 +68991,7 @@
           "address": 1785920,
           "offset": 895952,
           "size": 3429,
-          "match_percent": 0.560748
+          "match_percent": 9.461949
         },
         {
           "name": "_Z13MenuInitClipsP6MENU_s",
@@ -69079,7 +69079,7 @@
           "address": 2449440,
           "offset": 1559472,
           "size": 1574,
-          "match_percent": 82.143814
+          "match_percent": 82.12709
         },
         {
           "name": "_Z20MenuUpdateEndMissionP6MENU_s",
@@ -69175,7 +69175,7 @@
           "address": 3831120,
           "offset": 2941152,
           "size": 37,
-          "match_percent": 14.0
+          "match_percent": 100.0
         },
         {
           "name": "RenderFileSel2",
