@@ -2328,7 +2328,8 @@ i32 RandomIDFromFlags(u32 model_flags, u32 game_flags, i32 require_hat, APICHARA
         if (excluded != NULL && InModelList(excluded, id, NULL) != 0) {
             continue;
         }
-        if (Game_Customiser != NULL && (Game_Customiser->field6c_0x6c == id || Game_Customiser->field6e_0x6e == id)) {
+        if (Game_Customiser != NULL &&
+            (Game_Customiser->character_ids[0] == id || Game_Customiser->character_ids[1] == id)) {
             continue;
         }
         GAMECHARACTERDATA *game_character = character->game_character;

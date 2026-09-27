@@ -4539,3 +4539,82 @@ two decline, and no exact matches change. The declines are main's imported
 `PushCode` reconstruction (**6.72% to 0%**) and the **0.035-point** `PodDust`
 collateral change above. Do not replace the newly restored push behavior
 with a stub to recover its accidental score. No new agents are started.
+
+## Batch 85: customiser configuration and complete canonical allocation
+
+Recover the 3,117-byte `Customiser_Configure` at `0x4a1cc0` and its local
+category lookup in the existing `-O2` owner. Correct the public return from
+`void` to `CUSTOMISER *`, and the default availability callback from `bool`
+to `i32`. The latter retains its 100% score. Retail returns null for two
+invalid character IDs, an existing singleton, parser creation failure, or no
+pieces; it does not return the existing singleton.
+
+Fix the structural prerequisites rather than allocating from the old
+recovered prefix: retail clears `0xd18` bytes, not `0xc50`. Complete
+`CUSTOMISER` with locator indices, X/Y offsets and the trailing state range,
+using target size/offset assertions. Recover the initialized piece ID fields
+and the original nine-row `CustomSetData` table, including its nonzero byte
+tags and shared-scene names. Replace the unrelated padded `GAME_CUSTOMISER_s`
+view with `CUSTOMISER *` throughout the singleton's consumers. The old view
+would read character IDs from a fixed byte prefix on pointer-wide hosts.
+
+Preserve parser command order, the 440-piece limit, all flag/character/variant
+keywords, optional extension/weapon callbacks, signed narrowing, locator and
+layer bounds, and stable grouping of piece records into nine categories.
+Empty-token lines terminate parsing. Unknown lines/categories are skipped.
+Names are copied before publishing the arena cursor. Allocate typed runtime
+records with their actual alignment/size on native builds; the Android
+allocation retains four-byte alignment and the original strides. An absent
+save gets a four-byte-rounded serialized allocation; unrelated save bytes
+remain untouched. Repeated default flags overwrite a side's selection until
+both sides have been found, after which that category's scan stops.
+
+The first source form improves **1.033113% to 35.715233%**. One bounded trial
+marks the private category lookup ordinary `inline`, allowing GCC to perform
+partial inlining as in retail. Retain it: configuration reaches **44.303310%**,
+and the naturally generated `.part.0` helper improves **0% to 61.880950%**.
+Do not hand-author the clone or its private register ABI. The compiler still
+chooses a different split point and frame layout; no attributes or compiler
+flags are added. `Customiser_FindPieceByName` improves **96.594200% to 100%**.
+The final linked unit raises fuzzy matching **64.958600% to 64.989160%**,
+with eight improved functions, no regressions and no exact matches lost.
+
+NDK x86 and full-global 64-bit ASan/UBSan each pass **198,474 cases** covering
+all 440-piece boundaries, all arena alignments, both save-allocation modes,
+optional callbacks, full default-flag combinations, keyword parsing, signed
+IDs/variants, locator/layer bounds, singleton/failure exits, category data,
+pointer identity, full runtime/save memory images and sentinel preservation.
+Parser/string/character services are fixture implementations; the real
+configuration/default-copy bodies run. Final target/native builds and all
+five repository checks pass. The caller that wires this configuration into
+game startup is still missing, so this is not full customiser integration.
+
+## Batch 86: terrain cube impact
+
+Recover the 2,128-byte `CubeImpact` at `0x3855d0`. Replace the no-argument
+stub with the verified C-linkage signature: current and previous matrices,
+normal, scale and output point. Move the body from the terrain stub collector
+beside its original terrain neighbors, preserving both owners' `-O3` mode.
+The original constant table supplies the eight signed unit-cube corners.
+
+Transform every corner first through the previous matrix and then in-place
+through the current matrix, with homogeneous input W zero. Select the first
+strictly closest corner below 10,000 whose current normal projection exceeds
+its previous projection; default to corner zero if none qualifies. Preserve
+strict ties, unordered comparisons, callback-visible normal reloads, and the
+final scale-plus-current-translation XYZ writes. Do not cache state across
+transform callbacks or add speculative null handling.
+
+The first ordinary C++ body improves **1.037037% to 99.555560%**. GCC naturally
+unrolls the loop and realigns the stack. The remaining frame/temporary-slot
+differences do not justify alignment or register hints. Overall fuzzy matching
+rises **64.989160% to 65.033560%**, with no other scores or exact matches changed.
+
+NDK x86 and full-global 64-bit ASan/UBSan each pass **173,032 cases** covering
+all selected corners, threshold neighbors, strict ties, infinities/NaNs,
+positive/negative/zero scales, random matrices, shared matrix pointers,
+output-normal aliasing, all 16 callback identities/order, callback mutations
+and unchanged surrounding bytes. The transform callback is a recording math
+implementation; the real impact body runs. Target/native builds and all five
+repository checks pass. No reconstructed caller currently invokes this helper,
+so no end-to-end terrain or visual validation is claimed.

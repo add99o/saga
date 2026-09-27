@@ -801,7 +801,8 @@ struct CUSTOMISER {
     CUSTOMISESAVE_s *save;             // 0x174
     ANIMPACKET_s animation_packets[2]; // 0x178
     i32 model_texture_ids[18];         // 0x208
-    u8 pad_0x250[0x25c - 0x250];
+    i8 locator_indices[9];             // 0x250; -1 disables the category locator
+    u8 pad_0x259[0x25c - 0x259];
     i8 layer_indices[9]; // 0x25c; hierarchy layers shared by both preview characters
     u8 pad_0x265[0x268 - 0x265];
     NUMTX joint_matrices[2][16]; // 0x268
@@ -811,11 +812,25 @@ struct CUSTOMISER {
     f32 animation_values[2];     // 0xa70
     u8 pad_0xa78[0xc28 - 0xa78];
     i16 default_pieces[2][10]; // 0xc28; nine saved pieces plus one unused entry per character
+    f32 locator_x_offsets[9];  // 0xc50
+    f32 locator_y_offsets[9];  // 0xc74
+    u8 unknown_c98[0xd10 - 0xc98];
+    u8 field_0xd10;
+    u8 field_0xd11;
+    u8 field_0xd12;
+    u8 field_0xd13;
+    u8 unknown_d14[2];
+    u8 field_0xd16;
+    u8 field_0xd17;
 };
 DECOMP_ASSERT(offsetof(CUSTOMISER, piece_sets) == 0x24, "CUSTOMISER piece arrays");
 DECOMP_ASSERT(offsetof(CUSTOMISER, piece_counts) == 0x48, "CUSTOMISER piece counts");
 DECOMP_ASSERT(offsetof(CUSTOMISER, piece_available) == 0x170, "CUSTOMISER piece availability callback");
-DECOMP_ASSERT(sizeof(CUSTOMISER) == 0xc50, "CUSTOMISER recovered prefix size");
+DECOMP_ASSERT(sizeof(CUSTOMISER) == 0xd18, "CUSTOMISER size");
+DECOMP_ASSERT(offsetof(CUSTOMISER, locator_indices) == 0x250, "CUSTOMISER locator indices");
+DECOMP_ASSERT(offsetof(CUSTOMISER, locator_x_offsets) == 0xc50, "CUSTOMISER locator X offsets");
+DECOMP_ASSERT(offsetof(CUSTOMISER, locator_y_offsets) == 0xc74, "CUSTOMISER locator Y offsets");
+DECOMP_ASSERT(offsetof(CUSTOMISER, field_0xd10) == 0xd10, "CUSTOMISER trailing state");
 DECOMP_ASSERT(offsetof(CUSTOMISER, save) == 0x174, "CUSTOMISER save offset");
 DECOMP_ASSERT(offsetof(CUSTOMISER, default_pieces) == 0xc28, "CUSTOMISER default pieces offset");
 DECOMP_ASSERT(offsetof(CUSTOMISER, character_ids) == 0x6c, "CUSTOMISER character IDs offset");
@@ -858,7 +873,8 @@ struct CUSTOMPIECE {
         u8 unknown_08[0xa];
         struct {
             i16 weapon_model;
-            u8 reserved_0a[0x7];
+            i16 unknown_indices_0a[3];
+            i8 field_0x10;
             i8 collection_type; // 0x11, -1 means no collection category requirement
         };
     };

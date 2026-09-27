@@ -638,10 +638,6 @@ extern "C" {
         return closest_index;
     }
 
-    void CubeImpact(void) {
-        STUBBED();
-    }
-
     void DebFreeAllCreatedEffects(void) {
         for (i32 i = 0; i < maxdebkeys; ++i) {
             if (debkeydata[i].effect_index != 0 && debkeydata[i].field_2f9 != 0) {

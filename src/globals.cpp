@@ -380,7 +380,7 @@ ARCADE_MODE_s Arcade_Mode[3] = {
     {&tARCADEMODE_COLLECT, 500000, 0x24},
     {&tARCADEMODE_HUNT, 0, 0x58},
 };
-GAME_CUSTOMISER_s *Game_Customiser = NULL;
+CUSTOMISER *Game_Customiser = NULL;
 AREASAVE_s *Game_AreaSave = NULL;
 u8 *Game_CharacterSave = NULL;
 APICHARACTERMODELLIST_s *CurrentCList = NULL;

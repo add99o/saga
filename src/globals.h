@@ -312,11 +312,7 @@ struct ARCADE_MODE_s {
 };
 DECOMP_ASSERT(sizeof(ARCADE_MODE_s) == 0xc, "Arcade mode ABI");
 
-struct GAME_CUSTOMISER_s {
-    undefined field0_0x0[0x6c];
-    i16 field6c_0x6c;
-    i16 field6e_0x6e;
-};
+struct CUSTOMISER;
 
 // ----------------------------------------------------------------------
 // Progress table for the shared animation system.
@@ -728,7 +724,7 @@ extern COLLECTION_s BountyHunterCollection;
 extern f32 COLLECTION_DEFAULTSCALE;
 extern ARCADEITEM_s ArcadeItem;
 extern ARCADE_MODE_s Arcade_Mode[];
-extern GAME_CUSTOMISER_s *Game_Customiser;
+extern CUSTOMISER *Game_Customiser;
 extern APICHARACTERMODELLIST_s FreePlayModelList[];
 extern APICHARACTERMODELLIST_s Hub_ModelList[];
 extern APICHARACTERMODELLIST_s *CurrentCList;

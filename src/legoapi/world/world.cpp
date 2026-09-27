@@ -133,7 +133,7 @@ void WorldInfo_Dump(WORLDINFO *world) {
         world->mech_auto_jump_manager = NULL;
     }
     MechSystems::Get()->ExitLevel(world);
-    Customiser_DumpAll(reinterpret_cast<CUSTOMISER *>(Game_Customiser), world);
+    Customiser_DumpAll(Game_Customiser, world);
     if (world->cutscene_sys != NULL) {
         for (i32 index = 0; index < world->cutscene_sys->count; ++index)
             ClearLinkedCutSceneMusic(world->cutscene_sys->cuts[index]->instance);

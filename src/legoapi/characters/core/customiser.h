@@ -23,6 +23,10 @@ void CustomiserMenu_End();
 i32 Customise_GetToggleString(i32 index);
 void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser);
 i32 Customiser_PieceAvailable(CUSTOMPIECE *piece);
+CUSTOMISER *Customiser_Configure(char *filename, VARIPTR *buffer, VARIPTR *end, i32 first_character,
+                                 i32 second_character, i32 (*available)(CUSTOMPIECE *),
+                                 void (*configure_piece)(CUSTOMPIECE *, nufpar_s *), i32 (*weapon_from_name)(char *),
+                                 CUSTOMISESAVE_s *save, i16 *animations);
 CUSTOMPIECE *Customiser_FindPieceByName(CUSTOMISER *customiser, char *name, i32 *category, i32 *index);
 void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object, i32 animation, i32 mode, float scale);
 extern i32 customiser_quit;

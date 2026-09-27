@@ -21,6 +21,7 @@
 #include "nu2api/nucore/nuptrblock.h"
 #include "nu2api/nufile/nufile.h"
 #include "nu2api/nufile/nufilepak.h"
+#include "nu2api/nufile/nufpar.h"
 #include "nu2api/nuplatform/nuplatform.h"
 #include <string.h>
 
@@ -29,11 +30,45 @@ DECOMP_ASSERT(offsetof(CUSTOMPIECERESOURCE, texture_id) == 0x14, "Customiser tex
 DECOMP_ASSERT(offsetof(CUSTOMPIECERESOURCE, character_model) == 0x1c, "Customiser model offset");
 static CUSTOMPIECERESOURCE Accessory[2][9];
 
-static __used__ bool Customiser_PieceAvailable_Default(CUSTOMPIECE *piece) {
+static CUSTOMPIECECATEGORY CustomSetData[9] = {
+    {"hat_hair", 1, -1, {1, 0}, "chars\\weirdo\\all\\hat_hair_all.gsc"},
+    {"head", 1, -1, {0, 0}, "chars\\weirdo\\all\\head_all.gsc"},
+    {NULL, 0, -1, {0, 0}, NULL},
+    {"arm", 0, 2, {1, 0}, NULL},
+    {"hand", 0, 4, {0, 0}, NULL},
+    {"cape", 0, 3, {2, 0}, NULL},
+    {"body", 0, 1, {3, 0}, NULL},
+    {"under_pants", 0, 6, {1, 0}, NULL},
+    {"leg", 0, 5, {2, 0}, NULL},
+};
+
+static inline i32 Customiser_FindSetFromName(char *name) {
+    if (NuStrICmp(name, "hathair") == 0)
+        return 0;
+    if (NuStrICmp(name, "head") == 0)
+        return 1;
+    if (NuStrICmp(name, "cape") == 0)
+        return 5;
+    if (NuStrICmp(name, "body") == 0)
+        return 6;
+    if (NuStrICmp(name, "arms") == 0)
+        return 3;
+    if (NuStrICmp(name, "hands") == 0)
+        return 4;
+    if (NuStrICmp(name, "weapon") == 0)
+        return 2;
+    if (NuStrICmp(name, "underpants") == 0)
+        return 7;
+    if (NuStrICmp(name, "legs") == 0)
+        return 8;
+    return -1;
+}
+
+static i32 Customiser_PieceAvailable_Default(CUSTOMPIECE *piece) {
     if ((piece->availability_flags & 0x180) != 0 && Game_100PercentComplete() == 0) {
-        return false;
+        return 0;
     }
-    return true;
+    return 1;
 }
 
 void Customiser_SetAnimsToLoad(CUSTOMISER *customiser, i32 enabled) {
@@ -581,9 +616,188 @@ void Customiser_CopyDefaultPiecesToSave(CUSTOMISER *customiser, CUSTOMISESAVE_s 
     save->secondary_pieces[8] = customiser->default_pieces[1][8];
 }
 
-void Customiser_Configure(char *, variptr_u *, variptr_u *, i32, i32, i32 (*)(CUSTOMPIECE *),
-                          void (*)(CUSTOMPIECE *, nufpar_s *), i32 (*)(char *), CUSTOMISESAVE_s *, i16 *) {
-    STUBBED();
+CUSTOMISER *Customiser_Configure(char *filename, VARIPTR *buffer, VARIPTR *, i32 first_character, i32 second_character,
+                                 i32 (*available)(CUSTOMPIECE *), void (*configure_piece)(CUSTOMPIECE *, nufpar_s *),
+                                 i32 (*weapon_from_name)(char *), CUSTOMISESAVE_s *save, i16 *animations) {
+    if (first_character == -1 && second_character == -1)
+        return NULL;
+    if (Game_Customiser != NULL)
+        return NULL;
+    NUFPAR *parser = NuFParCreate(filename);
+    if (parser == NULL)
+        return NULL;
+
+    i32 locators[9], layers[9];
+    f32 x_offsets[9] = {}, y_offsets[9] = {};
+    u8 categories[440];
+    CUSTOMPIECE pieces[440];
+    for (i32 category = 0; category < 9; ++category) {
+        locators[category] = -1;
+        layers[category] = -1;
+    }
+    memset(pieces, 0, sizeof(pieces));
+    char *names = buffer->char_ptr;
+    i32 count = 0;
+    while (NuFParGetLine(parser) != 0) {
+        if (NuFParGetWord(parser) == 0)
+            break;
+        i32 category = Customiser_FindSetFromName(parser->word_buf);
+        if (category != -1 && NuFParGetWord(parser) != 0) {
+            categories[count] = category;
+            CUSTOMPIECE *piece = &pieces[count];
+            piece->name = names;
+            piece->field_0x10 = -1;
+            piece->collection_type = -1;
+            piece->availability_flags = 0;
+            piece->model_flags = 0;
+            piece->gameplay_flags = 0;
+            piece->weapon_model = -1;
+            piece->character_id = -1;
+            piece->icon_character_id = -1;
+            piece->unknown_indices_0a[0] = -1;
+            piece->unknown_indices_0a[1] = -1;
+            piece->unknown_indices_0a[2] = -1;
+            NuStrCpy(names, parser->word_buf);
+            names += NuStrLen(parser->word_buf) + 1;
+            NuStrLen(parser->word_buf);
+            if (CustomSetData[category].name == NULL && weapon_from_name != NULL)
+                piece->weapon_model = weapon_from_name(piece->name);
+            while (NuFParGetWord(parser) != 0) {
+                if (NuStrICmp(parser->word_buf, "from") == 0) {
+                    if (NuFParGetWord(parser) != 0)
+                        piece->character_id = CharIDFromName(parser->word_buf);
+                } else if (NuStrICmp(parser->word_buf, "icon_from") == 0) {
+                    if (NuFParGetWord(parser) != 0)
+                        piece->icon_character_id = CharIDFromName(parser->word_buf);
+                } else if (NuStrICmp(parser->word_buf, "from_variant") == 0) {
+                    if (NuFParGetWord(parser) != 0)
+                        piece->collection_type = CharVariant_Find(parser->word_buf);
+                } else if (NuStrICmp(parser->word_buf, "no_hat") == 0) {
+                    piece->availability_flags |= 1;
+                } else if (NuStrICmp(parser->word_buf, "hat_off") == 0) {
+                    piece->availability_flags |= 0x20;
+                } else if (NuStrICmp(parser->word_buf, "cape_off") == 0) {
+                    piece->availability_flags |= 0x40;
+                } else if (NuStrICmp(parser->word_buf, "helmet") == 0) {
+                    piece->availability_flags |= 2;
+                } else if (NuStrICmp(parser->word_buf, "big_head") == 0) {
+                    piece->availability_flags |= 4;
+                } else if (NuStrICmp(parser->word_buf, "big_hat") == 0) {
+                    piece->availability_flags |= 8;
+                } else if (NuStrICmp(parser->word_buf, "not_demo") == 0) {
+                    piece->availability_flags |= 0x10;
+                } else if (NuStrICmp(parser->word_buf, "100_percent") == 0) {
+                    if (NuFParGetWord(parser) != 0) {
+                        i32 side = NuAToI(parser->word_buf);
+                        if (side == 1)
+                            piece->availability_flags |= 0x80;
+                        else if (side == 2)
+                            piece->availability_flags |= 0x100;
+                    }
+                } else if (NuStrICmp(parser->word_buf, "default") == 0) {
+                    if (NuFParGetWord(parser) != 0) {
+                        i32 side = NuAToI(parser->word_buf);
+                        if (side == 1)
+                            piece->availability_flags |= 0x200;
+                        else if (side == 2)
+                            piece->availability_flags |= 0x400;
+                    }
+                } else if (configure_piece != NULL) {
+                    configure_piece(piece, parser);
+                }
+            }
+            ++count;
+        } else if (NuStrICmp(parser->word_buf, "locator") == 0) {
+            if (NuFParGetWord(parser) != 0) {
+                category = Customiser_FindSetFromName(parser->word_buf);
+                if (category != -1) {
+                    i32 locator = NuFParGetInt(parser);
+                    locators[category] = static_cast<u32>(locator) < 16 ? locator : -1;
+                    if (static_cast<u32>(locator) < 16) {
+                        while (NuFParGetWord(parser) != 0) {
+                            if (NuStrICmp(parser->word_buf, "xoffset") == 0)
+                                x_offsets[category] = NuFParGetFloat(parser);
+                            else if (NuStrICmp(parser->word_buf, "yoffset") == 0)
+                                y_offsets[category] = NuFParGetFloat(parser);
+                        }
+                    }
+                }
+            }
+        } else if (NuStrICmp(parser->word_buf, "layer") == 0) {
+            if (NuFParGetWord(parser) != 0) {
+                category = Customiser_FindSetFromName(parser->word_buf);
+                if (category != -1) {
+                    i32 layer = NuFParGetInt(parser);
+                    layers[category] = static_cast<u32>(layer) < 32 ? layer : -1;
+                }
+            }
+        }
+        if (count >= 440)
+            break;
+    }
+    NuFParDestroy(parser);
+    if (count == 0)
+        return NULL;
+
+    // Retail uses four-byte arena alignment. Pointer-bearing native records
+    // need their real alignment and size, not the original i386 byte strides.
+    buffer->addr = ALIGN(reinterpret_cast<usize>(names), alignof(CUSTOMISER));
+    CUSTOMISER *customiser = static_cast<CUSTOMISER *>(buffer->void_ptr);
+    memset(customiser, 0, sizeof(*customiser));
+    buffer->addr = ALIGN(buffer->addr + sizeof(*customiser), alignof(CUSTOMPIECE));
+    customiser->character_ids[0] = first_character;
+    customiser->character_ids[1] = second_character;
+    customiser->piece_available = available != NULL ? available : Customiser_PieceAvailable_Default;
+    customiser->save = save;
+    customiser->animation_ids_to_load = reinterpret_cast<u16 *>(animations);
+    for (i32 category = 0; category < 9; ++category) {
+        customiser->categories[category] = &CustomSetData[category];
+        CUSTOMPIECE *output = static_cast<CUSTOMPIECE *>(buffer->void_ptr);
+        customiser->piece_sets[category] = output;
+        customiser->piece_counts[category] = 0;
+        customiser->locator_indices[category] = locators[category];
+        customiser->layer_indices[category] = layers[category];
+        customiser->locator_x_offsets[category] = x_offsets[category];
+        customiser->locator_y_offsets[category] = y_offsets[category];
+        for (i32 index = 0; index < count; ++index) {
+            if (categories[index] == category) {
+                memmove(output, &pieces[index], sizeof(*output));
+                ++customiser->piece_counts[category];
+                ++output;
+            }
+        }
+        if (customiser->piece_counts[category] > 0)
+            buffer->addr = ALIGN(reinterpret_cast<usize>(output), alignof(CUSTOMPIECE));
+    }
+    if (customiser->save == NULL) {
+        customiser->save = static_cast<CUSTOMISESAVE_s *>(buffer->void_ptr);
+        // The serialized save occupies a four-byte-rounded arena allocation.
+        buffer->addr = ALIGN(buffer->addr + sizeof(CUSTOMISESAVE_s), 4);
+    }
+    for (i32 category = 0; category < 9; ++category) {
+        i32 first_found = 0, second_found = 0;
+        const i32 piece_count = customiser->piece_counts[category];
+        for (i32 index = 0; index < piece_count && !(first_found && second_found); ++index) {
+            const u16 flags = customiser->piece_sets[category][index].availability_flags;
+            if ((flags & 0x200) != 0) {
+                customiser->default_pieces[0][category] = index;
+                first_found = 1;
+            }
+            if ((flags & 0x400) != 0) {
+                customiser->default_pieces[1][category] = index;
+                second_found = 1;
+            }
+        }
+    }
+    Customiser_CopyDefaultPiecesToSave(customiser, NULL);
+    customiser->field_0xd10 = 0;
+    customiser->field_0xd11 = 0;
+    customiser->field_0xd12 = 0;
+    customiser->field_0xd13 = 0;
+    customiser->field_0xd16 = 0;
+    customiser->field_0xd17 = 0;
+    Game_Customiser = customiser;
+    return customiser;
 }
 
 CUSTOMPIECE *Customiser_FindPieceByName(CUSTOMISER *customiser, char *name, i32 *category, i32 *index) {
