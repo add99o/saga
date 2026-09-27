@@ -6,10 +6,12 @@
 #include "legoapi/ai/core/legoai.h"
 #include "legoapi/audio/sfx.h"
 #include "legoapi/characters/core/players.h"
+#include "legoapi/characters/core/character.h"
 #include "legoapi/characters/motion.h"
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/gizmos/object/newblowup.h"
 #include "legoapi/gizmos/fx/gizmopickups.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/gizmos/object/gizpanel.h"
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/gizmos/traps/gizbombgen.h"
@@ -73,6 +75,8 @@ extern i16 BoltType_FindIDByNameWide(char *, WORLDINFO_s *) asm("_Z21BoltType_Fi
 static GameObject_s *Vader_obj;
 static GIZAIMESSAGE_s *Vader_ai_message;
 static u8 turretAliveCount;
+u8 drawLights;
+static GIZMOBLOWUP_s *classicBlowups[8];
 nuhspecial_s specialIcon;
 
 struct AIROW_s;
@@ -1160,12 +1164,35 @@ void AsteroidChaseA_Init(WORLDINFO_s *world) {
     NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
 }
 
-void AsteroidChaseB_Init(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseB_Init(WORLDINFO_s *world) {
+    NuSpecialFind(world->current_gscn, &LevHSpecial[0], "small_pop_bit1", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[1], "small_pop_bit2", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[2], "small_pop_bit3", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
+
+    memset(classicBlowups, 0, sizeof(classicBlowups));
+    i32 found = 0;
+    for (i32 index = 0; index < world->gizmo_blowup_count && found < 8; ++index) {
+        GIZMOBLOWUP_s *blowup = &world->gizmo_blowups[index];
+        if (NuStrIStr(blowup->name, const_cast<char *>("classic")) != NULL)
+            classicBlowups[found++] = blowup;
+    }
+
+    LevFlag[0] = 0;
+    LevArea[0] = AISysFindArea(WORLD->ai_sys, const_cast<char *>("In_Cave"));
+    drawLights = 0;
+    LevTime[0] = 0.0f;
+    LevTime[1] = 0.0f;
+    ResetFalconSpotLightsForChase();
 }
 
 void AsteroidChaseB_Draw(WORLDINFO_s *) {
-    STUBBED();
+    if (drawLights == 0)
+        return;
+    if (Player[0] != NULL)
+        DrawFalconSpotLightsForChase(Player[0]);
+    if (drawLights != 0 && Player[1] != NULL)
+        DrawFalconSpotLightsForChase(Player[1]);
 }
 
 void AsteroidChaseC_Init(WORLDINFO_s *) {
@@ -1197,8 +1224,56 @@ void AsteroidChaseA_Update(WORLDINFO_s *) {
     Asteroids_Update();
 }
 
-void AsteroidChaseB_Update(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseB_Update(WORLDINFO_s *world) {
+    Asteroids_Update();
+
+    for (i32 index = 0; index < 4; ++index) {
+        GIZMOBLOWUP_s *blowup = classicBlowups[index];
+        if (blowup == NULL)
+            continue;
+        const u8 bit = static_cast<u8>(1u << index);
+        if ((blowup->status_flags & 1) != 0) {
+            if ((LevFlag[0] & bit) == 0) {
+                LevFlag[0] |= bit;
+                AddMiscPickups(&blowup->position, -1, -1, 1);
+            }
+        } else if ((LevFlag[0] & bit) != 0) {
+            LevFlag[0] &= ~bit;
+        }
+    }
+
+    for (i32 slot = 0; slot < 2; ++slot) {
+        GameObject_s *object = Player[slot];
+        if (object == NULL || object->id != id_MILLENNIUMFALCON) {
+            LevTime[slot] = 0.0f;
+            continue;
+        }
+
+        bool in_cave = false;
+        if (LevArea[0] != NULL) {
+            const i32 area_index = static_cast<i32>(LevArea[0] - world->ai_sys->areas);
+            const i32 area_bit = static_cast<i32>(1u << (area_index & 31));
+            const u64 area_mask = static_cast<i64>(area_bit);
+            in_cave = (object->apiobj.ai_area_mask & area_mask) != 0;
+        }
+
+        if (in_cave) {
+            if (LevTime[slot] < 2.0f) {
+                LevTime[slot] += FRAMETIME;
+            } else {
+                LevTime[slot] = 0.0f;
+                object->field_0x1054 |= 8;
+                DrawFalconSpotLightsForChase(object);
+                drawLights = 1;
+            }
+        } else if (LevTime[slot] > 0.0f) {
+            LevTime[slot] -= FRAMETIME;
+        } else {
+            object->field_0x1054 &= ~8u;
+            drawLights = 0;
+            LevTime[slot] = 0.0f;
+        }
+    }
 }
 
 void AsteroidChaseC_Update(WORLDINFO_s *) {

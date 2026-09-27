@@ -4032,6 +4032,17 @@ static __used__ void DrawFalconSpotLights(GameObject_s *object) {
         spotLightB_zrot[object->apiobj.field_0x27c] -= 1.0f;
 }
 
+void DrawFalconSpotLightsForChase(GameObject_s *object) {
+    DrawFalconSpotLights(object);
+}
+
+void ResetFalconSpotLightsForChase(void) {
+    spotLightA_yrot[0] = spotLightA_yrot[1] = 0.0f;
+    spotLightA_zrot[0] = spotLightA_zrot[1] = 0.0f;
+    spotLightB_yrot[0] = spotLightB_yrot[1] = 0.5f;
+    spotLightB_zrot[0] = spotLightB_zrot[1] = 0.5f;
+}
+
 static __used__ void DisplayListMaterialClipUpdate(nudisplayscene_s *scene) {
     if (scene == NULL || scene->mtls == NULL || scene->mtls[0] == NULL)
         return;
