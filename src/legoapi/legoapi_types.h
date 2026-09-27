@@ -2098,7 +2098,8 @@ struct HOTHBATTLE_MELEE_s {
     i8 field_0x4;
     u8 field_0x5[3];
     HOTHBATTLE_MELEE_WAVE_s waves[4];
-    u8 reserved_0xa8[0x1c];
+    u8 reserved_0xa8[4];
+    GameObject_s *background_creatures[6];
     u8 creature_count;
     u8 reserved_0xc5[3];
 };

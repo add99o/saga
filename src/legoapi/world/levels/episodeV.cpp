@@ -67,6 +67,7 @@ void HothBattleE_UpdateWave();
 void HothBattle_Melee_init(HOTHBATTLE_MELEE_s *);
 void HothBattle_ManageBackgroundCreatures();
 i32 SpawnMeleeCreatureType(i32);
+AILOCATOR *getSpawnLocator(f32, char *);
 void UpdateTrooperCannons(WORLDINFO_s *);
 EXPLOSION *Detonate(NUVEC *, u16);
 extern "C" void NewPartRotation(PART_s *);
@@ -1069,7 +1070,88 @@ i32 isHothBattleWaveCreature(GameObject_s *object) {
 }
 
 void HothBattle_ManageBackgroundCreatures() {
-    STUBBED();
+    AILOCATORSET *spawn_set = AIPathFindLocatorSet(WORLD->ai_sys, "spawn");
+    if (NOAICREATURES != 0 || melee.field_0x4 != -1)
+        return;
+
+    u8 wave_types = 0;
+    for (i32 wave = 0; wave < melee.creature_count; ++wave) {
+        const i16 type = melee.waves[wave].character_id;
+        if (type == id_PROBEDROID)
+            wave_types |= 1;
+        else if (type == id_SPEEDERBIKESNOW)
+            wave_types |= 2;
+        else if (type == id_ATST_LOWRES)
+            wave_types |= 4;
+        else if (type == id_ATAT)
+            wave_types |= 8;
+    }
+
+    const i32 atst_limit = g_lowEndLevelBehaviour < 1 ? 6 : 2;
+    const i32 probe_limit = g_lowEndLevelBehaviour < 1 ? 5 : 2;
+    const f32 probe_radius = apicharsys->char_data[id_PROBEDROID].collision_radius;
+
+    while (aicreature_sets_alive[0] < probe_limit && (wave_types & 1) == 0) {
+        AILOCATOR *spawn = getSpawnLocator(probe_radius, "spawn");
+        if (spawn == NULL)
+            return;
+        GameObject_s *probe = AddDynamicCreature(id_PROBEDROID, &spawn->position, spawn->direction, "Probe",
+                                                 &spawn->path_info, NULL, 1, NULL, NULL, 0, 1);
+        if (probe == NULL)
+            break;
+        probe->field_0xefb |= 0x10;
+        if (spawn_set != NULL && spawn_set->locator_count > 0) {
+            for (i32 index = 0; index < spawn_set->locator_count; ++index) {
+                AILOCATOR *candidate = &WORLD->ai_sys->locators[spawn_set->locator_entries[index]];
+                if (candidate == spawn) {
+                    probe->ai.locator = candidate;
+                    spawn_set->assigned[index] = probe->apiobj.field_0x289;
+                    break;
+                }
+            }
+        }
+    }
+
+    i32 slot = -1;
+    for (i32 index = 5; index >= 0; --index) {
+        GameObject_s *creature = melee.background_creatures[index];
+        if (creature != NULL && (creature->apiobj.flags_high & 0x10) != 0 && creature->apiobj.field_0x287 == 0 &&
+            creature->ai.creature_set == 3) {
+            if (slot == -1)
+                slot = index;
+        } else {
+            if (slot != -1) {
+                melee.background_creatures[index] = melee.background_creatures[slot];
+                melee.background_creatures[slot] = NULL;
+                --slot;
+            } else {
+                melee.background_creatures[index] = NULL;
+            }
+        }
+    }
+
+    const f32 atst_radius = apicharsys->char_data[id_ATST_LOWRES].collision_radius * 2.0f;
+    while (aicreature_sets_alive[2] < atst_limit && (wave_types & 4) == 0) {
+        AILOCATOR *spawn = getSpawnLocator(atst_radius, "spawn");
+        if (spawn == NULL)
+            return;
+        GameObject_s *atst = AddDynamicCreature(id_ATST_LOWRES, &spawn->position, spawn->direction, "rider",
+                                                &spawn->path_info, NULL, 1, NULL, NULL, 0, 3);
+        melee.background_creatures[++slot] = atst;
+        if (atst == NULL)
+            return;
+        atst->field_0xefb |= 0x10;
+        if (spawn_set != NULL && spawn_set->locator_count > 0) {
+            for (i32 index = 0; index < spawn_set->locator_count; ++index) {
+                AILOCATOR *candidate = &WORLD->ai_sys->locators[spawn_set->locator_entries[index]];
+                if (candidate == spawn) {
+                    atst->ai.locator = candidate;
+                    spawn_set->assigned[index] = atst->apiobj.field_0x289;
+                    break;
+                }
+            }
+        }
+    }
 }
 
 // ===========================================================================
