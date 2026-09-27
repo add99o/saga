@@ -2,6 +2,7 @@
 
 #include "decomp.h"
 #include "legoapi/render/fx/edsplines.h"
+#include "legoapi/render/core/rtldata.h"
 
 struct GIZMOBLOWUP_s;
 struct SNAKEBODY_s;
@@ -704,24 +705,6 @@ extern "C" i32 APIObjectCollision(APIOBJECT *first, APIOBJECT *second);
 extern "C" i32 APIObjectCollision2D(APIOBJECT *first, APIOBJECT *second);
 extern "C" void APIObjectCollisions(i32 count, APIOBJECT **objects, NUVEC *minimums, NUVEC *maximums,
                                     i32 (*collision_callback)(APIOBJECT *, APIOBJECT *));
-
-struct rtldata_s {
-    union {
-        u8 data[0x144];
-        struct {
-            u8 unknown_000[0x78];
-            NUCOLOUR3 intensity[3]; // 0x078
-            NUVEC direction[3];     // 0x09c
-            NUVEC ambient;          // 0x0c0
-            u8 unknown_0cc[0x78];
-        };
-    };
-};
-
-DECOMP_ASSERT(sizeof(rtldata_s) == 0x144, "rtldata_s size");
-DECOMP_ASSERT(offsetof(rtldata_s, intensity) == 0x78, "rtldata_s intensity offset");
-DECOMP_ASSERT(offsetof(rtldata_s, direction) == 0x9c, "rtldata_s direction offset");
-DECOMP_ASSERT(offsetof(rtldata_s, ambient) == 0xc0, "rtldata_s ambient offset");
 
 struct OBJECTLIGHTINGSTATE_s {
     NUVEC ambient;          // 0x00

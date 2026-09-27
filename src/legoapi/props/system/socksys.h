@@ -236,6 +236,7 @@ extern "C" {
     void SockSysPointAlongSpline(NUVEC *result, NUGSPLINE *spline, i32 segment, i32 next_segment, f32 ratio);
     void SockRotationMatrix(SOCKSYS *system, SOCKPOSITION *position, NUMTX *out, i32 stride, i32 mode);
     void SetSockBit(SOCK *sock, i32 index);
+    i32 SockBitSet(SOCK *sock, i32 index);
     void ComplexSockPosition(SOCKSYS *sock_sys, NUVEC *position, i32 prior_sock, i32 prior_segment,
                              SOCKPOSITION *result);
     void ComplexSockAngles(SOCKROT *angles);

@@ -1076,7 +1076,8 @@ extern "C" {
     }
 
     void SetSockBit(SOCK *sock, i32 index) {
-        SetSockBitValue(sock, index);
+        // Signed division also maps retail indices -31..-1 to the first word.
+        sock->overlap_exclusion_mask[index / 32] |= 1u << (index & 31);
     }
 
     void SetSockPostion(SOCKSYS *system, SOCKPOSITION *position, i32 index, i32 segment, f32 ratio) {
@@ -1116,8 +1117,10 @@ extern "C" {
         SockSysPointAlongMID(sock, position, &position->midpoint);
     }
 
-    bool SockBitSet(SOCK *sock, i32 index) {
-        return SockBitIsSet(sock, index);
+    i32 SockBitSet(SOCK *sock, i32 index) {
+        if ((sock->overlap_exclusion_mask[index / 32] & (1u << (index & 31))) != 0)
+            return 1;
+        return 0;
     }
 
     void SockOff(SOCKSYS *system, i32 index) {

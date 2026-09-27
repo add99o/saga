@@ -3938,3 +3938,123 @@ the original is `-O0`, its current owner uses `-O3`, and its private remaining
 input counter is not declared there. Its low score is not justification for
 another isolated control-flow permutation. No edit or compiler trial was
 made for that function.
+
+## Batch 64: public socket bit accessors
+
+Restore the public `SetSockBit` and `SockBitSet` bodies at their existing
+`-O0`. The query returns a 32-bit integer, not the previous boolean helper
+result; correct its canonical declaration too. Retail divides the signed
+index by 32 with truncation toward zero and masks the shift count to five
+bits. Consequently indices -31 through -1 address the first word, while the
+previous arithmetic-right-shift helper addressed memory before the array.
+An actual-owner UBSan reproducer confirms that old negative-index access.
+Keep the separate private helpers unchanged; this is not a new bounds-check
+policy for other socket operations.
+
+`SetSockBit` improves **22.806% to 82.581%** and `SockBitSet` **15.290% to
+85.613%**, with no other score changes. Whole matching reaches **64.816055%**.
+The first natural recovered bodies are retained; remaining shift/register
+differences do not justify compiler permutations. **389,120 get/set/repeated-set
+sequences per architecture** pass NDK x86 and full-global 64-bit ASan/UBSan,
+covering every defined array index from -31 through 63, both words, zero/all/
+random mask patterns, integer query results and complete neighboring-record
+preservation. Indices outside that original valid range remain unsupported.
+Target/native builds and all five repository checks pass.
+
+## Batch 65: shared runtime lighting storage and insertion
+
+The low-scoring RTL insertion helpers expose a structural host-memory bug:
+public `rtldata_s` reserved only 324 bytes, while the private pointer-bearing
+`rtlidata_s` expands to 376 bytes on a 64-bit host. Calling the actual
+`rtlResetEx` on a heap-allocated public record produces an ASan heap overflow.
+Other public helpers and `rtlCalcLights` also used hardcoded Android offsets
+to access native pointers or fields.
+
+Move the recovered layout into canonical `rtldata.h`, retaining both original
+ABI type tags through an empty public derived record. Public storage now
+shares the actual private layout; valid base conversions replace unrelated
+record casts. The target still asserts the original 0x144-byte size and field
+offsets. Colour/vector union views retain both existing consumers' types.
+Use typed fields in insertion, renderer forwarding, specular accessors and
+the existing lighting calculation. Other runtime users already access those
+public fields by name. Serialized light-set conversion and the incomplete
+light-selection algorithm are not claimed as repaired here.
+
+Recover `InsertLight` directly from its original two three-slot loops,
+including the missing `rtl_error = 1` when neither list accepts a light.
+Only type 1 uses the ambient list; every other byte value uses the directional
+list. Preserve strict comparisons, ties, NaN rejection, stable shifts and
+unchanged error state after successful insertion. `InsertAntiLight` appends
+up to three pointers/strengths through the shared layout. Remove the unused,
+non-original duplicate `rtlInsertLight` helper and an unused unsafe cast in
+the selection loop.
+
+`InsertAntiLight` improves **19.385% to 100%** and `InsertLight` **26.700% to
+98.292%**. The latter differs only in byte promotion/comparison and a nop;
+no matching-only hints are introduced. Typed accesses improve the existing
+`rtlCalcLights` **27.301% to 30.319%** without a broader algorithm rewrite.
+The selection loop decreases **10.036% to 9.962%** because removal of its
+unused local shifts stack slots; its before/after binary diff was reviewed.
+Keep that small cost rather than an unused unsafe cast. `rtlApplySetScale`
+retains its score and uses a genuine public local record for the reset API.
+Across batches 64–65, whole fuzzy matching reaches **64.824730%**: five
+functions improve, one regresses, one exact match is gained and none is lost.
+
+Per architecture, the actual runtime owner passes **8,192 reset cases,
+1,679,616 insertion cases, 864 anti-light cases, 8,192 renderer/specular cases,
+24,576 real-vector-math calculations and 1,024 public/local apply pairs**.
+NDK x86 and 64-bit heap/stack ASan plus UBSan cover all light type bytes,
+finite/NaN/infinite strengths, full-width pointers, reset/cache gates, complete
+guarded-record preservation, callback argument identity, null specular gates,
+directional/ambient/anti-light mixtures, rotations, scale and empty light sets.
+The original native allocation reproducer passes after the repair. The RTL
+fixture disables ASan global registration solely to discard unrelated editor
+callback graphs; it does not claim full-global ASan coverage. Renderer,
+profiling and unused list/random services are mocked; vector math, square
+root and trigonometric initialization are real. Negative anti-light counts
+are invalid original inputs and are not tested as supported. No live rendering
+or gameplay is claimed. Target/native builds and all five checks pass.
+All eleven PR checks for the preceding commit `482fe33a` are green.
+
+## Batch 66: obstacle-controlled techno output
+
+Restore the missing mode-3 path in `Techno_GetOutput`. After the existing
+active/visible/target gates, compare the controlled gizmo type's name against
+`GIZOBSTACLE` case-insensitively. On a match, reload the controlled gizmo after
+the comparator and return whether its obstacle animation is at the end state.
+The original does not add null checks inside that validated path. Mode 1
+continues to report the panel's completion bit; other modes return zero.
+Existing canonical gizmo, obstacle and animation-set fields cover the entire
+chain without raw offsets or new overlays.
+
+The first natural recovery improves **24.415% to 88.585%** at the owner's
+unchanged `-O3`. Remaining differences are early completion-bit calculation
+and branch scheduling. Two untouched neighbors have small collateral costs:
+`Technos_LateUpdate` **99.963% to 99.685%**, and `Technos_Reset` **81.913% to
+81.767%**. Their before/after diffs contain register choices, one moved load
+and literal operands, not changed source behavior. No exact match is lost;
+whole fuzzy matching reaches **64.826996%**.
+
+Per architecture, **1,310,720 real-comparator/gate cases** and **38,400
+callback-reload cases** pass NDK x86 and full-global 64-bit ASan/UBSan. Coverage
+includes every flags/mode byte, all 256 type indices, five animation states,
+null outer/target gates, mixed-case names and near misses, ignored output
+arguments, unchanged guarded panel storage, and comparator-driven target,
+mode and flag changes. The string comparator itself is real; its recording
+wrapper injects the deliberate mutation cases. Target/native builds and all
+five repository checks pass.
+
+### Additional rejected low-score work
+
+`FindMtlInHGObj` already has the correct one-based material scan; its zero
+score needs source-owner/optimization evidence, not another scan rewrite.
+The historical function-local optimization advice in chapter 21 is superseded
+by the current skill. `FS_PrevNameLen`, the music track/path helpers and
+several allocator wrappers are also already implemented; no speculative
+compiler variants were run on them.
+
+The three legacy frame-start wrappers are not a self-contained easy win:
+their original `NuTimeGetTime` callee is an empty five-byte body, but the
+wrappers consume its unspecified EAX value as a timestamp. Do not invent a
+portable clock result or reproduce undefined return behavior merely to raise
+their scores. No timing source change was made.

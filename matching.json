@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.81396,
+    "fuzzy_match_percent": 64.826996,
     "total_code": "4722419",
-    "matched_code": "519055",
-    "matched_code_percent": 10.991295,
+    "matched_code": "519126",
+    "matched_code_percent": 10.992798,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6237,
-    "matched_functions_percent": 46.34074,
+    "matched_functions": 6238,
+    "matched_functions_percent": 46.34817,
     "total_units": 1
   },
   "text": {
@@ -73234,7 +73234,7 @@
           "address": 1944096,
           "offset": 1054128,
           "size": 409,
-          "match_percent": 81.91262
+          "match_percent": 81.76699
         },
         {
           "name": "_ZL21Technos_ClearProgressPvS_",
@@ -73258,7 +73258,7 @@
           "address": 1944608,
           "offset": 1054640,
           "size": 168,
-          "match_percent": 24.415094
+          "match_percent": 88.58491
         },
         {
           "name": "_ZL12Technos_DrawPvS_f",
@@ -73274,7 +73274,7 @@
           "address": 1946064,
           "offset": 1056096,
           "size": 152,
-          "match_percent": 99.96296
+          "match_percent": 99.68519
         },
         {
           "name": "_ZL17Technos_AddGizmosP10GIZMOSYS_siPvS1_",
@@ -73990,7 +73990,7 @@
           "address": 3932758,
           "offset": 3042790,
           "size": 79,
-          "match_percent": 22.806452
+          "match_percent": 82.58064
         },
         {
           "name": "SockBitSet",
@@ -73998,7 +73998,7 @@
           "address": 3932837,
           "offset": 3042869,
           "size": 74,
-          "match_percent": 15.290322
+          "match_percent": 85.6129
         },
         {
           "name": "MidDistanceFromSockStart",
@@ -75945,7 +75945,7 @@
           "address": 3847927,
           "offset": 2957959,
           "size": 402,
-          "match_percent": 26.7
+          "match_percent": 98.291664
         },
         {
           "name": "_ZL15InsertAntiLightP5rtl_sP10rtlidata_sf",
@@ -75953,7 +75953,7 @@
           "address": 3848329,
           "offset": 2958361,
           "size": 71,
-          "match_percent": 19.384615
+          "match_percent": 100.0
         },
         {
           "name": "_ZL15ApplyAntilightsP5rtl_sP10rtlidata_sf",
@@ -75993,7 +75993,7 @@
           "address": 3848891,
           "offset": 2958923,
           "size": 2252,
-          "match_percent": 27.301027
+          "match_percent": 30.31865
         },
         {
           "name": "_ZL10GetNextRTLPvP5rtl_sPcPi",
@@ -76025,7 +76025,7 @@
           "address": 3851389,
           "offset": 2961421,
           "size": 4488,
-          "match_percent": 10.036
+          "match_percent": 9.9616
         },
         {
           "name": "_ZL13rtlCalcShadowP10rtlidata_s",

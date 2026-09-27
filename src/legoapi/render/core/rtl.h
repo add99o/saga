@@ -1,6 +1,7 @@
 #pragma once
 
 #include "decomp.h"
+#include "legoapi/render/core/rtldata.h"
 #include "nu2api/nucore/common.h"
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
