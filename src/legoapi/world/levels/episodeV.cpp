@@ -16,6 +16,7 @@
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/gizmos/traps/gizbombgen.h"
 #include "legoapi/gizmos/traps/gizforce.h"
+#include "legoapi/gizmos/traps/gizturrets.h"
 #include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/gizmo/base/GizBlowupObjectInterface.h"
 #include "legoapi/items/objects/gameobjects.h"
@@ -44,6 +45,7 @@
 #include "MechInputTouch/MechInputTouch_types.h"
 
 #include <string.h>
+#include <stdio.h>
 
 extern i32 dagobah_training;
 extern i32 obstacle_gizmotype_id;
@@ -75,8 +77,12 @@ extern i16 BoltType_FindIDByNameWide(char *, WORLDINFO_s *) asm("_Z21BoltType_Fi
 static GameObject_s *Vader_obj;
 static GIZAIMESSAGE_s *Vader_ai_message;
 static u8 turretAliveCount;
+static i32 lastPlaying;
+static u8 melee_wavePhase = 0xff;
 u8 drawLights;
 static GIZMOBLOWUP_s *classicBlowups[8];
+nuhspecial_s escape[8];
+GIZTURRET_s *StarDestroyerTurrets[16];
 
 struct FinalAsteroidState {
     nuhspecial_s special;
@@ -1288,8 +1294,33 @@ void AsteroidChaseC_Init(WORLDINFO_s *world) {
     }
 }
 
-void AsteroidChaseD_Init(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseD_Init(WORLDINFO_s *world) {
+    i16 targets = -1;
+    NuSpecialFind(vehicle_scene, &specialIcon, "Gun_Turret_icon", 1);
+    memset(escape, 0, sizeof(escape));
+    turretAliveCount = 0;
+    lastPlaying = 0;
+    NuSpecialFind(WORLD->current_gscn, &escape[0], "rebelcruiser2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[1], "transport3", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[2], "transport2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[4], "transport1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[5], "rebelcruiser1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[6], "transport4", 0);
+
+    char name[16];
+    for (i32 index = 0; index < 16; ++index) {
+        sprintf(name, "turret%d", index + 1);
+        GIZMO *gizmo = GizmoFindByName(world->gizmo_sys, turret_gizmotype_id, name);
+        if (gizmo != NULL)
+            StarDestroyerTurrets[index] = static_cast<GIZTURRET_s *>(gizmo->object);
+        if (StarDestroyerTurrets[index] != NULL) {
+            StarDestroyerTurrets[index]->fire_interval = 0.5f;
+            ++turretAliveCount;
+        }
+    }
+
+    DrawMeleeTargetsNumber(&targets, &turretAliveCount, 1, 1, NULL);
+    melee_wavePhase = 0;
 }
 
 void AsteroidChaseA_Reset(WORLDINFO_s *world) {
