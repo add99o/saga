@@ -858,7 +858,8 @@ struct CUSTOMPIECE {
         u8 unknown_08[0xa];
         struct {
             i16 weapon_model;
-            u8 reserved_0a[0x8];
+            u8 reserved_0a[0x7];
+            i8 collection_type; // 0x11, -1 means no collection category requirement
         };
     };
     union {
@@ -874,6 +875,7 @@ struct CUSTOMPIECE {
 };
 DECOMP_ASSERT(sizeof(CUSTOMPIECE) == 0x28, "CUSTOMPIECE size");
 DECOMP_ASSERT(offsetof(CUSTOMPIECE, layer_flags) == 0x12, "CUSTOMPIECE layer flags offset");
+DECOMP_ASSERT(offsetof(CUSTOMPIECE, collection_type) == 0x11, "CUSTOMPIECE collection category offset");
 struct CUSTOMPIECERESOURCE {
     NUGSCN *scene;
     nuhspecial_s special;

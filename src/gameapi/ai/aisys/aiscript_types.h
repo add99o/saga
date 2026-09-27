@@ -139,6 +139,7 @@ typedef struct AISCRIPTPROCESS_s {
     union {
         void *action_data_3;
         APIOBJECT_s *override_control_object;
+        i32 speeder_ahead_latched;
     };
     union {
         f32 action_data_4;

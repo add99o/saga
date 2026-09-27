@@ -43,6 +43,7 @@ void Collection_CreateCustom(char *name, i16 *id_list, COLLECTION_s *collection,
 void Collection_CreateMaster(char *name, i16 *id_list, COLLECTION_s *collection, i32 columns, f32 scale);
 i32 InCollectList_Index(i32 id, COLLECTID *list, i32 count);
 i32 Collection_Got(i32 id);
+i32 Collection_GotAnyOfType(i32 type, u32 flags);
 COLLECTID *CollectIDUnlocked(i32 id);
 void CollectAllCharacters(i32 id);
 void ReCalculateCompletionPoints(void);

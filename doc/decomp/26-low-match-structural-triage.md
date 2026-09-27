@@ -4430,3 +4430,112 @@ callbacks are recording mocks; this is not a live camera/playback test.
 Unrelated helpers retained by the source's locator-registration initializer
 have fail-fast mocks. Target/native builds and all five repository checks
 pass.
+
+## Batch 82: speeder chase action, tuning data and script binding
+
+Recover `Action_SpeederBeingChased` (`0x23da00`, 2,436 retail bytes) from its
+empty action catchall into the existing `-O3` speeder-chase owner. Its retail
+neighbors are the speeder init/reset/update/panel routines, target query,
+`SpeedersDroppedBack`, and AT-AT helpers. Correct the return ABI to `i32` and
+restore the verified `SpeederBeingChased` script binding: the original table
+function pointer at file offset `0x61e808` points to `0x23da00`, with flags 0.
+Check the linked rebuilt table as well as the source declaration.
+
+Reconstruct the four seven-float `SPEEDERCHASEVALUES` rows and ten initialized
+globals, including the original `players_going_forward = 1`. All 152 bytes of
+the table and these globals match the reference data exactly. Give the
+processor's existing action-data union a real integer latch member; do not
+store the integer 1 as a fake pointer. Use canonical object, gamepad, rail,
+character, and script types without changing their target layouts.
+
+Preserve two-player reference selection, rail wrapping, speed/height seeking,
+health loss, mode transitions, shooting/jump requests, and the kill-distance
+exit. Snapshot the rail array and base speed but preserve callback-sensitive
+player reloads and shoot-rate reads. Retail only resets mode bytes greater
+than 4 although the tuning table has four rows: state 4 remains an invalid
+input, not an invented fifth mode. Preserve the peculiar mode-1 timer branch,
+including its apparently unreachable ordinary negative-timer jump subcase.
+
+The initial reconstruction scores about 50%; restoring player reloads raises
+the linked result **1.067194% to 52.583004%**. `SpeederChaseA_Reset` improves
+**99.550000% to 99.633330%**, `SpeederChaseA_Update` improves **72.155240% to
+72.162240%**, and unchanged `PodDust` declines **71.887500% to 71.852500%**.
+Whole fuzzy matching before the later main rebase reaches **64.929210%**.
+No exact matches are lost and no compiler settings change.
+
+NDK x86 and full-global 64-bit ASan/UBSan pass **98,661 cases per architecture**:
+initial/active states, valid mode pairs, full signed health-byte combinations,
+one/two players, wrapped/NaN distances, timing, input requests, callback field
+mutations and player replacement. Retail-invalid state 4 is excluded. Rail,
+seek, random and kill services are recording mocks, not live speeder gameplay.
+
+## Batch 83: analog-stick corner stretching and original source ownership
+
+Recover `UCStretchToCorners` (`0x270374`, 497 bytes) and move its render-core
+stub to `nupad_android.cpp`, which retains default `-O0`. Retail places it
+between `ScaleAndClamp` and `NuPadReadPS` in the run ending with
+`_GLOBAL__sub_I_nupad_android.c`. Use the canonical `NuFabs`/`NuFsqrt` helpers,
+signed 16-bit coordinate arguments, exact float constants, original arithmetic
+ordering, truncation and horizontal-before-vertical stores. Both inputs must
+be read before either write so aliased arguments behave as in retail.
+
+The linked score improves **3.111111% to 99.896290%**, with no other changed
+scores. Whole fuzzy matching before rebase reaches **64.939400%**. NDK x86
+and full-global 64-bit ASan/UBSan each pass **2,172,688 coordinate/alias cases**,
+including every signed coordinate against boundary inputs, all aliased inputs,
+deterministic pairs, square-root arguments and adjacent-byte preservation.
+The sqrt fixture uses real `sqrtf`; this is not controller-hardware testing.
+
+## Batch 84: customiser piece availability and bounded block-layout trials
+
+Recover the 266-byte `Customiser_PieceAvailable` at `0x1b91c0`, correcting the
+empty `void` placeholder to `i32` in its unchanged `-O2` owner. Promote the
+signed collection category at `CUSTOMPIECE + 0x11` into a canonical `i8` field
+with a target offset assertion; the record remains `0x28` bytes. Expose the
+canonical piece-query and `Collection_GotAnyOfType(i32, u32)` declarations.
+
+Preserve the demo-only availability-bit check, completion gates, character
+lookup and collection gates, model mask `0x0c`, and signed category filtering.
+A character absent from the collection list returns success immediately,
+bypassing the later restrictions. Reload character/category fields after
+callbacks; nonzero helper responses are truth values, not necessarily 1.
+The parent `Customiser_Configure` remains a stub, so this batch does not claim
+to integrate or complete the whole customiser menu.
+
+The initial early-return spelling scores 0% linked despite passing behavior
+tests. Three bounded source trials retain the same flags: nesting the normal
+path scores 3.75% in the object; a precomputed-result form scores 91.181%;
+an explicit demo rejection branch with a shared success return scores
+99.236% in the object. Retain only the last, which improves the linked result
+**5.833334% to 99.791664%**. It has the original 266-byte size. Do not repeat
+the rejected forms or add branch/register/optimization hints. No collateral
+scores change from this final revision.
+
+NDK x86 and full-global 64-bit ASan/UBSan each pass **780,304 cases**, covering
+all availability words, all signed character/category values, demo modes,
+model masks, callback return combinations/order, callback mutations, the
+unknown-character bypass and unchanged structure bytes. Collection/completion
+services are recording mocks. Final target/native builds and all five
+repository checks pass.
+
+## Main rebase after batch 83
+
+Rebase all 47 branch commits onto `f1f9d789` (push-block/spinner interaction
+restoration, PR #112), preserving and restoring the uncommitted batches above.
+Retain main's pushing, push-block, object-field and initialization changes.
+The overlapping obstacle query keeps this branch's implementation after
+rechecking the complete retail disassembly and main's new caller: the object
+argument selects animated versus stored positions, and a null system must
+not write the optional distance. Both declarations have the same pointer ABI.
+The query remains **60.983540%**, not main's lower-scoring reconstruction.
+The earlier note that the surrounding push caller is missing is now obsolete.
+
+Recompile the resolved nearest-query fixture: **134,173 cases** pass on NDK
+x86 and full-global 64-bit ASan/UBSan. Unrelated dispatch-table paths retained
+by ASan have fail-fast mocks. Regenerate the report rather than trusting
+conflicted generated percentages. Combined main integration and batches
+82–84 raise fuzzy matching **64.902640% to 64.958600%**: nine functions improve,
+two decline, and no exact matches change. The declines are main's imported
+`PushCode` reconstruction (**6.72% to 0%**) and the **0.035-point** `PodDust`
+collateral change above. Do not replace the newly restored push behavior
+with a stub to recover its accidental score. No new agents are started.

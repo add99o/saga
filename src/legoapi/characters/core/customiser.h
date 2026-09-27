@@ -22,6 +22,7 @@ void Customiser_InitNames(CUSTOMISER *customiser);
 void CustomiserMenu_End();
 i32 Customise_GetToggleString(i32 index);
 void Customiser_PieceConfig(CUSTOMPIECE *piece, nufpar_s *parser);
+i32 Customiser_PieceAvailable(CUSTOMPIECE *piece);
 CUSTOMPIECE *Customiser_FindPieceByName(CUSTOMISER *customiser, char *name, i32 *category, i32 *index);
 void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object, i32 animation, i32 mode, float scale);
 extern i32 customiser_quit;

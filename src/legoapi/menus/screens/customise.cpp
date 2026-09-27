@@ -2,11 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 #include "legoapi/items/objects/gameobjects.h"
+#include "legoapi/items/base/collection.h"
 #include "nu2api/nu3d/nuspecial.h"
 #include "legoapi/world/world.h"
 #include "legoapi/core/input/qrand.h"
 #include "nu2api/numath/nutrig.h"
 #include "legoapi/menus/screens/gamemenuall.h"
+#include "legoapi/menus/screens/gamestructure.h"
 #include "legoapi/menus/core/text.h"
 #include "legoapi/legoapi_types.h"
 #include "globals.h"
@@ -216,8 +218,26 @@ void Customiser_Reset(CUSTOMISER *customiser) {
     customiser->animation_state[1] = 2;
 }
 
-void Customiser_PieceAvailable(CUSTOMPIECE *) {
-    STUBBED();
+i32 Customiser_PieceAvailable(CUSTOMPIECE *piece) {
+    if (GAMEDEMO != 0) {
+        if ((piece->availability_flags & 0x10) != 0)
+            return 0;
+    } else {
+        if ((piece->availability_flags & 0x180) != 0 && Game_100PercentComplete() == 0)
+            return 0;
+        if (piece->character_id != -1) {
+            if (InCollectList_Index(piece->character_id, NULL, 0) == -1)
+                return 1;
+            if (Collection_Got(piece->character_id) == 0)
+                return 0;
+        }
+        const u32 required_flags = piece->model_flags & 0x0c;
+        if (required_flags != 0 && Collection_GotAnyOfType(-1, required_flags) == 0)
+            return 0;
+        if (piece->collection_type != -1 && Collection_GotAnyOfType(piece->collection_type, 0) == 0)
+            return 0;
+    }
+    return 1;
 }
 
 void Customiser_TransformToPanel(CUSTOMISER *) {

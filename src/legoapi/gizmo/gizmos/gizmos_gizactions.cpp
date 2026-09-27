@@ -1083,10 +1083,6 @@ i32 Action_AssignLocatorInSet(AISYS_s *sys, AISCRIPTPROCESS_s *, AIPACKET_s *pac
     return 1;
 }
 
-void Action_SpeederBeingChased(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
-}
-
 namespace {
     struct GizmosAIRegistryCallbacks {
         GizmosAIRegistryCallbacks() {

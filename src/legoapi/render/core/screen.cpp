@@ -375,10 +375,6 @@ void PreRenderFlashHack() {
     }
 }
 
-void UCStretchToCorners(i16 *, i16 *) {
-    STUBBED();
-}
-
 void PostRenderFlashHack() {
     if (hackFlashingGameAnimSet != NULL && hackFlashingGameAnimSet->objects != NULL) {
         GAMEANIMOBJ_s *object = hackFlashingGameAnimSet->objects;

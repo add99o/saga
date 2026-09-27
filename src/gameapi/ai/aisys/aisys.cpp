@@ -1,5 +1,6 @@
 #include "decomp.h"
 #include "legoapi/actions/combat/hits.h"
+#include "legoapi/actions/character/speederchase.h"
 #include "batman.h"
 #include "gameapi/ai/aisys/aisys.h"
 #include "globals.h"
@@ -7267,7 +7268,7 @@ extern "C" {
         {"SetLayer", Action_SetLayer, 0, 0, 0},
         {"CreateRider", Action_CreateRider, 0, 0, 0},
         {"AddTorpedoPacket", NULL, 1, 0, 0},
-        {"SpeederBeingChased", NULL, 0, 0, 0},
+        {"SpeederBeingChased", Action_SpeederBeingChased, 0, 0, 0},
         {"ThrowDetonator", Action_ThrowDetonator, 0, 0, 0},
         {"SetScaleOverride", NULL, 0, 0, 0},
         {"DisableNarrowSocks", Action_DisableNarrowSocks, 1, 0, 0},
