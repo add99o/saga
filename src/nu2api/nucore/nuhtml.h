@@ -5,7 +5,8 @@
 extern "C" {
     void NuHtmlHBarGraph(void);
     void NuHtmlVBarGraph(void);
-    void NuHtmlHLineGraph(void);
+    void NuHtmlHLineGraph(const char *title, i32 width, i32 height, const i32 *data, i32 row_count,
+                          i32 sample_count, const char *const *labels);
 }
 
 void setpoint(f32 x);

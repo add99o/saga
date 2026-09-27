@@ -1,4 +1,8 @@
 #include "nu2api/nucore/nuhtml.h"
+#include "nu2api/nu3d/nudlist.h"
+
+#include <stdio.h>
+#include <string.h>
 
 static f32 curx;
 static f32 cury;
@@ -45,7 +49,75 @@ i32 getnextdatapoint(f32 *value, i32 *delta) {
 }
 
 extern "C" {
-    void NuHtmlHLineGraph(void) {
-        STUBBED();
+    void NuHtmlHLineGraph(const char *title, i32 width, i32 height, const i32 *data, i32 row_count,
+                          i32 sample_count, const char *const *labels) {
+        char text[256];
+        static const char *axis_cell =
+            "<TD width=\"%d%%%%\" bgColor=gray Align=right><DIV style=\"FONT-SIZE: 10pt; WIDTH: 10pt;\">%d</DIV></TD>\r\n";
+        static const char *graph_cell =
+            "  <TABLE width=\"100%%%%\" BORDER=0 CELLPADDING=0 CELLSPACING=0> <TD width=%d height=2 bgColor=white></TD> <TD width=%d bgColor=black> </TD> <TD width=%d  bgColor=white> </TD></TABLE>\r\n";
+
+        sprintf(text, "<TABLE bgColor=white height=16 width=%d cellSpacing=0 cellPadding=\"1\" border=1><TR><TD><Center>%s</Center></TD></TR></TABLE>\r\n",
+                width, title);
+        NuHtmlWrite(text);
+        sprintf(text, "<TABLE bgColor=white height=%d width=%d cellSpacing=0 cellPadding=0 border=1><tr><TD VAlign=top>\r\n",
+                height, width);
+        NuHtmlWrite(text);
+        sprintf(text, "<TABLE height=10 width=\"100%%%%\" cellSpacing=0 cellPadding=0 border=0 >\r\n");
+        NuHtmlWrite(text);
+
+        const i32 graph_width = static_cast<i32>(static_cast<f32>(width) * 0.88f * 0.25f);
+        const i32 axis_width = static_cast<i32>(static_cast<f32>(width) * 0.12f);
+        const i32 label_width = static_cast<i32>(static_cast<f32>(graph_width) / 600.0f * 100.0f);
+        const f32 scale = static_cast<f32>(graph_width * 4) / static_cast<f32>(sample_count);
+        sprintf(text, axis_cell, 12, 0);
+        NuHtmlWrite(text);
+
+        setpoint(static_cast<f32>(data[0]) * scale);
+        setnextpoint(static_cast<f32>(data[0]) * scale, 8.0f);
+        const i32 quarter = sample_count / 4;
+        for (i32 tick = 1; tick <= 4; ++tick) {
+            sprintf(text, axis_cell, label_width, quarter * tick);
+            NuHtmlWrite(text);
+        }
+        strcpy(text, "</TD></tr></TABLE>");
+        NuHtmlWrite(text);
+
+        i32 point = 1;
+        i32 row = 0;
+        while (row < row_count) {
+            const char *label = labels != NULL && labels[row] != NULL ? labels[row] : " ";
+            sprintf(text, "<TABLE  BORDER=0 CELLPADDING=0 CELLSPACING=0><TD width=\"12%%%%\" height=30 bgColor=lightgrey> <DIV style=\"FONT-SIZE: 10pt\">%s</TD>\r\n",
+                    label);
+            NuHtmlWrite(text);
+            sprintf(text, "<TD width=\"88%%%%\" bgColor=green>\r\n");
+            NuHtmlWrite(text);
+            ++row;
+
+            i32 remaining = 16;
+            do {
+                f32 value;
+                i32 delta;
+                if (getnextdatapoint(&value, &delta) < 0) {
+                    setnextpoint(static_cast<f32>(data[point++]) * scale, 17.0f);
+                    getnextdatapoint(&value, &delta);
+                    if (row == row_count)
+                        size = 0;
+                }
+                if (delta < 0) {
+                    value += static_cast<f32>(delta);
+                    delta = -delta;
+                }
+                if (delta == 0)
+                    delta = 1;
+                sprintf(text, graph_cell, static_cast<i32>(value), delta,
+                        width - 4 - axis_width - static_cast<i32>(value) - delta);
+                NuHtmlWrite(text);
+            } while (--remaining != 0);
+            strcpy(text, "<TR></TD> </TD></TABLE> \r\n\r\n");
+            NuHtmlWrite(text);
+        }
+        strcpy(text, "</TABLE>");
+        NuHtmlWrite(text);
     }
 }
