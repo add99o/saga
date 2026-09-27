@@ -814,12 +814,19 @@ struct CUSTOMISER {
     i16 default_pieces[2][10]; // 0xc28; nine saved pieces plus one unused entry per character
     f32 locator_x_offsets[9];  // 0xc50
     f32 locator_y_offsets[9];  // 0xc74
-    u8 unknown_c98[0xd10 - 0xc98];
-    u8 field_0xd10;
-    u8 field_0xd11;
-    u8 field_0xd12;
-    u8 field_0xd13;
-    u8 unknown_d14[2];
+    NUVEC touch_positions[6];  // 0xc98; directional controls, randomise, toggle
+    f32 touch_widths[6];       // 0xce0
+    f32 touch_heights[6];      // 0xcf8
+    union {
+        u8 touch_requests[6]; // 0xd10; set by the menu touch controller
+        struct {
+            u8 field_0xd10;
+            u8 field_0xd11;
+            u8 field_0xd12;
+            u8 field_0xd13;
+            u8 unknown_d14[2];
+        };
+    };
     u8 field_0xd16;
     u8 field_0xd17;
 };
@@ -830,6 +837,9 @@ DECOMP_ASSERT(sizeof(CUSTOMISER) == 0xd18, "CUSTOMISER size");
 DECOMP_ASSERT(offsetof(CUSTOMISER, locator_indices) == 0x250, "CUSTOMISER locator indices");
 DECOMP_ASSERT(offsetof(CUSTOMISER, locator_x_offsets) == 0xc50, "CUSTOMISER locator X offsets");
 DECOMP_ASSERT(offsetof(CUSTOMISER, locator_y_offsets) == 0xc74, "CUSTOMISER locator Y offsets");
+DECOMP_ASSERT(offsetof(CUSTOMISER, touch_positions) == 0xc98, "CUSTOMISER touch positions");
+DECOMP_ASSERT(offsetof(CUSTOMISER, touch_widths) == 0xce0, "CUSTOMISER touch widths");
+DECOMP_ASSERT(offsetof(CUSTOMISER, touch_heights) == 0xcf8, "CUSTOMISER touch heights");
 DECOMP_ASSERT(offsetof(CUSTOMISER, field_0xd10) == 0xd10, "CUSTOMISER trailing state");
 DECOMP_ASSERT(offsetof(CUSTOMISER, save) == 0x174, "CUSTOMISER save offset");
 DECOMP_ASSERT(offsetof(CUSTOMISER, default_pieces) == 0xc28, "CUSTOMISER default pieces offset");

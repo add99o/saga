@@ -4704,3 +4704,60 @@ signed zero, random matrices and unchanged padding/surrounding records.
 Transform/min/max/square-root services are recording fixture implementations.
 Target/native builds and all five repository checks pass. No reconstructed
 caller invokes this legacy entry point, so no visual integration is claimed.
+
+## Batch 89: typed customiser touch geometry
+
+Recover the six XYZ touch positions, six widths and six heights at target
+offsets `0xc98`, `0xce0` and `0xcf8`, plus the six request bytes at `0xd10`.
+Keep the existing named request members as aliases and assert the target
+offsets and `0xd18` structure size. Replace raw Android byte offsets in the
+menu touch-release and pause-button consumers with these canonical members.
+This repairs native pointer-width-dependent offsets without altering target
+code generation: every linked function score remains unchanged at an overall
+**65.063240%**. Preserve the existing six unrolled hit tests, strict rectangle
+edges, first-hit priority and horizontal-before-vertical gesture order.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**59,814 cases** using the actual menu constructor, virtual release dispatch
+and pause-button body. Coverage includes all overlap masks, all six slots,
+swipe thresholds, captured/unowned/disabled touches, negative/zero/nonfinite
+geometry, all 256 prior quit-byte values and complete customiser/canary images.
+Target/native builds and all five repository checks pass. UI/system services
+are fixture implementations; no visual validation is claimed.
+
+The audited 3,471-byte `CustomiserMenu_Draw` candidate is deferred. Its first
+ordinary C++ body scores 0% because the still-stubbed update producer never
+writes the private name-edit X/Y state; GCC correctly folds those arrays away.
+Keep the candidate outside the repository and reconstruct update/draw as a
+group before retrying. Do not make the arrays volatile, export them or change
+compiler flags to defeat this legitimate optimization. The update audit also
+finds a backwards name-space trim without a proven lower bound; resolve that
+contract before implementing it. The typed touch layout is a separately
+validated prerequisite, not a claim that either menu body is now recovered.
+
+## Batch 90: emitter orientation
+
+Recover the 967-byte `DebrisEmitterOrientation` at `0x34f640` in its existing
+`-O3` owner. Retail calls identity initialization, reloads `debkeydata`, then
+performs local Z/Y/X rotations over all four matrix rows before clearing the
+orientation cache word. It does not call the exported rotation helpers or
+clear the translation row afterward. Express the scalar operations with the
+canonical matrix members and signed 16-bit lookup angles; preserve homogeneous
+lanes and the post-callback global reload. No flags or attributes change.
+
+The first body reaches **70.034%** in the isolated object and improves the
+linked score **5.372549% to 70.156860%**. Overall fuzzy matching rises
+**65.063240% to 65.076510%**; this is the only changed score, with no regressions
+or exact-match transitions. Remaining differences are argument/register
+allocation and instruction scheduling, not a reason for ABI hints.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**272,144 callback-fixture cases** and **272,144 integration cases using the
+real `NuMtxSetIdentity`**. Coverage exhausts each signed 16-bit angle axis,
+mixed triples, all tested record slots, the disabled handle, arbitrary LUT
+values, signed zeros, infinities/NaNs, translation rows, dirty-cache clearing
+and surrounding bytes. The callback fixture additionally changes the identity
+matrix, rebinds the global record array and mutates the lookup table. NaN
+payloads are not compared; other float results are checked bitwise. Target and
+native builds and all five repository checks pass. No particle-system or
+visual integration is claimed.

@@ -774,15 +774,50 @@ extern "C" {
         if (handle == -1) {
             return;
         }
+        NuMtxSetIdentity(&debkeydata[handle].emitter_orientation);
         debkeydatatype_s &key = debkeydata[handle];
         NUMTX *mtx = &key.emitter_orientation;
-        NuMtxSetIdentity(mtx);
-        NuMtxRotateZ(mtx, z);
-        NuMtxRotateY(mtx, y);
-        NuMtxRotateX(mtx, x);
-        mtx->m30 = 0.0f;
-        mtx->m31 = 0.0f;
-        mtx->m32 = 0.0f;
+        // Retail performs these rotations locally after reloading debkeydata;
+        // it does not call the exported rotation helpers or clear translation.
+        {
+            const f32 cosine = NU_COS_LUT(z);
+            const f32 sine = NU_SIN_LUT(z);
+            const f32 m00 = mtx->m00, m10 = mtx->m10, m20 = mtx->m20, m30 = mtx->m30;
+            mtx->m00 = m00 * cosine - mtx->m01 * sine;
+            mtx->m01 = m00 * sine + mtx->m01 * cosine;
+            mtx->m10 = m10 * cosine - mtx->m11 * sine;
+            mtx->m11 = m10 * sine + mtx->m11 * cosine;
+            mtx->m20 = m20 * cosine - mtx->m21 * sine;
+            mtx->m21 = m20 * sine + mtx->m21 * cosine;
+            mtx->m30 = m30 * cosine - mtx->m31 * sine;
+            mtx->m31 = m30 * sine + mtx->m31 * cosine;
+        }
+        {
+            const f32 cosine = NU_COS_LUT(y);
+            const f32 sine = NU_SIN_LUT(y);
+            const f32 m00 = mtx->m00, m10 = mtx->m10, m20 = mtx->m20, m30 = mtx->m30;
+            mtx->m00 = m00 * cosine + mtx->m02 * sine;
+            mtx->m02 = mtx->m02 * cosine - m00 * sine;
+            mtx->m10 = m10 * cosine + mtx->m12 * sine;
+            mtx->m12 = mtx->m12 * cosine - m10 * sine;
+            mtx->m20 = m20 * cosine + mtx->m22 * sine;
+            mtx->m22 = mtx->m22 * cosine - m20 * sine;
+            mtx->m30 = m30 * cosine + mtx->m32 * sine;
+            mtx->m32 = mtx->m32 * cosine - m30 * sine;
+        }
+        {
+            const f32 cosine = NU_COS_LUT(x);
+            const f32 sine = NU_SIN_LUT(x);
+            const f32 m01 = mtx->m01, m11 = mtx->m11, m21 = mtx->m21, m31 = mtx->m31;
+            mtx->m01 = m01 * cosine - mtx->m02 * sine;
+            mtx->m02 = m01 * sine + mtx->m02 * cosine;
+            mtx->m11 = m11 * cosine - mtx->m12 * sine;
+            mtx->m12 = m11 * sine + mtx->m12 * cosine;
+            mtx->m21 = m21 * cosine - mtx->m22 * sine;
+            mtx->m22 = m21 * sine + mtx->m22 * cosine;
+            mtx->m31 = m31 * cosine - mtx->m32 * sine;
+            mtx->m32 = m31 * sine + mtx->m32 * cosine;
+        }
         key.orientation_dirty = 0.0f;
     }
 

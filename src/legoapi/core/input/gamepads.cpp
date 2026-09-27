@@ -401,7 +401,7 @@ void PerformPauseButtonStuff() {
     }
 
     if (GetMenuID() == 12) {
-        reinterpret_cast<u8 *>(CharacterCustomiser)[0xd17] = 1;
+        CharacterCustomiser->field_0xd17 = 1;
         return;
     }
 
