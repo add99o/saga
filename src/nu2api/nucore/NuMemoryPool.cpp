@@ -200,7 +200,7 @@ NuMemoryPool::NuMemoryPool(IEventHandler *handler, u32 size, const char *debug_n
     large_block_bytes = 0;
     pages = NULL;
     page_list_stable = true;
-    memset(reserved_0x1c, 0, sizeof(reserved_0x1c));
+    memset(free_lists, 0, sizeof(free_lists));
 
     pthread_mutex_lock(&m_globalCriticalSection);
     next = m_firstPool;
@@ -213,23 +213,26 @@ void *NuMemoryPool::PageAlloc(u32 size, const char *name) {
     page_list_stable = false;
 
     Page *page = pages;
-    if (page == NULL || size > page->size - page->offset) {
-        if (page != NULL) {
-            Page *previous = page;
-            Page *candidate = page->next;
-            while (candidate != NULL) {
-                // The original rotates the first later page that is also full;
-                // usable later pages are left in place.
-                if (size > candidate->size - candidate->offset) {
-                    previous->next = candidate->next;
-                    candidate->next = pages;
-                    pages = candidate;
-                    break;
-                }
-                previous = candidate;
-                candidate = candidate->next;
+    if (page != NULL && size > page->size - page->offset) {
+        Page *previous = page;
+        Page *candidate = page->next;
+        while (candidate != NULL) {
+            // The original rotates the first later page that is also full;
+            // usable later pages are left in place.
+            if (size > candidate->size - candidate->offset) {
+                previous->next = candidate->next;
+                candidate->next = pages;
+                pages = candidate;
+                break;
             }
+            previous = candidate;
+            candidate = candidate->next;
         }
+    }
+
+    // Re-read the selected head after relinking, as the original does.
+    page = pages;
+    if (page == NULL || size > page->size - page->offset) {
         event_handler->AllocatePage(this, size, block_size, name);
         page = pages;
     }
@@ -256,7 +259,7 @@ void NuMemoryPool::ReleaseAllPages() {
         page = next_page;
     }
     pages = NULL;
-    memset(reserved_0x1c, 0, sizeof(reserved_0x1c));
+    memset(free_lists, 0, sizeof(free_lists));
     page_list_stable = true;
     pthread_mutex_unlock(&mutex);
 }
@@ -273,7 +276,6 @@ void NuMemoryPool::ReleaseUnreferencedPages() {
         pages = MergeSort(pages, page_count);
     }
 
-    FreeBlock volatile **free_lists = reinterpret_cast<FreeBlock volatile **>(reserved_0x1c);
     for (u32 i = 0; i < 256; ++i) {
         u32 block_count = 0;
         for (FreeBlock volatile *block = free_lists[i]; block != NULL; block = block->next) {

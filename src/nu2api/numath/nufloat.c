@@ -3,6 +3,7 @@
 
 #include "decomp.h"
 #include "nu2api/nucore/common.h"
+#include <float.h>
 
 static f32 fetol = 0.01f;
 
@@ -78,6 +79,40 @@ f32 NuSinf(f32 angle) {
 
 f32 NuCosf(f32 angle) {
     return NuSinf(angle + 1.5707963705062866f);
+}
+
+i32 NuPower2(i32 value) {
+    i32 power = value > 127 ? 128 : 1;
+    while (power < value)
+        power += power;
+    return power;
+}
+
+f32 NuLog2(f32 value) {
+    return NuLog10(value) * 3.321928f;
+}
+
+static f32 pow_x[32], pow_y[32], pow_rv[32];
+static i32 pow_cache_free;
+f32 NuPow(f32 x, f32 y) {
+    if (x == 0.0f)
+        return 0.0f;
+    static i32 first_time = 1;
+    if (first_time != 0) {
+        first_time = 0;
+        for (i32 i = 0; i < 32; ++i)
+            pow_x[i] = FLT_MAX;
+    }
+    for (i32 i = 0; i < 32; ++i) {
+        if (pow_x[i] == x && pow_y[i] == y)
+            return pow_rv[i];
+    }
+    f32 result = (f32)exp((double)y * log((double)x));
+    pow_x[pow_cache_free] = x;
+    pow_y[pow_cache_free] = y;
+    pow_rv[pow_cache_free] = result;
+    pow_cache_free = (pow_cache_free + 1) & 31;
+    return result;
 }
 
 f32 NuPowFast(f32 base, f32 exponent) {

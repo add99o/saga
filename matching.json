@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.83621,
+    "fuzzy_match_percent": 64.85053,
     "total_code": "4722419",
-    "matched_code": "519114",
-    "matched_code_percent": 10.992544,
+    "matched_code": "519351",
+    "matched_code_percent": 10.997562,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6239,
-    "matched_functions_percent": 46.3556,
+    "matched_functions": 6241,
+    "matched_functions_percent": 46.37046,
     "total_units": 1
   },
   "text": {
@@ -51558,6 +51558,14 @@
           "match_percent": 74.06896
         },
         {
+          "name": "_Z14FindMtlInHGObjP8nugscn_si",
+          "demangled_name": "FindMtlInHGObj(nugscn_s*, int)",
+          "address": 4418720,
+          "offset": 3528752,
+          "size": 85,
+          "match_percent": 100.0
+        },
+        {
           "name": "_Z24instGetLookAtLocatorInfoP17instNUGCUTSCENE_sP18instNUGCUTLOOKAT_s",
           "demangled_name": "instGetLookAtLocatorInfo(instNUGCUTSCENE_s*, instNUGCUTLOOKAT_s*)",
           "address": 4418896,
@@ -67092,14 +67100,6 @@
           "offset": 35216,
           "size": 93,
           "match_percent": 29.411764
-        },
-        {
-          "name": "_Z14FindMtlInHGObjP8nugscn_si",
-          "demangled_name": "FindMtlInHGObj(nugscn_s*, int)",
-          "address": 4418720,
-          "offset": 3528752,
-          "size": 85,
-          "match_percent": 0.0
         },
         {
           "name": "_Z18CreateThingManagerv",
@@ -96009,7 +96009,7 @@
           "address": 1012640,
           "offset": 122672,
           "size": 868,
-          "match_percent": 58.71552
+          "match_percent": 59.405174
         },
         {
           "name": "_ZN12NuMemoryPoolD1Ev",
@@ -96081,7 +96081,7 @@
           "address": 1014656,
           "offset": 124688,
           "size": 289,
-          "match_percent": 35.37895
+          "match_percent": 38.157894
         }
       ]
     },
@@ -96828,6 +96828,22 @@
           "offset": 1665924,
           "size": 10,
           "match_percent": 100.0
+        },
+        {
+          "name": "NuPs2ApplyDeadZone",
+          "demangled_name": "NuPs2ApplyDeadZone",
+          "address": 2555912,
+          "offset": 1665944,
+          "size": 152,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_Z24Nu360ConfigureSMBSharingPPc",
+          "demangled_name": "Nu360ConfigureSMBSharing(char**)",
+          "address": 2556074,
+          "offset": 1666106,
+          "size": 106,
+          "match_percent": 99.93104
         }
       ]
     },
@@ -99842,22 +99858,6 @@
           "match_percent": 54.294117
         },
         {
-          "name": "NuPs2ApplyDeadZone",
-          "demangled_name": "NuPs2ApplyDeadZone",
-          "address": 2555912,
-          "offset": 1665944,
-          "size": 152,
-          "match_percent": 25.727272
-        },
-        {
-          "name": "_Z24Nu360ConfigureSMBSharingPPc",
-          "demangled_name": "Nu360ConfigureSMBSharing(char**)",
-          "address": 2556074,
-          "offset": 1666106,
-          "size": 106,
-          "match_percent": 39.689655
-        },
-        {
           "name": "NuPad_Interface_TouchScreenInput",
           "demangled_name": "NuPad_Interface_TouchScreenInput",
           "address": 2562672,
@@ -99888,30 +99888,6 @@
           "offset": 1686720,
           "size": 9,
           "match_percent": 100.0
-        },
-        {
-          "name": "NuPower2",
-          "demangled_name": "NuPower2",
-          "address": 2686542,
-          "offset": 1796574,
-          "size": 45,
-          "match_percent": 28.285715
-        },
-        {
-          "name": "NuLog2",
-          "demangled_name": "NuLog2",
-          "address": 2686640,
-          "offset": 1796672,
-          "size": 75,
-          "match_percent": 48.636364
-        },
-        {
-          "name": "NuPow",
-          "demangled_name": "NuPow",
-          "address": 2686715,
-          "offset": 1796747,
-          "size": 370,
-          "match_percent": 5.111111
         },
         {
           "name": "NuSpecialDrawAtAlpha",
@@ -108600,6 +108576,30 @@
           "offset": 1749371,
           "size": 78,
           "match_percent": 100.0
+        },
+        {
+          "name": "NuPower2",
+          "demangled_name": "NuPower2",
+          "address": 2686542,
+          "offset": 1796574,
+          "size": 45,
+          "match_percent": 54.95238
+        },
+        {
+          "name": "NuLog2",
+          "demangled_name": "NuLog2",
+          "address": 2686640,
+          "offset": 1796672,
+          "size": 75,
+          "match_percent": 99.954544
+        },
+        {
+          "name": "NuPow",
+          "demangled_name": "NuPow",
+          "address": 2686715,
+          "offset": 1796747,
+          "size": 370,
+          "match_percent": 99.7
         },
         {
           "name": "NuPowFast",

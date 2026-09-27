@@ -2221,37 +2221,6 @@ extern "C" {
     // Math / geometry
     // ---------------------------------------------------------------------------
 
-    f32 NuLog2(f32 value) {
-        return NuLog10(value) * 3.321928f;
-    }
-    static f32 pow_x[32], pow_y[32], pow_rv[32];
-    static i32 pow_cache_free;
-    f32 NuPow(f32 x, f32 y) {
-        if (x == 0.0f)
-            return 0.0f;
-        static i32 first_time = 1;
-        if (first_time != 0) {
-            first_time = 0;
-            for (i32 i = 0; i < 32; ++i)
-                pow_x[i] = FLT_MAX;
-        }
-        for (i32 i = 0; i < 32; ++i) {
-            if (pow_x[i] == x && pow_y[i] == y)
-                return pow_rv[i];
-        }
-        f32 result = static_cast<f32>(exp(static_cast<double>(y) * log(static_cast<double>(x))));
-        pow_x[pow_cache_free] = x;
-        pow_y[pow_cache_free] = y;
-        pow_rv[pow_cache_free] = result;
-        pow_cache_free = (pow_cache_free + 1) & 31;
-        return result;
-    }
-    i32 NuPower2(i32 value) {
-        i32 power = value > 127 ? 128 : 1;
-        while (power < value)
-            power += power;
-        return power;
-    }
     // ---------------------------------------------------------------------------
     // Quick-font platform rendering (the generic font run lives in nuqfnt.cpp)
     // ---------------------------------------------------------------------------
@@ -4274,21 +4243,6 @@ extern "C" {
             touch->unknown_10 = old_y;
         }
     }
-    i32 NuPs2ApplyDeadZone(i32 raw_value, i32 dead_zone) {
-        i32 value = raw_value - 128;
-        if (value > 0) {
-            if (value < dead_zone) {
-                value = 0;
-            } else {
-                value = (value - dead_zone) * 255 / (255 - dead_zone);
-            }
-        } else if (value > -dead_zone) {
-            value = 0;
-        } else {
-            value = (value + dead_zone) * 255 / (255 - dead_zone);
-        }
-        return value;
-    }
     // ---------------------------------------------------------------------------
     // Culling / visibility / portals / occlusion
     // ---------------------------------------------------------------------------
@@ -4673,15 +4627,6 @@ struct nuframebuffer_s;
 struct nushaderobject_s;
 union variptr_u;
 
-static char g_smbPath[256];
-
-void Nu360ConfigureSMBSharing(char **path) {
-    NuFileSetCurrentDirectory("d:\\");
-    if (static_cast<bool>(NuFileLoadBuffer("smbpath.txt", g_smbPath, sizeof(g_smbPath)))) {
-        NuFileSetCurrentDirectory(g_smbPath);
-        *path = g_smbPath;
-    }
-}
 void NuLgtSetArcMatEx(i32 type, numtl_s *material, f32 u0, f32 v0, f32 u1, f32 v1) {
     if (type > 3)
         return;

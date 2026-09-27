@@ -4145,3 +4145,157 @@ argument, local timing values and unchanged API state. Out-of-range float
 conversions and signed arithmetic overflow are not valid fixture inputs;
 this is not a real scheduler/timing-backend integration test. Target/native
 builds and all five repository checks pass.
+
+## Batch 71: memory-pool storage and callback contract
+
+The legacy-release triage exposed a defect in the active release path too:
+the class reserved 1,024 bytes but treated them as 256 native pointers.
+On 64-bit hosts the second half aliases later class fields and extends past
+the object. A real empty-pool `ReleaseUnreferencedPages` call reproduces a
+sanitized invalid-pointer crash at free-list slot 128. Replace the byte
+placeholder and its cast with a typed 256-pointer member; constructor and
+release-all initialization use its actual size. Android retains its asserted
+0x440-byte class layout; the 64-bit host record is 2,176 bytes. Existing
+factory allocations already use `sizeof(NuMemoryPool)`.
+
+Both original release routines test the callback's AL result, so recover the
+boolean `IEventHandler::ReleasePage` contract consistently in the interface
+and the two existing overrides. Remove the conflicting empty pool class in
+the catch-all types header and include the canonical declaration. Virtual
+slot order, symbol names, compiler options and active release logic stay
+unchanged. `ReleaseUnreferencedPages` improves **58.716% to 59.405%**; no other
+scores change, including the exact constructor, release-all and callback
+implementations. Whole fuzzy matching reaches **64.836334%**.
+
+**16,384 cases per architecture** pass NDK x86 and full-global 64-bit
+ASan/UBSan. The fixture executes the real constructor, page insertion,
+free-list/page merge sorting, active release/recycle paths, statistics,
+release-all and destructor, with every free-list slot and all four-page
+live/release masks exercised. Allocation services and page event callbacks
+are recording mocks. The NDK fixture mocks pthread entry points because
+Android mutex storage cannot be passed to the differently sized glibc mutex
+implementation; the host fixture uses real pthreads. This is single-threaded
+validation, not a concurrency proof. Native/target builds and all repository
+checks pass after replacing an initially rejected `HOST_BUILD` assertion
+guard with the standard `DECOMP_ASSERT` mechanism.
+
+`ReleaseUnreferencedPages_OLD` remains deferred: after a rejected release it
+does not advance the current page. Repeated rejection can form a recycled
+self-link; subsequent success can leave the recycle list referring to freed
+metadata. Restoring that path as portable C++ or silently repairing it is
+not justified by the current evidence. The active release path advances
+correctly and is covered by the retained tests.
+
+## Batch 72: scalar-math source ownership
+
+Move the existing `NuPow`, its private 32-slot cache, `NuLog2` and `NuPower2`
+from the optimized plain-symbol catch-all into `nufloat.c`, beside the
+already recovered `NuPowFast`. The original cached and fast power bodies
+are adjacent; their scalar-float ownership and unoptimized instruction
+family support this grouping. Current live actions confirm catch-all `-O3`
+versus scalar-math default `-O0`, with no build-option changes. Preserve all
+bodies and private symbols, add canonical C-linkage declarations, and remove
+the two redundant local declarations in the post-filter consumer. Spell the
+numeric casts in C-compatible form: the target action compiles this `.c`
+file as C++, while native/WASM declaration indexing parses it as C.
+
+`NuPow` improves **5.111% to 99.700%**, `NuLog2` **48.636% to 99.955%**, and
+`NuPower2` **28.286% to 54.952%**. No other scores change and no exact matches
+are lost. Whole fuzzy matching reaches **64.844820%**. The cached power body
+has identical instruction structure, with private/literal operands and
+separate loop-local stack slots remaining. The integer helper still uses
+stack locals instead of retail registers; no register hints are added.
+
+Per architecture, NDK x86 and full-global 64-bit ASan/UBSan pass **66,892
+cache/IEEE cases**, **131,163 integer cases**, and **32,768 logarithm dispatch
+cases**. Power uses real libm with recording log/exp wrappers, checking
+first-use initialization, cache hits/misses and wraparound, NaNs, infinities,
+signed zero, and the retail sentinel collision (`FLT_MAX` to exponent zero
+initially returns cached zero). Integer tests stay in the original defined
+terminating domain through 2^30; larger positive inputs are not made safe
+by inventing a different overflow policy. The log helper's dependency is
+mocked to verify argument forwarding and exact float scaling. Target/native
+builds and all five repository checks pass.
+
+## Batch 73: Android dead-zone source ownership
+
+Move the unchanged `NuPs2ApplyDeadZone` body from `nucore_plain.cpp` to
+`android/nuapi_android.cpp`. The original places it alongside `PadRecPtr`,
+hardware initialization and the SMB helper immediately before the
+`_GLOBAL__sub_I_nuapi_android.c` initializer. The destination already owns
+that Android API family and uses default `-O0`; its flags remain unchanged.
+The existing canonical `nupad.h` declaration preserves plain C linkage.
+
+Matching improves **25.727% to 100%**, reproducing all 152 original bytes.
+No other score changes; whole fuzzy matching reaches **64.847210%**.
+**917,760 cases per architecture** pass NDK x86 and full-global 64-bit
+ASan/UBSan: every byte input across 769 signed dead zones, plus every signed
+16-bit input across eleven representative dead zones. A widened-arithmetic
+oracle checks signed truncating division and strict dead-zone boundaries.
+Zero-divisor and overflowing paths are excluded rather than silently given
+new behavior. Target/native builds and all five repository checks pass.
+
+## Batch 74: adjacent SMB-path source ownership
+
+Move the existing `Nu360ConfigureSMBSharing` and its private 256-byte buffer
+to the same Android API owner, retaining its C++ name and complete behavior.
+It follows the dead-zone helper in the original source neighborhood. Add
+the canonical declaration in `nuapi.h`; the external file-service calls and
+their order are unchanged. Matching improves **39.690% to 99.931%**, with
+only two string operands left. No collateral changes or exact losses;
+whole fuzzy matching reaches **64.848570%**.
+
+**32,769 cases per architecture** pass NDK x86 and full-global 64-bit
+ASan/UBSan, checking directory reset before loading, 256-byte buffer limits,
+all valid string lengths, zero/nonzero/signed load results, stable buffer
+addresses, callback-mutated output cells and full-width pointer assignment.
+File/directory services are mocks: no actual working directory or SMB share
+is touched. Target/native builds and all five checks pass. All eleven PR
+checks for the preceding published commit `6a2da11d` are green.
+
+## Batch 75: material lookup and its actual caller
+
+Resolve the earlier zero-score `FindMtlInHGObj` deferral with new ownership
+evidence. Its only recovered caller is `instGetLookAtLocatorInfo` in
+`gcutscn.cpp`, which performs the three one-based material lookups. Both
+functions are adjacent in the original cutscene block. Move the unchanged
+scan from `things.cpp` to that existing caller owner and declare it in the
+cutscene header. Live commands confirm source default `-O0` and destination
+`-O2`; no flags or function attributes are changed.
+
+The first owner-correct build improves **0% to 100%**, with all 85 bytes
+matching and the caller's score unchanged. No regressions or exact losses;
+whole fuzzy matching reaches **64.850370%**. **1,164,800 cases per
+architecture** pass NDK x86 and full-global 64-bit ASan/UBSan: signed counts,
+every byte material tag, full-width search values, first/last/duplicate
+matches, reversed material arrays and untouched scene/material storage.
+Target/native builds and all repository checks pass. These tests use the
+declared `NUGSCN` view; they do not validate the full look-at path's existing
+hierarchy/scene casts. In particular, the two recovered record prefixes
+need a separate 64-bit layout audit before claiming native cutscene
+integration.
+
+## Batch 76: page-allocation selection check
+
+Restore the original explicit head/capacity check after the page search and
+relinking in `NuMemoryPool::PageAlloc`. Keep the unusual retail selection
+rule: the first later page with insufficient space is moved to the front,
+not the first page with enough space. Reload the selected head before the
+allocation callback decision, and reload again after the callback. No
+compiler settings, branch hints or allocation-failure policy change.
+
+One bounded source trial improves **35.379% to 38.158%**, with no collateral
+changes. The remaining differences are loop layout, instruction scheduling
+and registers; no additional variants are tried. Whole fuzzy matching
+reaches **64.850530%**.
+
+**284,375 cases per architecture** pass NDK x86 and full-global 64-bit
+ASan/UBSan. Tests use the actual pool constructor, page insertion, allocator,
+release-all and destructor, covering zero through four initial pages,
+all 625 four-page capacity patterns, seven alignments and thirteen request
+sizes. The recording allocator callback checks the post-relink list, adds
+a real page through `AddPage`, and verifies the ignored return value. Tests
+also check exact output addresses, metadata/count updates, untouched page
+contents and cleanup. NDK pthread calls are mocked for ABI compatibility;
+the host uses real recursive mutexes. Target/native builds and all five
+repository checks pass. This is not a concurrent allocator stress test.

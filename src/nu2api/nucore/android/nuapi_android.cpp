@@ -9,6 +9,7 @@
 #include "nu2api/nuandroid/ios_graphics.h"
 #include "nu2api/nucore/nuapi.h"
 #include "nu2api/nucore/nuthread.h"
+#include "nu2api/nufile/nufile.h"
 #include "nu2api/nusound/nusound.h"
 
 extern "C" void NuInitDebrisRenderer(VARIPTR *buffer, VARIPTR buffer_end);
@@ -69,4 +70,30 @@ void NudxFw_D3DBeginCriticalSection() {
 void NudxFw_D3DEndCriticalSection() {
     // This is undoubtedly a __FILE__ and __LINE__ usage in the original.
     EndCriticalSectionGL("i:/SagaTouch-Android_9176564/nu2api.saga/nucore/android/nuapi_android.c", 0xd7);
+}
+
+i32 NuPs2ApplyDeadZone(i32 raw_value, i32 dead_zone) {
+    i32 value = raw_value - 128;
+    if (value > 0) {
+        if (value < dead_zone) {
+            value = 0;
+        } else {
+            value = (value - dead_zone) * 255 / (255 - dead_zone);
+        }
+    } else if (value > -dead_zone) {
+        value = 0;
+    } else {
+        value = (value + dead_zone) * 255 / (255 - dead_zone);
+    }
+    return value;
+}
+
+static char g_smbPath[256];
+
+void Nu360ConfigureSMBSharing(char **path) {
+    NuFileSetCurrentDirectory("d:\\");
+    if (static_cast<bool>(NuFileLoadBuffer("smbpath.txt", g_smbPath, sizeof(g_smbPath)))) {
+        NuFileSetCurrentDirectory(g_smbPath);
+        *path = g_smbPath;
+    }
 }

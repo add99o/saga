@@ -78,6 +78,7 @@ void NuAPIInit(void);
 void ParseCommandLine(void);
 // Background-load frame timing uses the original C++ linkage.
 i32 NuFrameEndBgLoadPS(i32 minimum_delay);
+void Nu360ConfigureSMBSharing(char **path);
 
 extern "C" {
 #endif

@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 
+#include "decomp.h"
 #include "nu2api/nucore/common.h"
 
 class NuMemoryPool {
@@ -9,7 +10,7 @@ class NuMemoryPool {
     class IEventHandler {
       public:
         virtual i32 AllocatePage(NuMemoryPool *pool, u32 _unknown, u32 _unknown2, const char *_unknown3) = 0;
-        virtual i32 ReleasePage(NuMemoryPool *pool, void *ptr) = 0;
+        virtual bool ReleasePage(NuMemoryPool *pool, void *ptr) = 0;
         virtual void ForceReleasePage(NuMemoryPool *pool, void *ptr) = 0;
         virtual void *AllocateLargeBlock(NuMemoryPool *pool, u32 size, u32 alignment, const char *_unknown3) = 0;
         virtual void FreeLargeBlock(NuMemoryPool *pool, void *ptr) = 0;
@@ -68,7 +69,8 @@ class NuMemoryPool {
     u32 free_bytes;
     u32 large_block_bytes;
     Page *pages;
-    u8 reserved_0x1c[0x400];
+    // 256 native pointers: 0x400 bytes on Android, wider on diagnostic hosts.
+    FreeBlock volatile *free_lists[256];
     volatile bool page_list_stable;
     u8 reserved_0x41d[3];
     pthread_mutex_t mutex;
@@ -83,3 +85,5 @@ class NuMemoryPool {
     static void InterlockedAdd(volatile u32 *augend, u32 addend);
     static void InterlockedSub(volatile u32 *minuend, u32 subtrahend);
 };
+
+DECOMP_ASSERT(sizeof(NuMemoryPool) == 0x440, "memory pool target size");
