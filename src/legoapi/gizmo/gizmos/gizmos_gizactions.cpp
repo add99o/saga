@@ -23,6 +23,7 @@
 #include "legoapi/gizmos/object/gizbuildits.h"
 #include "legoapi/props/objects/techno.h"
 #include "nu2api/numath/nuvec.h"
+#include "nu2api/numath/nuang.h"
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/nuspline.h"
 #include "legoapi/render/fx/spline_position.h"
@@ -207,8 +208,61 @@ i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_UseTechno(AISYS_s 
     return 0;
 }
 
-void Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *processor,
+                                                                            AIPACKET_s *packet, char **params,
+                                                                            i32 param_count, i32 first_time, f32) {
+    if (player == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 0;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    if (first_time != 0) {
+        processor->action_data_4 = static_cast<f32>(object->apiobj.field_0x276);
+        if (param_count > 0) {
+            i32 min_turn = 0;
+            i32 max_turn = 0;
+            i32 turn = 0;
+            i32 random_direction = 0;
+            for (i32 index = 0; index < param_count; ++index) {
+                if (AIActionParseSpeedFn != NULL &&
+                    AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0)
+                    continue;
+                char *value = NuStrIStr(params[index], "min_turn");
+                if (value != NULL) {
+                    min_turn = static_cast<i32>(static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) *
+                                                182.04444885253906f);
+                    continue;
+                }
+                value = NuStrIStr(params[index], "max_turn");
+                if (value != NULL) {
+                    max_turn = static_cast<i32>(static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 9))) *
+                                                182.04444885253906f);
+                    continue;
+                }
+                if (NuStrIStr(params[index], "rand_turn_dir") != NULL) {
+                    random_direction = 1;
+                    continue;
+                }
+                value = NuStrIStr(params[index], "turn");
+                if (value != NULL)
+                    turn = static_cast<i32>(static_cast<f32>(static_cast<i32>(AIParamToFloat(processor, value + 5))) *
+                                            182.04444885253906f);
+            }
+            if (max_turn != 0)
+                turn = min_turn + static_cast<i32>(static_cast<f32>(max_turn - min_turn) * NuRandFloat());
+            if (turn != 0) {
+                if (random_direction != 0 && (NuRand(NULL) & 1) != 0)
+                    turn = -turn;
+                processor->action_data_4 =
+                    static_cast<f32>(NuAngAdd(static_cast<i32>(processor->action_data_4), turn));
+            }
+        }
+    }
+    if ((packet->path_info.flags & AIPATHINFO_FLAG_ON_PATH) != 0) {
+        NUVEC destination = {0.0f, 0.0f, 10.0f};
+        NuVecRotateY(&destination, &destination, static_cast<i32>(processor->action_data_4));
+        NuVecAdd(&destination, &destination, &object->apiobj.position);
+        AIMoveInstruction(packet, &destination, 0.0f, &packet->path_info, 1, 0.01f);
+    }
+    return 0;
 }
 
 i32 Action_EndCameraCut(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *, char **params, i32 param_count,
