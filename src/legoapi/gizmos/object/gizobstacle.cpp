@@ -1030,8 +1030,35 @@ GIZOBSTACLE_s *GizObstacle_FindByName(GIZOBSTACLESYS_s *system, char *name) {
     return NULL;
 }
 
-void GizObstacle_FindNearest(GIZOBSTACLESYS_s *, nuvec_s *, GameObject_s *, float *, i32) {
-    STUBBED();
+GIZOBSTACLE_s *GizObstacle_FindNearest(GIZOBSTACLESYS_s *system, nuvec_s *position, GameObject_s *object,
+                                       f32 *distance, i32 mode) {
+    if (system == NULL)
+        return NULL;
+
+    f32 nearest_distance = 1000000000.0f;
+    GIZOBSTACLE_s *nearest = NULL;
+    for (i32 i = 0; i < system->count; ++i) {
+        GIZOBSTACLE_s *obstacle = &system->obstacles[i];
+        if (mode != -1 && obstacle->mode != mode)
+            continue;
+        if ((obstacle->progress_flags & 3) != 3 || (obstacle->runtime_flags & GIZOBSTACLE_RUNTIME_FLAG_DESTROYED) != 0)
+            continue;
+
+        NUVEC average_position;
+        NUVEC *target = &obstacle->position;
+        if (object != NULL && obstacle->anim_set != NULL) {
+            GameAnimSet_GetAveragePos(obstacle->anim_set, &average_position, 2, 1, 0);
+            target = &average_position;
+        }
+        f32 current_distance = NuVecDistSqr(position, target, NULL);
+        if (current_distance < nearest_distance) {
+            nearest_distance = current_distance;
+            nearest = obstacle;
+        }
+    }
+    if (distance != NULL)
+        *distance = nearest_distance;
+    return nearest;
 }
 
 void GizObstacle_JumpToStart(GIZOBSTACLE_s *obstacle) {
