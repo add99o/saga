@@ -307,6 +307,7 @@ extern i32 from_save_and_exit;
 extern TIMER BonusTimer;
 extern i16 id_SLAVE1;
 extern i16 tSUPERSTORYCOMPLETE, tNEWBESTTIME, tNONEWBESTTIME, tLEVELCOMPLETE, tMISSIONCOMPLETE;
+extern i16 tNEWHIGHSCORE, tNONEWHIGHSCORE;
 extern i16 tCHALLENGECOMPLETE, tTRUEHERO, tMINIKIT;
 extern "C" void NuIOS_RecordFlurryEvent(char *);
 extern "C" i32 NuStrCpy(char *, const char *);
@@ -1427,8 +1428,45 @@ void LSW_registerStatusScreen() {
     RegisterStatusScreen(StatusStages_LSW, NULL, &registration);
 }
 
-void SuperStoryScore_LSW_Draw(STATUS_STAGE_s *, STATUSPACKET_s *, i32) {
-    STUBBED();
+void SuperStoryScore_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 current) {
+    if (current == 0)
+        return;
+
+    f32 alpha = 1.0f;
+    if (stage->field_0x14 > 0) {
+        const f32 time = stage->field_0x18;
+        if (time < 0.5f)
+            alpha = time + time;
+        else if (time >= 4.5f)
+            alpha = 1.0f - (time - 4.5f) * 2.0f;
+
+        const i32 opacity = static_cast<i32>(alpha * 128.0f);
+        const bool new_best = packet->new_best_score != 0;
+        SmartTextEx(TTab[new_best ? tNEWHIGHSCORE : tNONEWHIGHSCORE], 0.0f, 0.2f, 1.0f, 0.7f, 0.7f, 0.7f, 0,
+                    new_best ? 0 : 255, new_best ? 255 : 0, 0, 1.7f, 1, NULL, 0, opacity);
+
+        f32 blend = 0.0f;
+        if (time >= 4.0f)
+            blend = 1.0f;
+        else if (time >= 0.5f)
+            blend = (time - 0.5f) / 3.5f;
+        const u32 score = packet->superstory_score;
+        const f32 score_as_float = static_cast<f32>(score & 0xffff) + static_cast<f32>(score >> 16) * 65536.0f;
+        char score_text[256];
+        Text_MakeScore(static_cast<u32>(score_as_float * blend), score_text);
+        Text3DEx(score_text, 0.0f, 0.0f, 1.0f, 0.7f, 0.7f, 0.7f, 0, 255, 255, 255, opacity & 255);
+
+        Text_MakeScore(packet->previous_best_score, score_text);
+        char previous_text[256];
+        NuStrCpy(previous_text, "(");
+        NuStrCat(previous_text, score_text);
+        NuStrCat(previous_text, ")");
+        Text3DEx(previous_text, 0.0f, -0.2f, 1.0f, 0.7f, 0.7f, 0.7f, 0, 255, 255, 255, (opacity / 2) & 255);
+    }
+
+    const i32 angle = (static_cast<i32>(alpha * 16384.0f) >> 1) & 0x7fff;
+    const f32 coin_y = STATSPOS2Y + (STATSPOSY - STATSPOS2Y) * NuTrigTable[angle];
+    CoinTotal_Draw(*packet->score, coin_y, CoinTotalScale, 1, 1.0f, 255, 191, 0);
 }
 
 void SuperStoryScore_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *packet) {
