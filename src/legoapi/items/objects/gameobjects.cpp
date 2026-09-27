@@ -4160,18 +4160,31 @@ void GameDisplaySettings(LEVELDATADISPLAY *display, i32 *background_colours) {
 u8 grapple_attach_frames = 5;
 void GameObjectSetCanUse(GameObject_s *object, void *target, unsigned char action, unsigned char, float parameter) {
     object->can_use_object = target;
-    object->use_action_parameter = parameter;
     object->use_action = action;
+    object->use_action_parameter = parameter;
     object->use_action_frames = grapple_attach_frames;
 }
 
 CABLE_s *GameObjOwnsAnyCables(GameObject_s *object) {
-    CABLE_s *cable = cables;
-    for (i32 i = 0; i < 8; ++i, ++cable) {
-        // The original checks the first cable's owner for the entire array.
-        if (cables->source == object && (cable->flags_1e9 & 1) != 0)
-            return cable;
-    }
+    // The original checks the first cable's owner for the entire array.
+    if (cables[0].source != object)
+        return NULL;
+    if ((cables[0].flags_1e9 & 1) != 0)
+        return &cables[0];
+    if ((cables[1].flags_1e9 & 1) != 0)
+        return &cables[1];
+    if ((cables[2].flags_1e9 & 1) != 0)
+        return &cables[2];
+    if ((cables[3].flags_1e9 & 1) != 0)
+        return &cables[3];
+    if ((cables[4].flags_1e9 & 1) != 0)
+        return &cables[4];
+    if ((cables[5].flags_1e9 & 1) != 0)
+        return &cables[5];
+    if ((cables[6].flags_1e9 & 1) != 0)
+        return &cables[6];
+    if ((cables[7].flags_1e9 & 1) != 0)
+        return &cables[7];
     return NULL;
 }
 
@@ -5383,10 +5396,10 @@ void ThingManager::EnableActions(i32 id, i32 flags, i32 invert) {
             continue;
         }
         if (thing->field_0x4 == (u32)id) {
-            if (invert == 0) {
-                thing->flags |= (u32)flags;
-            } else {
+            if (invert != 0) {
                 thing->flags &= ~(u32)flags;
+            } else {
+                thing->flags |= (u32)flags;
             }
             return;
         }
