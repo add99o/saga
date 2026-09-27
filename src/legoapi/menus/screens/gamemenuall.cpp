@@ -52,6 +52,15 @@ extern char *FS_CurrentCursorPos;
 extern "C" i32 MenuASCancelFinished;
 extern f32 memcard_autosavecanceldelay;
 u8 FS_Active;
+u8 FS_ShowVolumes;
+extern i32 FS_NumFiles;
+extern i32 FS_SortMode;
+void FS_GetDirList(char *, char *, char *);
+i32 FS_GetPadWithRepeat(nupad_s *, f32, f32);
+void FS_MoveCursorDown(i32);
+void FS_MoveCursorUp(i32);
+void FS_SetCursorToLastFileName();
+f32 FS_GetDirTextWidth();
 void InitMission(MISSIONSYS *, i32);
 extern f32 ICONSIZE, ICONX, DROPINALPHA, HUB_EPISODETITLEY;
 extern i16 tSELECT, tSELECTED, tSELECTING, tEXIT, tCANCEL;
@@ -159,18 +168,19 @@ extern "C" void Draw_DONOTREMOVEMEMORYCARD(void);
 void Draw_OK(MENU_s *menu);
 void RenderFileSel3(i32);
 extern "C" {
-f32 FS_X = 50.0f;
-f32 FS_Y = 40.0f;
-f32 FS_W;
-f32 FS_H;
-char FS_Title[256] = "Title";
-char FS_Filter[256] = "*.nup | *.hgp   ";
-char FS_FilterOut[256] = "_PC. | _360. | _PS3.";
-extern char FS_Path[256];
-u8 FS_RefreshDir;
-void *FS_Callback;
+    f32 FS_X = 50.0f;
+    f32 FS_Y = 40.0f;
+    f32 FS_W;
+    f32 FS_H;
+    char FS_Title[256] = "Title";
+    char FS_Filter[256] = "*.nup | *.hgp   ";
+    char FS_FilterOut[256] = "_PC. | _360. | _PS3.";
+    f32 FS_Width = 248.0f;
+    extern char FS_Path[256];
+    u8 FS_RefreshDir;
+    void *FS_Callback;
 }
-void ProcessFileSel3(float, nupad_s *);
+i32 ProcessFileSel3(float, nupad_s *);
 
 i32 memcard_cardchanged;
 i32 MenuCardWarningState;
@@ -677,8 +687,97 @@ void MenuUpdateHints(MENU_s *menu) {
     }
 }
 
-void ProcessFileSel3(float, nupad_s *) {
-    STUBBED();
+i32 ProcessFileSel3(float elapsed, nupad_s *pad) {
+    if (FS_Active == 0)
+        return 0;
+
+    if (FS_RefreshDir != 0) {
+        FS_GetDirList(FS_Path, FS_Filter, FS_FilterOut);
+        NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+        NuQFntSet(system_qfont);
+        NuQFntSetPointSize(system_qfont, 1.0f, 1.0f);
+        const f32 width = FS_GetDirTextWidth() * 0.0625f;
+        NuQFntPopCoordinateSystem();
+        FS_Width = fmaxf(240.0f, width) + 8.0f;
+        FS_GetPadWithRepeat(pad, 0.05f, elapsed);
+        if (FS_LastFileName[0] != '\0')
+            FS_SetCursorToLastFileName();
+        FS_RefreshDir = 0;
+    }
+
+    const i32 buttons = FS_GetPadWithRepeat(pad, 0.05f, elapsed);
+    if (buttons & 0x4000)
+        FS_MoveCursorDown(1);
+    if (buttons & 0x1000)
+        FS_MoveCursorUp(1);
+    if (buttons & 1)
+        FS_MoveCursorDown(14);
+    if (buttons & 4)
+        FS_MoveCursorUp(14);
+    if (buttons & 2)
+        FS_MoveCursorDown(FS_NumFiles);
+    if (buttons & 8)
+        FS_MoveCursorUp(FS_NumFiles);
+
+    if (buttons & 0x80) {
+        FS_RefreshDir = 2;
+        ++FS_SortMode;
+        if (FS_SortMode == 4)
+            FS_SortMode = 0;
+        NuStrCpy(FS_LastFileName, FS_CurrentCursorPos + 7);
+    }
+
+    if (buttons & 0x20) {
+        i32 length = NuStrLen(FS_Path);
+        if (length != 0 && FS_Path[length - 1] == '\\')
+            FS_Path[length - 1] = '\0';
+        char *separator = NuStrRChr(FS_Path, '\\');
+        if (separator != NULL)
+            separator[1] = '\0';
+        else
+            NuStrCat(FS_Path, "\\");
+        FS_RefreshDir = 1;
+        FS_LastFileName[0] = '\0';
+    }
+
+    if ((buttons & 0x40) == 0)
+        return 0;
+
+    char *entry = FS_CurrentCursorPos;
+    if (entry[0] == 'V') {
+        FS_ShowVolumes = 0;
+        NuStrCpy(FS_Path, entry + 7);
+        FS_RefreshDir = 1;
+        FS_LastFileName[0] = '\0';
+        return 0;
+    }
+    if (entry[0] == 'D') {
+        if (entry[7] == '.' && entry[8] == '.' && entry[9] == '\0') {
+            i32 length = NuStrLen(FS_Path);
+            if (length != 0 && FS_Path[length - 1] == '\\')
+                FS_Path[length - 1] = '\0';
+            char *separator = NuStrRChr(FS_Path, '\\');
+            if (separator != NULL)
+                separator[1] = '\0';
+            else
+                NuStrCat(FS_Path, "\\");
+        } else {
+            const i32 length = NuStrLen(FS_Path);
+            if (length != 0 && FS_Path[length - 1] != '\\')
+                NuStrCat(FS_Path, "\\");
+            NuStrCat(FS_Path, entry + 7);
+            NuStrCat(FS_Path, "\\");
+        }
+        FS_RefreshDir = 1;
+        FS_LastFileName[0] = '\0';
+        return 0;
+    }
+
+    FS_Active = 0;
+    NuStrCpy(FS_LastFileName, entry + 7);
+    if (FS_Callback != NULL)
+        reinterpret_cast<void (*)(char *, char *)>(FS_Callback)(FS_Path, entry + 7);
+    return 1;
 }
 
 void MenuDrawDeleting(MENU_s *) {
@@ -800,8 +899,7 @@ void MenuInitEpisodes(MENU_s *) {
     episodesmode = 0;
     episodestime = 0;
     episodesduration = 0.6f;
-    if (Game_AreaSave != NULL &&
-        Game_AreaSave[EDataList[i_episodes].area_ids[0]].complete == 0) {
+    if (Game_AreaSave != NULL && Game_AreaSave[EDataList[i_episodes].area_ids[0]].complete == 0) {
         i_episodes = 0;
     }
     if (hub_new_level != -1 && LDataList[hub_new_level].episode_index != -1) {
@@ -1633,7 +1731,7 @@ void MenuDrawDoNotRemoveCard(MENU_s *) {
 }
 
 extern "C" {
-i32 MenuASCancelFinished;
+    i32 MenuASCancelFinished;
 }
 
 void MenuEnterAutoSaveCancel(MENU_s *menu) {
