@@ -364,16 +364,40 @@ void DumpShaderAttributes(u32) {
 }
 
 // The original 0x2940a6 helper and its counter belong to this VAO family.
-static i32 g_vaoRecordCount;
+static u32 g_vaoRecordCount;
+
+// Retail stores 2,048 twenty-byte records; the format pointer stays native
+// width on host builds. The three unsigned values are opaque lookup keys.
+struct NuVAORecord {
+    u32 first_key;
+    u32 second_key;
+    NuVertexFormatPS *format;
+    u32 third_key;
+    i32 vao;
+};
+DECOMP_ASSERT(sizeof(NuVAORecord) == 20, "NuVAORecord target layout");
+static NuVAORecord g_vaoRecords[2048];
 
 void NuIOS_ResetVAODuplicateFinder() {
     g_vaoRecordCount = 0;
 }
 
-// Original 0x2940c0. The original record array/layout are still unverified.
-static i32 NuIOS_GetOrCreateVAO(u32, u32, u32, NuVertexFormatPS *) {
-    STUBBED();
-    return 0;
+// Original 0x2940c0. Retail only records keys and returns the existing
+// handle; it does not generate a GL object or clear reused handles here.
+static i32 NuIOS_GetOrCreateVAO(u32 first, u32 second, u32 third, NuVertexFormatPS *format) {
+    u32 i = 0;
+    for (i = 0; i < g_vaoRecordCount; ++i) {
+        if (g_vaoRecords[i].first_key == first && g_vaoRecords[i].second_key == second &&
+            g_vaoRecords[i].format == format && g_vaoRecords[i].third_key == third) {
+            return g_vaoRecords[i].vao;
+        }
+    }
+    g_vaoRecords[i].first_key = first;
+    g_vaoRecords[i].second_key = second;
+    g_vaoRecords[i].format = format;
+    g_vaoRecords[i].third_key = third;
+    ++g_vaoRecordCount;
+    return g_vaoRecords[i].vao;
 }
 
 // original 0x294233 — records the material's vertex format on static geometry

@@ -983,59 +983,75 @@ void MenuUpdateLoading(MENU_s *) {
     BackupMenu();
 }
 
+static f32 opts_sfx_wait = 1.5f;
+static i32 opts_sfx_i;
+
 void MenuUpdateOptions(MENU_s *menu) {
     GameSetSoundVolume(&TempOptions);
-    GameSetMusicVolume(&TempOptions);
+    if (WORLD->current_level != TITLES_LDATA)
+        GameSetMusicVolume(&TempOptions);
+    else
+        legoSetMusicVolume(SuperOptions.music_enabled != 0 ? GameGetMusicVolume(&TempOptions) : 0.0f);
+
+    i32 preview = 0;
+    opts_sfx_wait -= FRAMETIME;
+    if (opts_sfx_wait <= 0.0f) {
+        opts_sfx_wait += 1.5f;
+        opts_sfx_i = static_cast<i32>(static_cast<u32>(opts_sfx_i) + 1);
+        if (opts_sfx_i == 1)
+            opts_sfx_i = 0;
+        preview = 1;
+    }
 
     if (menu->cancel_pressed != 0) {
+        BackupMenu();
         MenuSFX = GameAudio_GetSfxId(0x31);
-        BackupMenu();
-        return;
-    }
-
-    if (menu->selected_item == 2) {
-        if (menu->left_pressed != 0 && TempOptions.field5_0x5 > 0) {
-            --TempOptions.field5_0x5;
-        } else if (menu->right_pressed != 0 && TempOptions.field5_0x5 < 10) {
-            ++TempOptions.field5_0x5;
-        }
-        menu->selected_item_column = TempOptions.field5_0x5;
-    }
-
-    if (menu->confirm_pressed == 0) {
-        return;
-    }
-
-    MenuSFX = GameAudio_GetSfxId(0x30);
-    const i32 accept_row = GAMEDEMO != 0 ? 4 : 5;
-    if (menu->selected_item == accept_row) {
-        MenuSFX = GameAudio_GetSfxId(memcmp(&TempOptions, &Game.options_save, sizeof(TempOptions)) == 0 ? 0x31 : 0x30);
-        Game.options_save = TempOptions;
-        BackupMenu();
-        SfxCheckMusicOnOff(&Game.options_save);
-        return;
-    }
-
-    switch (menu->selected_item) {
-        case 0:
-            if (TestForController() != 0) {
-                MenuSFX = GameAudio_GetSfxId(0x31);
-            } else {
+    } else {
+        i32 row = 0;
+        if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                MenuSFX = GameAudio_GetSfxId(0x30);
                 SuperOptions.touch_controls = SuperOptions.touch_controls == 0;
-                MechSystems::Get()->input_touch_system.control_mode = SuperOptions.touch_controls == 0 ? 1 : 2;
+                i32 control_mode = SuperOptions.touch_controls == 0 ? 1 : 2;
+                MechSystems::Get()->input_touch_system.control_mode = control_mode;
             }
-            break;
-        case 1:
-            TempOptions.field2_0x2 = TempOptions.field2_0x2 == 0;
-            break;
-        case 3:
-            TempOptions.field6_0x6 = TempOptions.field6_0x6 == 0;
-            break;
-        case 4:
-            TempOptions.field11_0xb = TempOptions.field11_0xb == 0;
-            break;
-        default:
-            break;
+        } else if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.surround_sound = TempOptions.surround_sound == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            } else if (preview != 0 && TempOptions.surround_sound != 0) {
+                i32 angle = static_cast<i32>(NuFmod(GlobalTimer.time_elapsed, 8.0f) * 0.125f * 65536.0f) & 0xffff;
+                NUVEC position;
+                position.x = GameCam->pos.x + NU_SIN_LUT(angle) * nusound_fade_start;
+                position.y = GameCam->pos.y;
+                position.z = GameCam->pos.z + NU_COS_LUT(angle) * nusound_fade_start;
+                PlaySfx("PickupCoinB", &position);
+            }
+        } else if (menu->selected_item == row++) {
+            menu->selected_item_column = TempOptions.master_volume;
+            if (menu->left_pressed != 0 && TempOptions.master_volume != 0)
+                --TempOptions.master_volume;
+            else if (menu->right_pressed != 0 && TempOptions.master_volume < 10)
+                ++TempOptions.master_volume;
+        } else if (menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.music_enabled = TempOptions.music_enabled == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            }
+        } else if (GAMEDEMO == 0 && menu->selected_item == row++) {
+            if (menu->confirm_pressed != 0) {
+                TempOptions.widescreen = TempOptions.widescreen == 0;
+                MenuSFX = GameAudio_GetSfxId(0x30);
+            }
+        }
+        if (menu->selected_item == row && menu->confirm_pressed != 0) {
+            i32 sound =
+                GameAudio_GetSfxId(memcmp(&TempOptions, &Game.options_save, sizeof(TempOptions)) == 0 ? 0x31 : 0x30);
+            Game.options_save = TempOptions;
+            BackupMenu();
+            SfxCheckMusicOnOff(&Game.options_save);
+            MenuSFX = sound;
+        }
     }
 }
 

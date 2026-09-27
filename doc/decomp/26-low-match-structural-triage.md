@@ -2346,3 +2346,130 @@ Target/native builds and all five repository tests pass. External
 filesystem, font, string, and render services are mocked in the selector
 fixtures; gameplay and full UI execution are not claimed. All eleven PR
 checks on the preceding customiser batch were green before publication.
+
+## VAO lookup and options-menu behavior batch (32)
+
+Baseline: `68494b63`. Linked fuzzy matching rises from **64.628180% to
+64.650734%**. Two functions improve and two unchanged neighbors have small
+register-allocation regressions; exact-match counts are unchanged:
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `NuIOS_GetOrCreateVAO` | 3.761% | 99.974% |
+| `MenuUpdateOptions` | 0% | 65.126% |
+| `MenuUpdateSave` | 70.367% | 69.959% |
+| `MenuUpdateHints` | 11.641% | 11.500% |
+
+### Renderer lookup layout
+
+Recover the actual LOCAL `g_vaoRecords` array: retail symbol size `0xa000`
+at `0x77eb20`, divided into 2,048 records of 20 bytes. Each record stores
+two unsigned keys at offsets 0/4, a native `NuVertexFormatPS*` at 8,
+the third unsigned key at 12, and the returned four-byte handle at 16.
+Keep the three keys opaque: the retained helper has no direct retail call
+site establishing more specific parameter meanings. The native record
+may grow for pointer width; only the target layout is asserted.
+
+The original unsigned comparison establishes the counter/index type.
+Search in insertion order and return the first record matching all four
+keys. On a miss, write the four keys into the next slot, increment the
+count, and return that slot's **existing** handle. Despite its name,
+the Android function neither generates a GL object nor writes/clears the
+handle. Reset only clears the count, preserving all records and handles.
+Do not invent GL calls or reset-time cleanup. As in retail, the caller
+must keep the count within capacity and may not insert into a full table.
+
+The ordinary `-O0` reconstruction reproduces all 371 bytes of instruction
+structure. The linked diff has only three local counter-address changes;
+the table references pair by their restored real symbol. No attributes,
+flags, assembly, or forced linker retention were added.
+
+### Options menu: incomplete behavior behind a zero score
+
+The old implementation was not merely differently optimized. It omitted
+the title-level music override, 1.5-second sound-preview state, and preview
+positioning; it also changed callback order, cursor feedback, acceptance
+fall-through, and controller handling. Recover both real file-local
+variables (`opts_sfx_wait`, initialized to 1.5 at `0x617d30`, and
+`opts_sfx_i`, BSS at `0x680e70`) in the existing `-O3` menu owner.
+
+- Apply sound volume first. Outside the titles level, use the ordinary
+  music-volume setter. On titles, set the music volume directly to the
+  queried options volume when the super-option is enabled, or zero.
+- Decrement the preview wait on every update, including cancellation.
+  At or below zero, add 1.5 once, increment the index with defined 32-bit
+  wrapping, map exactly one to zero, and enable this frame's preview.
+  This is not a catch-up loop; unordered/NaN waits do not expire.
+- Cancel calls `BackupMenu` before resolving/storing the back sound.
+  Confirmation alone does not universally exit or play a selection sound.
+- Control mode toggles its byte after the selection-sound callback and
+  captures the resulting mode before `MechSystems::Get`. A callback change
+  to that byte must not change the captured mode. There is no controller
+  connectivity gate in the retail update function.
+- Surround confirmation toggles the byte and resolves selection audio.
+  Without confirmation, an expired preview and enabled surround setting
+  play `PickupCoinB` around the current camera position at the configured
+  sound-fade radius. The angle is the low 16 bits of the truncated
+  `fmod(GlobalTimer.time_elapsed, 8) * 0.125 * 65536`, using the real
+  sine/cosine table. Camera/radius are read after the remainder call.
+- The volume row copies the old master volume into the selected column
+  **before** changing the byte. Left takes precedence when nonzero;
+  otherwise right increments only below ten. The other option rows toggle
+  music and, outside demo mode, widescreen.
+- Preserve the incrementing row cursor through the conditional ladder.
+  After a callback, acceptance compares the reloaded selected row with
+  that cursor, not an unconditional fixed 4/5. This matters when callbacks
+  change the selection. Acceptance compares all 13 options bytes, resolves
+  its sound, copies the then-current options, backs out, checks music, and
+  stores the saved sound result last.
+
+The canonical audio header now declares the existing volume query and
+direct setter. Existing named option fields replace anonymous aliases in
+the restored body; no shared layout changes are made. A first candidate
+let C++ evaluate `MechSystems::Get` before reading the control-mode byte;
+the full assembly review exposed that difference, and an explicit captured
+mode corrected it before validation. Remaining code-generation differences
+include ESI/EDI assignment, title-music block placement, integer-angle
+normalization, and local alignment. Further speculative permutations were
+not retained.
+
+Complete before/after collateral diffs contain six register-only operand
+changes in `MenuUpdateSave` and four in `MenuUpdateHints`. Neither body's
+source changes in this batch. No exact function is lost.
+
+### Validation and follow-up findings
+
+Original-toolchain 32-bit and full-global 64-bit ASan/UBSan tests pass on
+the actual source, **456,532 cases per architecture**:
+
+- 27,516 VAO cases cover every count through 2,048, first/middle/last
+  matches, every key independently, duplicate first-match precedence,
+  null and full-width format pointers, arbitrary existing handles, reset
+  preservation, boundary insertion, and 10,000 randomized operations.
+  Out-of-capacity insertions are deliberately excluded.
+- 429,016 options cases cover every option byte and input combination,
+  all menu rows and signed row extremes, both title/demo states, exact
+  callback traces, all 65,536 angle values, timer/NaN/infinity boundaries,
+  signed counter wrapping, and nine families of callback mutations.
+  The real `BackupMenu` and exit callback run in the fixture. Genuine
+  constructed polymorphic Mech fixtures retain vptr sanitization.
+  Invalid floating-to-integer preview-angle inputs are not claimed.
+
+Target/native builds and all five repository tests pass. External audio
+and Mech services are mocked; no gameplay or audible/visual result is
+claimed. All eleven checks on `68494b63` were verified green.
+
+The PhoneOS post/pump stubs need their real queue before safe work on their
+bodies. Retail has five semaphores, two counters, 128 records of a 24-byte
+message plus four-byte token, and a final token field: the LOCAL queue is
+`0xe5c` bytes. Its constructor/destructor and queue synchronization must be
+reconstructed together, including platform-sized semaphore storage and
+the `0x0fffffff` token sentinel. No fake initialized storage or partial
+message-queue implementation is added here.
+
+`MenuUpdateHints` also remains behaviorally incomplete: its 423-byte
+retail body synthesizes scrolling input, filters `Hints_LSW` by control
+mode and available text, clamps per-mode scroll state, and seeks the
+displayed position even after cancellation. Its shared two-element LOCAL
+target/current arrays must be audited with `MenuDrawHints`, whose current
+body is likewise incomplete, before reconstructing that pair.
