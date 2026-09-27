@@ -324,6 +324,8 @@ static i32 Action_SetCurrentSpeed(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char *
 i32 Action_SetState(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_FollowPlayer(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_UsePanel(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
+i32 Action_PullLever(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
+i32 Action_UseTechno(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_HelpWithTriggers(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 i32 Action_UseTriggerSet(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
 static i32 Action_GoToOriginalPath(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char **, i32, i32, f32);
@@ -7237,9 +7239,9 @@ extern "C" {
         {"SetObstacleToEnd", NULL, 1, 0, 0},
         {"HelpWithTriggers", Action_HelpWithTriggers, 0, 0, 0},
         {"UseTriggerSet", Action_UseTriggerSet, 0, 0, 0},
-        {"PullLever", NULL, 0, 0, 0},
+        {"PullLever", Action_PullLever, 0, 0, 0},
         {"UsePanel", Action_UsePanel, 0, 0, 0},
-        {"UseTechno", NULL, 0, 0, 0},
+        {"UseTechno", Action_UseTechno, 0, 0, 0},
         {"ReleaseLocator", NULL, 0, 0, 0},
         {"AssignLocator", NULL, 0, 0, 0},
         {"GetLocatorFromSet", NULL, 0, 0, 0},

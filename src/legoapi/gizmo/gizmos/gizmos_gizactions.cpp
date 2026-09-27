@@ -11,6 +11,7 @@
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/props/doors/door.h"
+#include "legoapi/props/objects/techno.h"
 #include "legoapi/world/level.h"
 #include "legoapi/world/world.h"
 #include "nu2api/nucore/nustring.h"
@@ -44,6 +45,7 @@ i32 Action_SetState(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *, char 
 
 f32 GameShadow(GameObject_s *, NUVEC *, f32, i32);
 void AISysGetPathPos2(AISYS_s *, NUVEC *, AIPATHINFO_s *, NUVEC *, AIPATH_s *, i32);
+void GameObjectSetCanUse(GameObject_s *, void *, u8, u8, f32);
 
 i32 Action_UsePanel(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
                     i32 first_time, f32 elapsed) {
@@ -93,16 +95,100 @@ void Action_CameraCut(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32
     STUBBED();
 }
 
-void Action_PullLever(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 Action_PullLever(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
+                     i32 first_time, f32 elapsed) {
+    i32 instant = 0;
+    if (first_time != 0) {
+        for (i32 index = 0; index < param_count; ++index) {
+            char *name = NuStrIStr(params[index], "lever=");
+            if (name != NULL) {
+                GIZMO *gizmo = GizmoFindByName(WORLD->gizmo_sys, lever_gizmotype_id, name + 6);
+                if (gizmo == NULL || gizmo->object == NULL)
+                    continue;
+                LEVER *lever = static_cast<LEVER *>(gizmo->object);
+                processor->action_data_3 = lever;
+                if (lever->being_pulled)
+                    continue;
+                processor->action_pos = lever->floor_position;
+                f32 height = GameShadow(NULL, &processor->action_pos, 5.0f, -1);
+                if (height != 2000000.0f)
+                    processor->action_pos.y = height;
+                AISysGetPathPos2(system, &processor->action_pos, &processor->path_info, &processor->action_pos, NULL,
+                                 0xff);
+            } else if (NuStrICmp(params[index], "instant") == 0) {
+                instant = 1;
+            }
+        }
+    }
+    LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
+    if (lever == NULL)
+        return 1;
+    if (instant != 0) {
+        lever->being_pulled = 1;
+        lever->animation_frame = 0x8000;
+        lever->pull_progress = 1.0f;
+        return 1;
+    }
+    if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 1;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
+    if ((object->field_0xefe & 0x80) != 0) {
+        f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
+        if (distance < ai_moveradius * ai_moveradius) {
+            packet->movement_look_target = &lever->position;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_SPECIAL;
+        }
+    } else if (FreePlay != 0) {
+        processor->action_timer -= elapsed;
+        if (processor->action_timer < 0.0f) {
+            processor->action_timer = 0.5f;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_TOGGLERIGHT;
+        }
+    }
+    return object->field_0x7a5 == 0x4a && object->field_0x788 == lever;
 }
 
-void Action_UseTechno(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
-}
-
-void Action_MoveForward(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 Action_UseTechno(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
+                     i32 first_time, f32 elapsed) {
+    if (packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 1;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    if (first_time != 0) {
+        for (i32 index = 0; index < param_count; ++index) {
+            char *name = NuStrIStr(params[index], "name=");
+            if (name == NULL)
+                continue;
+            GIZMO *gizmo = GizmoFindByName(WORLD->gizmo_sys, techno_gizmotype_id, name + 5);
+            if (gizmo == NULL || gizmo->object == NULL)
+                continue;
+            TECHNO *techno = static_cast<TECHNO *>(gizmo->object);
+            processor->action_data_3 = techno;
+            processor->action_pos = techno->ground_position;
+            f32 height = GameShadow(NULL, &processor->action_pos, 5.0f, -1);
+            if (height != 2000000.0f)
+                processor->action_pos.y = height;
+            AISysGetPathPos2(system, &processor->action_pos, &processor->path_info, &processor->action_pos, NULL, 0xff);
+        }
+    }
+    TECHNO *techno = static_cast<TECHNO *>(processor->action_data_3);
+    if (techno == NULL || !techno->active || !techno->visible || techno->complete)
+        return 1;
+    AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
+    if (GizTechno_CanUseTechno(object, techno) != 0) {
+        f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
+        if (distance < ai_moveradius * ai_moveradius) {
+            packet->movement_look_target = &techno->position;
+            GameObjectSetCanUse(object, techno, 2, 1, 0.0f);
+        }
+    } else if (FreePlay != 0) {
+        processor->action_timer -= elapsed;
+        if (processor->action_timer < 0.0f) {
+            processor->action_timer = 0.5f;
+            object->pad_gamepad->buttons_pressed |= GAMEPAD_TOGGLERIGHT;
+        }
+    }
+    return 0;
 }
 
 void Action_EndCameraCut(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
@@ -469,7 +555,6 @@ i32 Action_GameFollowPlayer(AISYS_s *sys, AISCRIPTPROCESS_s *processor, AIPACKET
 
 struct GIZSPINNER_s;
 f32 GizSpinner_GetNearestTargetPoint(GIZSPINNER_s *, NUVEC *, NUVEC *, NUVEC *, i32);
-void GameObjectSetCanUse(GameObject_s *, void *, u8, u8, f32);
 void ClearSpecialMove(GameObject_s *);
 extern i32 spinner_gizmotype_id;
 extern u32 GAMEPAD_SPECIAL, GAMEPAD_JUMP, GAMEPAD_TOGGLERIGHT;

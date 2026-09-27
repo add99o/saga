@@ -1296,3 +1296,74 @@ color-channel and overbrightening bytes, signed angles, floating boundaries,
 exact initialization/order, and callback mutations of resolution, aspect,
 rotated vectors, and stream cursors. Math/render services are mocked;
 no visual or gameplay execution is claimed.
+
+## AI action ownership and gizmo dispatch
+
+This batch raises linked fuzzy matching from **64.148240% to 64.189720%**:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `Action_MoveForward` | 2.04% | 98.82% |
+| `Action_PullLever` | 2.23% | 75.99% |
+| `Action_UseTechno` | 2.86% | 81.82% |
+
+`Action_MoveForward` had both a global placeholder and a private working
+implementation already installed in the AI registry. Promote the working
+definition to ordinary external linkage and remove the placeholder. The
+registry still points to this implementation; no calling-convention or
+optimization attributes are introduced. Its corrected guard uses global
+`player`, not `Player[0]`, and checks packet/owner/object in retail order.
+It reloads the parameter pointer after each callback, preserves the
+two-stage degree-to-angle truncation, and searches for `turn` rather than
+`turn=`. The random-direction flag is a 32-bit integer. First-entry yaw,
+random consumption, path gating, and captured-object movement are retained.
+A valid processor remains a retail precondition after the early guards.
+The result is the original 851-byte size, with remaining differences in
+stack initialization and register selection.
+
+The two gizmo actions also incorrectly returned `void`, and their script
+table entries were null. Both now return `i32` and are bound in
+`lego_aiactiondefs`. Retail and linked table contents verify `PullLever`
+at index 144 and `UseTechno` at index 146.
+
+`Action_PullLever` parses `lever=` and `instant` before validating the
+packet. It preserves an existing target when lookup fails, skips floor
+projection for a lever already being pulled, and supports instant setting
+of the pull flag, animation frame `0x8000`, and progress 1 without a packet.
+Normal operation requests movement, tests the object's lever capability,
+uses a strict squared-radius comparison, and presses the current special
+button mask. Incapable Free Play characters request a toggle when their
+timer goes below zero. Completion requires context `0x4a` and the captured
+lever pointer. Sharing the post-parse lever lookup/guards, rather than
+duplicating them inside the first-entry block, raises the initial 0%
+object result to 75.644%. Remaining block scheduling and register choices
+do not justify compiler workarounds.
+
+`Action_UseTechno` captures the object before parsing `name=`, projects the
+techno ground position, then requires active/visible/not-complete flags.
+It requests movement and, within the strict radius, sets the look target
+and calls `GameObjectSetCanUse` with action 2, mode 1, and parameter 0.
+Its capability-failure branch preserves Free Play timer/toggle behavior.
+`GizTechno_CanUseTechno` really returns 1 in retail; its short existing
+body is not a missing reconstruction. The first source form reaches
+81.345% in the object. GCC combines the three flag tests; this and block
+placement account for much of the remaining difference.
+
+Four function scores improve, including a small register-only change in
+the unchanged `Action_FollowCharacter`. Ten unchanged functions lose less
+than 0.02 percentage points each from data/GOT operand changes; their
+instruction structure is unchanged. No exact matches are lost. The
+temporary `Action_FollowPlayer` register regression from the lever-only
+build disappears in the complete batch. Source optimization stays `-O3`.
+
+Verification: target/native builds and all five repository checks pass.
+NDK 32-bit and full-global ASan/UBSan 64-bit harnesses pass 67,363 forward,
+199,508 lever, and 106,419 techno cases. Coverage includes all yaw values,
+path bytes, lever flag words, ability/context bytes, techno flag bytes,
+signed counts/first-entry values, fractional turn conversion, random
+consumption, strict/NaN/infinite distances, timer boundaries, lookup
+failures, instant operation without a packet, and callback-driven changes
+to parameters, targets, world, radius, object, gamepad, and button masks.
+The harness source copies omit only unrelated registry instances so their
+unused callback graphs can be discarded; production registry binding is
+checked separately. External services are mocked, not gameplay-executed.
