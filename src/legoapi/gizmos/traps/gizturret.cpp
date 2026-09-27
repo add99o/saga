@@ -8,8 +8,10 @@
 #include "legoapi/characters/motion/gameanim.h"
 #include "legoapi/gizmo/base/GizTurretObjectInterface.h"
 #include "legoapi/gizmo/object/gizmoblowups.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/items/collect/bolts.h"
 #include "legoapi/items/objects/gameobjects.h"
+#include "legoapi/core/input/gamepads.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/misc/utilities.h"
 #include "legoapi/render/core/terrain.h"
@@ -1027,8 +1029,67 @@ ADDGIZMOTYPE *GizTurrets_RegisterGizmo(i32 type_id) {
     return &addtype;
 }
 
-void GizTurrets_Hit(void *, GIZTURRET_s *, nuvec_s *, i32, i32) {
-    STUBBED();
+extern i32 LEGOHINT_SHOOTCAMERAS;
+void GameCam_Judder(GAMECAMERA_s *, f32, i32, NUVEC *);
+void Hint_SetComplete(i32);
+
+i32 GizTurrets_Hit(void *context, GIZTURRET_s *turret, nuvec_s *, i32 player_index, i32 damage) {
+    if (static_cast<i8>(turret->field_0x12e) <= 0)
+        return 0;
+
+    if (damage != -1) {
+        turret->field_0x12e = static_cast<u8>(turret->field_0x12e - damage);
+        if (static_cast<i8>(turret->field_0x12e) > 0) {
+            if (player_index != -1) {
+                GameObject_s *player_object = Player[player_index];
+                if (static_cast<i8>(player_object->apiobj.field_0x1f8) < 0)
+                    NewBuzz(player_object->pad_gamepad->pad, 0.1f, 0);
+            }
+            return 1;
+        }
+    }
+
+    turret->field_0x12e = 0;
+    GameCam_Judder(GameCam, qrand() > 0x7fff ? -0.4f : 0.4f, 2, NULL);
+    NewRumbleAllPlayers(1.0f, 0.0f, 0, 0);
+
+    if ((turret->animation_flags & 0x20) == 0) {
+        turret->flags |= 0x20;
+        GameAnimSet_SetVisibility(turret->anim_set, 0);
+        if (turret->anim_set != NULL) {
+            for (GAMEANIMOBJ_s *object = turret->anim_set->objects; object != NULL; object = object->next) {
+                if (static_cast<u8 *>(object->object_data)[1] == 3)
+                    NuSpecialSetVisibility(&object->special, 1);
+            }
+        }
+    } else {
+        turret->flags |= 0x10;
+    }
+
+    if (turret->blowup_type != -1)
+        GizmoBlowUpTypeBlowUp(static_cast<WORLDINFO_s *>(context), turret->blowup_type,
+                              NuSpecialGetDrawPos(&turret->primary_anim_obj->special));
+
+    NUVEC centre = turret->position;
+    GameAnimSet_GetCentreAndRadius(turret->anim_set, &centre, NULL, 2, 1, 1);
+    if (turret->field_0x138 != -1)
+        GameAudio_PlaySfxById(turret->field_0x138, &centre, 0, 0);
+
+    if (turret->completion_score != 0 &&
+        ((turret->runtime_flags & 4) == 0 || (turret->behavior_flags_high & 4) != 0)) {
+        NUVEC pickup_position;
+        NUVEC direction;
+        NuVecAdd(&pickup_position, &centre, &turret->field_0x114);
+        NuVecRotateX(&direction, &v010, static_cast<u16>(turret->field_0x110));
+        NuVecRotateY(&direction, &direction, static_cast<u16>(turret->field_0x112));
+        AddPickups(turret->completion_score, 0, 0, 0, &pickup_position, &direction, 2.0f, -1, turret->field_0x120,
+                   2000000.0f, NULL, 1, 0, true);
+        turret->runtime_flags |= 4;
+    }
+
+    if ((turret->behavior_flags & 0x4010) == 0x4000 && LEGOHINT_SHOOTCAMERAS != -1)
+        Hint_SetComplete(LEGOHINT_SHOOTCAMERAS);
+    return 1;
 }
 
 GameObject_s *GizTurret_GetTgt(GIZTURRET_s *, numtx_s *matrix) {

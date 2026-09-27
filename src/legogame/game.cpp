@@ -1061,7 +1061,8 @@ void InitGameAfterConfig(void) {
     troopers_gdeb[1] = 0x49;
     troopers_gdeb[2] = 0x4a;
     troopers_gdeb[3] = 0x4b;
-    //  LEGOHINT_SHOOTCAMERAS = 0x266;
+    extern i32 LEGOHINT_SHOOTCAMERAS;
+    LEGOHINT_SHOOTCAMERAS = 0x266;
     extern i32 LEGOHINT_PUSHBLOCKS;
     LEGOHINT_PUSHBLOCKS = 0x267;
     LEGOHINT_BUILD = 0x25c;
