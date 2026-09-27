@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.80603,
+    "fuzzy_match_percent": 64.81396,
     "total_code": "4722419",
-    "matched_code": "518770",
-    "matched_code_percent": 10.98526,
+    "matched_code": "519055",
+    "matched_code_percent": 10.991295,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6231,
-    "matched_functions_percent": 46.296158,
+    "matched_functions": 6237,
+    "matched_functions_percent": 46.34074,
     "total_units": 1
   },
   "text": {
@@ -69168,7 +69168,7 @@
           "address": 3775408,
           "offset": 2885440,
           "size": 53,
-          "match_percent": 26.25
+          "match_percent": 100.0
         },
         {
           "name": "cbCompateDirentBySizeDec",
@@ -69176,7 +69176,7 @@
           "address": 3775472,
           "offset": 2885504,
           "size": 33,
-          "match_percent": 35.0
+          "match_percent": 100.0
         },
         {
           "name": "cbCompateDirentByNameAsc",
@@ -69184,7 +69184,7 @@
           "address": 3775520,
           "offset": 2885552,
           "size": 48,
-          "match_percent": 30.0
+          "match_percent": 100.0
         },
         {
           "name": "cbCompateDirentByNameDec",
@@ -69192,7 +69192,7 @@
           "address": 3775568,
           "offset": 2885600,
           "size": 48,
-          "match_percent": 30.0
+          "match_percent": 100.0
         },
         {
           "name": "cbCancelSubMenu",
@@ -72582,7 +72582,7 @@
           "address": 4743680,
           "offset": 3853712,
           "size": 186,
-          "match_percent": 16.755556
+          "match_percent": 94.62222
         },
         {
           "name": "_ZL11D_cut_sceneP8nufpar_s",
@@ -72630,7 +72630,7 @@
           "address": 4744704,
           "offset": 3854736,
           "size": 678,
-          "match_percent": 8.651316
+          "match_percent": 8.684211
         },
         {
           "name": "_Z10Door_Resetv",
@@ -72710,7 +72710,7 @@
           "address": 4750992,
           "offset": 3861024,
           "size": 366,
-          "match_percent": 99.32727
+          "match_percent": 99.41818
         }
       ]
     },
@@ -74637,7 +74637,7 @@
           "address": 3700992,
           "offset": 2811024,
           "size": 22,
-          "match_percent": 12.5
+          "match_percent": 99.875
         }
       ]
     },
@@ -88817,7 +88817,7 @@
           "address": 2754845,
           "offset": 1864877,
           "size": 58,
-          "match_percent": 22.222221
+          "match_percent": 100.0
         },
         {
           "name": "NuHGobjPOILocalMtxFromIX",
@@ -89031,7 +89031,7 @@
           "address": 3167265,
           "offset": 2277297,
           "size": 45,
-          "match_percent": 17.5
+          "match_percent": 100.0
         },
         {
           "name": "_Z17NuFadeObjFreeMtxsP7numtx_si",

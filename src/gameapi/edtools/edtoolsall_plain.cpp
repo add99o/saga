@@ -71,20 +71,6 @@ static i32 dir_size;
 static eduimenu_s *filepick_menu;
 static edui_file_pick_s *filepick_item;
 
-struct FilePickDirectoryEntry {
-    u8 flags;
-    u8 reserved_01[3];
-    i32 size;
-    u8 reserved_08[9];
-    i8 minute;
-    i8 hour;
-    i8 month;
-    i8 day;
-    u8 reserved_15;
-    i16 year;
-    char name[0x100];
-};
-DECOMP_ASSERT(sizeof(FilePickDirectoryEntry) == 0x118, "file picker directory entry ABI");
 static char ed_levelfile[256];
 static f32 edui_font_scale_x = 0.9f;
 static f32 edui_font_scale_y = 0.9f;
@@ -4679,44 +4665,40 @@ extern "C" {
         submenu1 = eduiMenuCreate(90, 90, 180, 50, font, NULL, const_cast<char *>("SubMenu1"));
         if (submenu1 != NULL) {
             eduiMenuAddItem(submenu1, eduiItemSelCreate(0, colours, 0, 1, reinterpret_cast<EdUiItemCallback>(cbSel),
-                                                       const_cast<char *>("Sub Sel 0")));
+                                                        const_cast<char *>("Sub Sel 0")));
             eduiMenuAddItem(submenu1, eduiItemSelCreate(1, colours, 0, 1, reinterpret_cast<EdUiItemCallback>(cbSel),
-                                                       const_cast<char *>("Sub Sel 1")));
+                                                        const_cast<char *>("Sub Sel 1")));
             eduiMenuAddItem(submenu1, eduiItemSelCreate(2, colours, 0, 1, reinterpret_cast<EdUiItemCallback>(cbSel),
-                                                       const_cast<char *>("Sub Sel 2")));
+                                                        const_cast<char *>("Sub Sel 2")));
         }
 
         submenu0 = eduiMenuCreate(70, 70, 180, 50, font, NULL, const_cast<char *>("SubMenu0"));
         if (submenu0 != NULL) {
             eduiMenuAddItem(submenu0, eduiItemSelCreate(0, colours, 0, 1, reinterpret_cast<EdUiItemCallback>(cbSel),
-                                                       const_cast<char *>("Sub Sel")));
-            eduiMenuAddItem(submenu0,
-                            eduiItemSelCreate(reinterpret_cast<usize>(submenu1), colours, 0, 0,
-                                              reinterpret_cast<EdUiItemCallback>(cbSubMenu),
-                                              const_cast<char *>("Sub Menu 1..")));
+                                                        const_cast<char *>("Sub Sel")));
+            eduiMenuAddItem(submenu0, eduiItemSelCreate(reinterpret_cast<usize>(submenu1), colours, 0, 0,
+                                                        reinterpret_cast<EdUiItemCallback>(cbSubMenu),
+                                                        const_cast<char *>("Sub Menu 1..")));
             eduiMenuAddItem(submenu0, eduiItemSelCreate(2, colours, 0, 1, reinterpret_cast<EdUiItemCallback>(cbSel),
-                                                       const_cast<char *>("Sub Sel")));
+                                                        const_cast<char *>("Sub Sel")));
         }
 
         testmenu0 = eduiMenuCreate(50, 50, 180, 50, font, NULL, const_cast<char *>("Main Menu"));
         if (testmenu0 != NULL) {
-            eduiMenuAddItem(testmenu0,
-                            eduiItemSelCreate(reinterpret_cast<usize>(submenu0), colours, 0, 0,
-                                              reinterpret_cast<EdUiItemCallback>(cbSubMenu),
-                                              const_cast<char *>("Sub Menu 0..")));
+            eduiMenuAddItem(testmenu0, eduiItemSelCreate(reinterpret_cast<usize>(submenu0), colours, 0, 0,
+                                                         reinterpret_cast<EdUiItemCallback>(cbSubMenu),
+                                                         const_cast<char *>("Sub Menu 0..")));
 
-            edui_gradient_pick_s *gradient = static_cast<edui_gradient_pick_s *>(
-                eduiItemGradPickCreate(1, colours, reinterpret_cast<EdUiItemCallback>(cbGradChange),
-                                       const_cast<char *>("GradPick")));
+            edui_gradient_pick_s *gradient = static_cast<edui_gradient_pick_s *>(eduiItemGradPickCreate(
+                1, colours, reinterpret_cast<EdUiItemCallback>(cbGradChange), const_cast<char *>("GradPick")));
             if (gradient != NULL) {
                 eduiGradStageAdd(gradient, 0.0f, 0.0f, 0.0f, 0.0f);
                 eduiGradStageAdd(gradient, 1.0f, 0.0f, 0.0f, 1.0f);
             }
             eduiMenuAddItem(testmenu0, gradient);
 
-            edui_gradient_pick_s *grey_gradient = static_cast<edui_gradient_pick_s *>(
-                eduiItemGreyGradPickCreate(1, colours, reinterpret_cast<EdUiItemCallback>(cbGradChange),
-                                           const_cast<char *>("GreyGradPick")));
+            edui_gradient_pick_s *grey_gradient = static_cast<edui_gradient_pick_s *>(eduiItemGreyGradPickCreate(
+                1, colours, reinterpret_cast<EdUiItemCallback>(cbGradChange), const_cast<char *>("GreyGradPick")));
             if (grey_gradient != NULL) {
                 eduiGradStageAdd(grey_gradient, 0.0f, 0.0f, 0.0f, 0.0f);
                 eduiGradStageAdd(grey_gradient, 1.0f, 0.0f, 0.0f, 1.0f);

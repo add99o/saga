@@ -4,6 +4,7 @@
 
 #include "nu2api/nucore/fixed_width.h"
 #include "nu2api/nucore/numem.h"
+#include "nu2api/nu3d/nugeom.h"
 
 #include "nu2api/nucore/NuCopyFilter.h"
 #include "nu2api/nucore/NuDataPortManager.h"
@@ -149,7 +150,6 @@ struct nurenderscene_s;
 struct nudynamiclight_s {};
 struct nueffecttex_s;
 struct nuframebuffer_s {};
-struct nugeom_s {};
 struct nugscn_s;
 struct nuhspecial_s;
 struct numtl_s;

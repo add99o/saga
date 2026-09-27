@@ -2556,28 +2556,44 @@ extern "C" {
         eduiMenuDetach(menu);
     }
 
-    i32 cbCompateDirentByDateAsc(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return first->year - second->year;
+    i32 cbCompateDirentByDateAsc(const void *first, const void *second) {
+        return static_cast<const FilePickDirectoryEntry *>(first)->year -
+               static_cast<const FilePickDirectoryEntry *>(second)->year;
     }
 
-    i32 cbCompateDirentByDateDec(NUFILE_INFO *first, NUFILE_INFO *second) {
-        return second->year - first->year;
+    i32 cbCompateDirentByDateDec(const void *first, const void *second) {
+        return static_cast<const FilePickDirectoryEntry *>(second)->year -
+               static_cast<const FilePickDirectoryEntry *>(first)->year;
     }
 
-    void cbCompateDirentByNameAsc(void) {
-        STUBBED();
+    i32 cbCompateDirentByNameAsc(const void *first, const void *second) {
+        return NuStrCmp(static_cast<const FilePickDirectoryEntry *>(first)->name,
+                        static_cast<const FilePickDirectoryEntry *>(second)->name);
     }
 
-    void cbCompateDirentByNameDec(void) {
-        STUBBED();
+    i32 cbCompateDirentByNameDec(const void *first, const void *second) {
+        return NuStrCmp(static_cast<const FilePickDirectoryEntry *>(second)->name,
+                        static_cast<const FilePickDirectoryEntry *>(first)->name);
     }
 
-    void cbCompateDirentBySizeAsc(void) {
-        STUBBED();
+    i32 cbCompateDirentBySizeAsc(const void *first, const void *second) {
+        i32 first_size = static_cast<const FilePickDirectoryEntry *>(first)->size;
+        i32 second_size = static_cast<const FilePickDirectoryEntry *>(second)->size;
+        if (first_size < second_size)
+            return -1;
+        if (first_size > second_size)
+            return 1;
+        return 0;
     }
 
-    void cbCompateDirentBySizeDec(void) {
-        STUBBED();
+    i32 cbCompateDirentBySizeDec(const void *first, const void *second) {
+        i32 first_size = static_cast<const FilePickDirectoryEntry *>(first)->size;
+        i32 second_size = static_cast<const FilePickDirectoryEntry *>(second)->size;
+        if (first_size < second_size)
+            return 1;
+        if (first_size > second_size)
+            return -1;
+        return 0;
     }
 
     void cbTriggerSubMenu(eduimenu_s *menu, eduiitem_s *item, u32) {

@@ -143,8 +143,8 @@ i32 ReadTerrain(unsigned char *base_path, i32 first_group, i16 **buffer, TERRSET
     return group_count;
 }
 
-extern "C" void CrashDataPtr(void) {
-    STUBBED();
+extern "C" u8 *CrashDataPtr(void) {
+    return crashdata;
 }
 
 void ReadInstanceIDs(i32 file, nugscn_s *scene) {

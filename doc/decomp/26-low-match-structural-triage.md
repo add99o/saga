@@ -3811,3 +3811,130 @@ batch. Target/native builds and all five repository checks pass. Across
 batches 56–59, fourteen functions improve, three exact matches are gained and
 none is lost. The sole score regression is the documented registrar repair
 that restores allocation-failure handling and fixes native pointer storage.
+
+## Batch 60: directory sort callback contracts
+
+Baseline: `733a831c`. Restore the four name/size sort callbacks in
+`gamemenuall.cpp`, retaining its live `-O3` setting. All four become **100%**:
+size ascending **26.250%**, name ascending/descending **30.000%**, and size
+descending **35.000%** before this change. Whole fuzzy matching reaches
+**64.808740%**, with four exact matches gained and no regressions.
+
+Move the existing `FilePickDirectoryEntry` definition from the editor source
+to its shared `edui.h`, retaining all fields and its 0x118-byte layout. Assert
+the size, signed size field at four, signed year at 0x16, and inline filename
+at 0x18. Publish all six comparators with the real `qsort`-compatible
+`i32(const void *, const void *)` contract. The existing year comparators keep
+their bodies and 100% scores after adopting this shared record type.
+Name order uses the actual `NuStrCmp`, including its signed-character
+semantics. Size order uses comparisons, not overflowing subtraction.
+
+NDK x86 and full-global 64-bit ASan/UBSan pass **1,179,648 comparator cases**
+and **12,480 real `qsort` integrations per architecture**, linking the actual
+menu and string owners. Coverage includes signed size/year boundaries,
+all first-differing byte pairs, filename-prefix lengths through 253,
+self/equal comparisons, ascending/descending order, empty through 64-entry
+arrays, exact record preservation and boundary guards. Unrelated retained
+menu services are aborting mocks. Target/native builds and all five checks
+pass; no directory UI or file-system enumeration is claimed.
+
+## Batch 61: hierarchy loading entry point
+
+Restore `NuHGobjRead(VARIPTR *, char *)` beside the Android hierarchy helpers
+at the existing `-O0`. Its local end cursor is all-bits-one, and it forwards
+the path, caller-owned cursor pointer and by-value end to `NuGHGRead`.
+Use pointer-width `usize` for the sentinel rather than truncating it to 32
+bits on diagnostic hosts. Retain the existing void declaration: the original
+leaves the callee's result in EAX, but no original call site was found that
+establishes a different public return contract.
+
+The wrapper improves **22.222% to 100%**, reproducing the original 58-byte
+body under fuzzy comparison and raising whole matching to **64.809685%** with
+no collateral changes. **51,200 cases per architecture** pass NDK x86 and
+full-global 64-bit ASan/UBSan: null/non-null forwarded arguments, full-width
+cursor bits, by-value sentinel, single-call ordering, callback modifications
+to the cursor/path and preservation of neighboring objects. The graphics
+loader is mocked; successful asset loading is not claimed. Target/native
+builds and all five checks pass.
+
+## Batch 62: terrain accessor and legacy geometry count
+
+Correct `CrashDataPtr` from a void stub to the pointer-returning accessor for
+its owner's existing `crashdata`. It improves **12.500% to 99.875%**; only
+the private BSS operand differs. Both terrain readers already maintain that
+pointer. No new ownership or lifetime semantics are introduced.
+
+`NuFadeSetFxCodeMtls` is another incorrect void placeholder. The original
+Android body simply counts a `nugeom_s` linked list starting at one, returns
+that count, and never reads or writes the byte-buffer argument. Restore this
+exact contract, not behavior guessed from its name. Introduce the recovered
+geometry link prefix in a canonical header and replace the empty scaffolding
+definition; the unknown tail is explicitly unreconstructed. The `-O0`
+45-byte function improves **17.500% to 100%**.
+
+Whole matching reaches **64.810880%**, with no other score changes. Per
+architecture, **4,100 geometry-list cases** and **6,528 actual terrain-reader
+integrations plus a failed-load reset** pass NDK x86 and full-global 64-bit
+ASan/UBSan. Geometry tests cover empty/reverse-linked lists through 1,024
+nodes, ignored null/non-null byte buffers and complete input preservation.
+Terrain tests use synthetic serialized chunks and the real two readers to
+verify reset timing, last-crash-chunk selection, reused buffers, zero-sized
+payloads, cursor advancement, path lengths through 95, and unchanged file
+bytes. Only the file-loading service is mocked. Spatial-index/group loading
+and cyclic or unbounded geometry lists are outside these tests. Target/native
+builds and all five checks pass.
+
+## Batch 63: door vehicle keyword behavior
+
+`D_vehicle` previously consumed and discarded every word. Retail consumes
+exactly one word. Case-insensitive `all` replaces the full mask with 0xffff;
+otherwise the registered `LevelCharacterTypeIDFn` resolves the word, its
+result is narrowed to the low byte, and values below 64 set one mask bit.
+There is no null callback guard on the lookup path. Reload the selected door
+after parser/resolver calls, since the original does not retain it across
+those boundaries.
+
+Preserve an important retail quirk: its variable shift is **32-bit**, so IDs
+32–63 alias bits 0–31 and never set the high word. Express this as unsigned
+`1u << (type & 31)` before widening to the mask, avoiding undefined shift
+counts or signed bit-31 overflow. A promoted signed integer local reproduces
+the original byte-extension and signed comparison; retaining a byte local
+emitted a shorter byte comparison and scored 90.956%.
+
+The retained original-sized 186-byte body improves **16.756% to 94.622%**.
+Remaining differences are private-state operands and store/epilogue
+scheduling on the `all` path; no hints or ABI attributes are added. Two
+unchanged neighbors improve slightly: `Door_RegisterGizmo` **99.327% to
+99.418%**, and `Doors_Configure` **8.651% to 8.684%**. Their before/after
+binary diffs were reviewed; these are operand/layout effects, not additional
+restored behavior.
+
+**36,864 recording cases** and **73,728 real-parser integrations per
+architecture** pass NDK x86 and full-global 64-bit ASan/UBSan. Tests invoke the
+actual keyword table with the real string comparator, cover all low-byte IDs,
+signed/full-width resolver boundaries, existing high/low mask bits, missing
+and mixed-case `all` values, parser/resolver changes to the current door, all
+eight command-stack depths and three keyword casings. Extra words remain
+available to the caller after the vehicle value is consumed. Unrelated
+keyword services abort if reached; character-name resolution is mocked.
+
+Target/native builds and all five checks pass. Across batches 60–63, whole
+fuzzy matching rises **64.806030% to 64.813960%**: ten functions improve,
+none regress, six exact matches are gained and none is lost. All eleven PR
+checks on the baseline commit `733a831c` are green.
+
+### Further structural triage
+
+Do not attack `MakeWingFormation` as an isolated 2.045% function. The original
+private helper takes arguments in EAX, EDX and XMM0, and its only caller is
+the still-unfinished `ProcessSpaceLevel`. The current caller and helper are
+in separate owners, and the space-level overlay does not describe the
+original eight 0x658-byte formation records coherently. Restore the caller,
+shared layout and source ownership as a group; no standalone compiler
+experiments or calling-convention overrides were attempted.
+
+`ImplodeFReadMem` likewise needs the compression private-state/TU group:
+the original is `-O0`, its current owner uses `-O3`, and its private remaining
+input counter is not declared there. Its low score is not justification for
+another isolated control-flow permutation. No edit or compiler trial was
+made for that function.
