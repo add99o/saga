@@ -7,6 +7,10 @@
 #include "nu2api/nucore/NuVirtualTouchDevice.h"
 #include "nu2api/nucore/nupad.h"
 #include "nu2api/numath/nutrig.h"
+#include "MechInputTouch/MechInputTouch_types.h"
+
+i32 RndrUnfilledCircle(f32, f32, f32, f32, f32, i32, f32, f32, numtl_s *);
+void RndrArrow(f32, f32, f32, i32, i32);
 extern "C" i32 NuRndrBeginScene(i32 begin_flags);
 extern "C" void NuRndrEndScene(void);
 
@@ -259,7 +263,17 @@ void NuTouchInputStick::Update(NuInputTouchData const *data) {
 }
 
 void NuTouchInputButton::Render() {
-    STUBBED();
+    const i32 colour = pressed ? 0x32ffffff : 0x32646464;
+    RndrUnfilledCircle(x, y, width, 0.005f, GetAspectRatio(), 128, static_cast<f32>(colour), 0.0f, NULL);
+
+    i32 angle = 0;
+    if (id == 0x80)
+        angle = 0x4000;
+    else if (id == 0x10)
+        angle = 0x8000;
+    else if (id == 0x20)
+        angle = 0xc000;
+    RndrArrow(x, y, 0.02f, angle, colour);
 }
 
 NuTouchInputElement::NuTouchInputElement(NuTouchInputElement::TYPE type, i32 id, u32 index) {

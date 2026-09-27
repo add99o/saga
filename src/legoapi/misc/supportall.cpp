@@ -1551,8 +1551,40 @@ void TBOPENFN(char *, i32) {
     STUBBED();
 }
 
-void RndrArrow(float, float, float, i32, i32) {
-    STUBBED();
+f32 GetAspectRatio();
+
+void RndrArrow(f32 x, f32 y, f32 size, i32 angle, i32 colour) {
+    NUVEC points[4] = {};
+    points[0].x = -1.0f;
+    points[0].y = -1.0f;
+    points[1].y = 1.0f;
+    points[2].y = -0.5f;
+    points[3].x = 1.0f;
+    points[3].y = -1.0f;
+    const f32 aspect = GetAspectRatio();
+    NuVecRotateZ(&points[0], &points[0], angle);
+    NuVecRotateZ(&points[1], &points[1], angle);
+    NuVecRotateZ(&points[2], &points[2], angle);
+    NuVecRotateZ(&points[3], &points[3], angle);
+    points[0].x = points[0].x * size * aspect + x;
+    points[0].y = points[0].y * size + y;
+    points[1].x = points[1].x * size * aspect + x;
+    points[1].y = points[1].y * size + y;
+    points[2].x = points[2].x * size * aspect + x;
+    points[2].y = points[2].y * size + y;
+    points[3].x = points[3].x * size * aspect + x;
+    points[3].y = points[3].y * size + y;
+
+    NuPrim2DBegin(1, 5, NULL);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[0].x, static_cast<f32>(PS2_VREZ_H) * points[0].y, 0.0f);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[1].x, static_cast<f32>(PS2_VREZ_H) * points[1].y, 0.0f);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[2].x, static_cast<f32>(PS2_VREZ_H) * points[2].y, 0.0f);
+    NuRndrPrimSetColour(colour);
+    NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * points[3].x, static_cast<f32>(PS2_VREZ_H) * points[3].y, 0.0f);
+    NuPrim2DEnd();
 }
 
 void TBCLOSEFN(char *, i32) {
