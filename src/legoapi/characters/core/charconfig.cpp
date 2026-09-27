@@ -9,6 +9,10 @@
 #include "nu2api/nufile/nufpar.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nucore/nustring.h"
+#include "legoapi/items/base/collection.h"
+#include "legoapi/items/base/apiobject.h"
+#include "legoapi/characters/core/character.h"
+#include "legoapi/core/input/qrand.h"
 #include "globals.h"
 #include <math.h>
 #include <stdlib.h>
@@ -2213,9 +2217,47 @@ NUFPCOMJMP ConfigChar_GameKeywords[] = {
 static CHARVARIANT *CharVariant;
 static i32 CHARVARIANTCOUNT;
 
-i32 RandomIDFromFlags(u32, u32, i32, APICHARACTERMODELLIST_s *, i32) {
-    STUBBED();
-    return -1;
+void Move_DEFAULT(GameObject_s *);
+i32 CanWearHatsInFreePlay(i32);
+
+i32 RandomIDFromFlags(u32 model_flags, u32 gameplay_flags, i32 require_hats,
+                      APICHARACTERMODELLIST_s *excluded_models, i32 exclude_flagged) {
+    i16 candidates[500];
+    i32 candidate_count = 0;
+    for (i32 id = 0; id < CHARCOUNT; ++id) {
+        if (excluded_models != NULL && InModelList(excluded_models, id, NULL) != 0) {
+            continue;
+        }
+        if (Game_Customiser != NULL &&
+            (Game_Customiser->field6c_0x6c == id || Game_Customiser->field6e_0x6e == id)) {
+            continue;
+        }
+        CHARACTERDATA *character = &CDataList[id];
+        if (character->move_fn == Move_DEFAULT ||
+            (character->game_character->flags_090 & gameplay_flags) != gameplay_flags ||
+            (character->model_flags & model_flags) != model_flags) {
+            continue;
+        }
+        if (exclude_flagged != 0 && (character->game_character->flags_094[1] & 0x40) != 0) {
+            continue;
+        }
+        if ((model_flags & 8) != 0 && (character->game_character->flags_094[1] & 0x80) != 0) {
+            continue;
+        }
+        if (Collection_Got(id) == 0 || (require_hats != 0 && CanWearHatsInFreePlay(id) == 0)) {
+            continue;
+        }
+        if (candidate_count < 500) {
+            candidates[candidate_count++] = static_cast<i16>(id);
+        }
+    }
+    if (candidate_count == 0) {
+        return -1;
+    }
+    if (candidate_count == 1) {
+        return candidates[0];
+    }
+    return candidates[qrand() / (0xffff / candidate_count + 1)];
 }
 
 void CharVariants_Init(CHARVARIANT *variants, i32 count) {

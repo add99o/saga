@@ -9,6 +9,8 @@
 #include "legoapi/menus/screens/gamemenuall.h"
 #include "gameapi/gui/apimenu.h"
 #include "legoapi/core/input/timer.h"
+#include "legoapi/items/base/collection.h"
+#include "legoapi/menus/screens/gamestructure.h"
 #include "legoapi/menus/core/text.h"
 #include "legoapi/legoapi_types.h"
 #include "globals.h"
@@ -200,8 +202,29 @@ void Customiser_Reset(CUSTOMISER *customiser) {
     customiser->animation_state[1] = 2;
 }
 
-void Customiser_PieceAvailable(CUSTOMPIECE *) {
-    STUBBED();
+i32 Collection_GotAnyOfType(i32 type, u32 flags);
+
+i32 Customiser_PieceAvailable(CUSTOMPIECE *piece) {
+    if (GAMEDEMO != 0) {
+        return ((piece->availability_flags >> 4) ^ 1) & 1;
+    }
+    if ((piece->availability_flags & 0x180) != 0 && Game_100PercentComplete() == 0) {
+        return 0;
+    }
+    if (piece->character_id != -1) {
+        if (InCollectList_Index(piece->character_id, NULL, 0) == -1) {
+            return 1;
+        }
+        if (Collection_Got(piece->character_id) == 0) {
+            return 0;
+        }
+    }
+    const u32 flags = piece->model_flags & 0xc;
+    if (flags != 0 && Collection_GotAnyOfType(-1, flags) == 0) {
+        return 0;
+    }
+    const i32 type = static_cast<i8>(piece->unknown_08[9]);
+    return type == -1 || Collection_GotAnyOfType(type, 0) != 0;
 }
 
 void Customiser_TransformToPanel(CUSTOMISER *) {
