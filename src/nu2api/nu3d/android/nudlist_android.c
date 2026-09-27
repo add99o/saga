@@ -188,7 +188,7 @@ extern "C" void NuDisplayListDrawItems(nudisplaylistitem_s *items) {
 extern "C" void NuDisplayListDraw(void) {
 }
 
-extern "C" i32 DisplayListDebugPS(void) {
+extern "C" i32 DisplayListDebugPS(nudisplaylistitem_s *, char *) {
     return 0;
 }
 
@@ -386,7 +386,7 @@ i32 DisplayListCreateInstSurfGeomPS(variptr_u *, numtx_s *) {
     return 0;
 }
 
-extern "C" void DisplayListPrintItemPS(void) {
+extern "C" void DisplayListPrintItemPS(nudisplaylistitem_s *, i32) {
     // The original Android implementation is empty.
 }
 
