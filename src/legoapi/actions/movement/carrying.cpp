@@ -742,8 +742,40 @@ i32 ObjLandReady(GameObject_s *object) {
     return 0;
 }
 
-void LetGoOfBalloon(GameObject_s *) {
-    STUBBED();
+void LetGoOfBalloon(GameObject_s *object) {
+    if (object->field_0x7a5 != 0x5d)
+        return;
+    object->field_0x7a5 = 0xff;
+    LEVEL_OBJECT_RUNTIME_s *balloon = &WORLD->lev_objs[247];
+    if (balloon->active == 0)
+        return;
+
+    i32 joint_index = static_cast<i8>(static_cast<u8 *>(object->apiobj.character_data->field11_0x24)[0x108]);
+    if (joint_index == -1 || object->apiobj.character_model->points_of_interest[joint_index] == NULL)
+        return;
+
+    NUMTX matrix;
+    NuMtxSetTranslation(&matrix, NUMTX_GET_ROW_VEC(&object->joint_matrices[joint_index], 3));
+    NUVEC velocity = {0.0f, 0.0f, 0.2f};
+    NuVecMtxRotate(&velocity, &velocity, &matrix);
+
+    ADDPART_ALIGNED16 params = Default_ADDPART;
+    params.matrix = &matrix;
+    params.velocity = &velocity;
+    NUVEC center;
+    NuSpecialGetRadius(&balloon->special, &center, &params.field_14);
+    params.field_18 = params.field_14;
+    params.owner = object;
+    params.field_28 = 0xf7;
+    params.flags = 0x8000200;
+    params.field_20 = 0.5f;
+    params.special = &balloon->special;
+    params.field_40 = PartCollide_3D;
+    params.field_90 = object->apiobj.field_0x289;
+    params.time_step = FRAMETIME;
+    PART_s *part = AddPart(&params);
+    if (part != NULL)
+        part->force_flags = static_cast<u16>(ObjHitObj_Flags(object));
 }
 
 i32 MovingBackwards(GameObject_s *object) {
