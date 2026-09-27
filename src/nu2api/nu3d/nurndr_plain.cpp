@@ -241,9 +241,6 @@ extern "C" void NuMtlAnimateShaderMtlTextures(f32 frame_time) {
         firstcall = 0;
     }
 }
-static void NuMtlCreate3D(void) {
-    STUBBED();
-}
 static inline NUMTL *NuMtlAllocateBuff(VARIPTR *buffer) {
     NUMTL *material = reinterpret_cast<NUMTL *>(ALIGN(buffer->addr, 16));
     buffer->addr = reinterpret_cast<usize>(material + 1);
@@ -265,9 +262,6 @@ extern "C" NUMTL *NuMtlCreateBuff3D(i32, VARIPTR *buffer) {
     return material;
 }
 
-static void NuMtlSetRenderStatesPS(void) {
-    STUBBED();
-}
 extern "C" i32 NuMtlSpecialSetUV(nuhspecial_s *special, f32 u, f32 v) {
     if (special->scene == NULL) {
         return 0;

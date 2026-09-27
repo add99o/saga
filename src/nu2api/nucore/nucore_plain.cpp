@@ -4634,16 +4634,6 @@ extern "C" {
     // Thread / misc OS
     // ---------------------------------------------------------------------------
 
-#ifndef ANDROID
-    void NuGetCurrentThreadId(void) {
-        STUBBED();
-    }
-#endif
-#ifndef ANDROID
-    void NuThreadCreate(void) {
-        STUBBED();
-    }
-#endif
     static f32 nu2api_paused;
     void NuPause(i32 paused) {
         nu2api_paused = (f32)paused;
