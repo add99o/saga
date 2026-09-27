@@ -1,4 +1,5 @@
 #include <math.h>
+#include <stdlib.h>
 #include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/numath/numath.h"
 #include "decomp.h"
@@ -6,6 +7,7 @@
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/core/character.h"
+#include "legoapi/characters/motion/contexts.h"
 #include "legoapi/characters/motion/gameanim.h"
 #include "legoapi/gizmo/base/gizactions.h"
 #include "legoapi/legoapi_types.h"
@@ -13,6 +15,7 @@
 #include "legoapi/world/level.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/numath/nuvec.h"
+#include "nu2api/numath/nutrig.h"
 
 struct AIROW_s;
 struct nuqthdr_s;
@@ -33,6 +36,7 @@ i32 runoutofpostabspace;
 void SetAnimFrame(nuhspecial_s *, f32);
 void ResetPushProgress(WORLDINFO_s *, void *);
 void ResetSinglePushBlockHeight(WORLDINFO_s *, pushblock_s *, i32);
+void AlertSurroundingCreatures(GameObject_s *, NUVEC *);
 i32 TerrainBlockOnBlock(WORLDINFO_s *, pushblock_s *, NUVEC *, f32 *);
 f32 GameShadow(GameObject_s *, NUVEC *, f32, i32);
 
@@ -159,8 +163,68 @@ void ResetSinglePushBlock(WORLDINFO_s *, pushblock_s *block, i32) {
     }
 }
 
-void NearestFacingPushBlock(WORLDINFO_s *, GameObject_s *, float) {
-    STUBBED();
+pushblock_s *NearestFacingPushBlock(WORLDINFO_s *world, GameObject_s *object, float max_distance_squared) {
+    if (world == NULL || world->push_blocks == NULL || world->push_block_count == 0 || LEGOCONTEXT_PUSH == -1 ||
+        static_cast<i8>(object->field_0x7a5) != LEGOCONTEXT_PUSH)
+        return NULL;
+
+    const NUVEC &object_position = object->apiobj.collision_position;
+    const f32 upper_y = object->apiobj.field_0x194;
+    const f32 lower_y = object->apiobj.lower_position.y;
+    const f32 half_height = (upper_y - lower_y) * 0.5f;
+    const f32 minimum_y = upper_y - half_height;
+    const f32 maximum_y = lower_y + half_height;
+    const u16 facing = object->apiobj.movement_facing_angle;
+    i32 direction = 2;
+    if (facing >= 0x3c72 && facing <= 0x438d)
+        direction = 0;
+    else if (facing >= 0x7c72 && facing <= 0x838d)
+        direction = 3;
+    else if (facing >= 0xbc72 && facing <= 0xc38d)
+        direction = 1;
+
+    pushblock_s *nearest = NULL;
+    f32 best_distance_squared = 1000000000.0f;
+    for (i32 i = 0; i < world->push_block_count; ++i) {
+        pushblock_s *block = &world->push_blocks[i];
+        if (NuSpecialExistsFn(&block->special) != 0 &&
+            (NuSpecialGetOnScreenFn(&block->special) == 0 || NuSpecialGetVisibilityFn(&block->special) == 0))
+            continue;
+        if ((block->packed_state_flags & 0x4000100) != 0 || (block->flags_0cb & 2) != 0 || block->position == NULL)
+            continue;
+
+        const NUVEC &position = *block->position;
+        const f32 block_low = position.y - fabsf(block->bounds_min.y);
+        const f32 block_high = position.y + fabsf(block->bounds_max.y);
+        if (maximum_y < block_low || minimum_y > block_high)
+            continue;
+
+        const f32 delta_x = position.x - object_position.x;
+        const f32 delta_z = position.z - object_position.z;
+        const f32 half_x = fabsf(block->bounds_min.x);
+        const f32 half_z = fabsf(block->bounds_min.z);
+        if ((direction == 0 || direction == 3) ? fabsf(delta_z) > half_z + 0.5f
+                                               : fabsf(delta_x) > half_x + 0.5f)
+            continue;
+        if ((direction == 0 && (block->flags_0ca & 0x50) == 0x50) ||
+            (direction == 1 && (block->flags_0ca & 0x90) == 0x90) ||
+            (direction == 2 && (block->flags_0ca & 0xa0) == 0xa0) ||
+            (direction == 3 && (block->flags_0ca & 0x60) == 0x60))
+            continue;
+
+        NUVEC difference = {delta_x, position.y - object_position.y, delta_z};
+        const i32 angle = NuAtan2D(delta_x, delta_z);
+        NuVecRotateY(&difference, &difference, 0x4000 - (angle & 0xffff));
+        const i16 facing_difference = static_cast<i16>(angle - facing);
+        if (abs(static_cast<i32>(facing_difference)) > 0x2000)
+            continue;
+        const f32 distance_squared = delta_x * delta_x + delta_z * delta_z;
+        if (distance_squared < max_distance_squared && distance_squared < best_distance_squared) {
+            best_distance_squared = distance_squared;
+            nearest = block;
+        }
+    }
+    return nearest;
 }
 
 void GizmoPushBlockInitAndReset(WORLDINFO_s *world, void *progress) {
@@ -280,6 +344,14 @@ i32 GizPushBlock_EndFrameCompleted(pushblock_s *push_block, i32 output_index) {
     return (completed_outputs >> output_index) & 1;
 }
 
-void PushBlock(GameObject_s *) {
-    STUBBED();
+i32 PushBlock(GameObject_s *object) {
+    pushblock_s *block = NearestFacingPushBlock(WORLD, object, 2.0f);
+    if (block != NULL) {
+        block->pushing_object = object;
+        block->runtime_flags_0c8 |= 1;
+        AlertSurroundingCreatures(object, &object->apiobj.collision_position);
+        return 1;
+    }
+    object->field_0x7a5 = 0xff;
+    return 0;
 }
