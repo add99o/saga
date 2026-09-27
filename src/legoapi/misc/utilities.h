@@ -1,12 +1,16 @@
 #pragma once
 
-#include "nu2api/nucore/fixed_width.h"
+#include "nu2api/nucore/common.h"
 
 struct nuvec_s;
 struct numtx_s;
 struct VuVec;
 
 i32 charToInt(char const *text);
+char *IToX(char *output, i32 value);
+char *I64ToX(char *output, i64 value);
+void CatIToX(char *output, i32 value);
+void CatI64ToX(char *output, i64 value);
 
 f32 XZLinesClosest(nuvec_s *first_start, nuvec_s *first_end, nuvec_s *second_start, nuvec_s *second_end,
                    f32 *first_fraction, f32 *second_fraction);

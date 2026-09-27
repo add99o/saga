@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.79367,
+    "fuzzy_match_percent": 64.80603,
     "total_code": "4722419",
-    "matched_code": "518590",
-    "matched_code_percent": 10.981448,
+    "matched_code": "518770",
+    "matched_code_percent": 10.98526,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6228,
-    "matched_functions_percent": 46.27387,
+    "matched_functions": 6231,
+    "matched_functions_percent": 46.296158,
     "total_units": 1
   },
   "text": {
@@ -53854,7 +53854,7 @@
           "address": 4912112,
           "offset": 4022144,
           "size": 719,
-          "match_percent": 73.70642
+          "match_percent": 71.43578
         },
         {
           "name": "_Z26GizmoSysClearLevelProgressPvi",
@@ -71408,7 +71408,7 @@
           "address": 2584512,
           "offset": 1694544,
           "size": 65,
-          "match_percent": 22.105263
+          "match_percent": 100.0
         },
         {
           "name": "_Z9CatI64ToXPcx",
@@ -71416,7 +71416,7 @@
           "address": 2585120,
           "offset": 1695152,
           "size": 81,
-          "match_percent": 26.470589
+          "match_percent": 100.0
         },
         {
           "name": "_Z9DieRumbleP12GameObject_s",
@@ -74407,6 +74407,86 @@
           "offset": 3047611,
           "size": 174,
           "match_percent": 70.13725
+        },
+        {
+          "name": "_ZL15SockCamATSTLIFTP8nufpar_sPv",
+          "demangled_name": "SockCamATSTLIFT(nufpar_s*, void*)",
+          "address": 3937753,
+          "offset": 3047785,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL15SockCamATSTDISTP8nufpar_sPv",
+          "demangled_name": "SockCamATSTDIST(nufpar_s*, void*)",
+          "address": 3937818,
+          "offset": 3047850,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL19SockCamATSTCAMRANGEP8nufpar_sPv",
+          "demangled_name": "SockCamATSTCAMRANGE(nufpar_s*, void*)",
+          "address": 3937883,
+          "offset": 3047915,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL15SockCamATSTTILTP8nufpar_sPv",
+          "demangled_name": "SockCamATSTTILT(nufpar_s*, void*)",
+          "address": 3937948,
+          "offset": 3047980,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL19SockCamATSTTILTRATEP8nufpar_sPv",
+          "demangled_name": "SockCamATSTTILTRATE(nufpar_s*, void*)",
+          "address": 3938013,
+          "offset": 3048045,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL24SockCamCAMERARAYTILTDISTP8nufpar_sPv",
+          "demangled_name": "SockCamCAMERARAYTILTDIST(nufpar_s*, void*)",
+          "address": 3938078,
+          "offset": 3048110,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL26SockCamCAMERARAYTILTHEIGHTP8nufpar_sPv",
+          "demangled_name": "SockCamCAMERARAYTILTHEIGHT(nufpar_s*, void*)",
+          "address": 3938143,
+          "offset": 3048175,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL16SockManCam_MAX_XP8nufpar_sPv",
+          "demangled_name": "SockManCam_MAX_X(nufpar_s*, void*)",
+          "address": 3938208,
+          "offset": 3048240,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL16SockManCam_MAX_YP8nufpar_sPv",
+          "demangled_name": "SockManCam_MAX_Y(nufpar_s*, void*)",
+          "address": 3938273,
+          "offset": 3048305,
+          "size": 65,
+          "match_percent": 75.666664
+        },
+        {
+          "name": "_ZL22SockTerrainCamInActiveP8nufpar_sPv",
+          "demangled_name": "SockTerrainCamInActive(nufpar_s*, void*)",
+          "address": 3938338,
+          "offset": 3048370,
+          "size": 34,
+          "match_percent": 100.0
         },
         {
           "name": "SockSysConfigureNuFPar",
@@ -97616,7 +97696,7 @@
           "address": 2549218,
           "offset": 1659250,
           "size": 36,
-          "match_percent": 40.0
+          "match_percent": 99.8
         },
         {
           "name": "ExplodeBuffer",
@@ -97624,7 +97704,7 @@
           "address": 2549254,
           "offset": 1659286,
           "size": 132,
-          "match_percent": 10.0
+          "match_percent": 99.975
         },
         {
           "name": "ExplodeBufferNoHeader",
@@ -108155,86 +108235,6 @@
           "offset": 1604066,
           "size": 137,
           "match_percent": 100.0
-        },
-        {
-          "name": "_ZL15SockCamATSTLIFTP8nufpar_sPv",
-          "demangled_name": "SockCamATSTLIFT(nufpar_s*, void*)",
-          "address": 3937753,
-          "offset": 3047785,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL15SockCamATSTDISTP8nufpar_sPv",
-          "demangled_name": "SockCamATSTDIST(nufpar_s*, void*)",
-          "address": 3937818,
-          "offset": 3047850,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL19SockCamATSTCAMRANGEP8nufpar_sPv",
-          "demangled_name": "SockCamATSTCAMRANGE(nufpar_s*, void*)",
-          "address": 3937883,
-          "offset": 3047915,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL15SockCamATSTTILTP8nufpar_sPv",
-          "demangled_name": "SockCamATSTTILT(nufpar_s*, void*)",
-          "address": 3937948,
-          "offset": 3047980,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL19SockCamATSTTILTRATEP8nufpar_sPv",
-          "demangled_name": "SockCamATSTTILTRATE(nufpar_s*, void*)",
-          "address": 3938013,
-          "offset": 3048045,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL24SockCamCAMERARAYTILTDISTP8nufpar_sPv",
-          "demangled_name": "SockCamCAMERARAYTILTDIST(nufpar_s*, void*)",
-          "address": 3938078,
-          "offset": 3048110,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL26SockCamCAMERARAYTILTHEIGHTP8nufpar_sPv",
-          "demangled_name": "SockCamCAMERARAYTILTHEIGHT(nufpar_s*, void*)",
-          "address": 3938143,
-          "offset": 3048175,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL16SockManCam_MAX_XP8nufpar_sPv",
-          "demangled_name": "SockManCam_MAX_X(nufpar_s*, void*)",
-          "address": 3938208,
-          "offset": 3048240,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL16SockManCam_MAX_YP8nufpar_sPv",
-          "demangled_name": "SockManCam_MAX_Y(nufpar_s*, void*)",
-          "address": 3938273,
-          "offset": 3048305,
-          "size": 65,
-          "match_percent": 19.047619
-        },
-        {
-          "name": "_ZL22SockTerrainCamInActiveP8nufpar_sPv",
-          "demangled_name": "SockTerrainCamInActive(nufpar_s*, void*)",
-          "address": 3938338,
-          "offset": 3048370,
-          "size": 34,
-          "match_percent": 44.444443
         }
       ]
     },

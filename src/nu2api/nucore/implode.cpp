@@ -133,12 +133,21 @@ isize ExplodeCompressedSize(char *buf) {
 
 extern "C" {
 
-    void ExplodeBuffer(void) {
-        STUBBED();
+    isize ExplodeBuffer(char *in_buf, char *out_buf) {
+        if (gExplodeInitialised == 0)
+            return 0;
+
+        isize orig_size = ExplodeBufferSize(in_buf);
+        if (orig_size != 0) {
+            isize compressed_size = ImplodeGetI(in_buf + 8, sizeof(i32));
+            return ExplodeBufferNoHeader(in_buf + 12, out_buf, compressed_size, orig_size);
+        }
+        return 0;
     }
 
     void ExplodeExit(void) {
-        STUBBED();
+        if (gExplodeInitialised != 0)
+            gExplodeInitialised = 0;
     }
 
 } // extern "C"

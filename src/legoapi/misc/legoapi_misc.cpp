@@ -99,8 +99,10 @@ void ClearLastSafeTakeOver(GameObject_s *object) {
     }
 }
 
-void CatIToX(char *, i32) {
-    STUBBED();
+void CatIToX(char *output, i32 value) {
+    while (*output != '\0')
+        ++output;
+    *IToX(output, value) = '\0';
 }
 
 void DoInput(WORLDINFO_s *world) {
@@ -154,8 +156,10 @@ void DoInput(WORLDINFO_s *world) {
     }
 }
 
-void CatI64ToX(char *, i64) {
-    STUBBED();
+void CatI64ToX(char *output, i64 value) {
+    while (*output != '\0')
+        ++output;
+    *I64ToX(output, value) = '\0';
 }
 
 void DieRumble(GameObject_s *object) {

@@ -242,6 +242,47 @@ static __used__ void SockParBlend(nufpar_s *parser, void *) {
     sockpar_sock->blend_count = index + 1;
 }
 
+// The selected socket is captured before parsing, as in the original callbacks.
+static __used__ void SockCamATSTLIFT(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_character_close_lift = NuFParGetFloat(parser);
+}
+static __used__ void SockCamATSTDIST(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_min_distance = NuFParGetFloat(parser);
+}
+static __used__ void SockCamATSTCAMRANGE(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_range_of_effect = NuFParGetFloat(parser);
+}
+static __used__ void SockCamATSTTILT(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_tilt_angle_change = NuFParGetFloat(parser);
+}
+static __used__ void SockCamATSTTILTRATE(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_tilt_angle_rate = NuFParGetFloat(parser);
+}
+static __used__ void SockCamCAMERARAYTILTDIST(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_tilt_distance = NuFParGetFloat(parser);
+}
+static __used__ void SockCamCAMERARAYTILTHEIGHT(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->camera_tilt_height = NuFParGetFloat(parser);
+}
+static __used__ void SockManCam_MAX_X(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->manual_camera_max_x = NuFParGetFloat(parser);
+}
+static __used__ void SockManCam_MAX_Y(nufpar_s *parser, void *) {
+    SOCK *socket = sockpar_sock;
+    socket->manual_camera_max_y = NuFParGetFloat(parser);
+}
+static __used__ void SockTerrainCamInActive(nufpar_s *, void *) {
+    sockpar_sock->terrain_camera_inactive = 1;
+}
+
 extern "C" {
     NUFPCOMJMPCTX SockSys_ConfigKeywords[] = {
         {const_cast<char *>("circuit"), SockParCircuit},
@@ -290,6 +331,16 @@ extern "C" {
         {const_cast<char *>("set_misc_2"), SockParMisc2},
         {const_cast<char *>("obj"), SockParObj},
         {const_cast<char *>("blend"), SockParBlend},
+        {const_cast<char *>("CamCharCloseLift"), SockCamATSTLIFT},
+        {const_cast<char *>("CamMinDist"), SockCamATSTDIST},
+        {const_cast<char *>("CamRangeOfEffect"), SockCamATSTCAMRANGE},
+        {const_cast<char *>("CamTiltAngChange"), SockCamATSTTILT},
+        {const_cast<char *>("CamTiltAngRate"), SockCamATSTTILTRATE},
+        {const_cast<char *>("CamTiltDist"), SockCamCAMERARAYTILTDIST},
+        {const_cast<char *>("CamTiltHeight"), SockCamCAMERARAYTILTHEIGHT},
+        {const_cast<char *>("ManCam_MAX_X"), SockManCam_MAX_X},
+        {const_cast<char *>("ManCam_MAX_Y"), SockManCam_MAX_Y},
+        {const_cast<char *>("TerrainCamInActive"), SockTerrainCamInActive},
         {NULL, NULL},
     };
 }

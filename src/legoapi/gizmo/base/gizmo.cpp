@@ -62,6 +62,9 @@
 #include <string.h>
 struct FLOWBOX_s;
 
+DECOMP_ASSERT(sizeof(GIZMOTYPES) == 0xc, "Gizmo type-table header ABI");
+DECOMP_ASSERT(offsetof(GIZMOTYPES, types) == 8, "Gizmo type-table pointer offset");
+
 i32 GizObstacle_CheckExcludeFlagsFn_LSW(GIZOBSTACLE_s *, GameObject_s *);
 void Bolt_PlayHitSfx(BOLT_s *);
 
@@ -214,7 +217,7 @@ void RegisterGizmoTypes(VARIPTR *buffer, VARIPTR *buffer_end, REGISTERGIZMOTYPEF
     for (; register_gizmo_type_fns[ntypes] != NULL; ntypes++) {
     }
 
-    types = (GIZMOTYPES *)GizmoBufferAlloc(buffer, buffer_end, 0xc);
+    types = (GIZMOTYPES *)GizmoBufferAlloc(buffer, buffer_end, sizeof(GIZMOTYPES));
     gizmotypes = types;
     if (types == NULL) {
         return;
@@ -281,9 +284,9 @@ void RegisterGizmoTypes(VARIPTR *buffer, VARIPTR *buffer_end, REGISTERGIZMOTYPEF
         pvVar4 = (void *)addgizmo->fns.allocate_progress_data_fn;
 
         if (pvVar4 != NULL && gizmotypes->unknown != 0) {
-            pvVar3 = GizmoBufferAlloc(buffer, buffer_end, gizmotypes->unknown << 2);
+            pvVar3 = GizmoBufferAlloc(buffer, buffer_end, gizmotypes->unknown * sizeof(VARIPTR));
             gizmo->buffer = pvVar3;
-            if (types != NULL && gizmotypes->unknown > 0) {
+            if (pvVar3 != NULL && gizmotypes->unknown > 0) {
                 i = 0;
                 while (1) {
                     void *pvVar5 = gizmo->fns.allocate_progress_data_fn(buffer, buffer_end);

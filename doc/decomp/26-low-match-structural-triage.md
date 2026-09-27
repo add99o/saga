@@ -3669,3 +3669,145 @@ builds and all five repository checks pass.
 Across batches 50–55, seven functions improve, three exact matches are gained
 and no function scores regress. Existing optimization settings, symbol rules
 and matching denominators are unchanged.
+
+## Batch 56: shared gizmo registrar allocation repair
+
+Following the restored Indy entry point into the shared registrar exposes
+two native allocation defects and a missing retail failure gate. Replace
+the fixed 12-byte header and four-byte progress slots with `sizeof(GIZMOTYPES)`
+and `sizeof(VARIPTR)`. Assert the target header size and pointer offset in
+the implementation. The corresponding native sizes are 16 and eight bytes;
+the Android sizes remain 12 and four.
+
+Before the change, full-global ASan reproduces two eight-byte heap-overflow
+writes: the header's type pointer in a 13-byte arena, and progress pointers
+in a 353-byte arena whose last allocation reserves only 48 bytes for twelve
+native pointer slots. Both reproductions pass after the repair.
+
+The original instruction at `0x4af669` tests the newly allocated progress
+array and skips its initialization on failure. The reconstruction instead
+tested the already-valid header, allowing a null-array write. Restore the
+array check on every platform. Keep partial initialization and strict arena
+capacity semantics unchanged; do not invent a rollback or retry policy.
+
+**3,391 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan. These link the actual registrar, bump allocator, string helpers
+and Indy wrapper. Coverage spans 0–23 types, progress counts 0/1/2/12/31,
+four callback-presence patterns, seven capacity boundaries, partial/failing
+allocations, mixed empty/nonempty prefixes, null/empty callback tables,
+already-initialized gates and all Indy registrations. Complete arena bytes,
+cursor positions, callback counts, header/record fields and full-width
+progress pointers are compared against an independent layout oracle.
+Registration descriptors and progress payloads are test fixtures; unrelated
+retained virtual-interface callbacks have aborting mocks. Negative/overflowing
+counts, misaligned or malformed arenas and live gizmo initialization are not
+claimed as supported.
+
+This correctness restoration changes `RegisterGizmoTypes` from **73.706% to
+71.436%**, leaving whole fuzzy matching at **64.793310%**. No other function
+score changes and no exact match is lost. Retain the verified missing guard
+instead of preserving a crash for a better instruction score; no compiler
+workarounds are used. Target/native builds and all five checks pass.
+
+## Batch 57: LZ2K buffer entry point and shutdown
+
+Restore `ExplodeBuffer` from a parameterless void stub to the original C
+entry point accepting input/output pointers and returning a signed size.
+Its match rises **10.000% to 99.975%**. Check initialization, obtain the
+uncompressed size through `ExplodeBufferSize`, and only for a nonzero result
+read the compressed-size word at byte 8. Forward the payload at byte 12,
+output pointer, compressed size and uncompressed size to the existing
+`ExplodeBufferNoHeader`, returning its result. Correct the swapped parameter
+names in that helper's declaration; its established ABI and implementation
+are unchanged. Restore `ExplodeExit`'s conditional initialization-flag clear,
+improving **40.000% to 99.800%**.
+
+Both have the original sizes, 132 and 36 bytes, under the owner's unchanged
+default `-O0`. Only private initialization-state operands differ. Whole fuzzy
+matching becomes **64.796280%**, with no other changed scores in this batch.
+
+**57,344 wrapper/state cases per architecture** pass on NDK x86 and
+full-global 64-bit ASan/UBSan: signed header/result boundaries, randomized
+forwarded values, zero/nonzero initialization states, null outputs, exact
+call order, callback-driven flag changes, repeated exits and disabled calls
+with null inputs. Another **1,548 cases per architecture** use the actual
+header parser, no-header driver and ring-buffer copier. They cover all invalid
+single-byte magic substitutions, zero/small output sizes, boundaries around
+8,192 and 16,384 bytes, literal runs, three-byte repeated backreferences,
+output guards and both disabled entry points.
+
+Fixtures compile the actual owner separately, with test-only private-state
+accessors and weakened service symbols in temporary objects. Native objects
+use ordinary PIC semantic interposition at `-O0`. The integration supplies
+decoded symbols and offsets instead of using the entropy decoder; arbitrary
+compressed-stream correctness and malformed-stream safety are not claimed.
+Production linkage, attributes and compiler options are unchanged.
+Target/native builds and all five repository checks pass.
+
+## Batch 58: reconnect socket-camera configuration callbacks
+
+Restore the ten socket-camera callbacks stranded in `nufpar.cpp` and absent
+from the socket command table. Move the complete private callback group to
+`socksysall.cpp`, alongside `sockpar_sock`, the related callbacks and their
+table. Live compile commands confirm both owners use default `-O0`; no source
+membership or optimization settings change. Replace the opaque socket tail
+with nine named float fields and a terrain-camera flag, retaining its legacy
+byte-array view and adding target offset assertions for `0x114`–`0x138`.
+
+The nine scalar callbacks capture the selected socket, read one float and
+store it without clamping. The terrain callback reads no parser input and
+sets its field to 1. Explicit capture preserves the original pre-parser
+selection even if a service changes `sockpar_sock`, including in C++17 native
+builds. At `-O0` this local occupies a stack slot instead of the original
+saved register: each float callback is 69 rather than 65 bytes, improving
+**19.048% to 75.667%**. The terrain callback improves **44.444% to 100%**.
+No register hints or expression permutations are used. Whole fuzzy matching
+becomes **64.803696%**, with ten improvements and no score regressions in
+this batch.
+
+Restore table rows 46–55 using the exact original keyword spelling and order.
+All **57 rows**, including the existing entries and terminator, compare equal
+to the original table after resolving string/function pointers.
+**122,880 recording cases per architecture** pass on NDK x86 and full-global
+64-bit ASan/UBSan: finite/quiet-NaN/infinity/signed-zero/subnormal values,
+randomized full socket contents, global socket redirection/nulling by the
+parser callback, ignored context pointers and parser-free terrain updates.
+Complete comparisons verify both sockets and the selected global.
+
+Another **2,160 cases per architecture** link the real parser, case-insensitive
+dispatch and numeric/string helpers. They exercise every restored keyword,
+all eight command-stack depths, three keyword casings, signed/fractional
+values and absent values. The fixture uses the parser's actual 512-byte wrap
+configuration, not its 514-byte backing-store size. The final owner also
+reruns all **264,240 socket-toggle cases per architecture**. Target/native
+builds and all five checks pass; live camera behavior is not claimed.
+
+## Batch 59: fixed-width hexadecimal appenders
+
+`CatIToX` and `CatI64ToX` improve **22.105% and 26.471% to 100%**. Both scan
+to the existing terminator, call the corresponding fixed-width formatter,
+then write NUL through its returned pointer. The resulting bodies have the
+original 65- and 81-byte sizes. Add canonical formatter/appender declarations
+and make the utility header self-contained for its existing float types.
+
+Real-formatter integration reproduces a UBSan failure in `IToX`: shifting
+`2147483647` left by eight overflows its signed intermediate. The two halves
+of `I64ToX` use the same pattern. Perform each left shift in `u32`, retaining
+the original signed intermediate afterward. This preserves target bit
+patterns and both existing formatter scores. An initial wider unsigned-local
+variant reduced the 64-bit formatter's score and was replaced by this smaller
+repair; no undefined shift is retained for matching.
+
+**266,240 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan with both actual owners and no formatter mocks. An independent
+unsigned-nibble oracle checks signed 32/64-bit boundaries, randomized values,
+prefix lengths 0–64, arbitrary nonzero prefix bytes, lowercase zero-padded
+digits and the final terminator. Allocations have exactly the required tail
+capacity, with prefix guards and complete-buffer comparisons. These routines
+retain the original valid-buffer/capacity preconditions.
+
+Whole fuzzy matching is **64.806030%**, with no other score changes in this
+batch. Target/native builds and all five repository checks pass. Across
+batches 56–59, fourteen functions improve, three exact matches are gained and
+none is lost. The sole score regression is the documented registrar repair
+that restores allocation-failure handling and fixes native pointer storage.

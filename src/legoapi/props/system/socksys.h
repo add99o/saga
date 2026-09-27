@@ -176,7 +176,21 @@ typedef struct SOCK {
         u32 unknown_110;
         u32 blend_count;
     }; // 0x110
-    u8 unknown_114[40]; // 0x114
+    union {
+        u8 unknown_114[40];
+        struct {
+            f32 camera_character_close_lift; // 0x114
+            f32 camera_min_distance;         // 0x118
+            f32 camera_range_of_effect;      // 0x11c
+            f32 camera_tilt_angle_change;    // 0x120
+            f32 camera_tilt_angle_rate;      // 0x124
+            f32 camera_tilt_distance;        // 0x128
+            f32 camera_tilt_height;          // 0x12c
+            f32 manual_camera_max_x;         // 0x130
+            f32 manual_camera_max_y;         // 0x134
+            i32 terrain_camera_inactive;     // 0x138
+        };
+    };
 } SOCK;
 
 DECOMP_ASSERT(offsetof(SOCK, looping) == 0x33, "SOCK loop flag offset");
@@ -184,6 +198,16 @@ DECOMP_ASSERT(offsetof(SOCK, length) == 0x30, "SOCK rail length offset");
 DECOMP_ASSERT(offsetof(SOCK, flags) == 0x68, "SOCK flags offset");
 DECOMP_ASSERT(offsetof(SOCK, objects) == 0xf8, "SOCK scene-object array offset");
 DECOMP_ASSERT(offsetof(SOCK, object_count) == 0xfc, "SOCK scene-object count offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_character_close_lift) == 0x114, "SOCK close-lift offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_min_distance) == 0x118, "SOCK minimum camera-distance offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_range_of_effect) == 0x11c, "SOCK camera-range offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_angle_change) == 0x120, "SOCK camera-tilt change offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_angle_rate) == 0x124, "SOCK camera-tilt rate offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_distance) == 0x128, "SOCK camera-tilt distance offset");
+DECOMP_ASSERT(offsetof(SOCK, camera_tilt_height) == 0x12c, "SOCK camera-tilt height offset");
+DECOMP_ASSERT(offsetof(SOCK, manual_camera_max_x) == 0x130, "SOCK manual-camera X offset");
+DECOMP_ASSERT(offsetof(SOCK, manual_camera_max_y) == 0x134, "SOCK manual-camera Y offset");
+DECOMP_ASSERT(offsetof(SOCK, terrain_camera_inactive) == 0x138, "SOCK terrain-camera gate offset");
 DECOMP_ASSERT(offsetof(SOCKPOSITION, midpoint_rotation) == 0x24, "SOCKPOSITION midpoint rotation offset");
 
 typedef struct SOCKSYS {
