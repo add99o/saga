@@ -1426,8 +1426,25 @@ void MenuEnterStartNewGame(MENU_s *) {
     BackupMenu();
 }
 
-void MenuUpdateCardWarning(MENU_s *) {
-    STUBBED();
+void MenuUpdateCardWarning(MENU_s *menu) {
+    const i32 state = MenuCardWarningState;
+    menu->previous_item = state;
+    if (state == 0) {
+        if (saveload_status == 1) {
+            MenuCardWarningState = 3;
+            Menu_InWarningFlow = 1;
+            Menu_LastFlow = 1;
+            BackupMenu();
+        }
+    } else if (state == 7) {
+        if (menu->confirm_pressed != 0) {
+            MenuCardWarningState = 3;
+            MenuSFX = MENUSFX_MENUSELECT;
+            BackupMenu();
+        }
+    } else if (state == 3) {
+        BackupMenu();
+    }
 }
 
 void MenuUpdateFileCorrupt(MENU_s *menu) {

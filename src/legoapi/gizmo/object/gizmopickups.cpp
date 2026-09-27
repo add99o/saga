@@ -10,6 +10,7 @@
 #include "globals.h"
 #include "gamelib/util/gamelib_util_types.h"
 #include "legoapi/characters/core/players.h"
+#include "legoapi/characters/core/playeritems.h"
 #include "legoapi/gizmos/fx/gizmopickups.h"
 #include "legoapi/menus/core/gamemessages.h"
 #include "legoapi/menus/core/panel.h"
@@ -264,8 +265,15 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
     }
 }
 
-void AddMiscPickups(nuvec_s *, i32, i32, i32) {
-    STUBBED();
+void AddMiscPickups(nuvec_s *position, i32 player, i32 coins, i32 torpedoes) {
+    if (torpedoes == 0) {
+        const i32 hearts = ReleaseHearts();
+        AddPickups(coins, hearts, 0, 0, position, &v010, 5.0f, player,
+                   1.0f, 2000000.0f, NULL, 1, 0, true);
+    } else {
+        AddPickups(coins, 0, torpedoes, 0, position, &v010, 5.0f, player,
+                   1.0f, 2000000.0f, NULL, 1, 0, true);
+    }
 }
 
 i32 IsACoinType(i32 type) {
