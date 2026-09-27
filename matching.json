@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.701454,
+    "fuzzy_match_percent": 64.71974,
     "total_code": "4722419",
-    "matched_code": "516990",
-    "matched_code_percent": 10.947567,
+    "matched_code": "517638",
+    "matched_code_percent": 10.961289,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6217,
-    "matched_functions_percent": 46.19214,
+    "matched_functions": 6221,
+    "matched_functions_percent": 46.22186,
     "total_units": 1
   },
   "text": {
@@ -89845,7 +89845,7 @@
           "address": 2702569,
           "offset": 1812601,
           "size": 250,
-          "match_percent": 6.451613
+          "match_percent": 100.0
         },
         {
           "name": "_Z13MultilineDumpPKc",
@@ -89853,7 +89853,7 @@
           "address": 2702819,
           "offset": 1812851,
           "size": 97,
-          "match_percent": 12.5
+          "match_percent": 100.0
         },
         {
           "name": "_Z16DumpShaderSourcej",
@@ -89861,7 +89861,7 @@
           "address": 2702916,
           "offset": 1812948,
           "size": 309,
-          "match_percent": 4.761905
+          "match_percent": 96.11905
         },
         {
           "name": "_Z17DumpProgramSourcej",
@@ -89869,7 +89869,7 @@
           "address": 2703225,
           "offset": 1813257,
           "size": 100,
-          "match_percent": 13.333333
+          "match_percent": 100.0
         },
         {
           "name": "_Z20DumpShaderAttributesj",
@@ -89877,7 +89877,7 @@
           "address": 2703325,
           "offset": 1813357,
           "size": 201,
-          "match_percent": 7.692308
+          "match_percent": 100.0
         },
         {
           "name": "_Z29NuIOS_ResetVAODuplicateFinderv",
@@ -92045,7 +92045,7 @@
           "address": 3092848,
           "offset": 2202880,
           "size": 241,
-          "match_percent": 97.9403
+          "match_percent": 93.50746
         },
         {
           "name": "NuMtlFindVariantMtl",

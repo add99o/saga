@@ -49,3 +49,9 @@ extern "C" void NuMtlSetRenderStatesPS(numtl_s *mtl);
 extern "C" void NuIOS_SetVertexFormat(usize fmt);
 void NuIOSDLPreWarmGeomCallback(void *arg);
 void NuIOS_ResetVAODuplicateFinder();
+void DumpAttributeBindings();
+// Original diagnostic ABI: text must be writable and nonempty.
+void MultilineDump(const char *text);
+void DumpShaderSource(u32 shader);
+void DumpProgramSource(u32 program);
+void DumpShaderAttributes(u32 program);

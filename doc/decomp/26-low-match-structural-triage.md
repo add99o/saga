@@ -2745,3 +2745,98 @@ so normal ASan instrumentation remains enabled for all globals.
 Target/native builds and all five repository checks pass. There is no
 gameplay or visual run, and the other episode-menu stubs remain open.
 All eleven PR checks on preceding commit `7f44010b` are green.
+
+## Batch 36: stripped renderer diagnostics
+
+Linked fuzzy matching improves from **64.701454% to 64.719740%**.
+Five functions improve, one regresses, **four exact matches are gained**,
+and none are lost:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `DumpAttributeBindings` | 6.452% | **100%** |
+| `MultilineDump` | 12.500% | **100%** |
+| `DumpShaderSource` | 4.762% | **96.119%** |
+| `DumpProgramSource` | 13.333% | **100%** |
+| `DumpShaderAttributes` | 7.692% | **100%** |
+
+These five consecutive functions at `0x293ce9–0x2940a5` belong to the
+existing `nurndr_android.c` owner, which remains `-O0`. Although their names
+sound like loggers, retail contains **no output calls** here. It retains
+the GL queries, allocation, shader lookup, and temporary string processing
+after diagnostic logging was stripped. Do not add invented console output
+or force the compiler to preserve logging that is absent in the reference.
+
+`DumpAttributeBindings` queries all 16 fixed attribute slots. For enabled
+slots it requests buffer binding, size, stride, type, normalization and
+pointer in that order. `DumpShaderAttributes` queries the active count,
+uses its original static 256-byte `attributeName` buffer, obtains each
+location **before** trimming the first `[` suffix, and refreshes the loop
+bound after external calls. Its outputs are otherwise unused in retail.
+
+`DumpShaderSource` queries the source length, allocates that exact byte
+count from current thread memory with alignment 4, zero-fill flag 1,
+empty allocation name and category 0, then fetches the source. It examines
+the two signed material shader IDs in order, reloading the current material
+between lookups, and stops at the first non-null shader object whose vertex
+or fragment handle matches. The recovered key local belonged to the
+stripped diagnostic heading. The source then passes through `MultilineDump`
+and is freed through a fresh thread-memory lookup.
+
+The material descriptor's adjacent `shader_id` and `shader_variant_id`
+now also have a real two-element `shader_ids` array alias. This avoids
+out-of-bounds pointer arithmetic from one scalar member to the next while
+retaining existing field access and target offsets. Assertions verify the
+pair begins at descriptor offset `0x140` and occupies four bytes.
+
+`DumpProgramSource` asks GL for at most two attached shaders and invokes
+the actual recovered source routine in order. `MultilineDump` retains the
+original const-qualified ABI, but its callers must supply **writable,
+nonempty** strings: it searches starting after the first character and
+temporarily replaces each later newline with NUL, then restores it. Its
+retained line-start local is part of the stripped line-logging code. An
+empty one-byte allocation, failed allocation, invalid GL return values,
+null current material, or read-only text is not made safe by this batch.
+No permissive behavior is invented for those cases.
+
+The first source candidates already recover the original instruction
+structure for all four exact functions. `DumpShaderSource` is 305 bytes
+versus retail's 309: its key load is direct rather than LEA plus load, and
+its loop comparison reads the local directly rather than first loading a
+register. No artificial wrapper type, casts, attributes or compiler flags
+are introduced to force those two expressions.
+
+### Shared-layout regression and validation
+
+The unchanged `NuMtlRegisterForOverride` drops **97.940% to 93.507%** after
+the shader-ID array alias is introduced. Its before/after linked diff is
+fully inspected: scratch registers and two independent store positions
+change, and GCC reloads the same allocated material pointer around the
+shader-ID stores. Its body grows from 241 to 245 bytes. Allocation, lookup,
+copy, field values and update calls are unchanged. This function is not
+behavior-tested by the new diagnostic fixture; the shared pair itself is.
+
+**192,576 cases per architecture** pass against the actual NDK x86 source
+and full-global 64-bit ASan/UBSan build:
+
+- **65,536 binding masks**, checking exact query order and nonboolean
+  enabled results for every slot.
+- **30,720 attribute cases**, covering lengths 0 through 255, leading,
+  trailing, repeated and absent array suffixes, empty/count boundaries,
+  callback-mutated counts, full-width program handles, and all 256 bytes
+  of persistent name storage after lookup and trimming.
+- **24,640 source/program cases**, covering both real routines together,
+  zero/one/two attachments, signed shader-ID endpoints, all first/second
+  match and null-object combinations, sources through 2,047 characters,
+  newline patterns, and callbacks changing material or thread-memory state.
+  Exact traces are compared with an independent source-call oracle; GL and
+  allocator services are mocked, with exact-sized instrumented allocations.
+- **6,144 multiline cases**, verifying complete buffer/canary preservation
+  across lengths 1 through 1,024 and byte/newline patterns.
+- **65,536 shader-pair cases**, verifying scalar/array alias reads and
+  writes for every 16-bit pattern without modifying neighboring fields.
+
+Target/native builds and all five repository checks pass. No live GL
+context, logging output, allocation failure, malformed driver output, or
+gameplay execution is claimed as tested.
+All eleven PR checks on preceding commit `078d3b48` are green.
