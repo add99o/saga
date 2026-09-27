@@ -18,12 +18,14 @@
 #include "legoapi/characters/core/character.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/motion.h"
+#include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/core/input/timer.h"
 #include "legoapi/misc/utilities.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/render/fx.h"
 #include "nu2api/numath/numtx.h"
+#include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/nu3d/nugscn.h"
@@ -628,8 +630,66 @@ void EffectOffProgress_Reset(LEVEL_PROGRESS_s *progress) {
     }
 }
 
+void GameCameraMakeMiniCut2(NUVEC *, NUVEC *, i32, f32, f32, f32, f32, i32, i32, i32);
+
 void IncrementMinikitCounter(GameObject_s *) {
-    STUBBED();
+    WORLDINFO *world = WorldInfo_CurrentlyActive();
+    NUVEC average;
+    Players_AveragePos(&average, NULL);
+
+    GIZMO *gizmo;
+    GIZMOPICKUP_s *pickup;
+    u8 *counter;
+    NUVEC camera_position;
+    if (world->current_level == HOTHBATTLEA_LDATA) {
+        gizmo = LevGizmo[0];
+        if (gizmo == NULL || gizmo->object == NULL) {
+            return;
+        }
+        pickup = static_cast<GIZMOPICKUP_s *>(gizmo->object);
+        if ((pickup->state_flags & 0x48) != 0) {
+            return;
+        }
+        counter = &minikitCounter_A;
+        if (*counter > 9) {
+            return;
+        }
+        ++*counter;
+        if (*counter != 10) {
+            AddGameMsgCount(&average, *counter, 10, 200, 100, 30, 0.75f);
+            return;
+        }
+        camera_position = {0.0f, 0.0f, 10.0f};
+        NuVecRotateX(&camera_position, &camera_position, -0xe38);
+        NuVecRotateY(&camera_position, &camera_position, -0x2000);
+    } else if (world->current_level == HOTHBATTLEC_LDATA) {
+        gizmo = LevGizmo[1];
+        if (gizmo == NULL || gizmo->object == NULL) {
+            return;
+        }
+        pickup = static_cast<GIZMOPICKUP_s *>(gizmo->object);
+        if ((pickup->state_flags & 0x48) != 0) {
+            return;
+        }
+        counter = &minikitCounter_C;
+        if (*counter > 9) {
+            return;
+        }
+        ++*counter;
+        if (*counter != 10) {
+            AddGameMsgCount(&average, *counter, 10, 200, 100, 30, 0.75f);
+            return;
+        }
+        camera_position = {0.0f, 0.0f, 25.0f};
+        NuVecRotateX(&camera_position, &camera_position, -0x1555);
+        NuVecRotateY(&camera_position, &camera_position, -0x871c);
+    } else {
+        return;
+    }
+    NuVecAdd(&camera_position, &camera_position, &pickup->position);
+    GameCameraMakeMiniCut2(&camera_position, &pickup->position, 0, 0.0f, 4.0f, 0.0f, 0.0f, 0, 0, 0);
+    GizmoActivate(world->gizmo_sys, gizmo, 1, 1);
+    AddGameMsgCount(&average, *counter, 10, 200, 100, 30, 0.75f);
 }
 
 i32 EffectOffProgress_Update(LEVEL_PROGRESS_s *progress, char *name, i32 visible) {
