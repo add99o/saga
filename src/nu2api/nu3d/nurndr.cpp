@@ -127,6 +127,44 @@ void NuRndrRectUV2diZ(i32 x, i32 y, i32 width, i32 height, f32 u0, f32 v0, f32 u
 static NUMTL *pZClearMaterial;
 static NUMTL *pAlphaMask;
 
+extern "C" i32 NuRndrBeginScene(i32);
+
+extern "C" void RndrMaskScreen(i32 texture_id, f32 x, f32 y, f32 width, f32 height, f32 mask_x, f32 mask_y,
+                               f32 mask_width, f32 mask_height, NUPRIMSCALEMODE coordinate_system) {
+    pAlphaMask->tex_id = static_cast<i16>(texture_id);
+    NuMtlUpdate(pAlphaMask);
+    NuRndrBeginScene(-1);
+
+    ++NuPrimCSPos;
+    NuPrimSetCoordinateSystem(coordinate_system);
+    NuPrim2DBegin(1, 7, pZClearMaterial);
+    for (i32 corner = 0; corner < 4; ++corner) {
+        PrimVertexRaw *vertex = static_cast<PrimVertexRaw *>(g_NuPrim_StreamBufferPtr->void_ptr);
+        vertex->color = 0xff000000;
+        NuRndrPrimUV(0.0f, 0.0f);
+        NuPrim2DAddXYZ(x + ((corner & 1) ? width : 0.0f), y + ((corner & 2) ? height : 0.0f), 0.0f);
+    }
+    NuPrim2DEnd();
+    --NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
+
+    ++NuPrimCSPos;
+    NuPrimSetCoordinateSystem(coordinate_system);
+    NuPrim2DBegin(1, 7, pAlphaMask);
+    for (i32 corner = 0; corner < 4; ++corner) {
+        const f32 u = (corner & 1) ? 1.0f : 0.0f;
+        const f32 v = (corner & 2) ? 1.0f : 0.0f;
+        PrimVertexRaw *vertex = static_cast<PrimVertexRaw *>(g_NuPrim_StreamBufferPtr->void_ptr);
+        vertex->color = 0xff000000;
+        NuRndrPrimUV(u, v);
+        NuPrim2DAddXYZ(mask_x + u * mask_width, mask_y + v * mask_height, 1.0f);
+    }
+    NuPrim2DEnd();
+    --NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
+    NuRndrEndScene();
+}
+
 void NuRndrInitGeneric() {
     const i32 render_plane = NuMtlSetCurrentRenderPlane(22);
     if (!pZClearMaterial) {

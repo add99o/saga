@@ -90,8 +90,4 @@ extern "C" {
         result->z = first->z + (second->z - first->z) * ratio;
     }
 
-    void RndrMaskScreen(void) {
-        STUBBED();
-    }
-
 } // extern "C"
