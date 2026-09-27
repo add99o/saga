@@ -60,7 +60,7 @@ void LoadGizmoSys(GIZMOSYS_s *gizmo_sys, void *world, char *config_file) {
         }
         gizmo_sys->flags &= ~3;
 
-        if (gizmotypes->count != 0) {
+        if (gizmotypes != NULL) {
             char gizmo_name[32];
             char path[256];
             sprintf(path, "%s.giz", config_file);
@@ -91,11 +91,14 @@ void LoadGizmoSys(GIZMOSYS_s *gizmo_sys, void *world, char *config_file) {
                 EdFileClose();
             }
 
-            GIZMOTYPE *type = gizmotypes->types;
-            GIZMOSET *set = gizmo_sys->sets;
-            for (i32 type_id = 0; type_id < gizmotypes->count; ++type_id, ++type, ++set) {
-                if (type->fns.post_load_fn != NULL) {
-                    type->fns.post_load_fn(world, set->unknown);
+            // File callbacks may replace or clear the registry before post-load dispatch.
+            if (gizmotypes != NULL) {
+                GIZMOTYPE *type = gizmotypes->types;
+                GIZMOSET *set = gizmo_sys->sets;
+                for (i32 type_id = 0; type_id < gizmotypes->count; ++type_id, ++type, ++set) {
+                    if (type->fns.post_load_fn != NULL) {
+                        type->fns.post_load_fn(world, set->unknown);
+                    }
                 }
             }
         }

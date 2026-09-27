@@ -4854,3 +4854,52 @@ service records its inputs and suppresses arrow submission; no new validation
 of the unchanged arrow renderer is claimed. Six unrelated character-ID globals
 have fixture storage for retained ASan tables. Target/native builds and all
 five repository checks pass; no gameplay or visual run is claimed.
+
+Two later isolated shared-arrow-helper trials were rejected without changing
+the retained sources. Moving the duplicated gates/timer into an ordinary
+static `UpdateZamArrow` raises C to 43.177% but drops A/B to 4.349%/21.688%;
+GCC emits the complete helper out of line instead of retail's partial split.
+An ordinary `inline` trial emits the entire payload in each caller and drops
+C to 0%. Neither recovers the original `.isra.5.part.6` boundary. Do not repeat
+this regrouping without new ownership/splitting evidence, and do not force
+the private ABI or clone name. These were compiler-only trials, not new
+behavior or aggregate-report validations.
+
+## Batch 94: gizmo loader registry gates
+
+Audit the full 589-byte `LoadGizmoSys` at `0x4b0080`. The initial gate tests
+the global registry pointer, not its count. Restore that null check, so a
+missing registry is safe and a present empty registry still opens and scans
+the file. Restore the separate pointer check after file callbacks, which
+can clear or replace the registry before post-load dispatch. Retain the
+captured type/set arrays, live count across post-load callbacks, original
+flag transitions, error-log clearing and payload-skip/load ordering. No
+source ownership, ABI or optimization settings change.
+
+The first ordinary source correction reaches **54.852%** in isolation and
+improves the linked score **7.857988% to 55.266273%**. Overall fuzzy matching
+rises **65.106340% to 65.112240%**, with no other score changes or exact-match
+losses. Remaining stack reloads and instruction scheduling are not pursued.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**146,560 state/trace cases**. Coverage includes null system/registry/log
+gates, signed registry counts and resolver IDs, all callback masks and flag
+bytes, failed opens, successful/rejected payload callbacks, every valid
+name-record length through 32 bytes, path lengths through 251 bytes,
+payload sizes 0–8 and nineteen callback-mutation scenarios. Complete event
+traces, consumed input and resulting registry/set/system/log state agree
+with the independent control-flow oracle. ASan retains normal global
+instrumentation. The old source reproduces two null dereferences (at entry
+and after close), while an empty-registry case fails the expected trace.
+
+File services, name resolution and load/post-load callbacks are fixtures;
+this is not a disk/parser or gameplay integration claim. Names include a
+terminator within the fixed 32-byte buffer, paths fit the original buffer,
+and negative payload lengths or callback invalidation of an actively used
+registry remain outside the tested contract. Target/native builds and all
+five repository checks pass.
+
+Further read-only triage confirms that the 146-byte `NuVisiInstTree` needs
+the shared instance-tree layout and its private `ClipInstTree` clone, not
+an isolated wrapper implementation or forced register-passing attributes.
+No source experiment was made for that visibility group.
