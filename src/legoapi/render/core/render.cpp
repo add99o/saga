@@ -3,6 +3,7 @@
 #include "gameapi/edtools/edstubs.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/items/collect/torpedo.h"
+#include "legoapi/items/collect/spacelevel.h"
 #include "legoapi/actions/character/transform.h"
 #include "legoapi/actions/movement/carrying.h"
 #include "legoapi/actions/character/snake.h"
@@ -4051,6 +4052,52 @@ static __used__ void DrawFalconSpotLights(GameObject_s *object) {
     spotLightB_zrot[object->apiobj.field_0x27c] += FRAMETIME / 5.0f;
     if (spotLightB_zrot[object->apiobj.field_0x27c] > 1.0f)
         spotLightB_zrot[object->apiobj.field_0x27c] -= 1.0f;
+}
+
+void DrawSpaceLevel(spacelevel_s *) __asm__("_ZL14DrawSpaceLevelP12spacelevel_s")
+    __attribute__((used, visibility("hidden")));
+void DrawSpaceLevel(spacelevel_s *space) {
+    if (space->player_matrix_state != 0) {
+        NuVecMtxTransform(reinterpret_cast<NUVEC *>(&space->player_matrix.m30),
+                          reinterpret_cast<NUVEC *>(&space->player_matrix.m10), &GameCam->render_mtx);
+        DrawCross_Now(reinterpret_cast<_vuv_s *>(&space->player_matrix.m30), 1.0f, space->player_colour, 1);
+    }
+    if (space->camera_matrix_state != 0) {
+        NuVecMtxTransform(reinterpret_cast<NUVEC *>(&space->camera_matrix.m30),
+                          reinterpret_cast<NUVEC *>(&space->camera_matrix.m10), &GameCam->render_mtx);
+        DrawCross_Now(reinterpret_cast<_vuv_s *>(&space->camera_matrix.m30), 1.0f, space->camera_colour, 1);
+    }
+
+    for (i32 group_index = 0; group_index < 7; ++group_index) {
+        spacelevel_fighter_group_s &group = space->fighter_groups[group_index];
+        if (group.trooper_team.reset_effect == 0)
+            continue;
+        for (i32 fighter_index = 0; fighter_index < 4; ++fighter_index) {
+            spacelevel_starfighter_s &fighter = group.fighters[fighter_index];
+            if (fighter.reset_timer != 0)
+                DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
+        }
+        if (group.trooper_team.reset_effect_timer != 0) {
+            u8 *team = reinterpret_cast<u8 *>(&group.trooper_team);
+            DrawCross_Now(reinterpret_cast<_vuv_s *>(team + 0x78), 3.0f, 0xffffff, 1);
+        }
+    }
+    if (space->last_starfighter.reset_effect != 0) {
+        for (i32 fighter_index = 0; fighter_index < 4; ++fighter_index) {
+            spacelevel_starfighter_s &fighter = space->final_fighters[fighter_index];
+            if (fighter.reset_timer != 0)
+                DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
+        }
+        if (space->last_starfighter.reset_effect_timer != 0) {
+            u8 *last = reinterpret_cast<u8 *>(&space->last_starfighter);
+            DrawCross_Now(reinterpret_cast<_vuv_s *>(last + 0x78), 3.0f, 0xffffff, 1);
+        }
+    }
+    for (i32 index = 0; index < 96; ++index) {
+        spacelevel_starfighter_s &fighter = space->queued_starfighters[index];
+        if (fighter.reset_state != 0)
+            DrawStarFighter(reinterpret_cast<starfighter_s *>(&fighter));
+    }
 }
 
 void DrawFalconSpotLightsForChase(GameObject_s *object) {

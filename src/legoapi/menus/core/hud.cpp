@@ -128,12 +128,6 @@ void HudRadarPulse::Render() {
     }
 }
 
-void DrawSpaceLevel(spacelevel_s *) __asm__("_ZL14DrawSpaceLevelP12spacelevel_s")
-    __attribute__((used, visibility("hidden")));
-void DrawSpaceLevel(spacelevel_s *) {
-    STUBBED();
-}
-
 extern i8 episodesmode, i_episodes, i_clip[6];
 extern i32 hub_new_level;
 extern f32 episodestime, episodesduration, HUB_EPISODESUBTITLESIZE, PANEL3DMULX;

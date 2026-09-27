@@ -31,6 +31,7 @@
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nufloat.h"
+#include "nu2api/numath/nurand.h"
 #include "nu2api/nu3d/nucamera.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/gizmo/base/gizmo.h"
@@ -44,6 +45,7 @@ extern f32 BOLT_OVERRIDE_PLAYERBOLTSPEED;
 extern f32 BOLT_OVERRIDE_PLAYERBOLTDURATION;
 struct spacelevel_s;
 struct quickboltinfo;
+extern "C" void PlaySfxAndSetPitch(char *, NUVEC *, f32);
 
 static void Bolt_Debris_Default(BOLT_s *, NUVEC *, i32, NUVEC *, i32);
 static void Bolt_GetShootOrigin_Default(GameObject_s *, NUVEC *);
@@ -1581,9 +1583,9 @@ int ReleaseHearts();
 #define STARFIGHTER_COLLIDE_CALL
 #endif
 STARFIGHTER_COLLIDE_CALL
-    i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter, _vuv_s *first,
-                               _vuv_s *second) __asm__("_ZL22CollideBoltStarFighterP6BOLT_sP13starfighter_sP6_vuv_sS4_")
-        __attribute__((visibility("hidden")));
+i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter, _vuv_s *first,
+                           _vuv_s *second) __asm__("_ZL22CollideBoltStarFighterP6BOLT_sP13starfighter_sP6_vuv_sS4_")
+    __attribute__((visibility("hidden")));
 STARFIGHTER_COLLIDE_CALL i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter, _vuv_s *first,
                                                     _vuv_s *second) {
     u8 *fighter_data = reinterpret_cast<u8 *>(fighter);
@@ -1909,9 +1911,156 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
         SpaceRumbleProcess();
 }
 
-static __used__ SPACE_FIGHTER_CALL i32 ProcessStarFighter(starfighter_s *, quickboltinfo *) {
-    STUBBED();
-    return 0;
+static __used__ SPACE_FIGHTER_CALL i32 ProcessStarFighter(starfighter_s *fighter, quickboltinfo *bolts) {
+    u8 *data = reinterpret_cast<u8 *>(fighter);
+    NUMTX *matrix = reinterpret_cast<NUMTX *>(fighter);
+    NUVEC *position = reinterpret_cast<NUVEC *>(data + 0x30);
+    NUVEC *velocity = reinterpret_cast<NUVEC *>(data + 0x60);
+    NUVEC *destination = reinterpret_cast<NUVEC *>(data + 0x80);
+    flightspline_s *spline = *reinterpret_cast<flightspline_s **>(data + 0xd4);
+    i32 &explosions = *reinterpret_cast<i32 *>(data + 0x118);
+    i32 &health = *reinterpret_cast<i32 *>(data + 0x10c);
+    f32 &death_timer = *reinterpret_cast<f32 *>(data + 0xe4);
+    const i16 model = *reinterpret_cast<i16 *>(data + 0xfe);
+
+    if (explosions != 0) {
+        --explosions;
+        --health;
+        if (health <= 0) {
+            death_timer = spline != NULL ? 1.0f : 2.0f;
+            NUVEC impulse = {matrix->m20, matrix->m21, matrix->m22};
+            f32 length = NuVecMag(&impulse);
+            if (length != 0.0f) {
+                f32 force = qrand() * (1.0f / 65535.0f) / length;
+                velocity->x += impulse.x * force;
+                velocity->y += impulse.y * force;
+                velocity->z += impulse.z * force;
+            }
+            *reinterpret_cast<f32 *>(data + 0xe8) = qrand() * (1.0f / 65535.0f) - 0.5f;
+            *reinterpret_cast<f32 *>(data + 0xec) = qrand() * (1.0f / 65535.0f) - 0.5f;
+            if (spline == NULL || (*reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(spline) + 0x524) - 0x54U) > 1)
+                AddGameDebris(WORLD->debris_sys, 0x17, position);
+        }
+    }
+    if (health <= 0 &&
+        (spline == NULL || (*reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(spline) + 0x524) - 0x54U) > 1)) {
+        death_timer -= FRAMETIME;
+        if (death_timer > 0.0f) {
+            NuMtxPreRotateX(matrix, static_cast<i16>(*reinterpret_cast<f32 *>(data + 0xe8) * FRAMETIME * 65536.0f));
+            NuMtxPreRotateZ(matrix, static_cast<i16>(*reinterpret_cast<f32 *>(data + 0xec) * FRAMETIME * 65536.0f));
+            position->x += velocity->x * FRAMETIME;
+            position->y += velocity->y * FRAMETIME;
+            position->z += velocity->z * FRAMETIME;
+            AddVariableShotDebrisEffect(WORLD->debris_sys->entries[240].effect, position, 1, 0, 0);
+        } else {
+            AddGameDebris(WORLD->debris_sys, 0x17, position);
+            *reinterpret_cast<i32 *>(data + 0x110) = 0;
+        }
+        return 0;
+    }
+
+    NUMTX *parent = *reinterpret_cast<NUMTX **>(data + 0xd0);
+    if (parent != NULL) {
+        *matrix = *parent;
+        *velocity = *reinterpret_cast<NUVEC *>(reinterpret_cast<u8 *>(parent) + 0x608);
+        NuVecMtxTransform(position, reinterpret_cast<NUVEC *>(data + 0x70), parent);
+        f32 &timer = *reinterpret_cast<f32 *>(data + 0xe0);
+        timer -= FRAMETIME;
+        if (timer <= 0.0f)
+            timer = 1.0f;
+        return 1;
+    }
+    if (spline == NULL)
+        return 0;
+
+    NUVEC difference = {destination->x - position->x, destination->y - position->y, destination->z - position->z};
+    f32 distance_sq = difference.x * difference.x + difference.y * difference.y + difference.z * difference.z;
+    f32 &spline_progress = *reinterpret_cast<f32 *>(data + 0xd8);
+    if (death_timer >= 0.0f)
+        death_timer -= FRAMETIME;
+    while (distance_sq < 25.0f) {
+        spline_progress += 0.01f;
+        if (spline_progress > 1.0f) {
+            *reinterpret_cast<i32 *>(data + 0x110) = 0;
+            return 0;
+        }
+        destination->x += matrix->m20 * 5.0f;
+        destination->y += matrix->m21 * 5.0f;
+        destination->z += matrix->m22 * 5.0f;
+        difference.x = destination->x - position->x;
+        difference.y = destination->y - position->y;
+        difference.z = destination->z - position->z;
+        distance_sq = difference.x * difference.x + difference.y * difference.y + difference.z * difference.z;
+    }
+
+    const f32 camera_depth = (position->x - global_camera.mtx.m30) * global_camera.mtx.m20 +
+                             (position->y - global_camera.mtx.m31) * global_camera.mtx.m21 +
+                             (position->z - global_camera.mtx.m32) * global_camera.mtx.m22;
+    f32 pitch = camera_depth < 0.0f ? (camera_depth >= -100.0f ? 1.0f + camera_depth * 0.005f : 0.5f) : 0.5f;
+    if (model == -299 && health > 0)
+        PlaySfxAndSetPitch(const_cast<char *>("Dog_TriFighterEngLp"), position, pitch);
+    else if (model == -300)
+        PlaySfxAndSetPitch(const_cast<char *>("Dog_CloneARC170EngLp"), position, pitch);
+    else if (model > -298 && model < -295 && health > 0)
+        PlaySfxAndSetPitch(const_cast<char *>("Dog_DroidFighterEngLp"), position, pitch);
+
+    f32 distance = NuFsqrt(distance_sq);
+    if (distance != 0.0f) {
+        f32 speed = *reinterpret_cast<f32 *>(data + 0xf4) / distance;
+        velocity->x = difference.x * speed;
+        velocity->y = difference.y * speed;
+        velocity->z = difference.z * speed;
+        position->x += velocity->x * FRAMETIME;
+        position->y += velocity->y * FRAMETIME;
+        position->z += velocity->z * FRAMETIME;
+        _vuv_s direction = {difference.x, difference.y, difference.z, 1.0f};
+        StarFighterAlign(fighter, &direction, 1.0f, death_timer > 0.0f);
+    }
+    matrix->m33 = 1.0f;
+
+    if (*reinterpret_cast<i32 *>(data + 0x120) != 0)
+        return 1;
+    f32 &wait = *reinterpret_cast<f32 *>(data + 0xdc);
+    if (wait > 0.0f) {
+        wait -= FRAMETIME;
+        if (wait <= 0.0f) {
+            wait = 0.0f;
+            *reinterpret_cast<i32 *>(data + 0xcc) = 2;
+        }
+        return 1;
+    }
+    f32 &shot_timer = *reinterpret_cast<f32 *>(data + 0xe0);
+    if (shot_timer > 0.0f) {
+        shot_timer -= FRAMETIME;
+        return 1;
+    }
+    shot_timer = (NuRandFloat() + 1.0f) * 0.5f;
+    if (bolts == NULL)
+        return 1;
+    u8 *bolt_info = reinterpret_cast<u8 *>(bolts);
+    u8 *records = *reinterpret_cast<u8 **>(bolt_info);
+    i32 capacity = *reinterpret_cast<i32 *>(bolt_info + 4);
+    i32 &next = *reinterpret_cast<i32 *>(bolt_info + 8);
+    if (records == NULL || capacity <= 0)
+        return 1;
+    for (i32 attempt = 0; attempt < capacity; ++attempt) {
+        i32 index = (next + attempt) % capacity;
+        u8 *shot = records + index * 0x60;
+        if (*reinterpret_cast<f32 *>(shot + 0x50) != 0.0f)
+            continue;
+        next = (index + 1) % capacity;
+        memset(shot, 0, 0x60);
+        *reinterpret_cast<NUMTX *>(shot) = *matrix;
+        NuMtxPreRotateX(reinterpret_cast<NUMTX *>(shot), 0x4000);
+        NUVEC *shot_velocity = reinterpret_cast<NUVEC *>(shot + 0x40);
+        shot_velocity->x = matrix->m20 * 50.0f;
+        shot_velocity->y = matrix->m21 * 50.0f;
+        shot_velocity->z = matrix->m22 * 50.0f;
+        *reinterpret_cast<f32 *>(shot + 0x50) = 2.5f;
+        *reinterpret_cast<i32 *>(shot + 0x58) = model == -300;
+        break;
+    }
+    return 1;
 }
 
 #undef SPACE_LEVEL_CALL
