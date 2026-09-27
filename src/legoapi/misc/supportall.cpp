@@ -1,5 +1,7 @@
 #include "nu2api/nu3d/nuprim.h"
 #include "nu2api/nu3d/nuprim_internal.h"
+#include "legoapi/misc/supportall.h"
+#include "legoapi/render/core/screen.h"
 #include "nu2api/nu3d/nuvport.h"
 #include "nu2api/nu3d/android/nuptl_android.h"
 #include "nu2api/nu3d/android/nutimebar_plain.h"
@@ -12,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <limits.h>
 #include "decomp.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nucore/nuthread.h"
@@ -878,7 +881,12 @@ i32 RndrUnfilledCircle(f32 x, f32 y, f32 radius, f32 border_width, f32 aspect, i
     NuRndrPrimUV(0.0f, 0.0f);
     NuPrim2DAddXYZ(static_cast<f32>(PS2_VREZ_W) * x, static_cast<f32>(PS2_VREZ_H) * (y - inner_radius), z);
 
-    const i32 segment_count = static_cast<i32>(progress * 360.0f);
+    const f32 segments = progress * 360.0f;
+    // Retail CVTTSS2SI returns integer-indefinite for unordered/out-of-range
+    // inputs. The touch widgets actually pass packed colours as progress;
+    // preserve that no-segment result without an undefined C++ conversion.
+    const i32 segment_count =
+        segments >= -2147483648.0f && segments < 2147483648.0f ? static_cast<i32>(segments) : INT_MIN;
     if (segment_count >= 0) {
         f32 angle = 0.0f;
         for (i32 segment = 0; segment <= segment_count; ++segment, angle += 0.017455555f) {
@@ -1424,8 +1432,56 @@ void DebrisReleaseControlStackLock() {
     control_stack_lock = 0;
 }
 
-void xxxNuDisplayListUpdateSpecial(nuhspecial_s *) {
-    STUBBED();
+void xxxNuDisplayListUpdateSpecial(nuhspecial_s *special) {
+    NUDLDLISTSCENE *scene = special->scene->display_list;
+    NUDISPLAYSPECIAL *display = special->display_special;
+    NUMTX matrix = *NuSpecialGetDrawMtx(special);
+    NUVEC corners[8] = {
+        {display->bounds_min.x, display->bounds_min.y, display->bounds_min.z},
+        {display->bounds_max.x, display->bounds_max.y, display->bounds_max.z},
+        {display->bounds_min.x, display->bounds_min.y, display->bounds_max.z},
+        {display->bounds_max.x, display->bounds_max.y, display->bounds_min.z},
+        {display->bounds_min.x, display->bounds_max.y, display->bounds_min.z},
+        {display->bounds_min.x, display->bounds_max.y, display->bounds_max.z},
+        {display->bounds_max.x, display->bounds_min.y, display->bounds_min.z},
+        {display->bounds_max.x, display->bounds_min.y, display->bounds_max.z},
+    };
+    for (i32 i = 0; i < 8; ++i) {
+        NuVecMtxTransform(&corners[i], &corners[i], &matrix);
+    }
+
+    NUVEC minimum;
+    NUVEC maximum;
+    NuVecMin(&minimum, &corners[0], &corners[1]);
+    for (i32 i = 2; i < 8; ++i) {
+        NuVecMin(&minimum, &minimum, &corners[i]);
+    }
+    NuVecMax(&maximum, &corners[0], &corners[1]);
+    for (i32 i = 2; i < 8; ++i) {
+        NuVecMax(&maximum, &maximum, &corners[i]);
+    }
+
+    if ((scene->render_buffer & NUDL_SCENE_RENDER_FLAG_CENTER_EXTENT_BOUNDS) != 0) {
+        NUVEC extent;
+        extent.x = (maximum.x - minimum.x) * 0.5f;
+        extent.y = (maximum.y - minimum.y) * 0.5f;
+        extent.z = (maximum.z - minimum.z) * 0.5f;
+        const f32 radius = NuFsqrt(extent.x + extent.y + extent.z);
+        NUCLIPBOUNDS *bounds = &scene->clip_bounds[display->instance_ix];
+        bounds->center.x = (maximum.x + minimum.x) * 0.5f;
+        bounds->center.y = (maximum.y + minimum.y) * 0.5f;
+        bounds->center.z = (maximum.z + minimum.z) * 0.5f;
+        bounds->center_w = radius;
+        bounds->extent = extent;
+    } else {
+        NUCLIPBOUNDS *bounds = &scene->clip_bounds[display->instance_ix];
+        bounds->center = minimum;
+        bounds->extent = maximum;
+        // Retail copies uninitialized local W components in min/max mode.
+        // They are not clipping coordinates; retain the destination padding,
+        // as the active NuDisplayListUpdateSpecial implementation does.
+    }
+    DisplayListUpdateSpecialTransformPS(special, &matrix);
 }
 
 static inline __attribute__((always_inline)) f32 DebrisInterpolateFloatKeys(const debris_float_key_s *keys, f32 time) {
@@ -1641,8 +1697,6 @@ void TBOPENFN(char *name, i32 type) {
         }
     }
 }
-
-f32 GetAspectRatio();
 
 void RndrArrow(float x, float y, float scale, i32 angle, i32 colour) {
     NUVEC points[4] = {};

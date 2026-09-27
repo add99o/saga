@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.03356,
+    "fuzzy_match_percent": 65.06324,
     "total_code": "4722419",
-    "matched_code": "519814",
-    "matched_code_percent": 11.007367,
+    "matched_code": "520061",
+    "matched_code_percent": 11.012597,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6248,
-    "matched_functions_percent": 46.42247,
+    "matched_functions": 6249,
+    "matched_functions_percent": 46.4299,
     "total_units": 1
   },
   "text": {
@@ -71724,7 +71724,7 @@
           "address": 2567216,
           "offset": 1677248,
           "size": 1001,
-          "match_percent": 86.67281
+          "match_percent": 75.059906
         },
         {
           "name": "_Z9RndrArrowfffii",
@@ -71876,7 +71876,7 @@
           "address": 3056512,
           "offset": 2166544,
           "size": 1536,
-          "match_percent": 1.418919
+          "match_percent": 49.5473
         },
         {
           "name": "_Z25DebrisGetControlStackLockv",
@@ -104083,7 +104083,7 @@
           "address": 2569120,
           "offset": 1679152,
           "size": 573,
-          "match_percent": 3.75
+          "match_percent": 99.92857
         },
         {
           "name": "_ZN18NuTouchInputButton6RenderEv",
@@ -104091,7 +104091,7 @@
           "address": 2569696,
           "offset": 1679728,
           "size": 247,
-          "match_percent": 7.5
+          "match_percent": 100.0
         },
         {
           "name": "_ZN14NuButtonLayout13UpdateButtonsEi",

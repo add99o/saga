@@ -2068,6 +2068,10 @@ swap the arguments to make the image plausible, or restore the callers
 without auditing this behavior on target and native platforms. No touch
 renderer experiment was retained.
 
+This prerequisite is resolved in batch 87 below: a defined conversion
+preserves the retail integer-indefinite result, and both restored callers
+are exercised together with the actual circle/arrow bodies.
+
 `NuErrorSleep` likewise passes an uninitialized local `va_list` to its
 font-print helper in retail. No speculative variadic reconstruction was
 made. These findings are recorded to avoid repeated low-yield attempts.
@@ -4618,3 +4622,85 @@ and unchanged surrounding bytes. The transform callback is a recording math
 implementation; the real impact body runs. Target/native builds and all five
 repository checks pass. No reconstructed caller currently invokes this helper,
 so no end-to-end terrain or visual validation is claimed.
+
+## Batch 87: touch renderers and the circle conversion prerequisite
+
+Resolve the earlier shared-helper deferral before restoring the 573-byte
+`NuTouchInputStick::Render` and 247-byte `NuTouchInputButton::Render` in their
+unchanged `-O3` owner. Recover the original signed `white`/`grey` globals and
+their `0x32ffffff`/`0x32646464` initializers. Keep the verified, surprising
+circle arguments: colour 128 and the selected packed colour converted to
+floating progress. Do not swap them to produce a more plausible picture.
+Preserve the four directional arrows, strict +/-0.2 thresholds, button-mask
+angle selection, pre-callback colour snapshots and later coordinate/state
+reloads. Canonicalize the circle/arrow/aspect declarations in shared headers.
+
+Retail `RndrUnfilledCircle` multiplies progress by 360 and uses `CVTTSS2SI`;
+unordered/out-of-range results become negative integer-indefinite, skipping
+the segment loop after its two initial vertices. Express that result with
+an explicit float range check before conversion, identically on target and
+native builds. This is needed for the recovered callers' ordinary initialized
+values, not only hypothetical malformed input. No intrinsics, assembly,
+calling-convention attributes or optimization overrides enter production code.
+
+The first renderer bodies improve **3.750000% to 99.928570%** and
+**7.500000% to 100%**, respectively. The portable conversion guard reduces
+the circle helper **86.672810% to 75.059906%**; retain this intentional
+tradeoff rather than reintroducing undefined conversion or host-only behavior.
+Overall fuzzy matching rises **65.033560% to 65.047600%**; these are the only
+three changed functions, with one exact match gained and none lost.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow fixtures pass:
+
+- **1,000,016 conversion values** compared with an SSE hardware oracle,
+  including signed bounds, infinities, NaNs and random float bit patterns;
+- **157,168 renderer cases** checking actual virtual dispatch, all 16-bit
+  button masks, threshold neighbors, signed colours, nonfinite geometry,
+  callback mutations/order and unchanged object state;
+- **19,040 circle primitive cases** checking geometry, loop/truncation edges,
+  float/half UVs, colour adjustment and callback-visible renderer globals;
+- **4,096 integration cases** running the actual touch, circle and arrow
+  bodies together with the initialized colours, verifying primitive counts
+  and vertex-buffer bounds.
+
+Primitive submission/rotation and trigonometric services are fixture
+implementations; no GPU or visual validation is claimed. Four unused timing
+globals retained by full ASan registration have fixture storage. Final target
+and native builds and all five repository checks pass. Default touch-layout
+creation is still a stub, so this does not complete the touch input system.
+
+## Batch 88: legacy display-list bounds updater
+
+Recover the 1,536-byte `xxxNuDisplayListUpdateSpecial` at `0x2ea380` in
+its existing `supportall.cpp` owner, preserving `-O2` and its C++ signature.
+Capture the original scene/display pointers before the draw-matrix callback,
+copy the returned matrix, transform all eight corners in retail order, then
+perform the seven minimum reductions followed by seven maximum reductions.
+Reload the bounds format, destination and instance index at their original
+callback boundaries. The center/extent path deliberately retains retail's
+`sqrt(extent.x + extent.y + extent.z)`, not a presumed Euclidean radius.
+
+The min/max path in retail copies the uninitialized W lanes of its local
+vectors. Do not reproduce that undefined read. Use typed XYZ vectors and
+leave the destination W lanes unchanged, matching the active
+`NuDisplayListUpdateSpecial` writer's min/max behavior. The reconstructed
+clipping/distance consumers use XYZ only. The center/extent path still writes
+the computed radius to the first W lane and leaves the second untouched.
+No fabricated padding values, alignment attributes, optimization changes or
+manual unrolling are used to improve the score.
+
+The first ordinary C++ body reaches **49.395%** in the isolated object and
+**49.547300%** when linked, up from **1.418919%**. Overall fuzzy matching rises
+**65.047600% to 65.063240%**. This is the only changed score in the unit;
+there are no regressions or exact-match transitions. Remaining differences
+include the original's realigned frame, 16-byte temporary strides and
+unrolled calls; ownership/alignment guesses are not justified by this audit.
+
+NDK x86 and full-global 64-bit ASan/UBSan each pass **100,000 cases** covering
+all eight corners, min/max ordering, both formats, every callback mutation
+boundary, scene/display snapshots, live destination/index/flag reloads,
+matrix snapshots and mutations, finite/nonfinite geometry, strict ties,
+signed zero, random matrices and unchanged padding/surrounding records.
+Transform/min/max/square-root services are recording fixture implementations.
+Target/native builds and all five repository checks pass. No reconstructed
+caller invokes this legacy entry point, so no visual integration is claimed.
