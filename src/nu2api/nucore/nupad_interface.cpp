@@ -213,7 +213,14 @@ u32 NuInputDevicePS::GetIdentifierPS(u32) {
 }
 
 void NuTouchInputStick::Render() {
-    STUBBED();
+    const i32 grey = 0x32646464;
+    const i32 white = 0x32ffffff;
+    RndrUnfilledCircle(x, y, width, 0.005f, GetAspectRatio(), 128,
+                       static_cast<f32>(unknown_3c ? white : grey), 0.0f, NULL);
+    RndrArrow(x, y + 0.3f * height, 0.0075f, 0, stick_y > 0.2f ? white : grey);
+    RndrArrow(x - 0.3f * width, y, 0.0075f, 0x4000, stick_x < -0.2f ? white : grey);
+    RndrArrow(x, y - 0.3f * height, 0.0075f, 0x8000, stick_y < -0.2f ? white : grey);
+    RndrArrow(x + 0.3f * width, y, 0.0075f, 0xc000, stick_x > 0.2f ? white : grey);
 }
 
 void NuTouchInputStick::Update(NuInputTouchData const *data) {
