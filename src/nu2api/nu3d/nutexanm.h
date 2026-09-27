@@ -118,7 +118,7 @@ extern "C" {
     void NuTexAnimProgDestroy(nutexanimprog_s *program);
     nutexanimprog_s *NuTexAnimProgRead(VARIPTR *buffer, char *path);
     void NuTexAnimProgWrite(char *path, nutexanimprog_s *program);
-    nutexanimprog_s *NuTexAnimProgReadScript(char *path, VARIPTR *buffer);
+    nutexanimprog_s *NuTexAnimProgReadScript(char *path, VARIPTR *buffer, VARIPTR buffer_end, i32 flags);
     void NuTexAnimProgAssembleEnd(nutexanimprog_s *program);
     void NuTexAnimAddList(nutexanim_s *anim);
     void NuTexAnimProcessList(nutexanim_s *anim);

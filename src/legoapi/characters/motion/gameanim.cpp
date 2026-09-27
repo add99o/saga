@@ -2225,7 +2225,7 @@ void InitTexAnimScripts(char **names) {
         NuStrCpy(path, "stuff\\ats\\");
         NuStrCat(path, *names++);
         NuStrCat(path, ".ats");
-        NuTexAnimProgReadScript(path, &permbuffer_ptr);
+        NuTexAnimProgReadScript(path, &permbuffer_ptr, permbuffer_end, static_cast<i32>(DEFAULTFPS));
     }
     permbuffer_ptr.addr = ALIGN(permbuffer_ptr.addr, 16);
 }
