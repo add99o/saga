@@ -84,6 +84,7 @@ f32 STATUS_TITLE_Y = 0.5f;
 
 u16 hub_iconang[4] = {};
 static f32 hub_icontime[4] = {};
+static i32 hub_icondang[4] = {};
 STATUS_STAGE_s *StatusStages;
 f32 iconalphaoverride;
 f32 icon_y;
@@ -799,7 +800,22 @@ f32 StatusIconsOnOff(f32 progress) {
 }
 
 void UpdateIconWibble() {
-    STUBBED();
+    const f32 random_scale = 1.0f / 65536.0f;
+#define UPDATE_ICON_WIBBLE(index)                                                                                       \
+    do {                                                                                                                \
+        hub_icontime[index] -= FRAMETIME;                                                                                \
+        if (hub_icontime[index] <= 0.0f) {                                                                               \
+            hub_icondang[index] = static_cast<i32>(static_cast<f32>(qrand()) * random_scale * 262144.0f - 131072.0f); \
+            hub_icontime[index] = static_cast<f32>(qrand()) * random_scale * 2.0f + 1.0f;                              \
+        }                                                                                                               \
+        hub_iconang[index] = static_cast<u16>(static_cast<i32>(                                                     \
+            static_cast<f32>(static_cast<i32>(hub_iconang[index])) + static_cast<f32>(hub_icondang[index]) * FRAMETIME)); \
+    } while (0)
+    UPDATE_ICON_WIBBLE(0);
+    UPDATE_ICON_WIBBLE(1);
+    UPDATE_ICON_WIBBLE(2);
+    UPDATE_ICON_WIBBLE(3);
+#undef UPDATE_ICON_WIBBLE
 }
 
 void Prompt_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float elapsed) {

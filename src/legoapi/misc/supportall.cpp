@@ -15,6 +15,7 @@
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nucore/nuthread.h"
 #include "nu2api/nucore/bgproc.h"
+#include "nu2api/nu3d/android/nutimebar_plain.h"
 #include "globals.h"
 #include "legoapi/core/input/qrand.h"
 #include "gameapi/ai/aisys/aisys.h"
@@ -158,6 +159,14 @@ static i32 TBGAMECOUNT;
 static i32 TBDRAWCOUNT;
 static i32 TBPLAYERCOUNT;
 static i32 TBAICOUNT;
+static char GameTB[12][12];
+static char PlayerTB[12][12];
+static char AITB[12][12];
+static char DrawTB[12][12];
+extern i32 app_tbgameset;
+extern i32 app_tbplayerset;
+extern i32 app_tbaiset;
+extern i32 app_tbdrawset;
 
 f32 TargetDist_Near2;
 f32 TargetDist_Mid2;
@@ -1547,8 +1556,57 @@ void TBRESET() {
     TBAICOUNT = 0;
 }
 
-void TBOPENFN(char *, i32) {
-    STUBBED();
+void TBOPENFN(char *name, i32 category) {
+    i32 *count;
+    char (*entries)[12];
+    i32 timer_set;
+    switch (category) {
+    case 2:
+        count = &TBGAMECOUNT;
+        entries = GameTB;
+        timer_set = app_tbgameset;
+        break;
+    case 3:
+        count = &TBPLAYERCOUNT;
+        entries = PlayerTB;
+        timer_set = app_tbplayerset;
+        break;
+    case 4:
+        count = &TBAICOUNT;
+        entries = AITB;
+        timer_set = app_tbaiset;
+        break;
+    case 5:
+        count = &TBDRAWCOUNT;
+        entries = DrawTB;
+        timer_set = app_tbdrawset;
+        break;
+    default:
+        return;
+    }
+
+    for (i32 slot = 0; slot < *count; ++slot) {
+        if (NuStrCmp(name, entries[slot]) == 0) {
+            _NuTimeBarSlotBegin(timer_set, slot, NULL);
+            return;
+        }
+    }
+    if (*count >= 12) {
+        return;
+    }
+    char shortened[256];
+    NuStrCpy(shortened, name);
+    i32 length = NuStrLen(shortened);
+    if (length <= 0) {
+        return;
+    }
+    if (length > 10) {
+        shortened[10] = '\0';
+    }
+    NuStrCpy(entries[*count], shortened);
+    entries[*count][11] = static_cast<char>(category);
+    _NuTimeBarSlotBegin(timer_set, *count, NULL);
+    ++*count;
 }
 
 f32 GetAspectRatio();
@@ -1587,6 +1645,34 @@ void RndrArrow(f32 x, f32 y, f32 size, i32 angle, i32 colour) {
     NuPrim2DEnd();
 }
 
-void TBCLOSEFN(char *, i32) {
-    STUBBED();
+void TBCLOSEFN(char *name, i32 category) {
+    if (category == 5) {
+        for (i32 slot = 0; slot < TBDRAWCOUNT; ++slot) {
+            if (NuStrCmp(name, DrawTB[slot]) == 0) {
+                _NuTimeBarSlotEnd(app_tbdrawset, slot);
+                return;
+            }
+        }
+    } else if (category == 4) {
+        for (i32 slot = 0; slot < TBAICOUNT; ++slot) {
+            if (NuStrCmp(name, AITB[slot]) == 0) {
+                _NuTimeBarSlotEnd(app_tbaiset, slot);
+                return;
+            }
+        }
+    } else if (category == 3) {
+        for (i32 slot = 0; slot < TBPLAYERCOUNT; ++slot) {
+            if (NuStrCmp(name, PlayerTB[slot]) == 0) {
+                _NuTimeBarSlotEnd(app_tbplayerset, slot);
+                return;
+            }
+        }
+    } else if (category == 2) {
+        for (i32 slot = 0; slot < TBGAMECOUNT; ++slot) {
+            if (NuStrCmp(name, GameTB[slot]) == 0) {
+                _NuTimeBarSlotEnd(app_tbgameset, slot);
+                return;
+            }
+        }
+    }
 }
