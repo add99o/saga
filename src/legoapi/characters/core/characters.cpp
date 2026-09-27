@@ -9,6 +9,7 @@
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nu3d/nutex.h"
+#include "nu2api/numath/nufloat.h"
 #include "legoapi/core/input/qrand.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/characters/core/character.h"
@@ -2002,6 +2003,27 @@ void LoadPerm2() {
     Areas_ConfigureResidents(&permbuffer_ptr, &permbuffer_end);
 }
 
-void MapToGrid(nuvec_s *, nuvec_s *, i32 *, i32 *, nuvec_s *, nutexmanager_s *) {
-    STUBBED();
+void MapToGrid(nuvec_s *grid, nuvec_s *fraction, i32 *column, i32 *row,
+               nuvec_s *position, nutexmanager_s *manager) {
+    const u8 *data = reinterpret_cast<const u8 *>(manager);
+    const f32 origin_x = *reinterpret_cast<const f32 *>(data);
+    const f32 origin_z = *reinterpret_cast<const f32 *>(data + 8);
+    const f32 cell_x = *reinterpret_cast<const f32 *>(data + 16);
+    const f32 cell_z = *reinterpret_cast<const f32 *>(data + 20);
+    const i32 width = *reinterpret_cast<const i32 *>(data + 24);
+    const i32 height = *reinterpret_cast<const i32 *>(data + 28);
+    grid->x = (position->x - origin_x + cell_x * 0.5f) * (static_cast<f32>(width) / cell_x);
+    grid->y = 0.0f;
+    grid->z = (position->z - origin_z + cell_z * 0.5f) * (static_cast<f32>(height) / cell_z);
+    if (grid->x < 0.0f) grid->x = 0.0f;
+    if (grid->z < 0.0f) grid->z = 0.0f;
+    if (grid->x > static_cast<f32>(width)) grid->x = static_cast<f32>(width) - 0.001f;
+    if (grid->z > static_cast<f32>(height)) grid->z = static_cast<f32>(height) - 0.001f;
+    const f32 floor_x = NuFloor(grid->x);
+    fraction->y = 0.0f;
+    const f32 floor_z = NuFloor(grid->z);
+    *column = static_cast<i32>(floor_x);
+    *row = static_cast<i32>(floor_z);
+    fraction->x = grid->x - floor_x;
+    fraction->z = grid->z - floor_z;
 }
