@@ -1,22 +1,90 @@
 #include "decomp.h"
 #include "legoapi/audio/sfx.h"
+#include "legoapi/audio/audio.h"
+#include "legoapi/characters/motion.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/gizmos/fx/gizmopickups.h"
 #include "legoapi/items/collect/minikits.h"
+#include "legoapi/menus/core/gamemessages.h"
+#include "legoapi/menus/core/panel.h"
 #include "legoapi/render/fx.h"
 #include "legoapi/render/fx/parts.h"
 #include "legoapi/world/area.h"
+#include "legoapi/world/level.h"
 #include "legoapi/world/world.h"
 #include "globals.h"
 
-static void Pup_CollectCharKit(WORLDINFO_s *, GIZMOPICKUP_s *, i32, GameObject_s *, i32) {
-    STUBBED();
+extern f32 KITPOSX, KITPOSY, PANEL_MINIKITY, PANEL_MINIKITSCALE;
+void MiniKit_GameMsg_Update(GAMEMESSAGE_s *message);
+void MiniKit_GameMsg_End(GAMEMESSAGE_s *message);
+
+static void Pup_CollectCharKit(WORLDINFO_s *, GIZMOPICKUP_s *pickup, i32, GameObject_s *object, i32) {
+    NewBuzz(object->pad_gamepad->pad, 0.2f, 0);
+    AddGameDebris(WORLD->debris_sys, 0x13, &pickup->position);
+    if (WORLD->lev_objs[0xcf].active == 0) {
+        return;
+    }
+
+    NUVEC target = {KITPOSX, KITPOSY + PANEL_MINIKITY, 1.0f};
+    ADDGAMEMSG message = AddGameMsg_Default;
+    message.position = &pickup->position;
+    message.target_position = &target;
+    message.scale = AreaPickupScale;
+    message.target_scale = PANEL_MINIKITSCALE;
+    message.flags = 0x2112d;
+    message.duration = 1.0f;
+    message.icon = 0xcf;
+    message.special = &WORLD->lev_objs[0xcf].special;
+    message.message_callback = MiniKit_GameMsg_Update;
+    message.end_fn = MiniKit_GameMsg_End;
+    message.field_0x4d = 1;
+    GAMEMESSAGE_s *added = AddGameMsg(&message);
+    if (added != NULL) {
+        added->field_0xfe = 6;
+    }
+    DrawMiniKitTime = 2.0f;
+    if (AreaGlobals.values.field_0x1c <= 9) {
+        ++AreaGlobals.values.field_0x1c;
+    }
 }
 
-static void Pup_CollectRedBrick(WORLDINFO_s *, GIZMOPICKUP_s *, i32, GameObject_s *, i32) {
-    STUBBED();
+static __used__ void EndRedBrickMessage(GAMEMESSAGE_s *) {
+    if (AreaGlobals.values.field_0x08 != 0) {
+        AreaGlobals.values.field_0x08 = 2;
+    }
+    RedBrickScale = 2.0f;
+    GameAudio_PlaySfx(0x26, NULL, 0, 0);
+    NewRumbleAllPlayers(0.6f, 0.0f, 0, 0);
+    GameCam_Judder(GameCam, -0.2f, 0, NULL);
+}
+
+static void Pup_CollectRedBrick(WORLDINFO_s *, GIZMOPICKUP_s *pickup, i32, GameObject_s *object, i32) {
+    AddGameDebris(WORLD->debris_sys, 0x62, &pickup->position);
+    GameAudio_PlaySfxById(GetSfxId("MK-Pickup"), &pickup->position, 3, 0);
+
+    if (WORLD->level_sub_id == -1 || Game.area_save[WORLD->level_sub_id].red_brick_collected == 0) {
+        NUVEC target = {REDBRICKPOSX, REDBRICKPOSY, 1.0f};
+        ADDGAMEMSG message = AddGameMsg_Default;
+        message.position = &pickup->position;
+        message.target_position = &target;
+        message.scale = AreaPickupScale;
+        message.target_scale = PANEL_REDBRICKSCALE;
+        message.flags = 0x2112d;
+        message.duration = 1.0f;
+        message.icon = 0xd2;
+        message.special = &WORLD->lev_objs[0xd2].special;
+        message.message_callback = MiniKit_GameMsg_Update;
+        message.end_fn = EndRedBrickMessage;
+        message.field_0x4d = 1;
+        AddGameMsg(&message);
+        DrawRedBrickTime = 2.0f;
+        if (WORLD->level_sub_id != -1) {
+            AreaGlobals.values.field_0x08 = 1;
+        }
+    }
+    NewBuzz(object->pad_gamepad->pad, 0.2f, 0);
 }
 
 static void Pup_UpdatePurpleCoin(WORLDINFO_s *, GIZMOPICKUP_s *pickup) {

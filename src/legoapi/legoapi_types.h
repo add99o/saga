@@ -371,7 +371,10 @@ struct ADDGAMEMSG {
         f32 field_0x38;
         void (*delay_fn)(GAMEMESSAGE_s *);
     }; // 0x38
-    f32 field_0x3c;                     // 0x3c
+    union {
+        f32 field_0x3c;
+        void (*message_callback)(GAMEMESSAGE_s *);
+    }; // 0x3c
     void (*update_fn)(GAMEMESSAGE_s *); // 0x40
     void *field_0x44;                   // 0x44
     void (*end_fn)(GAMEMESSAGE_s *);    // 0x48
@@ -1452,7 +1455,7 @@ struct GAMEMESSAGE_s {
     };
     u8 field_0xff;
     u32 field_0x100;
-    u32 field_0x104;
+    usize field_0x104;
     void (*update_fn)(GAMEMESSAGE_s *);
     void (*draw_callback)(GAMEMESSAGE_s *, NUVEC *, f32);
     void (*end_fn)(GAMEMESSAGE_s *);

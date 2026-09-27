@@ -78,7 +78,7 @@ struct GAME_MESSAGE_DATA {
     u8 field_0xfe;
     u8 field_0xff;
     u32 field_0x100;
-    u32 field_0x104;
+    usize field_0x104;
     void (*update_fn)(GAMEMESSAGE_s *);
     void *field_0x10c;
     void (*end_fn)(GAMEMESSAGE_s *);
@@ -201,7 +201,7 @@ GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
     slot->field_0xe2 = 0;
     slot->field_0xe4 = 0;
     slot->field_0x100 = *reinterpret_cast<u32 *>(&message->field_0x38);
-    slot->field_0x104 = *reinterpret_cast<u32 *>(&message->field_0x3c);
+    slot->field_0x104 = reinterpret_cast<usize>(message->message_callback);
     slot->update_fn = message->update_fn;
     slot->field_0x10c = message->field_0x44;
     slot->end_fn = message->end_fn;
