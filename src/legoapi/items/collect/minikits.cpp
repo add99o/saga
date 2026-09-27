@@ -14,6 +14,7 @@
 #include "legoapi/menus/core/text.h"
 #include "legoapi/menus/core/gamemessages.h"
 #include "legoapi/menus/screens/store.h"
+#include "legoapi/menus/screens/gamestatus_lsw.h"
 #include "legoapi/characters/core/character.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/characters/motion.h"
@@ -28,6 +29,7 @@
 #include "nu2api/nu3d/nugscn.h"
 #include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nuspecial.h"
+#include "nu2api/numusic/sfx.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -97,8 +99,52 @@ void CharacterMiniKits_Load(COLLECTION_s *collection, WORLDINFO *world, VARIPTR 
     }
 }
 
-void CollectMinikit(nuvec_s *, char *, i32) {
-    STUBBED();
+extern f32 KITPOSX, KITPOSY, PANEL_MINIKITY, PANEL_MINIKITSCALE;
+void Hint_SetHintFromId(i32, i32, i32);
+void MiniKit_GameMsg_Update(GAMEMESSAGE_s *message);
+void MiniKit_GameMsg_End(GAMEMESSAGE_s *message);
+
+void CollectMinikit(nuvec_s *position, char *name, i32) {
+    if (WORLD->lev_objs[0xce].active == 0) {
+        return;
+    }
+
+    const i32 area = WORLD->level_sub_id;
+    NUVEC target = {KITPOSX, KITPOSY + PANEL_MINIKITY, 1.0f};
+    ADDGAMEMSG message = AddGameMsg_Default;
+    message.position = position;
+    message.target_position = &target;
+    message.scale = AreaPickupScale;
+    message.target_scale = PANEL_MINIKITSCALE;
+    message.flags = 0x2112d;
+    message.duration = 1.0f;
+    message.icon = 0xce;
+    message.special = &WORLD->lev_objs[0xce].special;
+    message.message_callback = MiniKit_GameMsg_Update;
+    message.end_fn = MiniKit_GameMsg_End;
+    message.field_0x4d = 1;
+    AddGameMsg(&message);
+    DrawMiniKitTime = 2.0f;
+
+    if (area != -1 && Game.area_save[area].minikit_count <= 9) {
+        if (NuStrLen(name) > 8) {
+            NewMiniPiece[AreaGlobals.values.field_0x10].name[0] = '\0';
+        } else {
+            NuStrCpy(NewMiniPiece[AreaGlobals.values.field_0x10].name, name);
+        }
+        NewMiniPiece[AreaGlobals.values.field_0x10].level = static_cast<i16>(WORLD->level_idx);
+        ++AreaGlobals.values.field_0x10;
+        ++AreaGlobals.values.field_0x0c;
+        if (GAMEDEMO != 0) {
+            if (AreaGlobals.values.field_0x0c == 1) {
+                Hint_SetHintFromId(0x26d, 0, 0);
+            } else if (AreaGlobals.values.field_0x0c == 10) {
+                Hint_SetHintFromId(0x26e, 0, 0);
+            }
+        }
+    }
+    AddGameDebris(WORLD->debris_sys, 0x13, position);
+    GameAudio_PlaySfxById(GetSfxId("MK-Pickup"), position, 3, 0);
 }
 
 i32 AllMiniKitsDone(AREASAVE_s *save) {
