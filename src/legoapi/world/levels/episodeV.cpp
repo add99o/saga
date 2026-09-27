@@ -79,6 +79,7 @@ static GIZAIMESSAGE_s *Vader_ai_message;
 static u8 turretAliveCount;
 static i32 lastPlaying;
 static u8 melee_wavePhase = 0xff;
+static f32 melee_waveDelay;
 u8 drawLights;
 static GIZMOBLOWUP_s *classicBlowups[8];
 nuhspecial_s escape[8];
@@ -1443,5 +1444,83 @@ void AsteroidChaseC_Update(WORLDINFO_s *) {
 }
 
 void AsteroidChaseD_Update(WORLDINFO_s *) {
-    STUBBED();
+    if (melee_wavePhase == 0 && MiniCutCam != 0)
+        melee_wavePhase = 1;
+
+    NuSpecialFind(WORLD->current_gscn, &escape[0], "rebelcruiser2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[1], "transport3", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[2], "transport2", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[4], "transport1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[5], "rebelcruiser1", 0);
+    NuSpecialFind(WORLD->current_gscn, &escape[6], "transport4", 0);
+
+    NUVEC *position = NuSpecialGetDrawPos(&escape[6]);
+    for (i32 index = 0; index < 2; ++index) {
+        GIZTURRET_s *turret = StarDestroyerTurrets[index];
+        if (turret != NULL && turret->field_0xe4 == NULL) {
+            turret->field_0xe4 = position;
+            turret->field_0x12c = 2;
+        }
+    }
+    position = NuSpecialGetDrawPos(&escape[0]);
+    for (i32 index = 2; index < 6; ++index) {
+        GIZTURRET_s *turret = StarDestroyerTurrets[index];
+        if (turret != NULL && turret->field_0xe4 == NULL) {
+            turret->field_0xe4 = position;
+            turret->field_0x12c = 2;
+        }
+    }
+    position = NuSpecialGetDrawPos(&escape[1]);
+    for (i32 index = 6; index < 8; ++index) {
+        GIZTURRET_s *turret = StarDestroyerTurrets[index];
+        if (turret != NULL && turret->field_0xe4 == NULL) {
+            turret->field_0xe4 = position;
+            turret->field_0x12c = 2;
+        }
+    }
+    position = NuSpecialGetDrawPos(&escape[5]);
+    for (i32 index = 10; index < 14; ++index) {
+        GIZTURRET_s *turret = StarDestroyerTurrets[index];
+        if (turret != NULL && turret->field_0xe4 == NULL) {
+            turret->field_0xe4 = position;
+            turret->field_0x12c = 2;
+        }
+    }
+    position = NuSpecialGetDrawPos(&escape[4]);
+    for (i32 index = 14; index < 16; ++index) {
+        GIZTURRET_s *turret = StarDestroyerTurrets[index];
+        if (turret != NULL && turret->field_0xe4 == NULL) {
+            turret->field_0xe4 = position;
+            turret->field_0x12c = 2;
+        }
+    }
+
+    if (melee_wavePhase == 1 && MiniCutCam == 0) {
+        for (i32 index = 0; index < 16; ++index) {
+            if (StarDestroyerTurrets[index] != NULL)
+                StarDestroyerTurrets[index]->fire_interval = 2.0f;
+        }
+        melee_wavePhase = 2;
+    }
+
+    u8 alive = turretAliveCount;
+    for (i32 index = 0; index < 16; ++index) {
+        GIZTURRET_s *turret = StarDestroyerTurrets[index];
+        if (turret != NULL && (turret->flags & 0x20) != 0) {
+            --alive;
+            StarDestroyerTurrets[index] = NULL;
+        }
+    }
+    turretAliveCount = alive;
+    if (melee_waveDelay > 0.0f)
+        melee_waveDelay -= FRAMETIME;
+    if (alive == 0 && netclient == 0) {
+        LevTime[0] += FRAMETIME;
+        if (melee_waveDelay <= 0.0f && LevTime[0] >= 12.0f) {
+            if (FreePlay != 0)
+                GoToNewLevel(ASTEROIDCHASEA_LDATA->idx);
+            else
+                GoToNewLevel(ASTEROIDCHASEMITRO_LDATA->idx);
+        }
+    }
 }
