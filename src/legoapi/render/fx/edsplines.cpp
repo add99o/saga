@@ -413,8 +413,57 @@ void LevelSplines_InitForGame(LEVELSPLINE *splines) {
     }
 }
 
-void EvaluateSplineXZIntersection(nugspline_s *, i32, SPLINEPOS_s *, nugspline_s *, i32, SPLINEPOS_s *) {
-    STUBBED();
+f32 XZLinesClosest(NUVEC *, NUVEC *, NUVEC *, NUVEC *, f32 *, f32 *);
+
+void EvaluateSplineXZIntersection(nugspline_s *first, i32 first_looping, SPLINEPOS_s *first_position,
+                                  nugspline_s *second, i32 second_looping, SPLINEPOS_s *second_position) {
+    memset(first_position, 0, sizeof(*first_position));
+    memset(second_position, 0, sizeof(*second_position));
+    first_position->spline = first;
+    first_position->looping = first_looping;
+    second_position->spline = second;
+    second_position->looping = second_looping;
+    if (first == NULL || second == NULL || first->length == 0 || second->length == 0)
+        return;
+
+    const i32 first_segments = first->length - (first_looping == 0);
+    const i32 second_segments = second->length + (second_looping != 0);
+    f32 best_distance = 1000000000.0f;
+    for (i32 first_index = 0; first_index < first_segments; ++first_index) {
+        const i32 segment = first_index % first->length;
+        NUVEC *first_start = &first->pts[segment];
+        NUVEC *first_end = &first->pts[(first_index + 1) % first->length];
+        for (i32 second_index = 0; second_index < second_segments; ++second_index) {
+            const i32 second_segment = second_index % second->length;
+            NUVEC *second_start = &second->pts[second_segment];
+            NUVEC *second_end = &second->pts[(second_index + 1) % second->length];
+            f32 first_fraction;
+            f32 second_fraction;
+            const f32 distance = XZLinesClosest(first_start, first_end, second_start, second_end, &first_fraction,
+                                                &second_fraction);
+            if (distance < best_distance) {
+                first_position->segment = segment;
+                first_position->segment_distance = first_fraction;
+                second_position->segment = second_segment;
+                second_position->segment_distance = second_fraction;
+                if (distance >= 0.0f)
+                    best_distance = distance;
+            }
+        }
+    }
+
+    NUVEC difference;
+    i32 segment = first_position->segment;
+    first_position->segment_length =
+        NuVecDist(&first->pts[(segment + 1) % first->length], &first->pts[segment], &difference);
+    first_position->segment_distance *= first_position->segment_length;
+    MoveSplinePosition(first_position, 0.00001f);
+
+    segment = second_position->segment;
+    second_position->segment_length =
+        NuVecDist(&second->pts[(segment + 1) % second->length], &second->pts[segment], &difference);
+    second_position->segment_distance *= second_position->segment_length;
+    MoveSplinePosition(second_position, 0.00001f);
 }
 
 static __used__ f32 SplineLength(nugspline_s *spline, i32 closed) {
