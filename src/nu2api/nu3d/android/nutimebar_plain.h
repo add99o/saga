@@ -25,7 +25,7 @@ extern "C" i32 NuTimeBarSlotLastValue(i32 set, i32 slot);
 extern "C" i32 NuTimeBarSlotLastValueMicroseconds(i32 set, i32 slot);
 extern "C" void NuTimeBarResetPeaks(void);
 extern "C" void NuTimeBarSetScaleY(void);
-extern "C" void NuTimeBarSetRenderHorizontal(void);
+extern "C" void NuTimeBarSetRenderHorizontal(i32 set);
 extern "C" void NuTimeBarSetRender(i32 set);
 extern "C" void NuTimeBarEnable(i32 enabled);
 extern "C" void NuTimeBarIndicateGpuFrameOut(i32 enabled);

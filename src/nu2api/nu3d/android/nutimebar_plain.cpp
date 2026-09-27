@@ -261,10 +261,6 @@ extern "C" void NuTimeBarResetPeaks(void) {
 extern "C" void NuTimeBarSetScaleY(void) {
 }
 
-extern "C" void NuTimeBarSetRenderHorizontal(void) {
-    STUBBED();
-}
-
 extern NUQFNT *system_qfont;
 extern "C" i32 NuRndrBeginScene(i32 flags);
 extern "C" void NuRndrRect2di(i32 x, i32 y, i32 width, i32 height, i32 colour, NUMTL *material);
@@ -273,6 +269,89 @@ extern "C" void NuQFntPrintEx(NUQFNT *font, i32 x, i32 y, i32 alignment, const c
 static f32 timebar_unsigned_float(u32 value) {
     // Preserve the retail conversion for values whose sign bit is set.
     return static_cast<f32>(value & 0xffff) + static_cast<f32>(value >> 16) * 65536.0f;
+}
+
+extern "C" void NuTimeBarSetRenderHorizontal(i32 set) {
+    static i32 tmppeak_reset = 30;
+    if (set == -1 && NuTimeBar_EngineEnabled == 0)
+        return;
+
+    NuQFntPushPrintMode(2);
+    NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+    NuQFntSet(system_qfont);
+    NuQFntSetColour(system_qfont, 0xe0e0e0e0);
+    NuQFntSetScale(system_qfont, 0.85f, 0.85f);
+
+    TimeBarSet *timebar = NuTimeBar_SetList[set + 1];
+    const f32 vertical_scale = 120.0f / static_cast<f32>(PS2_VREZ_H);
+    const i32 screen_width = PS2_VREZ_W << 4;
+    const i32 screen_height = PS2_VREZ_H << 4;
+    f32 longest_name = 0.0f;
+    for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
+        if (timebar->slot_names[slot] != NULL) {
+            f32 length = NuQFntPrintLenU(system_qfont, const_cast<char *>(timebar->slot_names[slot]));
+            if (length > longest_name)
+                longest_name = length;
+        }
+    }
+    NuQFntPopPrintMode();
+    NuQFntPopCoordinateSystem();
+
+    const f32 name_fraction = longest_name / static_cast<f32>(screen_width);
+    for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
+        const i32 buffer = timebar->toggle_flags[slot];
+        u32 value = static_cast<u32>(timebar->accumulators[buffer][slot]);
+        u32 &maximum = reinterpret_cast<u32 *>(timebar->field_14)[slot];
+        u32 &recent_peak = reinterpret_cast<u32 *>(timebar->field_18)[slot];
+        if (value > maximum)
+            maximum = value;
+        if (tmppeak_reset == 0)
+            recent_peak = 0;
+        if (value > recent_peak)
+            recent_peak = value;
+
+        if (recent_peak != 0) {
+            const f32 slot_fraction = 0.15f + static_cast<f32>(slot + 1) * 0.025f * 2.0f;
+            const i32 bar_x = static_cast<i32>((name_fraction + 0.045f) * screen_width);
+            const i32 bar_y = static_cast<i32>(slot_fraction * screen_height);
+            const i32 bar_height = static_cast<i32>(0.025f * screen_height);
+            const f32 frames = timebar_unsigned_float(recent_peak) * 60.0f / 1000000.0f;
+            const i32 bar_width =
+                static_cast<i32>(((frames * vertical_scale + name_fraction) - name_fraction) * screen_width);
+            NuRndrRect2di(bar_x, bar_y, bar_width, bar_height, timebar->colours[slot], NULL);
+
+            NuQFntPushPrintMode(2);
+            NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+            NuQFntSet(system_qfont);
+            NuQFntSetColour(system_qfont, 0xe0e0e0e0);
+            NuQFntSetScale(system_qfont, 0.85f, 0.85f);
+            const i32 label_y = bar_y + bar_height - static_cast<i32>(NuQFntHeight(system_qfont) * 2.0f);
+            if (timebar->slot_names[slot] != NULL) {
+                NuQFntPrintEx(system_qfont, static_cast<i32>(0.025f * screen_height), label_y, 0x10,
+                              timebar->slot_names[slot]);
+            }
+            if (recent_peak != 0) {
+                const i32 recent_value = static_cast<i32>(timebar_unsigned_float(recent_peak) * 15734.0f / 1000000.0f);
+                NuQFntPrintEx(system_qfont, bar_x, label_y, 0x10, "%i", recent_value);
+            }
+            if (maximum != 0) {
+                const i32 maximum_value = static_cast<i32>(timebar_unsigned_float(maximum) * 15734.0f / 1000000.0f);
+                NuQFntPrintEx(system_qfont, static_cast<i32>(0.975f * screen_height), label_y, 0x20, "%i",
+                              maximum_value);
+            }
+            NuQFntPopPrintMode();
+            NuQFntPopCoordinateSystem();
+        }
+
+        if (timebar->field_28 != 0)
+            NuTimeBarSlotReset(set, slot);
+        if (NuTimeBar_PeakReset != 0)
+            maximum = 0;
+    }
+    NuTimeBar_PeakReset = 0;
+    --tmppeak_reset;
+    if (tmppeak_reset < 0)
+        tmppeak_reset = 30;
 }
 
 extern "C" void NuTimeBarSetRender(i32 set) {
