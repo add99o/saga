@@ -46,11 +46,17 @@ struct nunativegscene_s;
 struct SHOPINPUT;
 extern u8 LevFlag[16];
 struct SarlaccBattlePacket {
-    u8 reserved[0x10];
+    f32 floor_height;
+    i16 tile_masks[6];
     u8 disco_active;
+    u8 reserved_11;
+    i16 completion_cue_played;
 };
 SarlaccBattlePacket *sarlaccb_netpacket;
 static u8 sarlaccdisco[0x400];
+f32 disco_base_offset = -0.12f;
+f32 SeekValF(f32, f32, f32);
+void PlayRadio(char *, char *, i32);
 GIZMO *obstMirrorBall;
 GIZMO *forceMirrorBall;
 nuhspecial_s LevSpecial[7];
@@ -309,7 +315,82 @@ void SarlaccPitB_Update(WORLDINFO_s *) {
 }
 
 void SarlaccPitB_SpecialUpdate(WORLDINFO_s *) {
-    STUBBED();
+    const i32 count = static_cast<i8>(sarlaccdisco[0x3dc]);
+    for (i32 index = 0; index < count; ++index) {
+        nuhspecial_s *dot = reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[4 + 12 * index]);
+        nuhspecial_s *flash = reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0xc4 + 12 * index]);
+        nuhspecial_s *select = reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x184 + 12 * index]);
+        nuhspecial_s *on = reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x244 + 12 * index]);
+        nuhspecial_s *finish = reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x304 + 12 * index]);
+        NuSpecialSetVisibility(dot, 0);
+        NuSpecialSetVisibility(flash, 0);
+        NuSpecialSetVisibility(select, 0);
+        NuSpecialSetVisibility(on, 0);
+        NuSpecialSetVisibility(finish, 0);
+
+        f32 &height = *reinterpret_cast<f32 *>(&sarlaccdisco[0x3e8]);
+        if (netclient == 0)
+            sarlaccb_netpacket->floor_height = height;
+        else
+            height = SeekValF(height, sarlaccb_netpacket->floor_height, 8.0f);
+
+        nuhspecial_s *tiles[5] = {dot, flash, select, on, finish};
+        for (i32 tile = 0; tile < 5; ++tile) {
+            if ((sarlaccb_netpacket->tile_masks[tile] & (1 << index)) == 0)
+                continue;
+            NuSpecialSetVisibility(tiles[tile], 1);
+            NUVEC *position = NuSpecialGetDrawPos(tiles[tile]);
+            if (position != NULL) {
+                position->y = height;
+                NuSpecialSetDrawPos(tiles[tile], position);
+            }
+        }
+        NUVEC *base_position = NuSpecialGetDrawPos(&LevHSpecial[1]);
+        if (base_position != NULL) {
+            base_position->y = height + disco_base_offset;
+            NuSpecialSetDrawPos(&LevHSpecial[1], base_position);
+        }
+        if ((sarlaccb_netpacket->tile_masks[5] & (1 << index)) != 0) {
+            NUMTX *matrix = NuSpecialGetDrawMtx(on);
+            PlaySfx("Kam_DiscoFloorPanelOn", NUMTX_GET_ROW_VEC(matrix, 3));
+        }
+    }
+
+    if (sarlaccb_netpacket->disco_active != 0) {
+        SetGizAIMessage(gizaimessagesys, "DiscoComplete", 1.0f,
+                        *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f4]));
+        PlayRadio("Speaker2", "Speaker21", 1);
+        PlayRadio("Speaker1", "Speaker11", 1);
+        PlayRadio("decks", "decks", 1);
+        if (obstMirrorBall != NULL)
+            GizObstacle_PlayForwards(static_cast<GIZOBSTACLE_s *>(obstMirrorBall->object));
+        if (NuSpecialExistsFn(&LevSpecial[0]))
+            NuSpecialSetVisibility(&LevSpecial[0], 1);
+        if (NuSpecialExistsFn(&LevSpecial[1]))
+            NuSpecialSetVisibility(&LevSpecial[1], 1);
+        if (NuSpecialExistsFn(&LevSpecial[4])) {
+            nuinstanim_s *animation = NuSpecialGetInstAnim(&LevSpecial[4]);
+            if (animation != NULL)
+                animation->playing = 1;
+        }
+        if (NuSpecialExistsFn(&LevSpecial[5]) && NuSpecialExistsFn(&LevSpecial[6])) {
+            nuinstanim_s *animation = NuSpecialGetInstAnim(&LevSpecial[5]);
+            if (animation != NULL)
+                animation->playing = 1;
+            animation = NuSpecialGetInstAnim(&LevSpecial[6]);
+            if (animation != NULL)
+                animation->playing = 1;
+        }
+        if (sarlaccb_netpacket->completion_cue_played == 0) {
+            PlaySfx("Kam_DiscoFloorPanelDone", NuSpecialGetDrawPos(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[4])));
+            sarlaccb_netpacket->completion_cue_played = 1;
+        }
+    } else {
+        PlayRadio("Speaker2", "Speaker21", 0);
+        PlayRadio("Speaker1", "Speaker11", 0);
+        PlayRadio("decks", "decks", 0);
+        sarlaccb_netpacket->completion_cue_played = 0;
+    }
 }
 
 void SarlaccPitC_Init(WORLDINFO_s *) {
