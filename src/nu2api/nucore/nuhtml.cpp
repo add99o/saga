@@ -15,8 +15,51 @@ extern "C" {
         STUBBED();
     }
 
-    void NuHtmlVBarGraph(void) {
-        STUBBED();
+    void NuHtmlVBarGraph(const char *title, i32 width, i32 height, const i32 *values, i32 count,
+                          i32 maximum, const char *const *labels, const u32 *colors, i32 color_count) {
+        char text[256];
+        const i32 bar_width = static_cast<i32>(static_cast<f32>(width - 50) / static_cast<f32>(count));
+        const f32 scale = 80.0f / static_cast<f32>(maximum);
+
+        sprintf(text, "<TABLE bgColor=white height=16 width=%d cellSpacing=0 cellPadding=\"1\" border=1><TR><TD><Center>%s</Center></TD></TR></TABLE>\r\n",
+                width + 5, title);
+        NuHtmlWrite(text);
+        sprintf(text, "<TABLE bgColor=white height=%d width=%d cellSpacing=0 cellPadding=\"1\" border=1 VAlign=bottom><TR><TD>\r\n",
+                height, width);
+        NuHtmlWrite(text);
+        sprintf(text, "<TABLE height=\"100%%%%\" width=%d cellSpacing=1 cellPadding=0 border=0 Align=left>\r\n", 50);
+        NuHtmlWrite(text);
+
+        const i32 quarter = maximum / 4;
+        for (i32 tick = 0; tick < 4; ++tick) {
+            sprintf(text, "<TR><TD valign=top align=right Height=\"%d%%%%\" bgColor=gray><DIV style=\"FONT-SIZE: 10pt\">%d</TD></TR>\r\n",
+                    20, maximum - quarter * tick);
+            NuHtmlWrite(text);
+        }
+        sprintf(text, "<TR><TD valign=top align=right Height=\"%d%%%%\" bgColor=gray><DIV style=\"FONT-SIZE: 10pt\">%d</TD></TR>\r\n",
+                20, 0);
+        NuHtmlWrite(text);
+        NuHtmlWrite("</CENTER></TABLE>\r\n");
+
+        i32 color_index = 0;
+        for (i32 index = 0; index < count; ++index) {
+            const i32 bar_height = static_cast<i32>(static_cast<f32>(values[index]) * scale);
+            const u32 color = colors != NULL && color_count != 0 ? colors[color_index] : 0;
+            if (colors != NULL && color_count != 0 && ++color_index >= color_count)
+                color_index = 0;
+            const char *label = labels != NULL && labels[index] != NULL ? labels[index] : " ";
+
+            sprintf(text, "<TABLE height=\"100%%%%\" width=%d cellSpacing=1 cellPadding=0 border=0 Align=left><TR><TD></TD></TR>\r\n",
+                    bar_width);
+            NuHtmlWrite(text);
+            sprintf(text, "<TR><TD Height=\"%d%%%%\" bgColor=%06X></TD></TR>\r\n",
+                    bar_height <= 80 ? bar_height : 80, color);
+            NuHtmlWrite(text);
+            sprintf(text, "<TR><TD Height=\"%d%%%%\" bgColor=lightgrey><DIV style=\"FONT-SIZE: 10pt; WIDTH: 10pt; WRITING-MODE: tb-rl\">%s</DIV></TD></TR></TABLE>\r\n",
+                    20, label);
+            NuHtmlWrite(text);
+        }
+        NuHtmlWrite("</TABLE></TD></tr></TABLE>\r\n");
     }
 }
 
