@@ -604,8 +604,52 @@ void NewTown_Reset(WORLDINFO_s *world) {
     }
 }
 
-void NewTown_Update(WORLDINFO_s *) {
-    STUBBED();
+extern i16 id_FIRETRUCK, id_LIFEBOAT;
+
+void NewTown_Update(WORLDINFO_s *world) {
+    if (world == NULL || world->pickup_sys == NULL)
+        return;
+
+    u8 on_tauntaun = 0;
+    u8 on_fire_truck = 0;
+    u8 on_life_boat = 0;
+    for (i32 index = 0; index < 8; ++index) {
+        GameObject_s *player = Player[index];
+        if (player == NULL || (player->apiobj.flags_high & 0x10) == 0 || player->apiobj.field_0x287 != 0 ||
+            player->field_0xcc0 == NULL || player->field_0xcc0->field_0x7a5 != 0x3b)
+            continue;
+        if (player->id == id_TAUNTAUN)
+            on_tauntaun = 0xff;
+        else if (player->id == id_FIRETRUCK)
+            on_fire_truck = 0xff;
+        else if (player->id == id_LIFEBOAT)
+            on_life_boat = 0xff;
+    }
+
+    const u8 changed = (on_tauntaun ^ prevOnTaunTaun) | (on_fire_truck ^ prevOnFireTruck) |
+                       (on_life_boat ^ prevOnLifeBoat);
+    prevOnTaunTaun = on_tauntaun;
+    prevOnFireTruck = on_fire_truck;
+    prevOnLifeBoat = on_life_boat;
+    if (changed == 0 || world->pickup_sys->pickups == NULL || world->pickup_sys->pickup_count <= 0)
+        return;
+
+    GIZMOPICKUP_s *pickup = world->pickup_sys->pickups;
+    for (i32 index = 0; pickup != NULL && index < world->pickup_sys->pickup_count; ++index, ++pickup) {
+        if ((pickup->runtime_flags & 8) != 0)
+            continue;
+        switch (pickup->type_id) {
+            case 2:
+                pickup->collected = on_tauntaun;
+                break;
+            case 3:
+                pickup->collected = on_fire_truck;
+                break;
+            case 4:
+                pickup->collected = on_life_boat;
+                break;
+        }
+    }
 }
 
 // ===========================================================================
