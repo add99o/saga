@@ -6925,7 +6925,10 @@ extern u8 show_lever_hint;
 #else
 #define WING_FORMATION_CALL
 #endif
-static __used__ WING_FORMATION_CALL void MakeWingFormation(_vuv_s *origin, _vuv_s *target, f32 speed, i32 turn_around) {
+WING_FORMATION_CALL void MakeWingFormation(_vuv_s *origin, _vuv_s *target, f32 speed,
+                                           i32 turn_around) __asm__("_ZL17MakeWingFormationP6_vuv_sS0_fi")
+    __attribute__((visibility("hidden")));
+WING_FORMATION_CALL void MakeWingFormation(_vuv_s *origin, _vuv_s *target, f32 speed, i32 turn_around) {
     spacelevel_s *space = WORLD->space_level;
     if (space == NULL)
         return;
@@ -6971,8 +6974,7 @@ static __used__ WING_FORMATION_CALL void MakeWingFormation(_vuv_s *origin, _vuv_
     const i16 spread = static_cast<i16>(qrand() / 21 + 0x2666);
     for (i32 i = 0; i < 5; ++i) {
         u8 *fighter = base + 0x110 + i * 0x128;
-        NuVecRotateZ(reinterpret_cast<NUVEC *>(fighter - 0x60), &wing_offset,
-                     static_cast<i16>(angle + i * spread));
+        NuVecRotateZ(reinterpret_cast<NUVEC *>(fighter - 0x60), &wing_offset, static_cast<i16>(angle + i * spread));
         *reinterpret_cast<f32 *>(fighter + 0x20) = 2.0f;
         *reinterpret_cast<i32 *>(fighter + 0x40) = 1;
         *reinterpret_cast<u8 **>(fighter) = base;
