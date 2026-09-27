@@ -4761,3 +4761,145 @@ matrix, rebinds the global record array and mutates the lookup table. NaN
 payloads are not compared; other float results are checked bitwise. Target and
 native builds and all five repository checks pass. No particle-system or
 visual integration is claimed.
+
+## Batch 91: vertical timing-bar rendering
+
+Audit all 2,320 bytes of `NuTimeBarSetRender` at `0x2f8d60` in its unchanged
+`-O3` owner. Restore the original created-set contract, GPU-frame gate and
+unsigned timing conversion. Preserve the rectangle's subtract-after-add
+rounding, callback-visible screen-size reloads, initial discarded baseline
+query, three bottom-up decimal digits and conditional fourth digit, 9,999
+clamp, unconditional final height query and alternating label offsets.
+Keep the captured set pointer across scene callbacks, but reload the active
+peak buffers, labels, font and material at their original boundaries.
+Use the existing real slot-reset operation. Remove speculative null/index/
+GPU-slot-count guards absent from retail; callers must supply created sets
+when rendering is active. Compiler options and repository checks are unchanged.
+
+The first ordinary C++ candidate improves **5.229656% to 59.467%** in its
+isolated object and **60.000000%** when linked. The unchanged destructor's
+layout also improves **99.153850% to 99.318680%**. Overall fuzzy matching
+rises **65.076510% to 65.103430%**, with two improved scores, no regressions
+and no exact-match transitions. Remaining digit-loop layout/register choices
+do not justify manual instruction shaping.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**96,365 vertical state/trace cases** and the existing **334,600 horizontal
+regression cases**. Vertical coverage includes every valid set, signed slot
+counts, all initialization/reset/GPU/engine flag combinations, full-width
+unsigned timing values, digit thresholds, fractional font metrics, nonfinite
+GPU-frame rates and mutations at 100 callback positions. Tests verify exact
+render/font events, cached versus reloaded state, global set/buffer rebinding,
+font/material changes, real slot resets and complete resulting arrays.
+The fixture records a label cleared by a callback without dereferencing it;
+it does not claim that the real variadic font renderer accepts null labels.
+Graphics/font services are mocks, and screen/font conversions are tested
+within their valid integer ranges. Target/native builds and all five
+repository checks pass; no GPU or visual integration is claimed.
+
+## Batch 92: gizmo progress loop structure
+
+Audit the complete 317-byte `GizmoSysStoreProgress` at `0x4af9e0`. The
+existing behavior is correct, but separate hand-written negative/nonnegative
+loops obscure the common count gate and compiler-generated loop split.
+Express one logical iteration over the captured type/set arrays, retaining
+the live registry count, initial clear callback, null gates and per-iteration
+function/buffer/data loads. Keep the source's existing `-O3` mode and ABI.
+
+Two bounded source forms were tested. A nullable argument with one call
+reaches **20.505%** in isolation; explicit null/data call branches reach
+**24.588%** and are retained. GCC performs the invariant loop split itself.
+The linked score improves **5.443299% to 24.793814%**, raising overall fuzzy
+matching **65.103430% to 65.104720%**, with no other score changes. Do not
+chase the remaining cold-block/register placement with compiler hints.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**91,504 dispatch/callback cases**. Coverage includes all eight-slot callback
+masks, null/mixed/full progress buffers, negative indices including `INT_MIN`,
+all four fixture progress slots, signed counts, null system/registry gates,
+clear/store ordering and callback mutations of registry/count/type/set/buffer
+state. Complete traces and resulting state are compared. Clear/store services
+are fixtures; unrelated parser-table dependencies retained by ASan use
+fail-fast mocks. Target/native builds and all five repository checks pass.
+
+## Batch 93: pursuit timer and traffic comparison corrections
+
+Audit all three pursuit A/B/C update bodies. Retail doubles `FRAMETIME`
+before adding the arrow timer; `(timer + frame) + frame` is not equivalent
+for floating-point rounding, overflow or nonfinite values. Use
+`(frame + frame) + timer` in all three handlers, preserving the existing
+NaN-retaining upper clamp, pause/fade gates and remainder callback order.
+The C traffic branch selects side +1 whenever the strict greater-than test
+is false, including unordered values. Express that predicate directly rather
+than substituting `<=`, which incorrectly selects side -1 for NaNs.
+
+Four source-line corrections, with no ownership/ABI/optimization changes,
+improve linked scores:
+
+- A: **83.777780% to 84.333336%**;
+- B: **60.984375% to 64.031250%**;
+- C: **4.802084% to 20.864584%**.
+
+Overall fuzzy matching rises **65.104720% to 65.106340%**; no other scores
+change and no exact matches are lost. The separate original pursuit TU and
+private arrow-helper clone remain ownership work, not an invitation to add
+calling-convention or optimization attributes.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**324,880 timer/traffic cases**. Tests cover every gate combination, threshold
+neighbors, signed zero, infinities/NaNs, 10,000 random float-bit pairs, every
+signed side/direction byte, negative/zero/one/94/95 entry counts, null player/
+traffic, callback rebinding and complete traffic memory images. The remainder
+service records its inputs and suppresses arrow submission; no new validation
+of the unchanged arrow renderer is claimed. Six unrelated character-ID globals
+have fixture storage for retained ASan tables. Target/native builds and all
+five repository checks pass; no gameplay or visual run is claimed.
+
+Two later isolated shared-arrow-helper trials were rejected without changing
+the retained sources. Moving the duplicated gates/timer into an ordinary
+static `UpdateZamArrow` raises C to 43.177% but drops A/B to 4.349%/21.688%;
+GCC emits the complete helper out of line instead of retail's partial split.
+An ordinary `inline` trial emits the entire payload in each caller and drops
+C to 0%. Neither recovers the original `.isra.5.part.6` boundary. Do not repeat
+this regrouping without new ownership/splitting evidence, and do not force
+the private ABI or clone name. These were compiler-only trials, not new
+behavior or aggregate-report validations.
+
+## Batch 94: gizmo loader registry gates
+
+Audit the full 589-byte `LoadGizmoSys` at `0x4b0080`. The initial gate tests
+the global registry pointer, not its count. Restore that null check, so a
+missing registry is safe and a present empty registry still opens and scans
+the file. Restore the separate pointer check after file callbacks, which
+can clear or replace the registry before post-load dispatch. Retain the
+captured type/set arrays, live count across post-load callbacks, original
+flag transitions, error-log clearing and payload-skip/load ordering. No
+source ownership, ABI or optimization settings change.
+
+The first ordinary source correction reaches **54.852%** in isolation and
+improves the linked score **7.857988% to 55.266273%**. Overall fuzzy matching
+rises **65.106340% to 65.112240%**, with no other score changes or exact-match
+losses. Remaining stack reloads and instruction scheduling are not pursued.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**146,560 state/trace cases**. Coverage includes null system/registry/log
+gates, signed registry counts and resolver IDs, all callback masks and flag
+bytes, failed opens, successful/rejected payload callbacks, every valid
+name-record length through 32 bytes, path lengths through 251 bytes,
+payload sizes 0–8 and nineteen callback-mutation scenarios. Complete event
+traces, consumed input and resulting registry/set/system/log state agree
+with the independent control-flow oracle. ASan retains normal global
+instrumentation. The old source reproduces two null dereferences (at entry
+and after close), while an empty-registry case fails the expected trace.
+
+File services, name resolution and load/post-load callbacks are fixtures;
+this is not a disk/parser or gameplay integration claim. Names include a
+terminator within the fixed 32-byte buffer, paths fit the original buffer,
+and negative payload lengths or callback invalidation of an actively used
+registry remain outside the tested contract. Target/native builds and all
+five repository checks pass.
+
+Further read-only triage confirms that the 146-byte `NuVisiInstTree` needs
+the shared instance-tree layout and its private `ClipInstTree` clone, not
+an isolated wrapper implementation or forced register-passing attributes.
+No source experiment was made for that visibility group.
