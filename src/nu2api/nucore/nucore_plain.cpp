@@ -90,6 +90,82 @@ extern "C" {
 }
 
 static i32 clip_special_objects = 1;
+extern "C" NuVisibilityResult *myvisi;
+
+namespace {
+    struct NuInstanceTreeBounds {
+        NUVEC center;
+        f32 reserved_0c;
+        NUVEC extent;
+        f32 reserved_1c;
+    };
+
+    struct NuInstanceTreeNode {
+        u16 bounds_index;
+        u16 subtree_instance_count;
+        u16 child_count;
+        u16 first_child;
+        u16 direct_instance_count;
+        u16 first_instance;
+    };
+
+    struct NuInstanceTree {
+        u32 reserved_00[2];
+        u16 *instance_indices;
+        NuInstanceTreeBounds *instance_bounds;
+        u32 reserved_10;
+        NuInstanceTreeNode *nodes;
+        NuInstanceTreeBounds *node_bounds;
+        u16 root_count;
+        u16 reserved_1e;
+        u16 *root_nodes;
+        f32 *root_far_clips;
+    };
+
+    DECOMP_ASSERT(sizeof(NuInstanceTreeBounds) == 0x20, "instance tree bounds size");
+    DECOMP_ASSERT(sizeof(NuInstanceTreeNode) == 0x0c, "instance tree node size");
+
+    void MarkVisibleInstances(const NuInstanceTree *tree, u16 first, u16 count, i32 clip_result) {
+        u8 *bits = static_cast<u8 *>(myvisi->visibility_context);
+        for (u32 index = first; index < static_cast<u32>(first) + count; ++index) {
+            const u16 instance = tree->instance_indices[index];
+            bits[instance >> 2] |= static_cast<u8>(clip_result << ((instance & 3) * 2));
+        }
+    }
+
+    void ClipInstTree(const NuInstanceTree *tree, i32 root) {
+        f32 far_clip = tree->root_far_clips[root];
+        if (far_clip == 0.0f) {
+            far_clip = global_camera.far_clip;
+        }
+
+        const NuInstanceTreeNode *pending[128];
+        i32 pending_count = 0;
+        pending[pending_count++] = &tree->nodes[tree->root_nodes[root]];
+        while (pending_count != 0) {
+            const NuInstanceTreeNode *node = pending[--pending_count];
+            NuInstanceTreeBounds *bounds = &tree->node_bounds[node->bounds_index];
+            const i32 result = NuCameraIntersectsAABB(&bounds->center, &bounds->extent, far_clip, 0);
+            if (result == 1) {
+                MarkVisibleInstances(tree, node->first_instance, node->subtree_instance_count, 1);
+                continue;
+            }
+            if (result == 0) {
+                continue;
+            }
+
+            for (u32 child = 0; child < node->child_count && pending_count < 128; ++child) {
+                pending[pending_count++] = &tree->nodes[node->first_child + child];
+            }
+            for (u32 index = 0; index < node->direct_instance_count; ++index) {
+                const u32 instance_index = node->first_instance + index;
+                bounds = &tree->instance_bounds[instance_index];
+                const i32 instance_result = NuCameraIntersectsAABB(&bounds->center, &bounds->extent, far_clip, 1);
+                MarkVisibleInstances(tree, static_cast<u16>(instance_index), 1, instance_result);
+            }
+        }
+    }
+} // namespace
 
 using NUHGOBJVIDEOMEMFN = void (*)(nuhgobj_s *);
 
@@ -99,6 +175,7 @@ NUHGOBJVIDEOMEMFN video_mem_to_hgobj;
 extern "C" {
     extern NUGLOBALRNDRSTATE render_state;
     void RndrStateSetConstAlphaTint(i32 alpha_enabled, i32 tint_enabled, f32 alpha, const NUCOLOUR3 *tint, NUMTL *mtl);
+    NuVisibilityResult *myvisi;
 }
 
 // C++-linkage helpers defined in sibling TUs.
@@ -4481,8 +4558,24 @@ extern "C" {
         }
         return result;
     }
-    void NuVisiInstTree(void *, NUGSCN *) {
-        STUBBED();
+    void NuVisiInstTree(void *context, NUGSCN *) {
+        NuVisibilityResult *visibility = static_cast<NuVisibilityResult *>(context);
+        const NuInstanceTree *tree = static_cast<const NuInstanceTree *>(visibility->instance_tree);
+        const bool enabled = tree != NULL && do_InstTree != 0;
+        visibility->state = static_cast<u8>((visibility->state & ~0x10) | (enabled ? 0x10 : 0));
+        if (!enabled) {
+            return;
+        }
+        myvisi = visibility;
+
+        if (TreeInitialised != 0) {
+            BuildWorldSpaceClipPlanes();
+        } else {
+            BuildCamSpaceClipPlanes();
+        }
+        for (i32 root = tree->root_count - 1; root >= 0; --root) {
+            ClipInstTree(tree, root);
+        }
     }
     struct NuVisibilityOcclusionGrid {
         u32 reserved_00;
