@@ -42,6 +42,7 @@ void NuLgtArcLaserEx(i32 type, NUVEC *start, NUVEC *end, NUVEC *control, f32 wid
 #include "nu2api/nucore/nuhgobj.h"
 #include "nu2api/nucore/nugcutscene.h"
 #include "nu2api/nucore/nupad.h"
+#include "nu2api/nucore/nutime.h"
 #include "nu2api/nucore/NuInputDevice.h"
 #include "nu2api/nucore/NuInputManager.h"
 #include "nu2api/nucore/nuthread.h"
@@ -4719,8 +4720,54 @@ extern "C" {
     // Debug / error / profiling
     // ---------------------------------------------------------------------------
 
-    void NuErrorSleep(void) {
-        STUBBED();
+    i32 NuRndrBeginScene(i32 flags);
+    f32 NuFrameEnd(void);
+    char *NuGetErrN(i32 entry);
+
+    __attribute__((optimize("O0,no-omit-frame-pointer"))) void NuErrorSleep(void) {
+        f32 elapsed = 0.0f;
+        i32 running = 1;
+        NUPAD pad;
+        memset(&pad, 0, sizeof(pad));
+        NUTIME start;
+        NuTimeGet(&start);
+
+        while (elapsed < 5000.0f && running != 0) {
+            f32 y = 500.0f;
+            NUTIME now;
+            NUTIME delta;
+            NuTimeGet(&now);
+            NuTimeSub(&delta, &now, &start);
+            elapsed = NuTimeMilliSeconds(&delta);
+
+            NuFrameBegin();
+            NuRndrBeginScene(0);
+            NuRndrClear(0xb00, 0xff00ffff, 1.0f);
+            NuQFntSet(system_qfont);
+            NuQFntPushPrintMode(2);
+            NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+            NuQFntSet(system_qfont);
+            i32 i = 0;
+            char *error;
+            goto check_error;
+        draw_error:
+            NuQFntSetColour(system_qfont, 0xff000000);
+            NuQFntMove(system_qfont, 0.0f, y, 0.0f);
+            NuQFntPrintU(system_qfont, error);
+            y += 150.0f;
+        check_error:
+            error = NuGetErrN(i++);
+            if (*error != '\0')
+                goto draw_error;
+            NuQFntPopCoordinateSystem();
+            NuQFntPopPrintMode();
+            NuRndrEndScene();
+            NuPadRead(&pad);
+            if ((pad.digital_buttons & 0x40) != 0 && elapsed > 1000.0f) {
+                running = 0;
+            }
+            NuFrameEnd();
+        }
     }
 
     // ---------------------------------------------------------------------------
