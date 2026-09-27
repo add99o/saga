@@ -5,6 +5,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+    isize ExplodeBuffer(char *in_buf, char *out_buf);
     isize ExplodeBufferNoHeader(char *in_buf, char *out_buf, isize orig_size, isize compressed_size);
 
     isize ExplodeBufferSize(char *buf);

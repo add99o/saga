@@ -134,8 +134,14 @@ isize ExplodeCompressedSize(char *buf) {
 
 extern "C" {
 
-    void ExplodeBuffer(void) {
-        STUBBED();
+    isize ExplodeBuffer(char *in_buf, char *out_buf) {
+        if (gExplodeInitialised == 0)
+            return 0;
+        const isize output_size = ExplodeBufferSize(in_buf);
+        if (output_size == 0)
+            return 0;
+        const isize compressed_size = ImplodeGetI(in_buf + 8, sizeof(i32));
+        return ExplodeBufferNoHeader(in_buf + 12, out_buf, compressed_size, output_size);
     }
 
     void ExplodeExit(void) {
