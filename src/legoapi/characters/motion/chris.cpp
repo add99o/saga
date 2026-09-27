@@ -399,10 +399,12 @@ i32 ChrisExtraBoltCollision(BOLT_s *, nuvec_s *) {
     return 0;
 }
 
-void ChrisGetSpaceShipMatrix(GameObject_s *, numtx_s *) {
-    STUBBED();
+void ChrisGetSpaceShipMatrix(GameObject_s *object, numtx_s *matrix) {
+    *matrix = object->apiobj.field_0xb8;
+    NuMtxPreRotateY(matrix, 0x8000);
 }
 
-void ChrisGetTargetedSpaceShipMatrix(GameObject_s *, numtx_s *) {
-    STUBBED();
+void ChrisGetTargetedSpaceShipMatrix(GameObject_s *object, numtx_s *matrix) {
+    *matrix = object->apiobj.field_0xb8;
+    NuMtxPreRotateY(matrix, 0x8000);
 }
