@@ -1,10 +1,12 @@
 #include "gameapi/ai/aisys/aisys.h"
 #include "legoapi/actions/combat/hits.h"
 #include "legoapi/characters/core/character.h"
+#include "legoapi/characters/core/players.h"
 #include "legoapi/world/level.h"
 #include "legoapi/render/core/terrain.h"
 #include "legoapi/render/light/surfaces.h"
 #include "legoapi/render/fx/parts.h"
+#include "legoapi/render/fx.h"
 #include "legoapi/render/fx/spline_position.h"
 #include "nu2api/nu3d/nulgtlaser.h"
 #include "legoapi/gizmos/traps/gizforce.h"
@@ -1513,11 +1515,71 @@ SPLINEPOS_s fireSplinePos;
 SPLINEPOS_s fireBackPos;
 f32 runningTotalPos;
 f32 fireSpeedScale;
+i32 fire_clip_dist = 1000;
 extern void (*LEGO_SET_SLOWDOWNFN)(GameObject_s *);
 void DeathStar2BattleFire_SetSlowDownMul(GameObject_s *object);
+void AddVariableShotDebrisEffectTimed1(i32, NUVEC *, i32, f32, i16, i16, NUMTX *);
 
-void DeathStar2BattleFire_Draw(WORLDINFO_s *) {
-    STUBBED();
+void DeathStar2BattleFire_Draw(WORLDINFO_s *world) {
+    NUVEC spline_point = v000;
+    u16 yaw = 0;
+    u16 pitch = 0;
+    if (Paused != 0)
+        return;
+    SPLINEPOS_s position = fireSplinePos;
+
+    if (position.normalized_position > 0.0f) {
+        do {
+            NUMTX matrix;
+            NuMtxSetIdentity(&matrix);
+            PointAlongSpline(LevelCodeSpline[0], position.normalized_position, &spline_point, &yaw, &pitch, 0);
+            NUVEC player_position;
+            Players_AveragePos(&player_position, NULL);
+            NUVEC difference = {player_position.x - spline_point.x, player_position.y - spline_point.y,
+                                player_position.z - spline_point.z};
+            if (NuVecMagSqr(&difference) < static_cast<f32>(fire_clip_dist)) {
+                AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[121].effect, &spline_point, 33, FRAMETIME,
+                                                  static_cast<i16>(pitch), static_cast<i16>(yaw), NULL);
+            }
+            MoveSplinePosition(&position, -40.0f);
+        } while (position.normalized_position > 0.0f);
+    }
+
+    position = fireBackPos;
+    if (fireSplinePos.normalized_position > position.normalized_position) {
+        do {
+            NUMTX matrix;
+            NuMtxSetIdentity(&matrix);
+            PointAlongSpline(LevelCodeSpline[0], position.normalized_position, &spline_point, &yaw, &pitch, 0);
+            NUVEC player_position;
+            Players_AveragePos(&player_position, NULL);
+            NUVEC difference = {player_position.x - spline_point.x, player_position.y - spline_point.y,
+                                player_position.z - spline_point.z};
+            if (NuVecMagSqr(&difference) < static_cast<f32>(fire_clip_dist)) {
+                AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[121].effect, &spline_point, 67, FRAMETIME,
+                                                  static_cast<i16>(pitch), static_cast<i16>(yaw), NULL);
+            }
+            MoveSplinePosition(&position, 40.0f);
+        } while (fireSplinePos.normalized_position > position.normalized_position);
+    }
+
+    position = fireBackPos;
+    if (position.normalized_position > 0.0f) {
+        do {
+            NUMTX matrix;
+            NuMtxSetIdentity(&matrix);
+            PointAlongSpline(LevelCodeSpline[0], position.normalized_position, &spline_point, &yaw, &pitch, 0);
+            NUVEC player_position;
+            Players_AveragePos(&player_position, NULL);
+            NUVEC difference = {player_position.x - spline_point.x, player_position.y - spline_point.y,
+                                player_position.z - spline_point.z};
+            if (NuVecMagSqr(&difference) < static_cast<f32>(fire_clip_dist)) {
+                AddVariableShotDebrisEffectTimed1(world->debris_sys->entries[121].effect, &spline_point, 33, FRAMETIME,
+                                                  static_cast<i16>(pitch), static_cast<i16>(yaw), NULL);
+            }
+            MoveSplinePosition(&position, -40.0f);
+        } while (position.normalized_position > 0.0f);
+    }
 }
 
 void DeathStar2BattleFire_Init(WORLDINFO_s *world) {

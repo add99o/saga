@@ -101,10 +101,6 @@ void CalcSplinePointFromDist(flightspline_s *, _vuv_s *, float);
 
 // --- File-local layout types -----------------------------------------------
 
-struct _vuv_s {
-    float x, y, z, w;
-};
-
 // One pod in the pod race state (0x98-byte stride). The first 0x40 bytes
 // are its current transform; the second position is used by race alignment.
 struct racepod_s {

@@ -287,7 +287,9 @@ struct VuVec;
 struct WORLDINFO_s;
 struct __sFILE;
 struct _vum_s;
-struct _vuv_s;
+struct _vuv_s {
+    f32 x, y, z, w;
+};
 struct bgprocinfo_s;
 struct bitrate_manager_state;
 struct codebook;

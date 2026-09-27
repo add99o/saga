@@ -6920,10 +6920,6 @@ void MoveToMarker::Render() {
 
 extern u8 show_lever_hint;
 
-struct _vuv_s {
-    f32 x, y, z, w;
-};
-
 #if defined(__i386__) && defined(__SSE__)
 #define WING_FORMATION_CALL __attribute__((regparm(2), sseregparm, force_align_arg_pointer))
 #else
