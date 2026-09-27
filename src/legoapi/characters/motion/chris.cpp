@@ -3,12 +3,15 @@
 #include "legoapi/items/collect/spacelevel.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/props/system/socksys.h"
+#include "legoapi/render/core/terrain.h"
 #include "legoapi/legoapi_types.h"
 #include "legoapi/world/world.h"
 #include "nu2api/numath/nurand.h"
+#include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nuvec4.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/nuhspecial.h"
+#include "nu2api/nu3d/nuspecial.h"
 #include <string.h>
 
 struct AIROW_s;
@@ -367,8 +370,93 @@ void ChrisAnakinAReset(WORLDINFO_s *world) {
 void ChrisAnakinBReset() {
 }
 
+struct AnakinCEntry {
+    NUMTX draw_matrix[2];
+    NUMTX transform_matrix[2];
+    NUVEC local_position;
+    u32 reserved_10c;
+    nuhspecial_s special[2];
+    f32 minimum_scale;
+    f32 scale;
+    f32 scale_speed;
+    f32 secondary_scale;
+    u8 active;
+    u8 type;
+    i16 has_second_special;
+    i16 platform_id;
+    u8 reserved_13e[2];
+};
+DECOMP_ASSERT(sizeof(AnakinCEntry) == 0x140, "Anakin C entry ABI");
+extern GameObject_s *volatile AnakinC;
+
+struct DoorSetupEntry {
+    char *first_name;
+    char *second_name;
+    f32 start_scale;
+    f32 scale_speed;
+    f32 type;
+    NUVEC local_position;
+    f32 secondary_scale;
+    f32 minimum_scale;
+};
+DECOMP_ASSERT(sizeof(DoorSetupEntry) == 0x28, "Door setup entry ABI");
+
+DoorSetupEntry DoorSetupList[15] = {
+    {"door1", "door1r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door2", "door2r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door3", "door3r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door4", "door4r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door5", "door5r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door6", "door6r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door7", "door7r", 15.0f, 1.0f, 0.0f, {1.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door8", "door8r", 15.0f, 1.0f, 0.0f, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door9", "door9r", 15.0f, 1.0f, 0.0f, {0.0f, 1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door10", "door10r", 15.0f, 1.0f, 0.0f, {0.0f, -1.0f, 0.0f}, -0.5f, 0.0f},
+    {"door11", "door11r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door12", "door12r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door15", "door15r", 15.0f, 1.0f, 0.0f, {1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {"door16", "door16r", 15.0f, 1.0f, 0.0f, {-1.0f, 0.0f, 0.0f}, -0.5f, 0.0f},
+    {},
+};
+
 void ChrisAnakinCReset() {
-    STUBBED();
+    AnakinCEntry *entry = reinterpret_cast<AnakinCEntry *>(AnakinC);
+    DoorSetupEntry *setup = DoorSetupList;
+    i32 count = 0;
+    while (setup->first_name != NULL) {
+        if (NuSpecialFind(WORLD->current_gscn, &entry->special[0], setup->first_name, 1) != 0 &&
+            NuSpecialExistsFn(&entry->special[0]) != 0) {
+            if (NuSpecialFind(WORLD->current_gscn, &entry->special[1], setup->second_name, 1) != 0)
+                entry->has_second_special = static_cast<i16>(NuSpecialExistsFn(&entry->special[1]));
+
+            NuMtxSetIdentity(&entry->transform_matrix[0]);
+            entry->transform_matrix[0] = *NuSpecialGetMtx(&entry->special[0]);
+            entry->draw_matrix[0] = entry->transform_matrix[0];
+            if (entry->has_second_special != 0) {
+                NuMtxSetIdentity(&entry->transform_matrix[1]);
+                entry->transform_matrix[1] = *NuSpecialGetMtx(&entry->special[1]);
+                entry->draw_matrix[1] = entry->transform_matrix[1];
+            }
+            entry->platform_id = static_cast<i16>(FindPlatInst(NuSpecialGetInstanceix(&entry->special[0])));
+            entry->active = 1;
+            entry->type = static_cast<u8>(*reinterpret_cast<u16 *>(&setup->type));
+            entry->local_position = setup->local_position;
+            entry->scale = setup->start_scale;
+            entry->scale_speed = setup->scale_speed;
+            entry->minimum_scale = setup->minimum_scale;
+            entry->secondary_scale = setup->secondary_scale;
+            ++entry;
+            ++count;
+        }
+        if (count > 11)
+            return;
+        ++setup;
+    }
+    while (count < 12) {
+        entry->active = 0;
+        ++entry;
+        ++count;
+    }
 }
 
 void ChrisAnakinDReset(WORLDINFO_s *world) {
@@ -379,7 +467,31 @@ void ChrisAnakinBUpdate() {
 }
 
 void ChrisAnakinCUpdate() {
-    STUBBED();
+    AnakinCEntry *entries = reinterpret_cast<AnakinCEntry *>(AnakinC);
+    AnakinCEntry *end = entries + 12;
+    NUVEC scaled, position;
+    for (AnakinCEntry *entry = entries; entry != end; ++entry) {
+        if (entry->active == 0)
+            continue;
+        const f32 next_scale = entry->scale - FRAMETIME * entry->scale_speed;
+        if (entry->minimum_scale < next_scale)
+            entry->scale = next_scale;
+        else
+            entry->scale = entry->minimum_scale;
+        scaled.x = entry->local_position.x * entry->scale;
+        scaled.y = entry->local_position.y * entry->scale;
+        scaled.z = entry->local_position.z * entry->scale;
+        NuVecMtxTransform(&position, &scaled, &entry->transform_matrix[0]);
+        memcpy(&entry->draw_matrix[0].m30, &position, sizeof(position));
+        entry->draw_matrix[0].m33 = 1.0f;
+        NuSpecialSetDrawMtx(&entry->special[0], &entry->draw_matrix[0]);
+        if (entry->has_second_special != 0) {
+            NuVecMtxTransform(&position, &scaled, &entry->transform_matrix[1]);
+            memcpy(&entry->draw_matrix[1].m30, &position, sizeof(position));
+            entry->draw_matrix[1].m33 = 1.0f;
+            NuSpecialSetDrawMtx(&entry->special[1], &entry->draw_matrix[1]);
+        }
+    }
 }
 
 void ChrisAnakinDUpdate(WORLDINFO_s *) {
