@@ -68,6 +68,7 @@ GIZMO *forceMirrorBall;
 nuhspecial_s LevSpecial[7];
 void *LevelBuildits[2];
 extern i32 obstacle_gizmotype_id, force_gizmotype_id;
+extern "C" i16 id_RANCOR;
 static __used__ i32 power;
 static __used__ i32 recharging;
 static __used__ i32 target_shield[2];
@@ -164,8 +165,57 @@ void JabbasPalaceA_Update(WORLDINFO_s *) {
     }
 }
 
-void JabbasPalaceE_Update(WORLDINFO_s *) {
-    STUBBED();
+void JabbasPalaceE_Update(WORLDINFO_s *world) {
+    if (netclient == 0) {
+        if (FreePlay != 0)
+            KillBossCompleteLevel(id_RANCOR, 0, 0.3f);
+        else
+            KillBossNewLevel(id_RANCOR, 0, 0.3f, JABBASPALACE_OUTRO_LDATA->idx);
+    }
+
+    GameObject_s *rancor = LevGameObject[0];
+    if (rancor != NULL) {
+        rancor->field_0xec4 = 0;
+        rancor->field_0xec8 = 0;
+        for (i32 player_index = 0; player_index < 8; ++player_index) {
+            GameObject_s *player = Player[player_index];
+            if (player == NULL)
+                continue;
+            i32 in_area = aicreature_sets_alive[0] != 0;
+            if (!in_area) {
+                for (i32 area_index = 0; area_index < 3; ++area_index) {
+                    AIAREA_s *area = LevArea[area_index];
+                    if (area == NULL)
+                        continue;
+                    i32 bit_index = static_cast<i32>(area - world->ai_sys->areas);
+                    if (bit_index < 32)
+                        in_area |= (player->apiobj.ai_area_mask_low & (1u << bit_index)) != 0;
+                    else
+                        in_area |= (player->apiobj.ai_area_mask_high & (1u << (bit_index - 32))) != 0;
+                }
+            }
+            if (in_area) {
+                u8 object_index = player->apiobj.field_0x289;
+                if (object_index < 32)
+                    rancor->field_0xec4 |= 1u << object_index;
+                else
+                    rancor->field_0xec8 |= 1u << (object_index - 32);
+            }
+        }
+    }
+
+    for (i32 index = 0; index < 2; ++index) {
+        GIZMO *gizmo = LevGizmo[index];
+        GIZMOBLOWUP_s *blowup = gizmo != NULL ? static_cast<GIZMOBLOWUP_s *>(gizmo->object) : NULL;
+        if (blowup != NULL && (blowup->output_flags & 1) != 0) {
+            if (LevFlag[6 + index] == 0) {
+                PlaySfx("exp_minecart", &blowup->position);
+                LevFlag[6 + index] = 1;
+            }
+        } else {
+            LevFlag[6 + index] = 0;
+        }
+    }
 }
 
 // ===========================================================================
@@ -639,8 +689,8 @@ void LegoCity_Update(WORLDINFO_s *world) {
             on_town_car = 0xff;
     }
 
-    const u8 changed = (on_tractor ^ prevOnTractor) | (on_tauntaun ^ prevOnTaunTaun) |
-                       (on_moon_car ^ prevOnMoonCar) | (on_town_car ^ prevOnTownCar);
+    const u8 changed = (on_tractor ^ prevOnTractor) | (on_tauntaun ^ prevOnTaunTaun) | (on_moon_car ^ prevOnMoonCar) |
+                       (on_town_car ^ prevOnTownCar);
     prevOnTractor = on_tractor;
     prevOnTaunTaun = on_tauntaun;
     prevOnMoonCar = on_moon_car;
@@ -764,8 +814,8 @@ void NewTown_Update(WORLDINFO_s *world) {
             on_life_boat = 0xff;
     }
 
-    const u8 changed = (on_tauntaun ^ prevOnTaunTaun) | (on_fire_truck ^ prevOnFireTruck) |
-                       (on_life_boat ^ prevOnLifeBoat);
+    const u8 changed =
+        (on_tauntaun ^ prevOnTaunTaun) | (on_fire_truck ^ prevOnFireTruck) | (on_life_boat ^ prevOnLifeBoat);
     prevOnTaunTaun = on_tauntaun;
     prevOnFireTruck = on_fire_truck;
     prevOnLifeBoat = on_life_boat;
@@ -902,8 +952,7 @@ void DeathStar2BattleD_Update(WORLDINFO_s *) {
             NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) < 0.5f) {
             i32 angle = qrand();
             NUVEC position = shield_blowup->mid_position;
-            NUVEC direction = {NuTrigTable[((angle + 0x4000) >> 1) & 0x7fff], 0.0f,
-                               NuTrigTable[(angle >> 1) & 0x7fff]};
+            NUVEC direction = {NuTrigTable[((angle + 0x4000) >> 1) & 0x7fff], 0.0f, NuTrigTable[(angle >> 1) & 0x7fff]};
             f32 radius = NuFloatRand(reinterpret_cast<NURAND *>(&GAMERAND)) * 15.0f + 10.0f;
             AddPickups(0, 0, 1, 0, &position, &direction, 3.0f, -1, radius, 2000000.0f, NULL, 1, 0, true);
         }
