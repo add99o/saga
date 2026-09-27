@@ -311,5 +311,31 @@ void NuInputDevice::DeadZone(NUPADANALOGVALUE input, f32 dead_zone) {
 }
 
 void NuInputDevice::ConvertToEmulatedTouchFromMouse(void) {
-    STUBBED();
+    type = NUPADTYPE_TOUCH;
+    idx_by_type = 0;
+    prev_valid_type = NUPADTYPE_TOUCH;
+    prev_valid_idx_by_type = 0;
+    touch_data.touch_count = 0;
+    if (mouse_data.unknown_0 != 0) {
+        NuInputTouch &touch = touch_data.touch_events[0];
+        touch.unknown_00 = 1;
+        touch.unknown_01 = mouse_data.unknown_2;
+        touch.unknown_02 = mouse_data.unknown_1;
+        touch.unknown_04 = mouse_data.unknown_8;
+        touch.unknown_08 = mouse_data.unknown_c;
+        touch.unknown_14 = 0;
+        touch_data.touch_count = 1;
+    }
+    if (mouse_data.unknown_3 != 0) {
+        NuInputTouch &touch = touch_data.touch_events[touch_data.touch_count];
+        touch.unknown_00 = 1;
+        touch.unknown_01 = mouse_data.unknown_5;
+        touch.unknown_02 = mouse_data.unknown_4;
+        touch.unknown_04 = mouse_data.unknown_8;
+        touch.unknown_08 = mouse_data.unknown_c;
+        touch.unknown_14 = 1;
+        ++touch_data.touch_count;
+    }
+    memset(&mouse_data, 0, sizeof(mouse_data));
+    caps = 0x400;
 }

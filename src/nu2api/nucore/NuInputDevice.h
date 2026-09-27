@@ -18,8 +18,8 @@ struct NuInputMouseData {
 
     u16 unknown_6;
 
-    u32 unknown_8;
-    u32 unknown_c;
+    f32 unknown_8;
+    f32 unknown_c;
 };
 
 struct NuInputTouch {
