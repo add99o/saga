@@ -6,8 +6,14 @@
 #include "legoapi/items/objects/gameobjects.h"
 #include "MechInputTouch/MechInputTouch_types.h"
 #include "nu2api/nufile/nufpar.h"
+#include "nu2api/numath/nutrig.h"
+#include "nu2api/numusic/numusic.h"
+#include "gameapi/gui/apimenu.h"
+#include "batman.h"
 #include "globals.h"
 #include <stdio.h>
+
+extern FadeSystem FadeSys;
 
 f32 CreditsAlpha;
 f32 CreditsTime;
@@ -194,6 +200,73 @@ void __attribute__((optimize("O2,omit-frame-pointer"))) Credits_DrawPanel(WORLDI
     SmartTextEx(text, 0.0f, y, 1.0f, 1.125f, 1.125f, 1.125f, 0, 255, 191, 0, 1.7f, 1, NULL, 0, alpha);
 }
 
-void Credits_UpdateMenu(MENU_s *) {
-    STUBBED();
+void Credits_UpdateMenu(MENU_s *menu) {
+    const f32 music_volume = Game_OptionsSave != NULL ? GameSetMusicVolume(Game_OptionsSave) : 1.0f;
+
+    if (CreditsFlag == 0) {
+        if (FadeSys.fade == 0.0f)
+            CreditsTime += FRAMETIME;
+
+        if (CreditsFinishedTime > 0.0f) {
+            CreditsFinishedTime += FRAMETIME;
+            if (CreditsFinishedTime >= 1.1f) {
+                CreditsFlag = 1;
+                CreditsAlpha = 0.0f;
+                CreditsTime = 0.0f;
+            } else if (CreditsAlpha > 0.0f) {
+                CreditsAlpha -= FRAMETIME;
+                if (CreditsAlpha < 0.0f)
+                    CreditsAlpha = 0.0f;
+            }
+        } else if ((menu->buttons_pressed & GAMEPAD_SKIP) != 0 || CreditsTime >= Credits_Duration ||
+                   MechSystems::SkipTextScroll != 0) {
+            CreditsFinishedTime = 0.001f;
+            MechSystems::Get()->UnhookClickToPressStart();
+        }
+
+        legoSetMusicVolume(CreditsAlpha * music_volume);
+        return;
+    }
+
+    legoSetMusicVolume(0.0f);
+    CreditsTime += FRAMETIME;
+
+    if (CreditsFlag == 1) {
+        if (FRAMETIME < 0.1f && CreditsTime >= 0.1f) {
+            music_man.StopAll(0);
+            MusicClearAll();
+            SoundKillAll();
+        }
+        if (CreditsTime >= 1.0f) {
+            CreditsFlag = 2;
+            GameAudio_PlaySfx(0x2b, NULL, 0, 0);
+            CreditsAlpha = NuTrigTable[0x2000];
+        } else {
+            const i32 angle = static_cast<i32>(CreditsTime * 16384.0f);
+            CreditsAlpha = NuTrigTable[(angle >> 1) & 0x7fff];
+        }
+        return;
+    }
+
+    if (CreditsFlag == 2) {
+        if (CreditsTime >= 3.0f) {
+            CreditsFlag = 3;
+            CreditsTime = 0.0f;
+        }
+        CreditsAlpha = NuTrigTable[0x2000];
+        return;
+    }
+
+    if (CreditsTime >= 1.1f) {
+        NewLData = HUB_LDATA;
+        const FADETYPE fade = {FADE_TYPE_STILL};
+        FadeSys.SetFade(fade, 0);
+    }
+    const f32 remaining = 1.0f - CreditsTime;
+    if (remaining < 0.0f)
+        CreditsAlpha = NuTrigTable[0];
+    else {
+        const i32 angle = static_cast<i32>(remaining * 16384.0f);
+        CreditsAlpha = NuTrigTable[(angle >> 1) & 0x7fff];
+    }
 }
