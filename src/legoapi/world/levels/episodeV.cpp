@@ -77,6 +77,19 @@ static GIZAIMESSAGE_s *Vader_ai_message;
 static u8 turretAliveCount;
 u8 drawLights;
 static GIZMOBLOWUP_s *classicBlowups[8];
+
+struct FinalAsteroidState {
+    nuhspecial_s special;
+    GIZMOBLOWUP_s *targets[8];
+    i16 target_count;
+    i16 rotation_x;
+    i16 rotation_y;
+    i16 rotation_z;
+    u8 reserved[8];
+};
+DECOMP_ASSERT(sizeof(FinalAsteroidState) == 60, "FinalAsteroidState ABI");
+FinalAsteroidState finalAsteroid;
+void *asteroidc_netpacket;
 nuhspecial_s specialIcon;
 
 struct AIROW_s;
@@ -1195,8 +1208,30 @@ void AsteroidChaseB_Draw(WORLDINFO_s *) {
         DrawFalconSpotLightsForChase(Player[1]);
 }
 
-void AsteroidChaseC_Init(WORLDINFO_s *) {
-    STUBBED();
+void AsteroidChaseC_Init(WORLDINFO_s *world) {
+    asteroidc_netpacket = SetLevelHack(8);
+    memset(&finalAsteroid, 0, sizeof(finalAsteroid));
+    NuSpecialFind(world->current_gscn, &LevHSpecial[0], "small_pop_bit1", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[1], "small_pop_bit2", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[2], "small_pop_bit3", 1);
+    NuSpecialFind(world->current_gscn, &LevHSpecial[3], "small_pop_bit4", 1);
+    NuSpecialFind(world->current_gscn, &finalAsteroid.special, "blockrock", 1);
+
+    finalAsteroid.rotation_x = static_cast<i16>(4551.0f - static_cast<f32>(qrand()) / 8.2000656f);
+    finalAsteroid.rotation_y = static_cast<i16>(4551.0f - static_cast<f32>(qrand()) / 8.2000656f);
+    finalAsteroid.rotation_z = static_cast<i16>(4551.0f - static_cast<f32>(qrand()) / 8.2000656f);
+    if (static_cast<u16>(finalAsteroid.rotation_x + 0x38d) <= 0x71a)
+        finalAsteroid.rotation_x = 0x555;
+    if (static_cast<u16>(finalAsteroid.rotation_y + 0x38d) <= 0x71a)
+        finalAsteroid.rotation_y = 0x555;
+    if (static_cast<u16>(finalAsteroid.rotation_z + 0x38d) <= 0x71a)
+        finalAsteroid.rotation_z = 0x555;
+
+    for (i32 index = 0; index < world->gizmo_blowup_count && finalAsteroid.target_count < 8; ++index) {
+        GIZMOBLOWUP_s *blowup = &world->gizmo_blowups[index];
+        if (NuStrIStr(blowup->name, const_cast<char *>("targ")) != NULL)
+            finalAsteroid.targets[finalAsteroid.target_count++] = blowup;
+    }
 }
 
 void AsteroidChaseD_Init(WORLDINFO_s *) {
