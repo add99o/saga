@@ -21,6 +21,7 @@ DECOMP_ASSERT(sizeof(SOCKCAMERARESULT) == 0x64, "Socket camera result ABI");
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nufile/nufpar.h"
+#include "nu2api/nu3d/nuspecial.h"
 struct GameObject_s;
 
 extern "C" void PerspectMidPoint(NUVEC *result, NUVEC *first, NUVEC *second, NUVEC *camera_position);
@@ -212,8 +213,24 @@ static __used__ void SockParName(nufpar_s *parser, void *) {
         NuStrCpy(sockpar_sock->name, parser->word_buf);
     }
 }
-static __used__ void SockParObj(nufpar_s *, void *) {
-    STUBBED();
+static __used__ void SockParObj(nufpar_s *parser, void *) {
+    if (sockpar_buffer_ptr == NULL)
+        return;
+    if (sockpar_buffer_end == NULL)
+        return;
+    if (sockpar_scene == NULL)
+        return;
+    sockpar_buffer_ptr->addr = ALIGN(sockpar_buffer_ptr->addr, alignof(nuhspecial_s));
+    sockpar_sock->objects = static_cast<nuhspecial_s *>(sockpar_buffer_ptr->void_ptr);
+    sockpar_sock->object_count = 0;
+    while (NuFParGetWord(parser) != 0) {
+        if (NuSpecialFind(sockpar_scene, &sockpar_sock->objects[sockpar_sock->object_count], parser->word_buf, 1) != 0)
+            ++sockpar_sock->object_count;
+    }
+    if (sockpar_sock->object_count != 0)
+        sockpar_buffer_ptr->u8_ptr += sockpar_sock->object_count * sizeof(nuhspecial_s);
+    else
+        sockpar_sock->objects = NULL;
 }
 static __used__ void SockParBlend(nufpar_s *parser, void *) {
     i32 value = NuFParGetInt(parser);
@@ -438,17 +455,17 @@ extern "C" {
     }
 
     SOCKSYS *SockSysInit(VARIPTR *buf, VARIPTR buf_end, NUGSCN *gscn) {
-        buf->addr = ALIGN(buf->addr, 4);
-        if (buf->addr + 0x4f08 >= buf_end.addr) {
+        buf->addr = ALIGN(buf->addr, alignof(SOCKSYS));
+        if (buf->addr + sizeof(SOCKSYS) + 64 * sizeof(SOCK) >= buf_end.addr) {
             return NULL;
         }
 
         SOCKSYS *sys = (SOCKSYS *)buf->void_ptr;
-        buf->void_ptr = (char *)buf->void_ptr + 8;
+        buf->void_ptr = (char *)buf->void_ptr + sizeof(SOCKSYS);
         sys->sock = (SOCK *)buf->void_ptr;
-        buf->void_ptr = (char *)buf->void_ptr + 0x4f00;
+        buf->void_ptr = (char *)buf->void_ptr + 64 * sizeof(SOCK);
         sys->count = 0;
-        memset(sys->sock, 0, 0x4f00);
+        memset(sys->sock, 0, 64 * sizeof(SOCK));
         SockSysFindInScene(sys, gscn);
         return sys;
     }
@@ -1658,12 +1675,29 @@ extern "C" {
         result->z = from->z + (to->z - from->z) * ratio;
     }
 
-    void SockSysSetObjectVisibility(void) {
-        STUBBED();
+    void SockSysSetObjectVisibility(SOCKSYS *system, i32 index, i32 visible) {
+        if (system != NULL) {
+            SOCK *sock = &system->sock[index];
+            if (sock->objects != NULL) {
+                for (i32 i = 0; i < sock->object_count; ++i)
+                    NuSpecialSetVisibility(&sock->objects[i], visible);
+            }
+        }
     }
 
-    void SockSysTrackInSplineInfo(void) {
-        STUBBED();
+    i32 SockSysTrackInSplineInfo(SOCKSYS *system, SOCKPOSITION *position, NUVEC *point, f32 *distance) {
+        if (position != NULL && position->location.sock != -1 && system != NULL &&
+            system->sock[position->location.sock].valid != 0 && system->sock[position->location.sock].trackin != NULL) {
+            NUVEC temporary;
+            if (point == NULL)
+                point = &temporary;
+            SockSysPointAlongSpline(point, system->sock[position->location.sock].trackin, position->location.segment,
+                                    position->next_segment, position->ratio);
+            if (distance != NULL)
+                *distance = NuVecDist(point, &position->midpoint, NULL);
+            return 1;
+        }
+        return 0;
     }
 
     void SockSys_Configure(SOCKSYS *sock_sys, char *config, i32, VARIPTR *buf, VARIPTR *buf_end, NUGSCN *gscn) {

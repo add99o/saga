@@ -1449,3 +1449,86 @@ Additional low-score triage, deferred rather than repeatedly tuned:
   scene, while the current `NUGSCN` declaration ends at **0x1f8**. Audit the
   missing tail and all allocations before adding clone copies; do not
   copy past the current type or expose an artificial private register ABI.
+
+## Socket scene objects and horizontal timing-bar rendering
+
+This batch raises linked fuzzy matching from **64.217150% to 64.254920%**:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `SockParObj` | 3.88% | 99.93% |
+| `SockSysSetObjectVisibility` | 8.89% | 100% |
+| `SockSysTrackInSplineInfo` | 4.65% | 100% |
+| `NuTimeBarSetRenderHorizontal` | 1.50% | 78.29% |
+
+`SOCK + 0xf8` is a pointer to `nuhspecial_s` handles, followed by a
+16-bit count at `0xfc`; both offsets are asserted. The parser aligns its
+cursor, resolves successive names, advances the handle count only on a
+successful lookup, and advances the buffer by the final count. No matches
+leave a null object array. Parser callbacks can change the active socket,
+scene, cursor, and count; the source retains retail's reloads. The end
+pointer is a presence gate, not a capacity check. Sufficient caller-owned
+storage and a valid active socket/parser remain preconditions.
+
+Visibility takes `(SOCKSYS *, i32 index, i32 visible)`, not zero arguments.
+It captures the selected socket once, then reloads the object-array pointer
+and unsigned count after each service call. The track-in query returns
+`i32` and takes a system, socket position, optional vector output, and
+optional distance output. It preserves the null/-1/valid/track-in gates,
+uses the existing real linear spline evaluator, and supplies a local vector
+when only distance is requested. Valid socket/segment indices are trusted.
+Both functions now match retail exactly under the unchanged default `-O0`.
+The parser has only residual local-data operand differences.
+
+The pointer audit also found fixed Android byte counts in `SockSysInit`.
+Use `sizeof(SOCKSYS)`, `64 * sizeof(SOCK)`, and natural alignment so the
+64-bit structure is fully allocated and cleared. The Android initializer
+is instruction-identical before/after this change; the strict capacity
+comparison and cursor alignment on failure are retained.
+
+The horizontal profiler's placeholder also had a wrong zero-argument ABI.
+It now accepts a set ID, measures label width, maintains unsigned maximum
+and recent timing peaks, emits horizontal rectangles and labels, and
+performs slot/peak resets. Engine-set suppression happens before font
+calls; other sets are required to exist. Width/height rounding, separate
+coordinate arithmetic, font/state reloads, and the reset-all special case
+for set -1 / slot 0 follow retail. No begin/end-scene calls are invented.
+Labels remain trusted internal format strings, as in the original.
+
+The shared unsigned-to-float conversion splits into two sixteen-bit
+components. Casting each bounded component to signed `i32` before float
+conversion removes GCC's unnecessary unsigned-conversion scaffolding.
+This is safe over the complete `u32` domain and does not change the
+conversion result. The horizontal function reaches retail's 1,349-byte
+size, with remaining register/stack scheduling differences. Its source
+stays at `-O2`. The existing vertical renderer changes 5.92% → 5.23% from
+conversion/register scheduling, and destruction changes 99.32% → 99.15%
+from a register choice. Both diffs were reviewed; no logic changes or exact
+matches are lost. Overall, four scores improve and two regress, with two
+new exact matches. Do not tune attributes or compiler flags for the gaps.
+
+Verification: target/native builds and all five repository checks pass.
+NDK 32-bit and 64-bit ASan/UBSan socket harnesses pass 630,791 cases:
+all name-success masks, alignment offsets, empty/65,535-entry/wrapping
+counts, guard preservation, callback state changes, all 64 socket slots,
+full validity bytes, optional/aliased outputs, real spline interpolation,
+floating boundaries, and exact/insufficient allocator capacity. Only the
+unrelated parser dispatch table is excluded from ASan registration; all
+tested state remains instrumented. The horizontal-renderer oracle passes
+334,600 cases on both architectures with normal global instrumentation:
+signed counts, engine/initialization/reset combinations, full-width unsigned
+timings, exact render/font event traces, callback mutations, and 327,680
+unsigned-conversion samples. Services are mocked; no visual/gameplay run
+is claimed.
+
+Further read-only triage:
+
+- `Action_BoulderSection` passes the packet, not the script processor, to
+  `AIParamToFloat` for `boulder_range=` and `attack_time=`. The callee reads
+  processor fields at `+4` and `+0x14`; the bare parameter path passes the
+  real processor. Audit this retail ABI/type-punning behavior before
+  binding the action. No speculative cast or implementation was retained.
+- `BoxTreeRndrRec` needs the owning visibility-tree types and caller to
+  reproduce its private EAX/EDX/XMM calling convention naturally. It has
+  no reconstructed caller or complete types in its current owner; do not
+  implement it as an isolated forced-register-ABI helper.

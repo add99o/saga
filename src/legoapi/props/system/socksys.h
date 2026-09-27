@@ -2,6 +2,7 @@
 #define LEGOAPI_SOCKSYS_H
 
 #include "nu2api/nu3d/nugscn.h"
+#include "nu2api/nu3d/nuhspecial.h"
 #include "nu2api/nu3d/nuspline.h"
 #include "nu2api/nucore/common.h"
 #include "nu2api/numath/numtx.h"
@@ -162,8 +163,8 @@ typedef struct SOCK {
     u32 overlap_exclusion_mask[2];  // 0xdc — sockets whose bounds do not overlap
     char name[16];                  // 0xe4 — zero-padded socket index, e.g. "03"
     f32 overlap_blend_ratio;        // 0xf4 — default 0.5
-    u32 unknown_f8;                 // 0xf8 — array of scene specials shown on the socket
-    u16 unknown_fc;                 // 0xfc — count of specials at 0xf8
+    nuhspecial_s *objects;          // 0xf8 — array of scene specials shown on the socket
+    u16 object_count;               // 0xfc
     u8 unknown_fe;                  // 0xfe
     u8 unknown_ff;                  // 0xff
     struct {
@@ -179,6 +180,8 @@ typedef struct SOCK {
 
 DECOMP_ASSERT(offsetof(SOCK, looping) == 0x33, "SOCK loop flag offset");
 DECOMP_ASSERT(offsetof(SOCK, length) == 0x30, "SOCK rail length offset");
+DECOMP_ASSERT(offsetof(SOCK, objects) == 0xf8, "SOCK scene-object array offset");
+DECOMP_ASSERT(offsetof(SOCK, object_count) == 0xfc, "SOCK scene-object count offset");
 DECOMP_ASSERT(offsetof(SOCKPOSITION, midpoint_rotation) == 0x24, "SOCKPOSITION midpoint rotation offset");
 
 typedef struct SOCKSYS {
@@ -194,6 +197,8 @@ extern "C" {
     SOCK *FindSock(SOCKSYS *system, char *name);
     void SockOff(SOCKSYS *system, i32 index);
     void SockOn(SOCKSYS *system, i32 index);
+    void SockSysSetObjectVisibility(SOCKSYS *system, i32 index, i32 visible);
+    i32 SockSysTrackInSplineInfo(SOCKSYS *system, SOCKPOSITION *position, NUVEC *point, f32 *distance);
     void SetSockPostion(SOCKSYS *system, SOCKPOSITION *position, i32 index, i32 segment, f32 ratio);
     void MoveSockPosition(SOCKSYS *system, SOCKPOSITION *source, f32 distance, SOCKPOSITION *result);
     f32 MidDistanceFromSockStart(SOCKSYS *system, SOCKPOSITION *position);

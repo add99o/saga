@@ -262,10 +262,6 @@ extern "C" void NuTimeBarSetScaleY(void) {
     STUBBED();
 }
 
-extern "C" void NuTimeBarSetRenderHorizontal(void) {
-    STUBBED();
-}
-
 extern NUQFNT *system_qfont;
 extern "C" i32 NuRndrBeginScene(i32 flags);
 extern "C" void NuRndrRect2di(i32 x, i32 y, i32 width, i32 height, i32 colour, NUMTL *material);
@@ -273,7 +269,85 @@ extern "C" void NuQFntPrintEx(NUQFNT *font, i32 x, i32 y, i32 alignment, const c
 
 static f32 timebar_unsigned_float(u32 value) {
     // Preserve the retail conversion for values whose sign bit is set.
-    return static_cast<f32>(value & 0xffff) + static_cast<f32>(value >> 16) * 65536.0f;
+    return static_cast<f32>(static_cast<i32>(value & 0xffff)) +
+           static_cast<f32>(static_cast<i32>(value >> 16)) * 65536.0f;
+}
+
+extern "C" void NuTimeBarSetRenderHorizontal(i32 set) {
+    if (set == -1 && NuTimeBar_EngineEnabled == 0)
+        return;
+
+    NuQFntPushPrintMode(2);
+    NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+    NuQFntSet(system_qfont);
+    NuQFntSetColour(system_qfont, 0xe0e0e0e0);
+    NuQFntSetScale(system_qfont, 0.85f, 0.85f);
+
+    const f32 vertical_scale = 120.0f / static_cast<f32>(PS2_VREZ_H);
+    TimeBarSet *timebar = NuTimeBar_SetList[set + 1];
+    f32 name_width = 0.0f;
+    for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
+        if (timebar->slot_names[slot] != NULL) {
+            f32 width = NuQFntPrintLenU(system_qfont, const_cast<char *>(timebar->slot_names[slot]));
+            if (width > name_width)
+                name_width = width;
+        }
+    }
+    NuQFntPopPrintMode();
+    NuQFntPopCoordinateSystem();
+    name_width /= static_cast<f32>(PS2_VREZ_W << 4);
+
+    for (i32 slot = 0; slot < timebar->slot_count; ++slot) {
+        u32 &maximum = reinterpret_cast<u32 *>(timebar->field_14)[slot];
+        u32 &recent_peak = reinterpret_cast<u32 *>(timebar->field_18)[slot];
+        u32 value = static_cast<u32>(timebar->accumulators[timebar->toggle_flags[slot]][slot]);
+        if (value > maximum)
+            maximum = value;
+        if (NuTimeBar_RenderPeakReset == 0)
+            recent_peak = 0;
+        value = static_cast<u32>(timebar->accumulators[timebar->toggle_flags[slot]][slot]);
+        if (value > recent_peak)
+            recent_peak = value;
+
+        if (recent_peak != 0) {
+            const f32 left = name_width + 0.045f;
+            const f32 top = static_cast<f32>(slot + 1) * 0.025f * 2.0f + 0.15f;
+            const f32 right = left + timebar_unsigned_float(recent_peak) * 60.0f / 1000000.0f * vertical_scale;
+            const i32 x = static_cast<i32>(left * (PS2_VREZ_W << 4));
+            const i32 y = static_cast<i32>(top * (PS2_VREZ_H << 4));
+            const i32 width = static_cast<i32>((right - left) * (PS2_VREZ_W << 4));
+            const i32 height = static_cast<i32>((top + 0.025f - top) * (PS2_VREZ_H << 4));
+            NuRndrRect2di(x, y, width, height, timebar->colours[slot], NULL);
+
+            NuQFntPushPrintMode(2);
+            NuQFntPushCoordinateSystem(NUQFNT_CSMODE_PS2);
+            NuQFntSet(system_qfont);
+            NuQFntSetColour(system_qfont, 0xe0e0e0e0);
+            NuQFntSetScale(system_qfont, 0.85f, 0.85f);
+            const i32 text_y = y + height - static_cast<i32>(NuQFntHeight(system_qfont) * 0.25f);
+            if (timebar->slot_names[slot] != NULL)
+                NuQFntPrintEx(system_qfont, static_cast<i32>(0.025f * (PS2_VREZ_W << 4)), text_y, 0x10,
+                              timebar->slot_names[slot]);
+            if (timebar->field_18[slot] != 0)
+                NuQFntPrintEx(system_qfont, x, text_y, 0x10, "%i",
+                              static_cast<i32>(timebar_unsigned_float(static_cast<u32>(timebar->field_18[slot])) *
+                                               15734.0f / 1000000.0f));
+            if (timebar->field_14[slot] != 0)
+                NuQFntPrintEx(system_qfont, static_cast<i32>(0.975f * (PS2_VREZ_W << 4)), text_y, 0x20, "%i",
+                              static_cast<i32>(timebar_unsigned_float(static_cast<u32>(timebar->field_14[slot])) *
+                                               15734.0f / 1000000.0f));
+            NuQFntPopPrintMode();
+            NuQFntPopCoordinateSystem();
+        }
+        if (timebar->field_28 != 0)
+            NuTimeBarSlotReset(set, slot);
+        if (NuTimeBar_PeakReset != 0)
+            timebar->field_14[slot] = 0;
+    }
+    NuTimeBar_PeakReset = 0;
+    --NuTimeBar_RenderPeakReset;
+    if (NuTimeBar_RenderPeakReset < 0)
+        NuTimeBar_RenderPeakReset = 30;
 }
 
 extern "C" void NuTimeBarSetRender(i32 set) {
@@ -334,13 +408,12 @@ extern "C" void NuTimeBarSetRender(i32 set) {
                 NuQFntSetColour(system_qfont, 0xe0e0e0e0);
 
                 const i32 centre_x = x + width / 2;
-                const i32 recent_value = static_cast<i32>(timebar_unsigned_float(recent_peak) * 15734.0f /
-                                                          1000000.0f);
-                const i32 maximum_value = static_cast<i32>(timebar_unsigned_float(maximum) * 15734.0f /
-                                                           1000000.0f);
+                const i32 recent_value = static_cast<i32>(timebar_unsigned_float(recent_peak) * 15734.0f / 1000000.0f);
+                const i32 maximum_value = static_cast<i32>(timebar_unsigned_float(maximum) * 15734.0f / 1000000.0f);
                 NuQFntPrintEx(system_qfont, centre_x, y + height, 0x40, "%d", MIN(recent_value, 9999));
-                NuQFntPrintEx(system_qfont, centre_x, screen_height - static_cast<i32>(NuQFntHeight(system_qfont) * 2.0f),
-                              0x40, "%d", maximum_value);
+                NuQFntPrintEx(system_qfont, centre_x,
+                              screen_height - static_cast<i32>(NuQFntHeight(system_qfont) * 2.0f), 0x40, "%d",
+                              maximum_value);
                 if (timebar->slot_names[slot] != NULL) {
                     NuQFntPrintEx(system_qfont, centre_x,
                                   screen_height - static_cast<i32>(NuQFntHeight(system_qfont) * 3.0f), 0x40, "%s",
