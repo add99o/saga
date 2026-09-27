@@ -4,6 +4,7 @@
 #include "legoapi/render/core/screen.h"
 #include "legoapi/core/input/qrand.h"
 #include "nu2api/nu3d/numtl.h"
+#include "nu2api/nu3d/nuspecial.h"
 #include "nu2api/numath/nutrig.h"
 extern f32 FRAMETIME;
 extern i32 pause_rndr_on;
@@ -25,6 +26,7 @@ NUMTL *ScreenFadeMtl;
 NUMTL *FadeMtl2;
 NUMTL *FadeMtl;
 nugscn_s *FadeLoop_ObjScene;
+nuhspecial_s FadeLoop_ObjHSpecial;
 
 void FadeStillWipe::DrawFade() {
     if (wait_till_next_frame != 0)
@@ -228,8 +230,11 @@ i32 FadeSystem::SetFade(FADETYPE const &t, u32 frames) {
     return 0;
 }
 
-void FadeLoop_SetObj(nugscn_s *, char *) {
-    STUBBED();
+void FadeLoop_SetObj(nugscn_s *scene, char *name) {
+    FadeLoop_ObjScene = scene;
+    if (scene != NULL && NuSpecialFind(scene, &FadeLoop_ObjHSpecial, name, 1) == 0) {
+        FadeLoop_ObjScene = NULL;
+    }
 }
 
 void FadeLoop_DrawObj(float) {

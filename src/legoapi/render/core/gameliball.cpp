@@ -146,8 +146,10 @@ extern "C" u8 *CrashDataPtr(void) {
     return crashdata;
 }
 
-void ReadInstanceIDs(i32, nugscn_s *) {
-    STUBBED();
+void ReadInstanceIDs(i32 file, nugscn_s *scene) {
+    scene->num_instance_ids = NuFileReadInt(file);
+    NuFileReadInt(file);
+    scene->instance_ids = static_cast<i32 *>(NuMemFileAddr(file));
 }
 
 i32 ReadTerrainPickup(unsigned char *base_path, i16 **buffer, TERRPICKUPSET *terrain) {

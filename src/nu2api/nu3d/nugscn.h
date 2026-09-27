@@ -159,7 +159,8 @@ typedef struct nugscn_s {
     struct nuinstanim_s *instance_animations;    // 0x4c, 0x60-byte entries
     struct numtx_s *instance_animation_matrices; // 0x50, 0x40-byte entries
     nuanimdata_s **instance_animation_data;      // 0x54
-    undefined pad_58[8];
+    i32 num_instance_ids; // 0x58
+    i32 *instance_ids;    // 0x5c
     i32 num_texture_anims;
     void *texture_anims;
     u16 *texture_anim_ids;

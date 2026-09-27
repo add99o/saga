@@ -434,8 +434,21 @@ void Customiser_RestoreModelTextureIDs(CUSTOMISER *) {
     STUBBED();
 }
 
-void Customiser_Set100PercentPieces(CUSTOMISER *) {
-    STUBBED();
+void Customiser_Set100PercentPieces(CUSTOMISER *customiser) {
+    if (customiser == NULL || customiser->save == NULL) {
+        return;
+    }
+    for (i32 category = 0; category < 9; ++category) {
+        for (i32 piece = 0; piece < customiser->piece_counts[category]; ++piece) {
+            const u16 flags = customiser->piece_sets[category][piece].availability_flags;
+            if ((flags & 0x80) != 0) {
+                customiser->save->pieces[category] = piece;
+            }
+            if ((flags & 0x100) != 0) {
+                customiser->save->secondary_pieces[category] = piece;
+            }
+        }
+    }
 }
 
 void Customiser_CopyDefaultPiecesToSave(CUSTOMISER *customiser, CUSTOMISESAVE_s *save) {
