@@ -25,6 +25,7 @@ void Text_LocaliseDecimalPoint(char *text);
 i32 Text_ExpandButtonString(char *input, char *output);
 void Text_ExpandAllButtonStrings(char *input, char *output);
 extern f32 g_buttonFontScalePulse;
+extern char *ASCII_UP, *ASCII_DOWN;
 extern f32 smarttextex_longestwidth;
 i32 Text_GetMaxOverallStrings();
 void Text_MakeTime(f32 time, i32 show_hours, i32 show_minutes, i32 show_centiseconds, char *text);

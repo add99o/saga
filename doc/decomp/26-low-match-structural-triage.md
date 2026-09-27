@@ -2473,3 +2473,85 @@ mode and available text, clamps per-mode scroll state, and seeks the
 displayed position even after cancellation. Its shared two-element LOCAL
 target/current arrays must be audited with `MenuDrawHints`, whose current
 body is likewise incomplete, before reconstructing that pair.
+
+## Batch 33: hint-menu state and rendering ownership
+
+The paired audit above confirms a shared-state reconstruction, not two
+independent wrappers. The retail update/draw bodies are adjacent at
+`0x22ed80` (423 bytes) and `0x22ef30` (1,672 bytes), immediately after the
+hint-system helpers. They reference LOCAL `updatehints_target_y` at
+`0x6b1e38` and `updatehints_current_y` at `0x6b1e40`, each eight bytes,
+and the 55-entry `Hints_LSW` table. Both functions move from the menu
+catch-all into `legoapi/menus/core/hint.cpp`, alongside that table and
+their recovered two-element integer/float arrays. Existing source options
+remain unchanged: the old menu owner is `-O3`, the hint owner is `-O2`.
+No optimization override, attribute, or build membership change is added.
+
+| Function | Before | After |
+|---|---:|---:|
+| `MenuUpdateHints` | 11.500000% | 75.798080% |
+| `MenuDrawHints` | 6.046205% | 84.412544% |
+
+Linked fuzzy matching rises **64.650734% → 64.684235%**, with two
+improvements, no regressions, and no exact-match transitions.
+
+### Recovered behavior
+
+- Active touch confirmation synthesizes up for selected item zero and
+  down for every other item. Cancel invokes `BackupMenu` but still counts,
+  clamps and interpolates the hints afterward; it does not resolve audio.
+  Up has priority even when the target cannot decrement. Down uses the
+  original 32-bit wrapping increment.
+- Filtering rejects flags `0x2c`; mode zero additionally rejects `0x10`,
+  while the alternate mode rejects a missing second text ID. Only non-null
+  translated text counts. A target at or beyond the count becomes
+  `count - 1`, including `-1` for an empty list. Existing negative targets
+  are not independently clamped. `SeekValF` uses speed five and writes the
+  mode captured before the callback, even if that callback changes modes.
+- Rendering computes the original colour pulse from `HintRGB[2]`, captures
+  text/icon X before the first remainder callback, and applies the menu
+  entrance slide only to icon X. The up/down arrow text is followed by its
+  six corresponding hit-region writes; the height uses one captured aspect
+  ratio. It does not emit the placeholder header/back entry.
+- Valid translated rows consume spacing and rotation phase even when above
+  the upper clipping boundary. Rejected/null rows do not. Text fades between
+  Y = 0.2 and 0.3; scrolling stops once the next Y is at most -1.5. Button
+  pulse scale is assigned before expanding the translated text into the
+  1,024-byte buffer, then reset after drawing. Translation is reloaded after
+  the pulse helper, while the selected text ID stays captured.
+- Each rendered icon uses the typed `WORLD->lev_objs[0xd4].special`, not a
+  fixed byte offset in the native layout. The special pointer is captured
+  before the rotation remainder callback. Later rows reload control mode
+  and translation table after callbacks. All original angle narrowing is
+  preserved without floating-to-small-integer overflow.
+
+The menu table now consumes declarations from the hint header. Shared
+arrow-text, colour-table and `BackupMenu` declarations are canonicalized in
+their existing subsystem headers without changing any ABI.
+
+The first update candidate used a common loop with mode checks inside it
+and scored 43.144% in isolation. The retained mode-specific filter loops
+follow the two distinct retail scan paths and score 75.365% in isolation.
+The renderer scores 83.538% in isolation. Complete linked diffs were read:
+remaining differences are filter-loop/block ordering, register allocation,
+equivalent scroll arithmetic, and local data/constant addresses. There is
+no further optimization-flag or instruction-shape search in this batch.
+
+### Validation
+
+The actual source passes **151,746 update cases** and **73,489 draw cases**
+per architecture using the NDK x86 compiler and full-global 64-bit
+ASan/UBSan. Coverage includes all 256 filter bytes, both valid control
+modes, every input combination, signed target extremes/wrapping, empty
+through 54-row tables, missing IDs/translations, every 16-bit pulse phase,
+scroll clipping/fade boundaries including NaN/infinity, captured aspect
+ratio, ten callback-mutation families, exact event/state snapshots, and a
+1,023-character expanded string. The real hint table remains instrumented;
+unrelated services retained through its callback pointers are mocked and
+abort if called. Mode values outside the original two-slot contract and
+invalid float-to-integer rotation inputs are not claimed as supported.
+
+Target/native builds and all five repository checks pass. Rendering,
+remainder/trig services, interpolation and menu backup are mocked in this
+fixture; no gameplay or visual output is claimed. All eleven GitHub checks
+on the preceding published commit `a078395c` were verified green.

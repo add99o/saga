@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.650734,
+    "fuzzy_match_percent": 64.684235,
     "total_code": "4722419",
     "matched_code": "516669",
     "matched_code_percent": 10.94077,
@@ -67809,6 +67809,22 @@
           "match_percent": 100.0
         },
         {
+          "name": "_Z15MenuUpdateHintsP6MENU_s",
+          "demangled_name": "MenuUpdateHints(MENU_s*)",
+          "address": 2289024,
+          "offset": 1399056,
+          "size": 423,
+          "match_percent": 75.79808
+        },
+        {
+          "name": "_Z13MenuDrawHintsP6MENU_s",
+          "demangled_name": "MenuDrawHints(MENU_s*)",
+          "address": 2289456,
+          "offset": 1399488,
+          "size": 1672,
+          "match_percent": 84.412544
+        },
+        {
           "name": "_Z19GetHintFromUIButtonv",
           "demangled_name": "GetHintFromUIButton()",
           "address": 5140352,
@@ -69096,22 +69112,6 @@
           "offset": 905216,
           "size": 39,
           "match_percent": 100.0
-        },
-        {
-          "name": "_Z15MenuUpdateHintsP6MENU_s",
-          "demangled_name": "MenuUpdateHints(MENU_s*)",
-          "address": 2289024,
-          "offset": 1399056,
-          "size": 423,
-          "match_percent": 11.5
-        },
-        {
-          "name": "_Z13MenuDrawHintsP6MENU_s",
-          "demangled_name": "MenuDrawHints(MENU_s*)",
-          "address": 2289456,
-          "offset": 1399488,
-          "size": 1672,
-          "match_percent": 6.046205
         },
         {
           "name": "_Z15EndMissionsMenuv",

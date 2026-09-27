@@ -16,6 +16,7 @@
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/menus/core/text.h"
+#include "legoapi/menus/core/gamehint.h"
 #include "legoapi/menus/core/panel.h"
 #include "legoapi/menus/screens/gamemenuall.h"
 #include "legoapi/menus/screens/movies.h"
@@ -211,7 +212,6 @@ void MenuDrawEndMission(MENU *menu);
 void MenuDrawEpisodes(MENU *menu);
 void MenuDrawExtras(MENU *menu);
 void MenuDrawFreePlay(MENU *menu);
-void MenuDrawHints(MENU *menu);
 void MenuDrawMissions(MENU *menu);
 void MenuDrawOptions(MENU *menu);
 void MenuDrawRestoreNewGame(MENU *menu);
@@ -228,7 +228,6 @@ void MenuUpdateEndMission(MENU *menu);
 void MenuUpdateEpisodes(MENU *menu);
 void MenuUpdateExtras(MENU *menu);
 void MenuUpdateFreePlay(MENU *menu);
-void MenuUpdateHints(MENU *menu);
 void MenuUpdateMissions(MENU *menu);
 void MenuUpdateOptions(MENU *menu);
 void MenuUpdateRestoreNewGame(MENU *menu);

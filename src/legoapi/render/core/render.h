@@ -24,6 +24,7 @@ extern f32 KITPOSX;
 extern f32 PANEL_MINIKITY;
 extern f32 PANEL_MINIKITSCALE;
 void DrawStatusIcons(STATUSPACKET_s *status, f32 y, f32 alpha);
+extern const u8 HintRGB[5][3];
 void DrawMiniSnowTroopers(WORLDINFO_s *world);
 void DrawForceBackEffect(nuhspecial_s *special);
 void DrawSaveSlots(MENU_s *menu, float y);

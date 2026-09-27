@@ -392,11 +392,6 @@ void MenuExitSave(MENU_s *) {
 void MenuDrawClips(MENU_s *) {
 }
 
-void MenuDrawHints(MENU_s *menu) {
-    NuStrCpy(MenuHeader, TTab[tHOWTOPLAY]);
-    GameDrawMenuEntry(menu, TTab[tBACK]);
-}
-
 void MenuEnterLoad(MENU_s *menu) {
     memcard_cardchanged = 0;
     i32 last_column = SAVESLOTS - 1;
@@ -747,13 +742,6 @@ i32 MenuIsAvailable() {
 }
 
 void MenuUpdateClips(MENU_s *) {
-}
-
-void MenuUpdateHints(MENU_s *menu) {
-    if (menu->cancel_pressed != 0 || menu->confirm_pressed != 0) {
-        BackupMenu();
-        MenuSFX = GameAudio_GetSfxId(0x31);
-    }
 }
 
 void MenuDrawDeleting(MENU_s *) {

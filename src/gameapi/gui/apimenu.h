@@ -131,6 +131,7 @@ extern char *apitxt_PRESSSTART;
 #ifdef __cplusplus
 extern "C" {
 #endif
+    void BackupMenu(void);
     extern MENUFNINFO GameMenuInfo[LEGO_MENU_INFO_COUNT];
     extern MENUFNINFO MenuInfo[100];
     extern MENU GameMenu[10];
