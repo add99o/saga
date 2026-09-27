@@ -4,6 +4,12 @@
 #include "gameapi/edtools/edfile.h"
 #include "globals.h"
 #include "legoapi/actions/character/suit.h"
+#include "legoapi/actions/movement/jumping.h"
+#include "legoapi/characters/motion/action_info.h"
+#include "legoapi/characters/motion/animlist.h"
+#include "legoapi/characters/motion/gameanim.h"
+#include "legoapi/core/input/gamepads.h"
+#include "legoapi/core/input/qrand.h"
 #include "legoapi/items/base/apiobject.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/legoapi_types.h"
@@ -353,8 +359,77 @@ ADDGIZMOTYPE *Signals_RegisterGizmo(i32 type_id) {
     return &addtype;
 }
 
-void Signal_MoveCode(WORLDINFO_s *, GameObject_s *) {
-    STUBBED();
+void Signal_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
+    if (object->character_context != 0x4c) {
+        if (object->apiobj.field_0x27d != 0 || object->character_context == 0x1f ||
+            object->character_context == 0x2b || object->character_context == 0x4b ||
+            static_cast<i8>(object->apiobj.flags_low) >= 0 || (CInfo[object->character_context].flags & 0x800) != 0)
+            return;
+
+        f32 distance;
+        SIGNAL *signal = Signal_FindNearest(world, &object->apiobj.collision_position, object, &distance);
+        if (signal == NULL || distance >= 0.0625f)
+            return;
+
+        object->field_0x788 = signal;
+        object->context_animation_timer = 0.0f;
+        object->character_context = 0x4c;
+        object->context_animation = 0x96;
+        f32 duration = AnimDuration(object->id, 0x96, 0.0f, 0.0f, 1);
+        object->context_flags &= ~0x40;
+        object->airborne_action_duration = duration <= 0.0f ? 1.0f : duration;
+        return;
+    }
+
+    f32 *frame = NULL;
+    if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL) {
+        frame = AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0);
+        if (frame == NULL)
+            return;
+    }
+
+    object->context_animation_timer += FRAMETIME;
+    if (object->context_animation_timer >= object->airborne_action_duration) {
+        bool already_changed = (object->context_flags & 0x40) != 0;
+        object->character_context = -1;
+        StartEndOfJump(object);
+        if (already_changed)
+            return;
+        goto switch_suit;
+    }
+
+    if ((object->context_flags & 0x40) != 0)
+        return;
+    if (frame != NULL) {
+        f32 switch_frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 0);
+        if (switch_frame >= 1.0f && *frame >= switch_frame)
+            goto switch_suit;
+    }
+    goto rumble;
+
+switch_suit:
+    {
+        SIGNAL *signal = static_cast<SIGNAL *>(object->field_0x788);
+        signal->in_use = 1;
+        object->context_flags |= 0x40;
+        SUIT_s *old_suit = static_cast<SUIT_s *>(object->suit);
+        SUIT_s *new_suit = signal->suit;
+        object->suit = new_suit;
+        signal->suit = old_suit;
+        object->ai.capabilities = (object->ai.capabilities & ~old_suit->character_flags) | new_suit->character_flags;
+        for (i32 i = 0; i < 10; i++) {
+            if (new_suit == &Suit[i]) {
+                areaSuitBits |= 1u << i;
+                break;
+            }
+        }
+        NewBuzz(object->pad_gamepad->pad, 0.1f, 0);
+        NewRumble(object->pad_gamepad->pad, 0.6f, 0);
+        return;
+    }
+
+rumble:
+    NewRumble(object->pad_gamepad->pad, static_cast<f32>(qrand()) * (1.0f / 65535.0f) * 0.4f, 0);
 }
 
 void SetTexAnimSignals() {
