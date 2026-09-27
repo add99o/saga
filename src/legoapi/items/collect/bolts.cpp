@@ -12,6 +12,7 @@
 #include "legoapi/world/world_shared.h"
 #include "legoapi/core/config/cheat.h"
 #include "legoapi/gizmos/fx/gizmopickups.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "legoapi/items/objects/gameobjects.h"
 #include "legoapi/items/collect/bolts.h"
 #include "legoapi/items/collect/torpedo.h"
@@ -26,6 +27,8 @@
 #include "nu2api/numusic/sfx.h"
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
+#include "nu2api/numath/nufloat.h"
+#include "nu2api/nu3d/nucamera.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/gizmo/base/gizmo.h"
 #include "legoapi/gizmo/base/GizBlowupObjectInterface.h"
@@ -1566,9 +1569,81 @@ static __used__ unsigned int Batarang_GetTargetPos(BATARANG_s *batarang, int ind
     }
 }
 
-static __used__ void CollideBoltStarFighter(BOLT_s *, starfighter_s *, _vuv_s *, _vuv_s *) {
-    STUBBED();
+int ShipDropCoins(starfighter_s *fighter);
+int ReleaseHearts();
+
+#if defined(__i386__) && defined(__SSE__)
+#define STARFIGHTER_COLLIDE_CALL __attribute__((regparm(2), sseregparm, force_align_arg_pointer))
+#else
+#define STARFIGHTER_COLLIDE_CALL
+#endif
+static __used__ STARFIGHTER_COLLIDE_CALL i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter,
+                                                                     _vuv_s *first, _vuv_s *second) {
+    u8 *fighter_data = reinterpret_cast<u8 *>(fighter);
+    NUVEC *first_position = reinterpret_cast<NUVEC *>(first);
+    NUVEC *second_position = reinterpret_cast<NUVEC *>(second);
+    NUVEC *fighter_position = reinterpret_cast<NUVEC *>(fighter_data + 0x30);
+    NUVEC *fighter_end = reinterpret_cast<NUVEC *>(fighter_data + 0x60);
+
+    f32 dx = second_position->x - fighter_end->x;
+    f32 dy = second_position->y - fighter_end->y;
+    f32 dz = second_position->z - fighter_end->z;
+    f32 ox = first_position->x - fighter_position->x;
+    f32 oy = first_position->y - fighter_position->y;
+    f32 oz = first_position->z - fighter_position->z;
+    f32 a = dx * dx + dy * dy + dz * dz;
+    f32 c = ox * ox + oy * oy + oz * oz - 2.0f;
+    if (a > 0.0f) {
+        f32 b = ox * dx + oy * dy;
+        b += oz * dz;
+        b += b;
+        f32 discriminant = b * b - (4.0f * a) * c;
+        if (discriminant < 0.0f)
+            return 0;
+        f32 root = NuFsqrt(discriminant);
+        f32 denominator = a + a;
+        if ((root - b) / denominator < -FRAMETIME || (-b - root) / denominator > 0.0f)
+            return 0;
+        f32 time = (-b - root) / denominator;
+        if (time < -FRAMETIME)
+            time = -FRAMETIME;
+        first_position->x += dx * time;
+        first_position->y += dy * time;
+        first_position->z += dz * time;
+    } else if (c > 0.0f)
+        return 0;
+
+    u8 *ship = *reinterpret_cast<u8 **>(fighter_data + 0xd4);
+    if (ship == NULL || static_cast<u32>(*reinterpret_cast<i32 *>(ship + 0x524) - 0x54) > 1) {
+        BoltSys->debris(bolt, first_position, 0, fighter_end, 0);
+        bolt->active = 0;
+        i32 coins = 0;
+        if (ShipDropCoins(fighter) != 0)
+            coins = *reinterpret_cast<i16 *>(fighter_data + 0xfe) == static_cast<i16>(0xfed5) ? 500 : 1000;
+        i32 player = bolt->owner != NULL ? bolt->owner->apiobj.field_0x27c : -1;
+        AddPickups(coins, ReleaseHearts(), 0, 0, fighter_position, NULL, 2.0f, player, 1.0f, 2000000.0f, NULL, 1, 1,
+                   true);
+        AddFiniteShotPART(PARTLookupType(const_cast<char *>("DogBits")), fighter_position, 1);
+
+        f32 camera_dx = fighter_position->x - global_camera.mtx.m30;
+        f32 camera_dy = fighter_position->y - global_camera.mtx.m31;
+        f32 camera_dz = fighter_position->z - global_camera.mtx.m32;
+        if (camera_dx * camera_dx + camera_dy * camera_dy + camera_dz * camera_dz < 40000.0f) {
+            if (*reinterpret_cast<i32 *>(fighter_data + 0x10c) <= 0)
+                PlaySfx(const_cast<char *>("Ep3_1_ExplosionXXL"), fighter_position);
+            else {
+                i16 type = *reinterpret_cast<i16 *>(fighter_data + 0xfe);
+                if (type == static_cast<i16>(0xfed5))
+                    PlaySfx(const_cast<char *>("Dog_TriFighterHit"), fighter_position);
+                else if (type >= static_cast<i16>(0xfed6) && type <= static_cast<i16>(0xfed7))
+                    PlaySfx(const_cast<char *>("Dog_DroidFighterHit"), fighter_position);
+            }
+        }
+    }
+    ++*reinterpret_cast<i32 *>(fighter_data + 0x118);
+    return 1;
 }
+#undef STARFIGHTER_COLLIDE_CALL
 
 EXPLOSION *Detonate(NUVEC *, u16);
 static __used__ void EndBolt_EwokTorpedo(BOLT_s *bolt) {
