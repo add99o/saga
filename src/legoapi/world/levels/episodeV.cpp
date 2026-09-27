@@ -645,8 +645,58 @@ void HothBattleC_Reset(WORLDINFO_s *world) {
     GizmoSetVisibility(world->gizmo_sys, gizmo, 0, 1);
 }
 
+static f32 alpha[16];
+
 void HothBattleE_Panel(WORLDINFO_s *) {
-    STUBBED();
+    if (MiniCutCam != 0)
+        return;
+
+    if (netclient != 0) {
+        u8 *packet = static_cast<u8 *>(hothbattlee_netpacket);
+        DrawMeleeTargetsRows(reinterpret_cast<i16 *>(packet), reinterpret_cast<char *>(packet + 0x18),
+                             reinterpret_cast<f32 *>(packet + 0x24), *reinterpret_cast<i32 *>(packet + 0x54));
+        return;
+    }
+
+    i16 targets[16];
+    char icons[16];
+    i32 count = 0;
+    const u8 state = melee.field_0x0;
+    if (state == 1 || state == 2) {
+        const HOTHBATTLE_MELEE_WAVE_s &wave = melee.waves[0];
+        const i32 midpoint = static_cast<i32>(wave.field_0x19 / 2) + 1;
+        for (i32 index = 0; index < wave.field_0x19 && count < 16; ++index) {
+            if (index == midpoint && count < 16) {
+                targets[count] = -1;
+                icons[count++] = 0;
+            }
+            if (count == 16)
+                break;
+            targets[count] = wave.character_id;
+            icons[count++] = index >= wave.field_0x18;
+        }
+    } else if (state == 3 || state == 4) {
+        const i32 wave_count = state == 4 ? 3 : 1;
+        for (i32 wave_index = 0; wave_index < wave_count; ++wave_index) {
+            if (wave_index != 0 && count < 16) {
+                targets[count] = -1;
+                icons[count++] = 0;
+            }
+            const HOTHBATTLE_MELEE_WAVE_s &wave = melee.waves[wave_index];
+            for (i32 index = 0; index < wave.field_0x19 && count < 16; ++index) {
+                targets[count] = wave.character_id;
+                icons[count++] = index >= wave.field_0x18;
+            }
+        }
+    }
+
+    for (i32 index = 0; index < count; ++index) {
+        if (targets[index] == -1 || icons[index] == 0)
+            alpha[index] = 1.0f;
+        else
+            alpha[index] = SeekLinearF(alpha[index], 0.4f, 0.1f);
+    }
+    DrawMeleeTargetsRows(targets, icons, alpha, count);
 }
 
 void HothEscapeA_Reset(WORLDINFO_s *) {
