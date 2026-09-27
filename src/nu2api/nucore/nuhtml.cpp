@@ -11,8 +11,55 @@ static f32 dx;
 i32 size;
 
 extern "C" {
-    void NuHtmlHBarGraph(void) {
-        STUBBED();
+    void NuHtmlHBarGraph(const char *title, i32 width, i32 height, const i32 *values, i32 count,
+                          i32 maximum, const char *const *labels, const u32 *colors, i32 color_count) {
+        char text[256];
+        const i32 row_height = height / (count + 1);
+        const f32 scale = 88.0f / static_cast<f32>(maximum);
+
+        sprintf(text, "<TABLE bgColor=white height=16 width=%d cellSpacing=0 cellPadding=\"1\" border=1><TR><TD><Center>%s</Center></TD></TR></TABLE>\r\n",
+                width, title);
+        NuHtmlWrite(text);
+        sprintf(text, "<TABLE bgColor=white height=%d width=%d cellSpacing=0 cellPadding=0 border=1><tr><TD VAlign=top>\r\n",
+                height, width);
+        NuHtmlWrite(text);
+        sprintf(text, "<TABLE height=%d width=\"100%%%%\" cellSpacing=1 cellPadding=0 border=0 >\r\n", row_height);
+        NuHtmlWrite(text);
+
+        sprintf(text, "<TD width=\"%d%%%%\" bgColor=gray Align=right><DIV style=\"FONT-SIZE: 10pt; WIDTH: 10pt;\">%d</DIV></TD>\r\n",
+                12, 0);
+        NuHtmlWrite(text);
+        const i32 quarter = maximum / 4;
+        for (i32 tick = 1; tick <= 4; ++tick) {
+            sprintf(text, "<TD width=\"%d%%%%\" bgColor=gray Align=right><DIV style=\"FONT-SIZE: 10pt; WIDTH: 10pt;\">%d</DIV></TD>\r\n",
+                    22, quarter * tick);
+            NuHtmlWrite(text);
+        }
+        strcpy(text, "</TD></tr></TABLE>\r\n\r\n");
+        NuHtmlWrite(text);
+
+        i32 color_index = 0;
+        for (i32 index = 0; index < count; ++index) {
+            const i32 bar_width = static_cast<i32>(static_cast<f32>(values[index]) * scale);
+            const u32 color = colors != NULL && color_count != 0 ? colors[color_index] : 0;
+            if (colors != NULL && color_count != 0 && ++color_index >= color_count)
+                color_index = 0;
+            const char *label = labels != NULL && labels[index] != NULL ? labels[index] : " ";
+
+            sprintf(text, "<TABLE height=%d width=\"100%%%%\" cellSpacing=1 cellPadding=0 border=0><TR>\r\n",
+                    row_height);
+            NuHtmlWrite(text);
+            sprintf(text, "<TD align=right width=\"%d%%%%\" bgColor=lightgrey><DIV style=\"FONT-SIZE: 10pt\">%s</TD>\r\n",
+                    12, label);
+            NuHtmlWrite(text);
+            sprintf(text, "<TD width=\"%d%%%%\" bgColor=%06X></TD>\r\n", bar_width <= 88 ? bar_width : 88,
+                    color);
+            NuHtmlWrite(text);
+            strcpy(text, "<TD width=50 bgColor=white></TD></TR></TABLE>\r\n");
+            NuHtmlWrite(text);
+        }
+        strcpy(text, "</TD></tr></TABLE>\r\n\r\n");
+        NuHtmlWrite(text);
     }
 
     void NuHtmlVBarGraph(const char *title, i32 width, i32 height, const i32 *values, i32 count,
