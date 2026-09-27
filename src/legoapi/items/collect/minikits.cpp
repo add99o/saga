@@ -24,6 +24,9 @@
 #include "legoapi/misc/utilities.h"
 #include "legoapi/render/core/render.h"
 #include "legoapi/render/fx.h"
+#include "legoapi/render/fx/parts.h"
+#include "legoapi/render/light/lighting.h"
+#include "legoapi/gizmo/object/gizmopickup.h"
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nutrig.h"
@@ -43,6 +46,7 @@ struct SHOPINPUT;
 
 HUBMINIKITPIECES_s **Char_MiniKit;
 static VARIPTR minikits_savecharacterbufferptr;
+PARTLIGHTSOURCE_s KitPartRTL;
 extern VARIPTR characterbuffer_ptr;
 extern VARIPTR characterbuffer_end;
 
@@ -560,7 +564,65 @@ void AllMiniKits_LSW_Skip(STATUS_STAGE_s *, STATUSPACKET_s *packet) {
 }
 
 void AddStatusMiniKitParts() {
-    STUBBED();
+    extern NUCOLOUR3 panelcol[3], panelamb;
+    extern NUVEC paneldir[3];
+    extern f32 COINMSGTIME;
+    extern i32 qrand();
+    memcpy(&KitPartRTL.values[0], panelcol, sizeof(panelcol));
+    memcpy(&KitPartRTL.values[3], paneldir, sizeof(paneldir));
+    memcpy(&KitPartRTL.values[6], &panelamb, sizeof(panelamb));
+
+    NUVEC target = {0.0f, STATSPOSY, 1.0f};
+    const GIZMO_PICKUP_TYPE *coin = &GizmoPickupType[2];
+    constexpr f32 random_scale = 1.0f / 65535.0f;
+    for (i32 i = 0; i < 10; ++i) {
+        if (KitPart[i].enabled == 0)
+            continue;
+
+        NUVEC velocity = {0.0f, static_cast<f32>(qrand()) * random_scale * 0.25f + 0.25f, 0.0f};
+        NuVecRotateZ(&velocity, &velocity, qrand());
+
+        ADDPART_ALIGNED16 part = Default_ADDPART;
+        part.matrix = &KitPart[i].matrix;
+        part.velocity = &velocity;
+        part.gravity = 0.0f;
+        part.special = KitPart[i].special;
+        part.flags = 0x480;
+        part.time_step = FRAMETIME;
+        part.lighting = &KitPartRTL;
+        AddPart(&part);
+
+        f32 delay = 0.0f;
+        for (i32 j = 0; j < 5; ++j) {
+            NUVEC position = {0.0f, static_cast<f32>(qrand()) * random_scale * 0.1f, 1.0f};
+            NuVecRotateZ(&position, &position, qrand());
+            const i32 player_index = qrand() / 32768;
+            target.x = cointotal_x[player_index];
+
+            ADDGAMEMSG message = AddGameMsg_Default;
+            message.position = &position;
+            message.target_position = &target;
+            message.target_scale = COINTOTAL_COINSIZE;
+            message.flags = 0x112d;
+            message.duration = COINMSGTIME;
+            message.field_0x20 = delay;
+            message.icon = static_cast<i16>(coin->first_model_id);
+            message.special = &WORLD->lev_objs[message.icon].special;
+            message.score = coin->score;
+            message.update_fn = GameMsg_DrawAdjustNewPos_CoinToTotal;
+            message.end_fn = EndScoreMessage;
+            message.player_index = static_cast<i8>(player_index);
+            message.field_0x4e = 1;
+            AddGameMsg(&message);
+
+            if (delay == 0.0f) {
+                NewStatusRumbleBuzz(-1, 0.0f, 0.0f, 1);
+                AddGameDebris(WORLD->debris_sys, 0x38, &position);
+            }
+            delay += 0.1f;
+        }
+    }
+    SetPanelLights(1.0f);
 }
 
 void AllMiniKits_LSW_Update(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, float elapsed) {
