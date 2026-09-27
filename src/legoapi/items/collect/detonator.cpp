@@ -96,6 +96,50 @@ void Detonator_MoveCode(GameObject_s *) {
     STUBBED();
 }
 
-void Detonator_FindNearest(nuvec_s *, float, GameObject_s *) {
-    STUBBED();
+nuvec_s *Detonator_FindNearest(nuvec_s *position, float radius, GameObject_s *owner) {
+    f32 nearest_distance = radius == 0.0f ? 1000000000.0f : radius * radius;
+    nuvec_s *nearest = NULL;
+
+    if (owner != NULL) {
+#define CHECK_DETONATOR(index)                                                                                         \
+    if (Detonator[index].active && Detonator[index].object == owner) {                                                 \
+        f32 distance = NuVecDistSqr(position, &Detonator[index].field_0x0c, NULL);                                      \
+        if (distance < nearest_distance) {                                                                              \
+            nearest_distance = distance;                                                                                \
+            nearest = &Detonator[index].field_0x0c;                                                                     \
+        }                                                                                                               \
+    }
+        CHECK_DETONATOR(0);
+        CHECK_DETONATOR(1);
+        CHECK_DETONATOR(2);
+        CHECK_DETONATOR(3);
+        CHECK_DETONATOR(4);
+        CHECK_DETONATOR(5);
+        CHECK_DETONATOR(6);
+        CHECK_DETONATOR(7);
+        CHECK_DETONATOR(8);
+        CHECK_DETONATOR(9);
+#undef CHECK_DETONATOR
+    } else {
+#define CHECK_DETONATOR(index)                                                                                         \
+    if (Detonator[index].active) {                                                                                      \
+        f32 distance = NuVecDistSqr(position, &Detonator[index].field_0x0c, NULL);                                      \
+        if (distance < nearest_distance) {                                                                              \
+            nearest_distance = distance;                                                                                \
+            nearest = &Detonator[index].field_0x0c;                                                                     \
+        }                                                                                                               \
+    }
+        CHECK_DETONATOR(0);
+        CHECK_DETONATOR(1);
+        CHECK_DETONATOR(2);
+        CHECK_DETONATOR(3);
+        CHECK_DETONATOR(4);
+        CHECK_DETONATOR(5);
+        CHECK_DETONATOR(6);
+        CHECK_DETONATOR(7);
+        CHECK_DETONATOR(8);
+        CHECK_DETONATOR(9);
+#undef CHECK_DETONATOR
+    }
+    return nearest;
 }
