@@ -82,7 +82,6 @@ extern "C" void NuAnimBuffCreateScratch(nuanimbuff_s *buffer);
 extern "C" void NuAnimBuffDestroyScratch(nuanimbuff_s *buffer);
 extern nurenderscene_s currentScene;
 extern HashRedirect g_shaderProgramRedirects[417];
-void bgSuspendMain(i32);
 
 void NuErrorPrint(char *message) {
     printf("%s", message);
@@ -329,29 +328,6 @@ void NuVpSetSourceRect(float left, float top, float right, float bottom) {
     const float position_y = -top * (scaled_height / source_height) * 0.5f;
     NuVpSetPosition2(position_x, position_y);
     NuVpSetSize2(scaled_width, scaled_height);
-}
-
-i32 NuFrameEndBgLoadPS(i32 minimum_delay) {
-    i32 delay = 0;
-    NUTIME now;
-    NUTIME elapsed;
-    NuTimeGet(&now);
-    NuTimeSub(&elapsed, &now, &nuapi.time2);
-    const i32 scanlines = static_cast<i32>(NuTimeScanlines(&elapsed));
-    if (nuapi.fps == 60.0f) {
-        delay = 0xff - scanlines;
-    } else if (nuapi.fps == 50.0f) {
-        delay = 0x131 - scanlines;
-    } else if (nuapi.fps == 30.0f) {
-        delay = 0x1e0 - scanlines;
-    } else if (nuapi.fps == 25.0f) {
-        delay = 0x244 - scanlines;
-    }
-    if (delay >= minimum_delay) {
-        bgSuspendMain(delay);
-        return 0;
-    }
-    return 1;
 }
 
 void NuGCutRigidCalcMtx(NUGCUTRIGID_s *rigid, float frame, numtx_s *mtx) {

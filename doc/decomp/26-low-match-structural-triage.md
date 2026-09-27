@@ -4058,3 +4058,90 @@ their original `NuTimeGetTime` callee is an empty five-byte body, but the
 wrappers consume its unspecified EAX value as a timestamp. Do not invent a
 portable clock result or reproduce undefined return behavior merely to raise
 their scores. No timing source change was made.
+
+## Batch 67: shared client mine views
+
+Restore `GetClientMineInfo`, which exports the addresses of 64 client mine
+positions and two 64-bit masks in the existing `client_mines` global. The
+previous void stub did not initialize any output. A canonical `CLIENTMINES_s`
+in `netplay.h` replaces the unrelated 197-word array: typed positions and
+64-bit masks share storage with the existing two-word level logic. Convert
+all current mine-state consumers to those fields and reset the actual record
+size. Android offsets 0x300/0x308/0x310 and the original 788-byte global size
+remain asserted and verified in the linked ELF; 64-bit hosts naturally add
+four trailing padding bytes for mask alignment. The opaque final word stays
+uninterpreted. Existing mine-selection and bit-mask behavior is unchanged.
+
+The accessor reaches **30% to 100%**, reproducing the original 50-byte body.
+Typed accesses also improve `UpdatePodRaceMines` **42.725% to 43.629%**.
+There are no regressions or lost exact matches; whole fuzzy matching reaches
+**64.828026%**. **65,536 export/write/read/alias sequences per architecture**
+pass NDK x86 and full-global 64-bit ASan/UBSan. Tests cover every position,
+arbitrary float bits, both mask word views, full-width output pointers,
+unchanged record/tail bytes, stable addresses and two aliased mask outputs
+(the second assignment wins). The fixture supplies the shared global using
+the canonical type; no live network or pod-race gameplay is claimed.
+Target/native builds and all five repository checks pass.
+
+## Batch 68: menu highlight traversal
+
+Correct `FlushMenuHighlights` from a zero-argument placeholder to the original
+menu-pointer ABI. Walk the existing item chain and clear only the highlight
+bit on type-zero items; other types and flag bits remain untouched. The
+canonical editor-menu header supplies the shared types and declaration. The
+existing source owner and `-O3` setting are unchanged.
+
+The first direct traversal improves **30% to 100%**, matching all 40 original
+bytes under fuzzy comparison. An untouched neighbor, `MenuInCriticalMemoryCard`,
+changes **100% to 99.483%**: its initial global load and test use ECX instead
+of EDX, with all remaining instructions unchanged. Record this exact-match
+loss rather than modifying the unrelated predicate to steer registers.
+Whole fuzzy matching reaches **64.828606%**.
+
+**33,280 guarded traversal/idempotence cases per architecture** pass NDK x86
+and full-global 64-bit ASan/UBSan. Coverage includes empty through 64-item
+lists, forward/reverse links, every flag byte, zero/nonzero/signed-boundary
+types, untouched menu storage and complete neighboring-node preservation.
+Unrelated menu services have aborting mocks. Null menus and cyclic lists are
+not valid original inputs. Target/native builds and all five checks pass.
+
+## Batch 69: platform movie-time return ABI
+
+The original 38-byte `FmvTimePS` returns positive floating-point zero; it is
+not a void function. Correct the canonical platform header and existing
+`-O0` definition, without moving it to the differently optimized movie-play
+backend. The direct constant return improves **30.909% to 99.909%**; only a
+literal-pool operand differs. No other scores change, and whole matching
+reaches **64.829160%**. A function-pointer ABI test verifies exact positive-zero
+bits on NDK x86 and a full-global 64-bit ASan/UBSan build. Target/native builds
+and all five repository checks pass. This restores the original unsupported
+platform result, not a movie playback clock.
+All eleven PR checks for the preceding commit `57cd2eca` are green.
+
+## Batch 70: background-load frame timing ownership
+
+Move the unchanged `NuFrameEndBgLoadPS` implementation out of the temporary
+`nu2api_nucore_misc.cpp` catch-all into the existing `nucore_frame.cpp` owner.
+The destination already owns `NuFrameEnd` and `NuFrameSetMinDelay`, sharing
+the same `nuapi.time2` state and `bgSuspendMain` service. These functions also
+belong to the same original address neighborhood. The live compile commands
+show the catch-all at `-O2` and the frame owner at default `-O0`; neither mode,
+source membership nor the optimization map changes. This is a source-owner
+repair, not revival of the superseded function-local optimization attribute
+experiment. The original ELF has no source-file records, so the precise
+original filename remains unproven. Add its canonical C++ declaration to
+`nuapi.h`, preserving `_Z18NuFrameEndBgLoadPSi`.
+
+The unchanged body improves **0% to 99.908%**, with all 333 original bytes
+accounted for and only eight float-literal operands differing. No other
+scores change and no exact matches are lost; whole fuzzy matching reaches
+**64.836210%**. **983,520 timing/order/threshold/reload cases per architecture**
+pass NDK x86 and full-global 64-bit ASan/UBSan. The actual moved implementation
+is linked against recording timing/suspend services. Tests cover the four
+supported frame rates, neighboring floats, signed zero, infinities/quiet
+NaNs, positive/negative fractional scanlines, inclusive delay thresholds and
+callback-driven FPS changes. The fixture also checks the original time2
+argument, local timing values and unchanged API state. Out-of-range float
+conversions and signed arithmetic overflow are not valid fixture inputs;
+this is not a real scheduler/timing-backend integration test. Target/native
+builds and all five repository checks pass.

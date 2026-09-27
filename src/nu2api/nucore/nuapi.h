@@ -76,6 +76,8 @@ extern char *nuapi_target_manager_mac_address;
 #ifdef __cplusplus
 void NuAPIInit(void);
 void ParseCommandLine(void);
+// Background-load frame timing uses the original C++ linkage.
+i32 NuFrameEndBgLoadPS(i32 minimum_delay);
 
 extern "C" {
 #endif

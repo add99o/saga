@@ -747,7 +747,7 @@ i8 trooper_side[10] = {0};
 nuhspecial_s *hothtroopers = NULL;
 i32 troopers_gdeb[4] = {0};
 i32 TimingBarSet = 0;
-u32 client_mines[0xc5] = {0};
+CLIENTMINES_s client_mines = {};
 MINESYS_s minesys;
 i32 nethost = 0;
 i32 clients_mines_bitfield[2] = {0};

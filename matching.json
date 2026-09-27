@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.826996,
+    "fuzzy_match_percent": 64.83621,
     "total_code": "4722419",
-    "matched_code": "519126",
-    "matched_code_percent": 10.992798,
+    "matched_code": "519114",
+    "matched_code_percent": 10.992544,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6238,
-    "matched_functions_percent": 46.34817,
+    "matched_functions": 6239,
+    "matched_functions_percent": 46.3556,
     "total_units": 1
   },
   "text": {
@@ -49699,7 +49699,7 @@
           "address": 2082224,
           "offset": 1192256,
           "size": 50,
-          "match_percent": 30.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z18FinishStatusPacketi",
@@ -69240,7 +69240,7 @@
           "address": 3841120,
           "offset": 2951152,
           "size": 40,
-          "match_percent": 30.0
+          "match_percent": 100.0
         },
         {
           "name": "_Z19MenuEnterInsertCardP6MENU_s",
@@ -69752,7 +69752,7 @@
           "address": 4358384,
           "offset": 3468416,
           "size": 102,
-          "match_percent": 100.0
+          "match_percent": 99.48276
         },
         {
           "name": "MenuInMemoryCardLoad",
@@ -75690,7 +75690,7 @@
           "address": 3238664,
           "offset": 2348696,
           "size": 38,
-          "match_percent": 30.90909
+          "match_percent": 99.90909
         },
         {
           "name": "PerspectMidPoint",
@@ -83775,7 +83775,7 @@
           "address": 2078240,
           "offset": 1188272,
           "size": 1474,
-          "match_percent": 42.724636
+          "match_percent": 43.628986
         },
         {
           "name": "_Z18NegotiationsA_InitP11WORLDINFO_s",
@@ -97946,14 +97946,6 @@
           "match_percent": 100.0
         },
         {
-          "name": "_Z18NuFrameEndBgLoadPSi",
-          "demangled_name": "NuFrameEndBgLoadPS(int)",
-          "address": 2530385,
-          "offset": 1640417,
-          "size": 333,
-          "match_percent": 0.0
-        },
-        {
           "name": "_Z12NuErrorPrintPc",
           "demangled_name": "NuErrorPrint(char*)",
           "address": 2557769,
@@ -99714,6 +99706,14 @@
       "source": "src/nu2api/nucore/nucore_frame.cpp",
       "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_nu2api/nucore_frame.o",
       "functions": [
+        {
+          "name": "_Z18NuFrameEndBgLoadPSi",
+          "demangled_name": "NuFrameEndBgLoadPS(int)",
+          "address": 2530385,
+          "offset": 1640417,
+          "size": 333,
+          "match_percent": 99.90804
+        },
         {
           "name": "NuFrameSetMinDelay",
           "demangled_name": "NuFrameSetMinDelay",

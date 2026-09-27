@@ -6,6 +6,7 @@
 // function-pointer tables by level.cpp.
 
 #include "decomp.h"
+#include "legoapi/core/net/netplay.h"
 #include "legoapi/legoapi_types.h"
 #include "nu2api/nucore/common.h"
 
@@ -54,7 +55,6 @@ extern struct AREADATA_s *PODRACE_ADATA;
 extern struct AREADATA_s *JEDI_ADATA;
 extern struct AREADATA_s *DOOKU_ADATA;
 extern i16 id_ANAKINPADAWAN;
-extern u32 client_mines[];
 extern MINESYS_s minesys; // held by value in the original (0x748 bytes)
 extern i32 nethost;
 extern i32 mine_count;

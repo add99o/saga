@@ -384,6 +384,7 @@ extern "C" {
     void eduiMenuEnsureSelection(eduimenu_s *menu);
     void eduiMenuFitWidth(eduimenu_s *menu, i32 padding);
     void eduiMenuHighlight(eduimenu_s *menu, eduiitem_s *item);
+    void FlushMenuHighlights(eduimenu_s *menu);
     eduiitem_s *eduiItemSelCreate(usize data, const void *colours, i32 selected, i32 group, EdUiItemCallback callback,
                                   char *text);
     eduiitem_s *eduiItemSeparatorCreate(usize data, const void *colours);

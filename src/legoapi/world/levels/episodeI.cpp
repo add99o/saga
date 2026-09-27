@@ -292,8 +292,8 @@ static void *CreatePodRaceMine(nuvec_s *pos) {
     pod_mines_bitfield[0] |= bit;
     pod_mines_bitfield[1] |= bit >> 31;
     i32 clear = ~bit;
-    client_mines[0x300 / 4] &= clear;
-    client_mines[0x304 / 4] &= clear >> 31;
+    client_mines.present_words[0] &= clear;
+    client_mines.present_words[1] &= clear >> 31;
     return entry;
 }
 
@@ -474,13 +474,13 @@ static __used__ void UpdatePodRaceMines(void) {
 
     {
         float radius = mines->mine_radius;
-        u32 *client = client_mines;
+        CLIENTMINES_s *client = &client_mines;
         for (u32 idx = 0; idx < 0x40; idx++) {
             u32 mask = 1u << (idx & 0x1f);
             // Words 0xc0/0xc1: host mine-present flags; 0xc2/0xc3: exploded ack.
-            if (((client[(idx >> 5) + 0xc0] | client[(idx >> 5) + 0xc2]) & mask) == 0)
+            if (((client->present_words[idx >> 5] | client->exploded_words[idx >> 5]) & mask) == 0)
                 continue;
-            NUVEC *mine_pos = (NUVEC *)&client[idx * 3];
+            NUVEC *mine_pos = &client->positions[idx];
             for (i32 i = 0; i < minecount; i++) {
                 GameObject_s *obj = minesarr[i];
                 if (obj == NULL)
@@ -497,7 +497,7 @@ static __used__ void UpdatePodRaceMines(void) {
                 GameCam_HitJudder();
                 GameCam_NewShake(NULL, 0.75f, 1.0f, 1.0f);
                 PlaySfx("Explode1", mine_pos);
-                client[(idx >> 5) + 0xc2] |= mask;
+                client->exploded_words[idx >> 5] |= mask;
                 break;
             }
         }
@@ -870,9 +870,9 @@ void PodRaceADraw(WORLDINFO_s *world) {
         NUMTX mtx;
         for (i32 i = 0; i < 0x40; i++) {
             i32 bit = 1 << (i & 0x1f);
-            if (((client_mines[0x300 / 4] & bit) | (client_mines[0x304 / 4] & (bit >> 31))) != 0) {
+            if (((client_mines.present_words[0] & bit) | (client_mines.present_words[1] & (bit >> 31))) != 0) {
                 NuMtxSetIdentity(&mtx);
-                NuMtxTranslate(&mtx, (NUVEC *)&client_mines[i * 3]);
+                NuMtxTranslate(&mtx, &client_mines.positions[i]);
                 NuSpecialDrawAt(&minesys, &mtx);
             }
         }
@@ -1346,7 +1346,7 @@ void PodRaceAReset(WORLDINFO_s *world) {
     pod_mines_bitfield[0] = 0;
     pod_mines_bitfield[1] = 0;
     memset(mines->mines, 0, sizeof(mines->mines));
-    memset(client_mines, 0, 0xc5 * 4);
+    memset(&client_mines, 0, sizeof(client_mines));
     mine_count = 0;
     if (Lap == 3 && nethost == 0 && netclient == 0)
         NewCutScene(NULL, world->cutscene_sys, "ep1_podrace_sebulba", 1);
@@ -1363,7 +1363,7 @@ void PodRaceInit(WORLDINFO_s *world) {
     memset(podrace, 0, sizeof(*podrace)); // 0xaf24 bytes in the original
     if (netclient != 0) {
         memset(&minesys, 0, 0x1d2 * 4);
-        memset(client_mines, 0, 0xc5 * 4);
+        memset(&client_mines, 0, sizeof(client_mines));
         MINESYS_s *mines = &minesys;
         if (NuSpecialFind(vehicle_scene, &mines->mine_special, "mine", 1) != 0) {
             mines->mine_radius = NuSpecialGetOriginRadius(&mines->mine_special);
