@@ -85,11 +85,15 @@ struct FinalAsteroidState {
     i16 rotation_x;
     i16 rotation_y;
     i16 rotation_z;
-    u8 reserved[8];
+    i16 current_x;
+    i16 current_y;
+    i16 current_z;
+    u8 reserved[2];
 };
 DECOMP_ASSERT(sizeof(FinalAsteroidState) == 60, "FinalAsteroidState ABI");
 FinalAsteroidState finalAsteroid;
 void *asteroidc_netpacket;
+NUMTX *mtxOrig;
 nuhspecial_s specialIcon;
 
 struct AIROW_s;
@@ -1312,7 +1316,49 @@ void AsteroidChaseB_Update(WORLDINFO_s *world) {
 }
 
 void AsteroidChaseC_Update(WORLDINFO_s *) {
-    STUBBED();
+    Asteroids_Update();
+    if (netclient != 0) {
+        const u16 *packet = static_cast<const u16 *>(asteroidc_netpacket);
+        finalAsteroid.current_x = SeekRot(finalAsteroid.current_x, packet[0], 7.0f);
+        finalAsteroid.current_y = SeekRot(finalAsteroid.current_y, packet[1], 7.0f);
+        finalAsteroid.current_z = SeekRot(finalAsteroid.current_z, packet[2], 7.0f);
+    } else {
+        finalAsteroid.current_x += static_cast<i32>(finalAsteroid.rotation_x * FRAMETIME);
+        finalAsteroid.current_y += static_cast<i32>(finalAsteroid.rotation_y * FRAMETIME);
+        finalAsteroid.current_z += static_cast<i32>(finalAsteroid.rotation_z * FRAMETIME);
+        if (nethost != 0) {
+            u16 *packet = static_cast<u16 *>(asteroidc_netpacket);
+            packet[0] = finalAsteroid.current_x;
+            packet[1] = finalAsteroid.current_y;
+            packet[2] = finalAsteroid.current_z;
+        }
+    }
+
+    mtxOrig = NuSpecialGetMtx(&finalAsteroid.special);
+    if (mtxOrig != NULL) {
+        NUMTX matrix __attribute__((aligned(16))) = *mtxOrig;
+        NUVEC translation;
+        NuMtxGetTranslation(&matrix, &translation);
+        NuMtxRotateY(&matrix, finalAsteroid.current_y);
+        NuMtxPreRotateX(&matrix, finalAsteroid.current_x);
+        NuMtxPreRotateY(&matrix, finalAsteroid.current_z);
+        matrix.m30 = translation.x;
+        matrix.m31 = translation.y;
+        matrix.m32 = translation.z;
+        NuSpecialSetDrawMtx(&finalAsteroid.special, &matrix);
+        NuSpecialUpdate(&finalAsteroid.special);
+    }
+
+    for (i32 index = 0; index < finalAsteroid.target_count; ++index) {
+        GIZMOBLOWUP_s *blowup = finalAsteroid.targets[index];
+        if (blowup == NULL)
+            continue;
+        blowup->field_0xf0 = finalAsteroid.current_x;
+        blowup->field_0xf2 = finalAsteroid.current_y;
+        blowup->field_0xf4 = finalAsteroid.current_z;
+        blowup->state_flags |= 1;
+        GizmoBlowupUpdateMatrix(blowup);
+    }
 }
 
 void AsteroidChaseD_Update(WORLDINFO_s *) {
