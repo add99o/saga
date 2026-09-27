@@ -1687,7 +1687,8 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
                 MakeWingFormation(&formation, &target, *reinterpret_cast<f32 *>(action + 4), 0);
                 space->unknown_337c = 4;
             }
-        } else if (space->unknown_337c == 0) {
+        }
+        if (space->unknown_337c == 0) {
             f32 &time = *reinterpret_cast<f32 *>(data + 0x3384);
             time -= delta;
             if (time <= 0.0f)
@@ -1712,7 +1713,7 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
             direction->y *= distance;
             direction->z *= distance;
         }
-        if (mode <= 1) {
+        if (static_cast<u32>(mode) < 2) {
             NUVEC *position = reinterpret_cast<NUVEC *>(group + 0x30);
             NUVEC *direction = reinterpret_cast<NUVEC *>(group + 0x608);
             position->x += direction->x * delta;
@@ -1728,11 +1729,16 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
         }
 
         i32 status = 0;
-        for (i32 fighter_index = 0; fighter_index < 5; ++fighter_index) {
-            u8 *fighter = group + 0x40 + fighter_index * 0x128;
-            if (*reinterpret_cast<i32 *>(fighter + 0x110) != 0)
-                status |= ProcessStarFighter(reinterpret_cast<starfighter_s *>(fighter), bolt_info);
-        }
+        if (*reinterpret_cast<i32 *>(group + 0x150) != 0)
+            status = ProcessStarFighter(reinterpret_cast<starfighter_s *>(group + 0x40), bolt_info);
+        if (*reinterpret_cast<i32 *>(group + 0x278) != 0)
+            status |= ProcessStarFighter(reinterpret_cast<starfighter_s *>(group + 0x168), bolt_info);
+        if (*reinterpret_cast<i32 *>(group + 0x3a0) != 0)
+            status |= ProcessStarFighter(reinterpret_cast<starfighter_s *>(group + 0x290), bolt_info);
+        if (*reinterpret_cast<i32 *>(group + 0x4c8) != 0)
+            status |= ProcessStarFighter(reinterpret_cast<starfighter_s *>(group + 0x3b8), bolt_info);
+        if (*reinterpret_cast<i32 *>(group + 0x5f0) != 0)
+            status |= ProcessStarFighter(reinterpret_cast<starfighter_s *>(group + 0x4e0), bolt_info);
         i32 &marker = *reinterpret_cast<i32 *>(group + 0x64c);
         if (status == 0)
             marker = 1;
@@ -1747,17 +1753,21 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
     }
 
     if (space->reset_buffer_count != 0) {
-        NUVEC player_positions[2];
-        i32 player_active[2] = {0, 0};
-        for (i32 player_index = 0; player_index < 2; ++player_index) {
-            GameObject_s *player = Player[player_index];
-            if (player != NULL && *reinterpret_cast<i8 *>(reinterpret_cast<u8 *>(player) + 0x1f8) < 0) {
-                player_positions[player_index] = *reinterpret_cast<NUVEC *>(reinterpret_cast<u8 *>(player) + 0xe8);
-                player_active[player_index] = 1;
-            }
-        }
-        for (i32 index = 0; index < space->reset_buffer_count; ++index) {
-            u8 *record = reinterpret_cast<u8 *>(space->reset_buffer) + index * 0x60;
+        NUVEC player_position0, player_position1;
+        GameObject_s *player0 = Player[0];
+        GameObject_s *player1 = Player[1];
+        const bool player0_active =
+            player0 != NULL && *reinterpret_cast<i8 *>(reinterpret_cast<u8 *>(player0) + 0x1f8) < 0;
+        const bool player1_active =
+            player1 != NULL && *reinterpret_cast<i8 *>(reinterpret_cast<u8 *>(player1) + 0x1f8) < 0;
+        if (player0_active)
+            player_position0 = *reinterpret_cast<NUVEC *>(reinterpret_cast<u8 *>(player0) + 0xe8);
+        if (player1_active)
+            player_position1 = *reinterpret_cast<NUVEC *>(reinterpret_cast<u8 *>(player1) + 0xe8);
+
+        u8 *record = reinterpret_cast<u8 *>(space->reset_buffer);
+        u8 *const end = record + space->reset_buffer_count * 0x60;
+        for (; record < end; record += 0x60) {
             f32 &lifetime = *reinterpret_cast<f32 *>(record + 0x50);
             if (lifetime == 0.0f)
                 continue;
@@ -1766,21 +1776,26 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
             position->x += velocity->x * delta;
             position->y += velocity->y * delta;
             position->z += velocity->z * delta;
-            for (i32 player_index = 0; player_index < 2; ++player_index) {
-                if (!player_active[player_index] || Player[player_index] == NULL)
-                    continue;
-                const f32 dx = position->x - player_positions[player_index].x;
-                const f32 dy = position->y - player_positions[player_index].y;
-                const f32 dz = position->z - player_positions[player_index].z;
+            if (player0_active && Player[0] != NULL) {
+                const f32 dx = position->x - player_position0.x;
+                const f32 dy = position->y - player_position0.y;
+                const f32 dz = position->z - player_position0.z;
                 if (dx * dx + dy * dy + dz * dz < 1.0f) {
                     lifetime = 0.0f;
-                    ObjHitObj(NULL, Player[player_index], 1, 0, 0, 1);
-                    break;
+                    ObjHitObj(NULL, Player[0], 1, 0, 0, 1);
                 }
             }
-            lifetime -= delta;
-            if (lifetime < 0.0f)
-                lifetime = 0.0f;
+            if (player1_active && Player[1] != NULL) {
+                const f32 dx = position->x - player_position1.x;
+                const f32 dy = position->y - player_position1.y;
+                const f32 dz = position->z - player_position1.z;
+                if (dx * dx + dy * dy + dz * dz < 1.0f) {
+                    lifetime = 0.0f;
+                    ObjHitObj(NULL, Player[1], 1, 0, 0, 1);
+                }
+            }
+            const f32 remaining = lifetime - delta;
+            lifetime = remaining >= 0.0f ? remaining : 0.0f;
         }
     }
 

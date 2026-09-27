@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.21848,
+    "fuzzy_match_percent": 65.22634,
     "total_code": "4722419",
     "matched_code": "520312",
     "matched_code_percent": 11.017913,
@@ -62202,7 +62202,7 @@
           "address": 2308752,
           "offset": 1418784,
           "size": 625,
-          "match_percent": 83.3125
+          "match_percent": 83.21875
         },
         {
           "name": "_ZL18ProcessStarFighterP13starfighter_sP13quickboltinfo",
@@ -62218,7 +62218,7 @@
           "address": 2334272,
           "offset": 1444304,
           "size": 3813,
-          "match_percent": 0.0
+          "match_percent": 9.762148
         },
         {
           "name": "_ZL22CollideBoltStarFighterP6BOLT_sP13starfighter_sP6_vuv_sS4_",
