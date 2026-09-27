@@ -10,6 +10,7 @@
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numath/numtx.h"
+#include "nu2api/numath/nuvec4.h"
 #include "nu2api/numath/nurand.h"
 #include "nu2api/nu3d/numtl.h"
 #include "nu2api/nu3d/nutex.h"
@@ -642,8 +643,34 @@ extern "C" {
         return scaled_index != 0 ? scaled_index : closest_index;
     }
 
-    void CubeImpact(void) {
-        STUBBED();
+    void CubeImpact(NUMTX *matrix, NUMTX *cube_matrix, NUVEC *direction, f32 scale, NUVEC *impact) {
+        NUVEC4 cube_point;
+        NUVEC4 transformed[8];
+        const NUVEC corners[8] = {
+            {-1.0f, -1.0f, -1.0f}, {1.0f, -1.0f, -1.0f}, {1.0f, 1.0f, -1.0f}, {-1.0f, 1.0f, -1.0f},
+            {-1.0f, -1.0f, 1.0f},  {1.0f, -1.0f, 1.0f},  {1.0f, 1.0f, 1.0f},  {-1.0f, 1.0f, 1.0f},
+        };
+        f32 nearest = 10000.0f;
+        i32 nearest_index = 0;
+        for (i32 i = 0; i < 8; ++i) {
+            transformed[i].x = corners[i].x;
+            transformed[i].y = corners[i].y;
+            transformed[i].z = corners[i].z;
+            transformed[i].w = 0.0f;
+            NuVec4MtxTransformVU0(&cube_point, &transformed[i], cube_matrix);
+            NuVec4MtxTransformVU0(&transformed[i], &transformed[i], matrix);
+            const f32 cube_depth =
+                direction->x * cube_point.x + direction->y * cube_point.y + direction->z * cube_point.z;
+            const f32 world_depth =
+                direction->x * transformed[i].x + direction->y * transformed[i].y + direction->z * transformed[i].z;
+            if (world_depth > cube_depth && world_depth < nearest) {
+                nearest = world_depth;
+                nearest_index = i;
+            }
+        }
+        impact->x = matrix->m30 + scale * transformed[nearest_index].x;
+        impact->y = matrix->m31 + scale * transformed[nearest_index].y;
+        impact->z = matrix->m32 + scale * transformed[nearest_index].z;
     }
 
     void DebFreeAllCreatedEffects(void) {
