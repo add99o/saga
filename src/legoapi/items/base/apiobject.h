@@ -824,6 +824,10 @@ typedef struct GameObject_s {
                         NUVEC carried_object_drop_position;
                     }; // 0x75c
                 };
+                struct {
+                    u8 push_timer_pad[0x758 - 0x744];
+                    f32 field_0x758; // 0x0758 push interaction timer
+                };
             };
             f32 field_0x768; // 0x0768
             union {

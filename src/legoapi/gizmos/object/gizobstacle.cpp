@@ -1030,8 +1030,77 @@ GIZOBSTACLE_s *GizObstacle_FindByName(GIZOBSTACLESYS_s *system, char *name) {
     return NULL;
 }
 
-void GizObstacle_FindNearest(GIZOBSTACLESYS_s *, nuvec_s *, GameObject_s *, float *, i32) {
-    STUBBED();
+GIZOBSTACLE_s *GizObstacle_FindNearest(GIZOBSTACLESYS_s *system, nuvec_s *position, GameObject_s *object, f32 *distance,
+                                       i32 mode) {
+    (void)object;
+    f32 best_distance = 1000000000.0f;
+    GIZOBSTACLE_s *nearest = NULL;
+    if (system == NULL || system->count == 0) {
+        if (distance != NULL) {
+            *distance = best_distance;
+        }
+        return NULL;
+    }
+    // The original duplicates this loop with and without the mode check;
+    // `object` only selects between the copies and is otherwise unused.
+    if (mode == -1) {
+        for (i32 i = 0; i < system->count; ++i) {
+            GIZOBSTACLE_s *obstacle = &system->obstacles[i];
+            if ((obstacle->progress_flags & 2) == 0) {
+                continue;
+            }
+            if ((obstacle->progress_flags & 1) == 0) {
+                continue;
+            }
+            if (static_cast<i8>(obstacle->runtime_flags) < 0) {
+                continue;
+            }
+            NUVEC average;
+            f32 dist;
+            if (obstacle->anim_set != NULL) {
+                GameAnimSet_GetAveragePos(obstacle->anim_set, &average, 2, 1, 0);
+                dist = NuVecDistSqr(position, &average, NULL);
+            } else {
+                dist = NuVecDistSqr(position, &obstacle->position, NULL);
+            }
+            if (dist < best_distance) {
+                best_distance = dist;
+                nearest = obstacle;
+            }
+        }
+    } else {
+        for (i32 i = 0; i < system->count; ++i) {
+            GIZOBSTACLE_s *obstacle = &system->obstacles[i];
+            if (obstacle->mode != mode) {
+                continue;
+            }
+            if ((obstacle->progress_flags & 2) == 0) {
+                continue;
+            }
+            if ((obstacle->progress_flags & 1) == 0) {
+                continue;
+            }
+            if (static_cast<i8>(obstacle->runtime_flags) < 0) {
+                continue;
+            }
+            NUVEC average;
+            f32 dist;
+            if (obstacle->anim_set != NULL) {
+                GameAnimSet_GetAveragePos(obstacle->anim_set, &average, 2, 1, 0);
+                dist = NuVecDistSqr(position, &average, NULL);
+            } else {
+                dist = NuVecDistSqr(position, &obstacle->position, NULL);
+            }
+            if (dist < best_distance) {
+                best_distance = dist;
+                nearest = obstacle;
+            }
+        }
+    }
+    if (distance != NULL) {
+        *distance = best_distance;
+    }
+    return nearest;
 }
 
 void GizObstacle_JumpToStart(GIZOBSTACLE_s *obstacle) {

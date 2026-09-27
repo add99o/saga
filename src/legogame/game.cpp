@@ -1287,8 +1287,10 @@ void InitGameAfterConfig(void) {
     UsingExtraActionsFn = UsingExtraActions_Game;
     CanStartHoldFn = CanStartHold_Game;
     Player_ClearContextFn = Player_ClearContext_Game;
-    //  LEGOTHINGSSCENE_TER_SPINBASE = 0;
-    //  LEGOTHINGSSCENE_TER_SPINARM = 1;
+    extern i32 LEGOTHINGSSCENE_TER_SPINBASE;
+    extern i32 LEGOTHINGSSCENE_TER_SPINARM;
+    LEGOTHINGSSCENE_TER_SPINBASE = 0;
+    LEGOTHINGSSCENE_TER_SPINARM = 1;
     GizBuildit_AutoBuildPosFn = GizBuildit_AutoBuildPos_Game;
     Fighting_WeaponInActionFn = Fighting_WeaponInAction_Game;
     Fighting_WeaponOutActionFn = Fighting_WeaponOutAction_Game;
