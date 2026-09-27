@@ -229,5 +229,5 @@ static __used__ i32 _fseek64_wrap(__sFILE *file, i64 offset, i32 origin) {
     if (file == NULL) {
         return -1;
     }
-    return fseek(file, static_cast<long>(offset), origin);
+    return fseek(reinterpret_cast<FILE *>(file), static_cast<i32>(offset), origin);
 }
