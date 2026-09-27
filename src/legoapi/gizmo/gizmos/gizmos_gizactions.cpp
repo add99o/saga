@@ -28,6 +28,8 @@
 #include "nu2api/nu3d/nuspline.h"
 #include "legoapi/render/fx/spline_position.h"
 
+void GameCameraMakeMiniCut2(NUVEC *, NUVEC *, i32, f32, f32, f32, f32, i32, i32, i32);
+
 i32 Action_SetState(AISYS_s *, AISCRIPTPROCESS_s *processor, AIPACKET_s *, char **params, i32 param_count,
                     i32 is_first_time, float) {
     if (is_first_time == 0 || param_count == 0) {
@@ -94,38 +96,178 @@ i32 Action_UsePanel(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *p
     return object->field_0x7a5 == 0x0b && object->field_0x788 == panel;
 }
 
-void Action_CameraCut(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 Action_CameraCut(AISYS_s *system, AISCRIPTPROCESS_s *processor, AIPACKET_s *packet, char **params, i32 param_count,
+                     i32 first_time, float) {
+    NUVEC target_position = {1000000000.0f, 1000000000.0f, 1000000000.0f};
+    NUVEC camera_position = {1000000000.0f, 1000000000.0f, 1000000000.0f};
+    NUVEC camera_offset = {0.0f, 0.0f, 0.0f};
+    if (first_time == 0 || param_count <= 0)
+        return 1;
+    f32 range = 1.0f;
+    f32 start_time = 0.0f;
+    f32 end_time = 1000000000.0f;
+    f32 blend_in_time = 0.0f;
+    f32 blend_out_time = 0.0f;
+    i32 rotation_x = 0;
+    i32 rotation_y = 0;
+    i32 follow_target = 0;
+    i32 borders = 1;
+    i32 use_current_position = 0;
+    char *target_locator = NULL;
+    char *target_character = NULL;
+    char *target_object = NULL;
+    char *camera_locator = NULL;
+    for (i32 index = 0; index < param_count; ++index) {
+        char *value;
+        if (NuStrICmp("Reset", params[index]) == 0) {
+            GameCameraMakeMiniCut2(NULL, NULL, 0, 0.0f, 0.0f, 0.0f, 0.0f, 0, 0, 0);
+            return 1;
+        } else if (NuStrICmp("use_current_campos", params[index]) == 0) {
+            use_current_position = 1;
+        } else if ((value = NuStrIStr(params[index], "start_time=")) != NULL) {
+            start_time = AIParamToFloat(processor, value + 11);
+        } else if (NuStrICmp("end_time=infinite", params[index]) == 0) {
+            end_time = 1000000000.0f;
+        } else if ((value = NuStrIStr(params[index], "end_time=")) != NULL) {
+            end_time = AIParamToFloat(processor, value + 9);
+        } else if ((value = NuStrIStr(params[index], "blend_in_time=")) != NULL) {
+            blend_in_time = AIParamToFloat(processor, value + 14);
+        } else if ((value = NuStrIStr(params[index], "blend_out_time=")) != NULL) {
+            blend_out_time = AIParamToFloat(processor, value + 15);
+        } else if ((value = NuStrIStr(params[index], "tgt_locator=")) != NULL) {
+            target_locator = value + 12;
+        } else if ((value = NuStrIStr(params[index], "tgt_character=")) != NULL) {
+            target_character = value + 14;
+        } else if ((value = NuStrIStr(params[index], "tgt_obj=")) != NULL) {
+            target_object = value + 8;
+        } else if ((value = NuStrIStr(params[index], "cam_locator=")) != NULL) {
+            camera_locator = value + 12;
+        } else if ((value = NuStrIStr(params[index], "range=")) != NULL) {
+            range = AIParamToFloat(processor, value + 6);
+        } else if ((value = NuStrIStr(params[index], "roty=")) != NULL) {
+            rotation_y =
+                static_cast<i32>(static_cast<i32>(AIParamToFloat(processor, value + 5)) * 182.0444488525390625f);
+        } else if ((value = NuStrIStr(params[index], "rotx=")) != NULL) {
+            rotation_x =
+                static_cast<i32>(-static_cast<i32>(AIParamToFloat(processor, value + 5)) * 182.0444488525390625f);
+        } else if (NuStrICmp("FollowTgt", params[index]) == 0) {
+            follow_target = 1;
+        } else if ((value = NuStrIStr(params[index], "dcampos_x=")) != NULL) {
+            camera_offset.x = AIParamToFloat(processor, value + 10);
+        } else if ((value = NuStrIStr(params[index], "dcampos_y=")) != NULL) {
+            camera_offset.y = AIParamToFloat(processor, value + 10);
+        } else if ((value = NuStrIStr(params[index], "dcampos_z=")) != NULL) {
+            camera_offset.z = AIParamToFloat(processor, value + 10);
+        } else if ((value = NuStrIStr(params[index], "campos_x=")) != NULL) {
+            camera_position.x = AIParamToFloat(processor, value + 9);
+        } else if ((value = NuStrIStr(params[index], "campos_y=")) != NULL) {
+            camera_position.y = AIParamToFloat(processor, value + 9);
+        } else if ((value = NuStrIStr(params[index], "campos_z=")) != NULL) {
+            camera_position.z = AIParamToFloat(processor, value + 9);
+        } else if ((value = NuStrIStr(params[index], "tgtpos_x=")) != NULL) {
+            target_position.x = AIParamToFloat(processor, value + 9);
+        } else if ((value = NuStrIStr(params[index], "tgtpos_y=")) != NULL) {
+            target_position.y = AIParamToFloat(processor, value + 9);
+        } else if ((value = NuStrIStr(params[index], "tgtpos_z=")) != NULL) {
+            target_position.z = AIParamToFloat(processor, value + 9);
+        } else if (NuStrICmp("no_borders", params[index]) == 0) {
+            borders = 0;
+        }
+    }
+
+    NUVEC *target;
+    if (target_locator != NULL) {
+        AILOCATOR *locator = AIPathFindLocator(system, target_locator);
+        if (locator == NULL)
+            return 1;
+        target = &locator->position;
+    } else if (target_character != NULL) {
+        GameObject_s *object;
+        if (packet != NULL && packet->owner != NULL && NuStrICmp(target_character, "myself") == 0)
+            object = packet->owner->apiobj.objptr;
+        else
+            object = GetNamedGameObject(system, target_character);
+        if (object == NULL)
+            return 1;
+        target = &object->apiobj.collision_position;
+    } else if (target_object != NULL) {
+        nuhspecial_s special;
+        if (NuSpecialFind(WORLD->current_gscn, &special, target_object, 1) == 0)
+            return 1;
+        target = NuSpecialGetDrawPos(&special);
+        if (target == NULL)
+            return 1;
+    } else {
+        if (target_position.x == 1000000000.0f || target_position.y == 1000000000.0f ||
+            target_position.z == 1000000000.0f)
+            return 1;
+        target = &target_position;
+    }
+
+    if (use_current_position != 0) {
+        NUMTX *matrix = NuCameraGetMtx();
+        if (matrix != NULL) {
+            camera_position.x = matrix->m30;
+            camera_position.y = matrix->m31;
+            camera_position.z = matrix->m32;
+            NuVecAdd(&camera_position, &camera_position, &camera_offset);
+            GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
+                                   follow_target, 0, borders);
+            return 1;
+        }
+    } else if (camera_position.x != 1000000000.0f && camera_position.y != 1000000000.0f &&
+               camera_position.z != 1000000000.0f) {
+        GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
+                               follow_target, 0, borders);
+        return 1;
+    } else if (camera_locator != NULL) {
+        AILOCATOR *locator = AIPathFindLocator(system, camera_locator);
+        if (locator != NULL) {
+            camera_position = locator->position;
+            GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
+                                   follow_target, 0, borders);
+            return 1;
+        }
+    }
+
+    camera_position.x = 0.0f;
+    camera_position.y = 0.0f;
+    camera_position.z = range;
+    NuVecRotateX(&camera_position, &camera_position, rotation_x);
+    NuVecRotateY(&camera_position, &camera_position, rotation_y);
+    NuVecAdd(&camera_position, &camera_position, target);
+    GameCameraMakeMiniCut2(&camera_position, target, 0, start_time, end_time, blend_in_time, blend_out_time,
+                           follow_target, 0, borders);
+    return 1;
 }
 
 i32 __attribute__((optimize("O2,omit-frame-pointer"))) Action_PullLever(AISYS_s *system, AISCRIPTPROCESS_s *processor,
-                                                                          AIPACKET_s *packet, char **params, i32 param_count,
-                                                                          i32 first_time, f32 elapsed) {
+                                                                        AIPACKET_s *packet, char **params,
+                                                                        i32 param_count, i32 first_time, f32 elapsed) {
     if (__builtin_expect(first_time != 0, 0))
         goto initialize;
 
-perform:
-    {
-        LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
-        if (lever == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
-            return 1;
-        GameObject_s *object = packet->owner->apiobj.objptr;
-        AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
-        if ((object->field_0xefe & 0x80) != 0) {
-            f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
-            if (distance < ai_moveradius * ai_moveradius) {
-                packet->movement_look_target = &lever->position;
-                object->pad_gamepad->buttons_down_08 |= GAMEPAD_SPECIAL;
-            }
-        } else if (FreePlay != 0) {
-            processor->action_timer -= elapsed;
-            if (processor->action_timer < 0.0f) {
-                processor->action_timer = 0.5f;
-                object->pad_gamepad->buttons_down_08 |= GAMEPAD_TOGGLERIGHT;
-            }
+perform: {
+    LEVER *lever = static_cast<LEVER *>(processor->action_data_3);
+    if (lever == NULL || packet == NULL || packet->owner == NULL || packet->owner->apiobj.objptr == NULL)
+        return 1;
+    GameObject_s *object = packet->owner->apiobj.objptr;
+    AIMoveInstruction(packet, &processor->action_pos, 0.0f, &processor->path_info, 1, 0.0f);
+    if ((object->field_0xefe & 0x80) != 0) {
+        f32 distance = NuVecDistSqr(&packet->terrain_origin, &processor->action_pos, NULL);
+        if (distance < ai_moveradius * ai_moveradius) {
+            packet->movement_look_target = &lever->position;
+            object->pad_gamepad->buttons_down_08 |= GAMEPAD_SPECIAL;
         }
-        return object->character_context == 0x4a && object->field_0x788 == lever;
+    } else if (FreePlay != 0) {
+        processor->action_timer -= elapsed;
+        if (processor->action_timer < 0.0f) {
+            processor->action_timer = 0.5f;
+            object->pad_gamepad->buttons_down_08 |= GAMEPAD_TOGGLERIGHT;
+        }
     }
+    return object->character_context == 0x4a && object->field_0x788 == lever;
+}
 
 initialize:
     if (param_count > 0) {
