@@ -2194,10 +2194,6 @@ extern "C" {
     void *NuMemReAllocFn(void *ptr, u32 size) {
         return NuMemoryGet()->GetThreadMem()->_BlockReAlloc(ptr, size, 4, 1, "", 0);
     }
-    void *NuPtrBlockRead(NUFILE file) {
-        void *block = NuMemFileAddr(file);
-        return NuPtrBlockFix(block);
-    }
 
     static void *dirnames[16];
     static i32 numdirs;
@@ -3180,8 +3176,6 @@ extern "C" {
         maximum.z = center->z + extent->z;
         light->testShadowExtrusions(minimum, maximum);
     }
-    extern "C++" NuWindGType *NuWindAllocateGrp();
-    extern "C++" void NuWindFreeGrp(NuWindGType *group);
 
     i32 NuWindLoad(NUWIND *wind, i32 index, char *name, VARIPTR *buffer, VARIPTR buffer_end) {
         if (wind != NULL) {

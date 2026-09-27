@@ -4299,3 +4299,134 @@ also check exact output addresses, metadata/count updates, untouched page
 contents and cleanup. NDK pthread calls are mocked for ABI compatibility;
 the host uses real recursive mutexes. Target/native builds and all five
 repository checks pass. This is not a concurrent allocator stress test.
+
+## Batch 77: pointer-block and wind-group source ownership
+
+Move unchanged `NuPtrBlockRead` beside `NuPtrBlockFix` in `nuptrblock.cpp`,
+matching their contiguous retail bodies. Move unchanged `NuWindFreeGrp`
+beside its allocator in `nuwind_groups.cpp`; the original places both in
+the wind-group run ending at `_GLOBAL__sub_I_nuwind.c`. Live target actions
+confirm default `-O0` for both destinations, versus `-O3`/`-O2` for their
+former plain/misc owners. Add canonical declarations and remove redundant
+local declarations. The wind helpers retain C++ linkage and are declared
+only to C++ consumers of the otherwise shared header.
+
+Both helpers reach **100%**, from **54.294%** and **54.875%** respectively.
+No other scores change; whole fuzzy matching reaches **64.851230%**.
+Target/native builds and all five repository checks pass. Per architecture,
+NDK x86 and full-global 64-bit ASan/UBSan pass **131,073 wind-release cases**
+(all 16-bit states, null and repeated release, untouched adjacent storage)
+and **67,584 pointer-block cases**. The latter uses a recording memory-file
+lookup and the real fix-up body, checking handles, table lengths/positions,
+null and nonzero fixups, return address and untouched words. Its native
+checks verify the existing 32-bit serialized-word arithmetic, not native
+dereferencing of reconstructed pointers; full 64-bit asset relocation is
+outside this ownership-only change.
+
+## Batch 78: typed touch-control tint guard
+
+Move `TouchHacks::TintStack` construction and destruction into the existing
+`TouchHacks.cpp` (`-O2`), whose neighboring methods immediately follow them
+in the original. Remove the now-empty, default-`-O0` utility catch-all.
+Ownership alone raises the constructor **45.846% to 56.077%** and destructor
+**26.471% to 78.824%**. The remaining scalar SSE copies expose a type issue:
+the saved value is a `NUCOLOUR3` record, not a float array reinterpreted as
+that record at the renderer callback. Use the canonical color type and
+ordinary record assignment, eliminating that cast. Both functions then
+match **100%**, with all four constructor/destructor alias symbols intact.
+No other scores change; whole fuzzy matching reaches **64.853880%**.
+
+Per architecture, NDK x86 and full-global 64-bit ASan/UBSan pass **65,536
+nested guard cases**, including **131,072 ordered restores**. Verify the
+constructor preserves all global state, nested lifetimes restore the right
+color, destructors preserve unrelated lighting fields and call the renderer
+only after restoring the global ambient. Signed zero, infinities, NaNs and
+subnormal bit patterns are preserved. The renderer is a recording callback;
+no live rendering is claimed. Target/native builds and all five repository
+checks pass; compiler options remain unchanged.
+
+## Batch 79: cutscene scalar versus encoded-integer curves
+
+The full retail `NuGCutCharAnimProcess_3` body rounds curves 6 and 7 as
+floats without consulting their curve types; only layer-mask curve 11
+uses `GetIntCurveVal`. The reconstruction incorrectly applied that helper
+to all three, interpreting type-10 visibility/index float bits as integers.
+Restore ordinary signed rounding for the first two curves, snapshot node
+flags at the original point, and reload curve count after matrix callbacks
+before deciding the rate/blend outputs. Keep the explicit returned-vector
+assignment visible in the original scale path.
+
+The first corrected spelling scores 0%; one bounded revision preserving
+the original main/fallback branch arrangement and vector assignment raises
+the function **15.3125% to 44.898438%**. An unrelated PVR loader in the same TU
+also improves **26.419777% to 27.199627%** from changed register scheduling.
+No regressions or exact-match changes; whole fuzzy matching reaches
+**64.860146%**. Remaining frame slots and block layout are not pursued with
+alignment, register or calling-convention annotations.
+
+NDK x86 and full-global 64-bit ASan/UBSan pass **40,960 cases per
+architecture** covering count boundaries, type-10 versus ordinary curves,
+rounding ties/signs, all optional-output combinations, inactive characters,
+signed start frames, rotation/translation/sign flips and post-callback count
+changes. Matrix operations are recording mocks, not a full animation test.
+The old body fails the same fixture's rate assertion when a matrix callback
+changes the count; the corrected body passes. Unrelated retained vtable
+dependencies in the native ASan fixture use fail-fast mocks. Target/native
+builds and all five repository checks pass.
+
+## Batch 80: rejected cutscene-animation grouping
+
+Test grouping `GetIntCurveVal`, `NuGCutCharAnimProcess_3` and the legacy
+`NuGCutCharAnimProcess` beside the existing cutscene locator evaluators in
+`nugcutscene_anim.cpp`. The functions are contiguous in the original and the
+destination is already `-O2`; no compiler options change. This does not
+improve any of the three scores. It reduces two unrelated misc-TU scores
+slightly, so revert the move and its temporary declaration cleanup. A fresh
+linked report reproduces batch 79 exactly. Do not repeat this ownership
+trial without new evidence about the source group.
+
+As a diagnostic, both NDK x86 and full-global 64-bit ASan/UBSan pass the
+grouped trial's **90,112 legacy-format cases**, **8,192 no-animation cases**,
+and **81,920 direct/dispatched modern-format cases**. The real processing
+bodies use recording curve/time/matrix callbacks. Checks cover signed legacy
+counts and curve-type promotion, constant-versus-callback values, exact
+callback order, optional outputs, both modern magic values, and matrix/state
+preservation. This isolated test is not evidence of full cutscene playback,
+nor a reason to retain a non-improving move.
+
+## Batch 81: CameraCut action and script binding
+
+Replace the 2,451-byte retail `Action_CameraCut` stub with the complete
+parameter/target/camera dispatch. Correct its return type to `i32` (every
+retail exit returns 1), expose canonical action/camera helper declarations,
+and restore the `CameraCut` action-table binding. The reference table's
+function pointer at file offset `0x61e5c8` points to `0x1a1510`, immediately
+after the `CameraCut` name pointer, with flags 1. Preserve the existing
+`-O3` owner and all compiler options.
+
+Keep case-insensitive substring parsing and parameter precedence, immediate
+all-zero reset dispatch, infinite end times, target locator/character/special
+priority and failures, the packet owner's `objptr` for `myself`, and the
+explicit-position sentinel. Current-camera failure goes directly to the
+derived camera, bypassing explicit coordinates and the camera locator.
+Delta coordinates affect only a successful current-camera lookup. Angle
+inputs truncate to integers before conversion to engine units, including
+the signed X-angle negation. Preserve target pointer identity for following.
+
+`Action_CameraCut` improves **0.833333% to 82.432290%**. The unchanged dynamic
+camera action improves **92.616130% to 92.808660%**; unchanged `Action_AddToSet`
+declines **92.476190% to 92.396830%** after the table binding changes linked
+layout. Whole fuzzy matching reaches **64.902640%**; no exact matches are
+lost. Do not introduce stack-alignment or calling-convention annotations to
+chase the remaining retail frame/layout differences.
+
+NDK x86 and full-global 64-bit ASan/UBSan pass **32,817 cases per
+architecture**, covering all target-source priorities, lookup outcomes,
+packet/owner/self-reference cases, camera precedence/fallbacks, optional
+flags, exact callback order/arguments, angle truncation, partial and NaN
+coordinates, reset short-circuiting, inactive/nonpositive-count gates,
+duplicates and overlapping parameter keys. String, lookup, camera and vector
+callbacks are recording mocks; this is not a live camera/playback test.
+Unrelated helpers retained by the source's locator-registration initializer
+have fail-fast mocks. Target/native builds and all five repository checks
+pass.

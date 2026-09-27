@@ -18,6 +18,7 @@
 #include "legoapi/menus/core/gamehint.h"
 #include "legoapi/world/world.h"
 #include "nu2api/nu3d/nurndr.h"
+#include "nu2api/nu3d/nurndrstat.h"
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nutrig.h"
@@ -31,6 +32,15 @@ i32 SuperWeirdo(GameObject_s *);
 i32 GizForce_StoodOnForce(GIZFORCE_s *, GameObject_s *);
 EXPLOSION *AddExplosion(NUVEC *, f32, f32, GameObject_s *, i32, i32);
 extern "C" void PlaySfxAndSetVolume(char *, NUVEC *, f32);
+
+TouchHacks::TintStack::TintStack() {
+    ambient = NuRndrLightingStateCurrent.ambient;
+}
+
+TouchHacks::TintStack::~TintStack() {
+    NuRndrLightingStateCurrent.ambient = ambient;
+    NuRndrSetAmbientLightPS(&ambient);
+}
 
 NUCOLOUR3 flashCol = {2.0f, 2.0f, 2.0f};
 bool TouchHacks::TouchControlsActive;

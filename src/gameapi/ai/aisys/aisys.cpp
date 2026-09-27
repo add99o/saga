@@ -7219,7 +7219,7 @@ extern "C" {
         {"CnxController", Action_CnxController, 0, 0, 0},
         {"CnxHelper", Action_CnxHelper, 0, 0, 0},
         {"PlaySfx", Action_PlaySfx, 0, 0, 0},
-        {"CameraCut", NULL, 1, 0, 0},
+        {"CameraCut", Action_CameraCut, 1, 0, 0},
         {"DynamicCameraCut", NULL, 1, 0, 0},
         {"EndCameraCut", Action_EndCameraCut, 1, 0, 0},
         {"DontRaycastLOS", Action_DontRaycastLOS, 0, 0, 0},

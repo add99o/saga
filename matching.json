@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.85053,
+    "fuzzy_match_percent": 64.90264,
     "total_code": "4722419",
-    "matched_code": "519351",
-    "matched_code_percent": 10.997562,
+    "matched_code": "519614",
+    "matched_code_percent": 11.003132,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6241,
-    "matched_functions_percent": 46.37046,
+    "matched_functions": 6247,
+    "matched_functions_percent": 46.415035,
     "total_units": 1
   },
   "text": {
@@ -23925,7 +23925,7 @@
           "address": 1638160,
           "offset": 748192,
           "size": 222,
-          "match_percent": 92.47619
+          "match_percent": 92.39683
         },
         {
           "name": "_ZL19Action_TurnOnPickupP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -36629,6 +36629,14 @@
           "match_percent": 99.97222
         },
         {
+          "name": "_Z13NuWindFreeGrpP11NuWindGType",
+          "demangled_name": "NuWindFreeGrp(NuWindGType*)",
+          "address": 3171503,
+          "offset": 2281535,
+          "size": 20,
+          "match_percent": 100.0
+        },
+        {
           "name": "NuWindCreateMtx",
           "demangled_name": "NuWindCreateMtx",
           "address": 3171523,
@@ -38341,6 +38349,38 @@
           "match_percent": 55.04032
         },
         {
+          "name": "_ZN10TouchHacks9TintStackC1Ev",
+          "demangled_name": "TouchHacks::TintStack::TintStack()",
+          "address": 4509680,
+          "offset": 3619712,
+          "size": 40,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackC2Ev",
+          "demangled_name": "TouchHacks::TintStack::TintStack()",
+          "address": 4509680,
+          "offset": 3619712,
+          "size": 40,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackD1Ev",
+          "demangled_name": "TouchHacks::TintStack::~TintStack()",
+          "address": 4509728,
+          "offset": 3619760,
+          "size": 56,
+          "match_percent": 100.0
+        },
+        {
+          "name": "_ZN10TouchHacks9TintStackD2Ev",
+          "demangled_name": "TouchHacks::TintStack::~TintStack()",
+          "address": 4509728,
+          "offset": 3619760,
+          "size": 56,
+          "match_percent": 100.0
+        },
+        {
           "name": "_ZN10TouchHacks11ShouldFlashEf",
           "demangled_name": "TouchHacks::ShouldFlash(float)",
           "address": 4509792,
@@ -38967,45 +39007,6 @@
           "offset": 4525472,
           "size": 74,
           "match_percent": 100.0
-        }
-      ]
-    },
-    {
-      "name": "gamelib/util/gamelib_util_misc.cpp.o",
-      "source": "src/gamelib/util/gamelib_util_misc.cpp",
-      "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_gamelib/gamelib_util_misc.o",
-      "functions": [
-        {
-          "name": "_ZN10TouchHacks9TintStackC1Ev",
-          "demangled_name": "TouchHacks::TintStack::TintStack()",
-          "address": 4509680,
-          "offset": 3619712,
-          "size": 40,
-          "match_percent": 45.846153
-        },
-        {
-          "name": "_ZN10TouchHacks9TintStackC2Ev",
-          "demangled_name": "TouchHacks::TintStack::TintStack()",
-          "address": 4509680,
-          "offset": 3619712,
-          "size": 40,
-          "match_percent": 45.846153
-        },
-        {
-          "name": "_ZN10TouchHacks9TintStackD1Ev",
-          "demangled_name": "TouchHacks::TintStack::~TintStack()",
-          "address": 4509728,
-          "offset": 3619760,
-          "size": 56,
-          "match_percent": 26.470589
-        },
-        {
-          "name": "_ZN10TouchHacks9TintStackD2Ev",
-          "demangled_name": "TouchHacks::TintStack::~TintStack()",
-          "address": 4509728,
-          "offset": 3619760,
-          "size": 56,
-          "match_percent": 26.470589
         }
       ]
     },
@@ -54252,7 +54253,7 @@
           "address": 1705520,
           "offset": 815552,
           "size": 3808,
-          "match_percent": 92.61613
+          "match_percent": 92.80866
         },
         {
           "name": "_Z16Action_CameraCutP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -54260,7 +54261,7 @@
           "address": 1709328,
           "offset": 819360,
           "size": 2451,
-          "match_percent": 0.833333
+          "match_percent": 82.43229
         },
         {
           "name": "_Z21Action_BoulderSectionP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -97991,7 +97992,7 @@
           "address": 2746288,
           "offset": 1856320,
           "size": 2449,
-          "match_percent": 26.419777
+          "match_percent": 27.199627
         },
         {
           "name": "_Z29NuIOS_CopyBackbufferToTextureP13nunativetex_sb",
@@ -98082,14 +98083,6 @@
           "match_percent": 40.229393
         },
         {
-          "name": "_Z13NuWindFreeGrpP11NuWindGType",
-          "demangled_name": "NuWindFreeGrp(NuWindGType*)",
-          "address": 3171503,
-          "offset": 2281535,
-          "size": 20,
-          "match_percent": 54.875
-        },
-        {
           "name": "_Z25NuIOS_GetShaderProgramKeyRK15ShaderObjectKey",
           "demangled_name": "NuIOS_GetShaderProgramKey(ShaderObjectKey const&)",
           "address": 3201424,
@@ -98143,7 +98136,7 @@
           "address": 4424288,
           "offset": 3534320,
           "size": 937,
-          "match_percent": 15.3125
+          "match_percent": 44.898438
         },
         {
           "name": "_Z7NuATanff",
@@ -99848,14 +99841,6 @@
           "offset": 1642062,
           "size": 27,
           "match_percent": 66.0
-        },
-        {
-          "name": "NuPtrBlockRead",
-          "demangled_name": "NuPtrBlockRead",
-          "address": 2542854,
-          "offset": 1652886,
-          "size": 51,
-          "match_percent": 54.294117
         },
         {
           "name": "NuPad_Interface_TouchScreenInput",
@@ -104427,6 +104412,14 @@
       "source": "src/nu2api/nucore/nuptrblock.cpp",
       "object": "bazel-out/k8-fastbuild/bin/src/_objs/saga_target_nu2api/nuptrblock.o",
       "functions": [
+        {
+          "name": "NuPtrBlockRead",
+          "demangled_name": "NuPtrBlockRead",
+          "address": 2542854,
+          "offset": 1652886,
+          "size": 51,
+          "match_percent": 100.0
+        },
         {
           "name": "NuPtrBlockFix",
           "demangled_name": "NuPtrBlockFix",
@@ -127525,7 +127518,7 @@
     }
   ],
   "summary": {
-    "bazel_units": 453,
+    "bazel_units": 452,
     "functions": 13454,
     "assigned_functions": 12663,
     "ambiguous_functions": 238,

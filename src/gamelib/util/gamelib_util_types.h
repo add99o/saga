@@ -7,6 +7,7 @@
 #include "gamelib/util/CRC16.h"
 #include "gameapi/edtools/edfile.h"
 #include "gameapi/edtools/EdObjectNotifier.h"
+#include "nu2api/nu3d/nurndr.h"
 #include <stddef.h>
 #include <string.h>
 
@@ -674,7 +675,7 @@ struct TouchHacks {
     static bool TouchControlsActive;
 
     struct TintStack {
-        float ambient[3];
+        NUCOLOUR3 ambient;
 
         TintStack();
         ~TintStack();

@@ -87,12 +87,6 @@ void NuErrorPrint(char *message) {
     printf("%s", message);
 }
 
-void NuWindFreeGrp(NuWindGType *group) {
-    if (group != NULL) {
-        group->in_use = 0;
-    }
-}
-
 void NuWarningPrint(char *message) {
     printf("%s", message);
 }
@@ -417,11 +411,22 @@ void NuGCutCharAnimProcess_3(NUGCUTCHAR_s *character, f32 frame, NUMTX *matrix, 
                              f32 *animation_rate, f32 *blend_time, f32 *animation_start_frame, i32 *layer_mask) {
     ani3_animheader_s *animation = reinterpret_cast<ani3_animheader_s *>(character->animation);
     f32 *values = NuAnimCurveExtractAllNodeCurves_3(animation, 0, frame, NULL);
+    const u8 node_flags = animation->node_flags[0];
     const u16 curve_count = animation->curve_count;
 
-    *visible = curve_count < 7 ? character->flags & 1 : GetIntCurveVal(animation, values, 6);
+    if (curve_count > 6) {
+        const f32 value = values[6];
+        *visible = static_cast<i32>(value < 0.0f ? value - 0.5f : value + 0.5f);
+    } else {
+        *visible = character->flags & 1;
+    }
     if (animation_index != NULL) {
-        *animation_index = curve_count < 8 ? character->animation_index : GetIntCurveVal(animation, values, 7);
+        if (curve_count > 7) {
+            const f32 value = values[7];
+            *animation_index = static_cast<i32>(value < 0.0f ? value - 0.5f : value + 0.5f);
+        } else {
+            *animation_index = character->animation_index;
+        }
     }
     if (animation_start_frame != NULL) {
         if (animation_index != NULL && *animation_index != 0 && *animation_index != 0xff) {
@@ -437,7 +442,7 @@ void NuGCutCharAnimProcess_3(NUGCUTCHAR_s *character, f32 frame, NUMTX *matrix, 
         *layer_mask = curve_count < 12 ? -1 : GetIntCurveVal(animation, values, 11);
     }
 
-    if ((animation->node_flags[0] & NUANIM_NODE_HAS_ROTATION) != 0) {
+    if ((node_flags & NUANIM_NODE_HAS_ROTATION) != 0) {
         NUANGVEC rotation = {
             static_cast<NUANG>(values[3] * 10430.378f),
             static_cast<NUANG>(values[4] * 10430.378f),
@@ -455,13 +460,14 @@ void NuGCutCharAnimProcess_3(NUGCUTCHAR_s *character, f32 frame, NUMTX *matrix, 
     matrix->m23 = -matrix->m23;
     matrix->m32 = -matrix->m32;
 
-    NUVEC scale = NuMtxGetScale(&character->base_matrix);
+    NUVEC scale;
+    scale = NuMtxGetScale(&character->base_matrix);
     NuMtxPreScale(matrix, &scale);
     if (animation_rate != NULL) {
-        *animation_rate = curve_count < 10 ? character->animation_rate : values[9];
+        *animation_rate = animation->curve_count < 10 ? character->animation_rate : values[9];
     }
     if (blend_time != NULL) {
-        *blend_time = curve_count < 9 ? static_cast<f32>(character->blend_time) : values[8];
+        *blend_time = animation->curve_count < 9 ? static_cast<f32>(character->blend_time) : values[8];
     }
 }
 

@@ -30,6 +30,11 @@ DECOMP_ASSERT(sizeof(NuWindGType) == 0x4c, "wind group size");
 DECOMP_ASSERT(__builtin_offsetof(NuWindGType, matrices) == 0x0c, "wind matrices offset");
 DECOMP_ASSERT(__builtin_offsetof(NuWindGType, matrix_count) == 0x1e, "wind matrix count offset");
 
+#ifdef __cplusplus
+NuWindGType *NuWindAllocateGrp();
+void NuWindFreeGrp(NuWindGType *group);
+#endif
+
 typedef struct nuwind_s {
     i32 unk0[8];
     i32 unk1;
