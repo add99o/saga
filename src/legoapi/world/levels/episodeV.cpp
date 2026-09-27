@@ -64,6 +64,9 @@ void PartCollide_3D(PART_s *);
 void ResetTrooperCannons(WORLDINFO_s *, i32);
 void InitTrooperCannons(WORLDINFO_s *);
 void HothBattleE_UpdateWave();
+i32 HothBattle_StartNewWave();
+extern "C" void PlaySfxAndSetPitch(char *, NUVEC *, f32);
+extern "C" AIANTINODE_s *AIAntinodeCreateSingleFrame(NUVEC *, f32);
 void HothBattle_Melee_init(HOTHBATTLE_MELEE_s *);
 void HothBattle_ManageBackgroundCreatures();
 i32 SpawnMeleeCreatureType(i32);
@@ -953,7 +956,92 @@ void CloudCityEscapeA_Reset(WORLDINFO_s *world) {
 }
 
 void HothBattleE_UpdateWave() {
-    STUBBED();
+    if (melee.field_0x0 != melee.field_0x1) {
+        if (melee.field_0x4 == -1) {
+            f32 &delay = *reinterpret_cast<f32 *>(&melee.waves[0].field_0x0);
+            if (delay < 5.0f) {
+                if (melee.field_0x4 != 1)
+                    delay += FRAMETIME;
+                return;
+            }
+            if (melee.field_0x1 == 5) {
+                memset(reinterpret_cast<u8 *>(&melee) + 0xc, 0, sizeof(melee) - 0xc);
+                if (FreePlay != 0)
+                    CompleteLevel(WORLD);
+                else
+                    GoToNewLevel(HOTHBATTLEOUTRO_LDATA->idx);
+                return;
+            }
+            delay = 0.0f;
+            for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
+                GameObject_s *object = &Obj[index];
+                if ((object->apiobj.field_0x1f8 & 0x1001) == 0x1001 && object->apiobj.field_0x27c == -1 &&
+                    (object->apiobj.character_data->model_flags & 4) != 0 && object->id != id_ATAT)
+                    KillGameObject(object, 4, 0);
+            }
+            memset(melee.background_creatures, 0, sizeof(melee.background_creatures));
+            char state_name[32];
+            sprintf(state_name, g_lowEndLevelBehaviour != 0 ? "CamCutLow_%d" : "CamCut_%d", melee.field_0x1);
+            if (AIScriptSetBaseScriptStateByName(&WORLD->processors[0].processor, state_name) != 0)
+                AIScriptProcess(WORLD->ai_sys, NULL, NULL, &WORLD->processors[0].processor, FRAMETIME);
+            melee.field_0x4 = 0;
+            melee.field_0x2 = 1;
+        } else if (melee.field_0x4 == 0 && MiniCutCam != 0) {
+            melee.field_0x4 = 1;
+        } else if (melee.field_0x4 > 0 && MiniCutCam == 0) {
+            if (melee.field_0x4 == 1) {
+                for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
+                    GameObject_s *object = &Obj[index];
+                    if ((object->apiobj.field_0x1f8 & 0x1001) == 0x1001 && object->apiobj.field_0x27c == -1 &&
+                        (object->apiobj.character_data->model_flags & 4) != 0 && object->id != id_ATAT)
+                        KillGameObject(object, 4, 0);
+                }
+                memset(melee.background_creatures, 0, sizeof(melee.background_creatures));
+                melee.field_0x4 = 2;
+            }
+            if (HothBattle_StartNewWave() != 0) {
+                melee.field_0x4 = -1;
+                melee.field_0x0 = melee.field_0x1;
+            }
+        }
+    }
+
+    for (i32 type = 0; type < melee.creature_count; ++type)
+        SpawnMeleeCreatureType(type);
+    HothBattle_ManageBackgroundCreatures();
+
+    if (melee.field_0x0 == 3 && melee.waves[0].creatures[0] != NULL && melee.waves[0].creatures[1] != NULL) {
+        GameObject_s *first = melee.waves[0].creatures[0];
+        GameObject_s *second = melee.waves[0].creatures[1];
+        AIANTINODE_s *node = AIAntinodeCreateSingleFrame(&first->apiobj.position, 3.0f * second->apiobj.field_0x1dc);
+        node->excluded_character_types = ~((u64)1 << second->apiobj.field_0x289);
+        node = AIAntinodeCreateSingleFrame(&second->apiobj.position, 3.0f * first->apiobj.field_0x1dc);
+        node->excluded_character_types = ~((u64)1 << first->apiobj.field_0x289);
+    }
+
+    i32 any_alive = 0;
+    for (i32 type = 0; type < 4; ++type) {
+        HOTHBATTLE_MELEE_WAVE_s &wave = melee.waves[type];
+        i32 alive = 0;
+        for (i32 index = 0; index < 4; ++index) {
+            GameObject_s *creature = wave.creatures[index];
+            if (creature == NULL)
+                continue;
+            if ((creature->apiobj.flags_high & 0x10) == 0 || creature->apiobj.field_0x287 != 0) {
+                wave.creatures[index] = NULL;
+                --wave.field_0x18;
+                --wave.reserved_1a;
+                PlaySfxAndSetPitch("TrueJedi_100pc", NULL, 1.5f);
+            } else {
+                ++alive;
+            }
+        }
+        wave.reserved_1a = static_cast<u8>(alive);
+        if (wave.field_0x18 != 0)
+            any_alive = 1;
+    }
+    if (any_alive == 0 && MiniCutCam == 0 && melee.field_0x0 == melee.field_0x1)
+        ++melee.field_0x1;
 }
 
 void CloudCityEscapeA_Update(WORLDINFO_s *) {
