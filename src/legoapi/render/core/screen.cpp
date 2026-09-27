@@ -14,6 +14,7 @@
 #include "gamelib/util/gamelib_util_types.h"
 #include "nu2api/nu3d/nucamera.h"
 #include "nu2api/nu3d/numtl.h"
+#include "nu2api/nu3d/nuprim_internal.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nurndrstat.h"
@@ -34,7 +35,31 @@ struct nunativegscene_s;
 struct SHOPINPUT;
 
 void ClearScreen() {
-    STUBBED();
+    ++NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NUPRIM_SCALEMODE_NORMALISED);
+    NuPrim2DBegin(1, 7, NULL);
+
+#define CLEAR_VERTEX(X, Y, U, V, HU, HV)                                                                               \
+    do {                                                                                                                \
+        PrimVertexRaw *vertex = static_cast<PrimVertexRaw *>(g_NuPrim_StreamBufferPtr->void_ptr);                        \
+        vertex->color = 0x80000000;                                                                                     \
+        if (g_NuPrim_NeedsHalfUVs != 0) {                                                                                \
+            vertex->half_uv[0] = HU;                                                                                    \
+            vertex->half_uv[1] = HV;                                                                                    \
+        } else {                                                                                                        \
+            vertex->float_uv[0] = U;                                                                                    \
+            vertex->float_uv[1] = V;                                                                                    \
+        }                                                                                                               \
+        NuPrim2DAddXYZ(X, Y, 0.0f);                                                                                     \
+    } while (0)
+    CLEAR_VERTEX(-1.0f, -1.0f, 0.0f, 0.0f, 0, 0);
+    CLEAR_VERTEX(1.0f, -1.0f, 1.0f, 0.0f, 0x3c00, 0);
+    CLEAR_VERTEX(-1.0f, 1.0f, 0.0f, 1.0f, 0, 0x3c00);
+    CLEAR_VERTEX(1.0f, 1.0f, 1.0f, 1.0f, 0x3c00, 0x3c00);
+#undef CLEAR_VERTEX
+    NuPrim2DEnd();
+    --NuPrimCSPos;
+    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
 }
 
 void RenderQuads(i16 *) {
