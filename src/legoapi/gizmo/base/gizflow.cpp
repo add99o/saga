@@ -539,19 +539,12 @@ void GizmoSysStoreProgress(GIZMOSYS_s *system, void *world, i32 progress_index) 
         return;
     GIZMOTYPE *type = gizmotypes->types;
     GIZMOSET *set = system->sets;
-    if (progress_index < 0) {
-        for (i32 i = 0; i < gizmotypes->count; ++i, ++type, ++set) {
-            if (type->fns.store_progress_fn != NULL)
-                type->fns.store_progress_fn(world, set->unknown, NULL);
-        }
-        return;
-    }
     for (i32 i = 0; i < gizmotypes->count; ++i, ++type, ++set) {
         if (type->fns.store_progress_fn != NULL) {
-            void *progress = NULL;
-            if (type->buffer != NULL)
-                progress = type->buffer[progress_index].void_ptr;
-            type->fns.store_progress_fn(world, set->unknown, progress);
+            if (progress_index < 0 || type->buffer == NULL)
+                type->fns.store_progress_fn(world, set->unknown, NULL);
+            else
+                type->fns.store_progress_fn(world, set->unknown, type->buffer[progress_index].void_ptr);
         }
     }
 }

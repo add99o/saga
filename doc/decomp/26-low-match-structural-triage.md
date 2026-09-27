@@ -4796,3 +4796,61 @@ it does not claim that the real variadic font renderer accepts null labels.
 Graphics/font services are mocks, and screen/font conversions are tested
 within their valid integer ranges. Target/native builds and all five
 repository checks pass; no GPU or visual integration is claimed.
+
+## Batch 92: gizmo progress loop structure
+
+Audit the complete 317-byte `GizmoSysStoreProgress` at `0x4af9e0`. The
+existing behavior is correct, but separate hand-written negative/nonnegative
+loops obscure the common count gate and compiler-generated loop split.
+Express one logical iteration over the captured type/set arrays, retaining
+the live registry count, initial clear callback, null gates and per-iteration
+function/buffer/data loads. Keep the source's existing `-O3` mode and ABI.
+
+Two bounded source forms were tested. A nullable argument with one call
+reaches **20.505%** in isolation; explicit null/data call branches reach
+**24.588%** and are retained. GCC performs the invariant loop split itself.
+The linked score improves **5.443299% to 24.793814%**, raising overall fuzzy
+matching **65.103430% to 65.104720%**, with no other score changes. Do not
+chase the remaining cold-block/register placement with compiler hints.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**91,504 dispatch/callback cases**. Coverage includes all eight-slot callback
+masks, null/mixed/full progress buffers, negative indices including `INT_MIN`,
+all four fixture progress slots, signed counts, null system/registry gates,
+clear/store ordering and callback mutations of registry/count/type/set/buffer
+state. Complete traces and resulting state are compared. Clear/store services
+are fixtures; unrelated parser-table dependencies retained by ASan use
+fail-fast mocks. Target/native builds and all five repository checks pass.
+
+## Batch 93: pursuit timer and traffic comparison corrections
+
+Audit all three pursuit A/B/C update bodies. Retail doubles `FRAMETIME`
+before adding the arrow timer; `(timer + frame) + frame` is not equivalent
+for floating-point rounding, overflow or nonfinite values. Use
+`(frame + frame) + timer` in all three handlers, preserving the existing
+NaN-retaining upper clamp, pause/fade gates and remainder callback order.
+The C traffic branch selects side +1 whenever the strict greater-than test
+is false, including unordered values. Express that predicate directly rather
+than substituting `<=`, which incorrectly selects side -1 for NaNs.
+
+Four source-line corrections, with no ownership/ABI/optimization changes,
+improve linked scores:
+
+- A: **83.777780% to 84.333336%**;
+- B: **60.984375% to 64.031250%**;
+- C: **4.802084% to 20.864584%**.
+
+Overall fuzzy matching rises **65.104720% to 65.106340%**; no other scores
+change and no exact matches are lost. The separate original pursuit TU and
+private arrow-helper clone remain ownership work, not an invitation to add
+calling-convention or optimization attributes.
+
+NDK x86 and full-global 64-bit ASan/UBSan/float-cast-overflow each pass
+**324,880 timer/traffic cases**. Tests cover every gate combination, threshold
+neighbors, signed zero, infinities/NaNs, 10,000 random float-bit pairs, every
+signed side/direction byte, negative/zero/one/94/95 entry counts, null player/
+traffic, callback rebinding and complete traffic memory images. The remainder
+service records its inputs and suppresses arrow submission; no new validation
+of the unchanged arrow renderer is claimed. Six unrelated character-ID globals
+have fixture storage for retained ASan tables. Target/native builds and all
+five repository checks pass; no gameplay or visual run is claimed.
