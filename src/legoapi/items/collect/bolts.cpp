@@ -1580,8 +1580,12 @@ int ReleaseHearts();
 #else
 #define STARFIGHTER_COLLIDE_CALL
 #endif
-static __used__ STARFIGHTER_COLLIDE_CALL i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter, _vuv_s *first,
-                                                                    _vuv_s *second) {
+STARFIGHTER_COLLIDE_CALL
+    i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter, _vuv_s *first,
+                               _vuv_s *second) __asm__("_ZL22CollideBoltStarFighterP6BOLT_sP13starfighter_sP6_vuv_sS4_")
+        __attribute__((visibility("hidden")));
+STARFIGHTER_COLLIDE_CALL i32 CollideBoltStarFighter(BOLT_s *bolt, starfighter_s *fighter, _vuv_s *first,
+                                                    _vuv_s *second) {
     u8 *fighter_data = reinterpret_cast<u8 *>(fighter);
     NUVEC *first_position = reinterpret_cast<NUVEC *>(first);
     NUVEC *second_position = reinterpret_cast<NUVEC *>(second);

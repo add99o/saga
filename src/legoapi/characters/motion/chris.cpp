@@ -505,8 +505,8 @@ void ChrisAllocLevelStuff(WORLDINFO_s *world) {
     i32 *has_chris_data = reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(world) + 0x511c);
     *has_chris_data = 1;
     if (world->current_level == DOGFIGHTA_LDATA) {
-        spacelevel_s *space = static_cast<spacelevel_s *>(GameBufferAlloc(&world->giz_buffer, &world->unknown_0108,
-                                                                          0x63ef4));
+        spacelevel_s *space =
+            static_cast<spacelevel_s *>(GameBufferAlloc(&world->giz_buffer, &world->unknown_0108, 0x63ef4));
         world->space_level = space;
         space->reset_buffer = reinterpret_cast<u8 *>(space) + 0x5ce90;
         space->reset_buffer_count = 0x100;
@@ -527,10 +527,70 @@ i32 DidBoltHitChrisJobby(WORLDINFO_s *, BOLT_s *) {
     return 0;
 }
 
-i32 ChrisExtraBoltCollision(BOLT_s *, nuvec_s *) {
-    STUBBED();
+// The collision helper uses the original local symbol name so callers in
+// other translation units can share the same implementation.
+#if defined(__i386__) && defined(__SSE__)
+#define CHRIS_STARFIGHTER_COLLIDE_CALL __attribute__((regparm(2), sseregparm, force_align_arg_pointer))
+#else
+#define CHRIS_STARFIGHTER_COLLIDE_CALL
+#endif
+CHRIS_STARFIGHTER_COLLIDE_CALL i32 CollideBoltStarFighter(BOLT_s *, starfighter_s *, _vuv_s *, _vuv_s *) __asm__(
+    "_ZL22CollideBoltStarFighterP6BOLT_sP13starfighter_sP6_vuv_sS4_") __attribute__((visibility("hidden")));
+
+__attribute__((force_align_arg_pointer)) i32 ChrisExtraBoltCollision(BOLT_s *bolt, nuvec_s *points) {
+    WORLDINFO_s *world = WORLD;
+    if (*reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(world) + 0x511c) == 0 || world->space_level == NULL ||
+        (bolt->flags & 3) == 0)
+        return 0;
+
+    _vuv_s second;
+    _vuv_s first;
+    memcpy(&first, &points[1], sizeof(NUVEC));
+    memcpy(&second, &bolt->velocity, sizeof(NUVEC));
+
+    spacelevel_s *space = world->space_level;
+#define CHRIS_CHECK_FIGHTER(fighter)                                                                                   \
+    do {                                                                                                               \
+        if ((fighter).reset_timer != 0 &&                                                                              \
+            CollideBoltStarFighter(bolt, reinterpret_cast<starfighter_s *>(&(fighter)), &first, &second) != 0)         \
+            return 1;                                                                                                  \
+    } while (0)
+#define CHRIS_CHECK_GROUP(index)                                                                                       \
+    do {                                                                                                               \
+        spacelevel_fighter_group_s *group = &space->fighter_groups[index];                                             \
+        if (group->trooper_team.reset_effect != 0) {                                                                   \
+            CHRIS_CHECK_FIGHTER(group->fighters[0]);                                                                   \
+            CHRIS_CHECK_FIGHTER(group->fighters[1]);                                                                   \
+            CHRIS_CHECK_FIGHTER(group->fighters[2]);                                                                   \
+            CHRIS_CHECK_FIGHTER(group->fighters[3]);                                                                   \
+            CHRIS_CHECK_FIGHTER(group->trooper_team);                                                                  \
+        }                                                                                                              \
+    } while (0)
+    CHRIS_CHECK_GROUP(0);
+    CHRIS_CHECK_GROUP(1);
+    CHRIS_CHECK_GROUP(2);
+    CHRIS_CHECK_GROUP(3);
+    CHRIS_CHECK_GROUP(4);
+    CHRIS_CHECK_GROUP(5);
+    CHRIS_CHECK_GROUP(6);
+#undef CHRIS_CHECK_GROUP
+    if (space->last_starfighter.reset_effect != 0) {
+        CHRIS_CHECK_FIGHTER(space->final_fighters[0]);
+        CHRIS_CHECK_FIGHTER(space->final_fighters[1]);
+        CHRIS_CHECK_FIGHTER(space->final_fighters[2]);
+        CHRIS_CHECK_FIGHTER(space->final_fighters[3]);
+        CHRIS_CHECK_FIGHTER(space->last_starfighter);
+    }
+#undef CHRIS_CHECK_FIGHTER
+    for (i32 i = 0; i < 96; ++i) {
+        spacelevel_starfighter_s *fighter = &space->queued_starfighters[i];
+        if (fighter->reset_state != 0 &&
+            CollideBoltStarFighter(bolt, reinterpret_cast<starfighter_s *>(fighter), &first, &second) != 0)
+            return 1;
+    }
     return 0;
 }
+#undef CHRIS_STARFIGHTER_COLLIDE_CALL
 
 void ChrisGetSpaceShipMatrix(GameObject_s *object, numtx_s *matrix) {
     *matrix = object->apiobj.field_0xb8;
