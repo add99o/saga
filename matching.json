@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.30748,
+    "fuzzy_match_percent": 65.31637,
     "total_code": "4722419",
-    "matched_code": "526255",
-    "matched_code_percent": 11.143759,
+    "matched_code": "527088",
+    "matched_code_percent": 11.161398,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6341,
-    "matched_functions_percent": 47.113453,
+    "matched_functions": 6351,
+    "matched_functions_percent": 47.187756,
     "total_units": 1
   },
   "text": {
@@ -31236,7 +31236,7 @@
           "address": 5614688,
           "offset": 4724720,
           "size": 63,
-          "match_percent": 99.9375
+          "match_percent": 100.0
         },
         {
           "name": "_ZN12EdBitControlD0Ev",
@@ -31244,7 +31244,7 @@
           "address": 5614752,
           "offset": 4724784,
           "size": 63,
-          "match_percent": 99.9375
+          "match_percent": 100.0
         },
         {
           "name": "_ZN15EdStringControlD0Ev",
@@ -31284,7 +31284,7 @@
           "address": 5615136,
           "offset": 4725168,
           "size": 63,
-          "match_percent": 99.9375
+          "match_percent": 100.0
         },
         {
           "name": "_ZN14EdValueControlIfED0Ev",
@@ -46104,7 +46104,7 @@
           "address": 1287776,
           "offset": 397808,
           "size": 200,
-          "match_percent": 94.41509
+          "match_percent": 94.69811
         },
         {
           "name": "_Z12GetHoverPosYP12GameObject_s",
@@ -46184,7 +46184,7 @@
           "address": 4555200,
           "offset": 3665232,
           "size": 140,
-          "match_percent": 99.583336
+          "match_percent": 100.0
         },
         {
           "name": "_Z28PlayerButton_OnHold_CallbackR18MechTouchUIElementR11TouchHolder",
@@ -46224,7 +46224,7 @@
           "address": 4632336,
           "offset": 3742368,
           "size": 59,
-          "match_percent": 96.17647
+          "match_percent": 100.0
         },
         {
           "name": "_Z18Players_AveragePosP7nuvec_sP14SOCKPOSITION_s",
@@ -46240,7 +46240,7 @@
           "address": 4632784,
           "offset": 3742816,
           "size": 126,
-          "match_percent": 56.13158
+          "match_percent": 62.342106
         },
         {
           "name": "_Z19Player_ClearContextP12GameObject_si",
@@ -46296,7 +46296,7 @@
           "address": 4640976,
           "offset": 3751008,
           "size": 105,
-          "match_percent": 44.142857
+          "match_percent": 99.96429
         },
         {
           "name": "_Z19Player_HasFastBuildP12GameObject_s",
@@ -46312,7 +46312,7 @@
           "address": 4641200,
           "offset": 3751232,
           "size": 105,
-          "match_percent": 44.142857
+          "match_percent": 99.96429
         },
         {
           "name": "_Z26Player_HasDoubleBoltDamageP12GameObject_s",
@@ -46320,7 +46320,7 @@
           "address": 4641312,
           "offset": 3751344,
           "size": 105,
-          "match_percent": 44.142857
+          "match_percent": 99.96429
         },
         {
           "name": "_Z35Player_HasDoubleBoltDamage_FromBoltP6BOLT_s",
@@ -46336,7 +46336,7 @@
           "address": 4641520,
           "offset": 3751552,
           "size": 105,
-          "match_percent": 33.42857
+          "match_percent": 99.96429
         },
         {
           "name": "_Z16SetToLastSafePosP12GameObject_s",
@@ -46352,7 +46352,7 @@
           "address": 4644192,
           "offset": 3754224,
           "size": 41,
-          "match_percent": 62.916668
+          "match_percent": 100.0
         },
         {
           "name": "_Z24CutScenePlayer_Availablev",
@@ -50767,7 +50767,7 @@
           "address": 4828048,
           "offset": 3938080,
           "size": 67,
-          "match_percent": 61.666668
+          "match_percent": 99.94444
         },
         {
           "name": "_ZL11CS_nearclipP8nufpar_s",
@@ -78870,7 +78870,7 @@
           "address": 3473600,
           "offset": 2583632,
           "size": 58,
-          "match_percent": 73.21429
+          "match_percent": 100.0
         },
         {
           "name": "DebrisSetTrigger",
@@ -78902,7 +78902,7 @@
           "address": 3473888,
           "offset": 2583920,
           "size": 115,
-          "match_percent": 53.08108
+          "match_percent": 61.864864
         },
         {
           "name": "DebrisSetDrawFlag",
@@ -78934,7 +78934,7 @@
           "address": 3475280,
           "offset": 2585312,
           "size": 130,
-          "match_percent": 83.65116
+          "match_percent": 100.0
         },
         {
           "name": "DebFreeAllCreatedEffects",
@@ -78942,7 +78942,7 @@
           "address": 3475424,
           "offset": 2585456,
           "size": 136,
-          "match_percent": 58.69091
+          "match_percent": 100.0
         },
         {
           "name": "DebrisPopulateInstance",
@@ -79366,7 +79366,7 @@
           "address": 3708928,
           "offset": 2818960,
           "size": 80,
-          "match_percent": 76.875
+          "match_percent": 100.0
         },
         {
           "name": "DeletePlatinst",

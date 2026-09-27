@@ -224,11 +224,8 @@ static void CS_blobshadow_fadenear(NUFPAR *fp) {
 
 static void CS_blobshadow_alpha(NUFPAR *fp) {
     i32 alpha = NuFParGetInt(fp);
-    if (alpha < 0) {
-        alpha = 0;
-    } else if (alpha > 0xfe) {
-        alpha = 0xfe;
-    }
+    alpha = alpha >= 0 ? alpha : 0;
+    alpha = alpha <= 0xfe ? alpha : 0xfe;
     CS_CutInfo->blob_shadow_alpha = static_cast<u8>(alpha);
 }
 
@@ -2508,9 +2505,9 @@ static __used__ void CutScene_OverrideConfigFileName_LSW(char *filename, int, in
     }
     char *suffix = filename + NuStrLen(prefix);
     if (NuStrICmp(suffix, "arrival1") == 0 || NuStrICmp(suffix, "arrival2") == 0 ||
-        NuStrICmp(suffix, "arrival3") == 0 || NuStrICmp(suffix, "arrival4") == 0 ||
-        NuStrICmp(suffix, "intro") == 0 || NuStrICmp(suffix, "tuskenraiders") == 0 ||
-        NuStrICmp(suffix, "outro1") == 0 || NuStrICmp(suffix, "outro2") == 0) {
+        NuStrICmp(suffix, "arrival3") == 0 || NuStrICmp(suffix, "arrival4") == 0 || NuStrICmp(suffix, "intro") == 0 ||
+        NuStrICmp(suffix, "tuskenraiders") == 0 || NuStrICmp(suffix, "outro1") == 0 ||
+        NuStrICmp(suffix, "outro2") == 0) {
         NuStrCat(filename, "_sprint");
     }
 }
