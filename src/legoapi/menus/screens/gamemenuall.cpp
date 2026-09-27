@@ -17,6 +17,7 @@
 #include "legoapi/menus/screens/gamestructure.h"
 #include "legoapi/world/area.h"
 #include "legoapi/world/level.h"
+#include "legoapi/world/levels/episode.h"
 #include "legoapi/world/mission.h"
 #include "legoapi/world/world.h"
 #include "legoapi/audio/audio.h"
@@ -157,6 +158,18 @@ extern "C" void Draw_CHECKINGMEMORYCARD(void);
 extern "C" void Draw_DONOTREMOVEMEMORYCARD(void);
 void Draw_OK(MENU_s *menu);
 void RenderFileSel3(i32);
+extern "C" {
+f32 FS_X = 50.0f;
+f32 FS_Y = 40.0f;
+f32 FS_W;
+f32 FS_H;
+char FS_Title[256] = "Title";
+char FS_Filter[256] = "*.nup | *.hgp   ";
+char FS_FilterOut[256] = "_PC. | _360. | _PS3.";
+extern char FS_Path[256];
+u8 FS_RefreshDir;
+void *FS_Callback;
+}
 void ProcessFileSel3(float, nupad_s *);
 
 i32 memcard_cardchanged;
@@ -779,8 +792,30 @@ void MenuEnterOptions(MENU_s *) {
     }
 }
 
+i8 lastepisodesmode;
+i8 episodesmode;
+i32 episodestime;
+f32 episodesduration;
+i8 i_episodes;
+extern void *HubStartDoor;
+
 void MenuInitEpisodes(MENU_s *) {
-    STUBBED();
+    lastepisodesmode = -1;
+    episodesmode = 0;
+    episodestime = 0;
+    episodesduration = 0.6f;
+    if (Game_AreaSave != NULL &&
+        Game_AreaSave[EDataList[i_episodes].area_ids[0]].complete == 0) {
+        i_episodes = 0;
+    }
+    if (hub_new_level != -1 && LDataList[hub_new_level].episode_index != -1) {
+        episodesmode = 2;
+        if (HubStartDoor == NULL) {
+            i_episodes = LDataList[hub_new_level].episode_index;
+        }
+    } else if (HubStartDoor != NULL) {
+        episodesmode = 2;
+    }
 }
 
 void MenuInitFreePlay(MENU_s *menu) {
@@ -2263,16 +2298,39 @@ extern "C" {
         *address = static_cast<u8 *>(new_base) + (static_cast<u8 *>(*address) - static_cast<u8 *>(old_base));
     }
 
-    void RenderFileSel2(void) {
-        STUBBED();
+    void RenderFileSel2(i32 x, i32 y, i32 *width, i32 *height) {
+        extern f32 FS_X, FS_Y, FS_W, FS_H;
+        FS_X = static_cast<f32>(x);
+        FS_Y = static_cast<f32>(y) * 0.5f;
+        RenderFileSel3(0);
+        *height = static_cast<i32>(FS_H * 2.0f);
+        *width = static_cast<i32>(FS_W);
     }
 
     void SetButtonScaleMode(i32 mode) {
         ButtonScaleMode = mode;
     }
 
-    void StartFileSel(void) {
-        STUBBED();
+    void StartFileSel(char *title, char *path, char *filter, char *filter_out, void *callback) {
+        if (title != NULL) {
+            NuStrCpy(FS_Title, title);
+        }
+        if (path != NULL) {
+            NuStrCpy(FS_Path, path);
+        }
+        if (filter != NULL) {
+            NuStrCpy(FS_Filter, filter);
+        } else {
+            FS_Filter[0] = 0;
+        }
+        if (filter_out != NULL) {
+            NuStrCpy(FS_FilterOut, filter_out);
+        } else {
+            FS_FilterOut[0] = 0;
+        }
+        FS_Active = 1;
+        FS_Callback = callback;
+        FS_RefreshDir = 2;
     }
 
     i32 UpdateMenu(u32 primary_held, u32 primary_pressed, u32 alternate_held, u32 alternate_pressed, f32 elapsed,
