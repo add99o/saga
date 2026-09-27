@@ -12,6 +12,7 @@
 #include "legoapi/characters/motion.h"
 #include "legoapi/characters/core/players.h"
 #include "legoapi/core/config/cheat.h"
+#include "legoapi/core/config/fileselect.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/menus/screens/gamemenuall.h"
 #include "legoapi/menus/screens/gamestructure.h"
@@ -151,8 +152,6 @@ extern "C" void Draw_SPACENEEDED(void);
 extern "C" void Draw_CHECKINGMEMORYCARD(void);
 extern "C" void Draw_DONOTREMOVEMEMORYCARD(void);
 void Draw_OK(MENU_s *menu);
-void RenderFileSel3(i32);
-void ProcessFileSel3(float, nupad_s *);
 
 i32 memcard_cardchanged;
 i32 MenuCardWarningState;
@@ -615,10 +614,6 @@ void MenuUpdateSave(MENU_s *menu) {
     }
 }
 
-void ProcessFileSel(float, nupad_s *) {
-    STUBBED();
-}
-
 void RenderFileSel3(i32) {
     STUBBED();
 }
@@ -759,10 +754,6 @@ void MenuUpdateHints(MENU_s *menu) {
         BackupMenu();
         MenuSFX = GameAudio_GetSfxId(0x31);
     }
-}
-
-void ProcessFileSel3(float, nupad_s *) {
-    STUBBED();
 }
 
 void MenuDrawDeleting(MENU_s *) {
@@ -2124,10 +2115,6 @@ extern "C" {
     void Draw_SPACENEEDED(void) {
     }
 
-    void FileSelKill(void) {
-        STUBBED();
-    }
-
     void FlushMenuHighlights(void) {
         STUBBED();
     }
@@ -2310,24 +2297,12 @@ extern "C" {
         GameMenuLevel = 0;
     }
 
-    void ProcessFileSel2(f32 elapsed, nupad_s *pad) {
-        ProcessFileSel3(elapsed, pad);
-    }
-
     void RemapAddr(void *new_base, void *old_base, void **address) {
         *address = static_cast<u8 *>(new_base) + (static_cast<u8 *>(*address) - static_cast<u8 *>(old_base));
     }
 
-    void RenderFileSel2(void) {
-        STUBBED();
-    }
-
     void SetButtonScaleMode(i32 mode) {
         ButtonScaleMode = mode;
-    }
-
-    void StartFileSel(void) {
-        STUBBED();
     }
 
     i32 UpdateMenu(u32 primary_held, u32 primary_pressed, u32 alternate_held, u32 alternate_pressed, f32 elapsed,

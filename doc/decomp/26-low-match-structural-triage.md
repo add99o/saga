@@ -2205,3 +2205,144 @@ owners currently use `-O2` and `-O3` respectively. Reconstruct it with a
 coherent file-selector state/header audit, including the missing byte
 flags, dimensions, filter strings, and callback, rather than layering new
 local declarations into the wrong owner. No file-selector edit is retained.
+
+## File-selector state and language ladder batch (31)
+
+Baseline: `12e6709a`. Restore the file-selector control/state family beside
+its real directory, filter, sort, cursor, and pad-repeat helpers in
+`core/config/saveload.cpp`. The new shared `fileselect.h` replaces local
+incorrect signatures in the menu unit. Live compile commands confirm the
+destination uses `-O2 -fomit-frame-pointer` and the former stub owner uses
+`-O3`; neither setting is changed. Also replace the device-language
+function's hand-written comparison lambda and early returns with the
+evidenced cached prefix-selection ladder.
+
+Linked fuzzy matching rises from **64.571270% to 64.628180%**, with six
+improvements, two small collateral regressions, **three exact matches
+gained and none lost**:
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `ProcessFileSel3(float, nupad_s*)` | 1.603% | 98.374% |
+| `StartFileSel` | 7.368% | 100% |
+| `FileSelKill` | 26.250% | 100% |
+| `ProcessFileSel(float, nupad_s*)` | 23.333% | 100% |
+| `RenderFileSel2` | 16.154% | 99.962% |
+| `NuIOS_GetDeviceLanguage` | 2.858% | 99.533% |
+| `SaveSystemInitialiseEx` | 99.987% | 99.108% |
+| `NuQFntCreate` | 56.323% | 56.058% |
+
+`ProcessFileSel2` remains at 100%, now with the correct integer result
+forwarded from `ProcessFileSel3`. Return types do not change these symbol
+names, so the former void declarations concealed an ABI error.
+`StartFileSel` takes five arguments and `RenderFileSel2` takes four, not
+the no-argument placeholder signatures.
+
+### File-selector contract
+
+Recover the actual global storage from retail symbol sizes and data:
+64-byte title and last-name buffers, 256-byte path/include/exclude buffers,
+single-byte active/refresh/volume flags, floating dimensions, and a native
+callback pointer. Initialized values are title `Title`, include filter
+`*.nup | *.hgp   ` (three trailing spaces), exclude filter
+`_PC. | _360. | _PS3.`, X 50, Y 40, and width 248. Existing file-list and
+cursor state stays in its original reconstructed owner.
+
+The processor returns zero immediately when inactive, without touching
+the pad. Refresh rebuilds the filtered directory, configures the PS2 font
+coordinate system, measures text at scale 1/16, clamps the width to a
+minimum 240 and adds an eight-unit border. It consumes the repeat helper
+once, restores the last-name cursor when nonempty, clears refresh, and
+then calls the repeat helper again for the actual input. The double call
+is intentional and changes held-input timing.
+
+Movement bits are independent and ordered: down one, up one, down 14,
+up 14, down the current file count, and up the current file count. Sort
+increments the signed mode with defined 32-bit wrapping, maps exactly
+four to zero, saves the selected name, and requests refresh mode two.
+The parent button removes one trailing backslash, truncates after the
+last remaining backslash, or appends one when none exists; it does not
+silently replace a bare path with the root. Parent and confirm can both
+execute in the same frame.
+
+Confirm handles volume and directory records separately. A volume clears
+the show-volumes byte and replaces the path. A directory named exactly
+`..` repeats the parent operation; any other directory appends its name
+with the evidenced backslash rules. These paths request refresh one and
+clear the remembered name. Every other record type selects a file:
+deactivate, copy its name, reload the callback and current cursor, call
+the callback if present, and return one even if the callback reactivates
+the selector. Do not cache state across string/font callbacks that retail
+reloads.
+
+Startup preserves title/path for null arguments, but null filters clear
+the corresponding strings. It then sets active one, stores the callback,
+and requests refresh two. Kill copies the selected name before clearing
+active, without an active-state gate. The legacy processor wrapper runs
+the processor and renderer before checking held pad bit `0x10`, then
+kills if set; this is not the pressed-button field. The coordinate wrapper
+stores X and half Y, calls `RenderFileSel3(0)`, then writes doubled height
+before width, including when the output pointers alias.
+
+The **full `RenderFileSel3` renderer remains a stub**. This batch restores
+control/state and wrapper behavior, not the selector's visual UI. Valid
+inputs still must fit the original buffers: title/selected names up to
+63 characters, paths/filters up to 255, and enough space for appended
+directory names and separators. No out-of-range float-to-integer behavior
+is claimed for the dimension outputs.
+
+### Device-language structural finding
+
+Retail has 23 ordered, case-sensitive prefix tests, including specific
+`en-us`, `fr-ca`, `es-mx`, and `pt-br` cases before their three-character
+language prefixes. Validate every literal against original read-only data
+at `0x562600` and every result against the full disassembly. Any cached
+index other than -1 is returned unchanged. A recognized prefix populates
+the cache; unknown strings leave -1 so later calls can retry.
+
+An ordinary `memcmp` trial scored 3.642% in the isolated object, while
+merely substituting `strncmp` into the old early-return structure scored
+0%. Neither is retained. The natural `if (cache == -1)` / `if` / `else if`
+assignment ladder followed by one cached return produces the original
+1,197-byte structure: GCC itself expands the first 13 comparisons to
+`repe cmpsb` and leaves the last ten as `strncmp` calls. No inline assembly,
+special builtins, function attributes, or optimization changes are needed.
+The retained object scores 98.801%; its linked score is 99.533%, with only
+23 local literal-address differences remaining. This is a structural
+source lesson, not a reason to hand-code compiler artifacts.
+
+Complete diffs were reviewed for all retained functions. The main file
+processor retains equivalent call-argument scheduling and tail-merging
+differences. Both collateral regressions have exactly three changed
+instructions relative to the baseline: a shifted local constant, a short
+conditional jump becoming near, and removal of an alignment instruction.
+Their source bodies are unchanged. Retain the verified improvements
+without forcing padding or artificial source layout.
+
+### Validation
+
+Original-toolchain 32-bit and full-global 64-bit ASan/UBSan fixtures pass
+on the actual source, **544,207 cases per architecture**:
+
+- 87,458 processor/integration cases use the real directory, filtering,
+  sorting, cursor, width, and repeat helpers. Cover all 512 relevant input
+  combinations, 20 cursor positions, eight path shapes, every active and
+  refresh byte, signed mode boundaries, unknown record types, refresh
+  failures, callback state changes, remembered selections, NaN/negative
+  elapsed times, and valid maximum-length paths/names.
+- 8,192 startup cases cover all optional-argument combinations, lengths
+  through 255 with the title limited to its own capacity, and callback
+  presence/absence.
+- 3,528 coordinate-wrapper cases cover full-width signed input
+  coordinates, negative and boundary output dimensions within the valid
+  conversion range, store order, and aliased output pointers.
+- 445,029 language cases cover every byte substituted at all 64 buffer
+  positions for each recognized prefix, truncated and non-terminated
+  locale buffers, all first-two-byte combinations, arbitrary cached
+  integer values, case sensitivity, unchanged input, cache persistence,
+  and retry after an unknown locale.
+
+Target/native builds and all five repository tests pass. External
+filesystem, font, string, and render services are mocked in the selector
+fixtures; gameplay and full UI execution are not claimed. All eleven PR
+checks on the preceding customiser batch were green before publication.
