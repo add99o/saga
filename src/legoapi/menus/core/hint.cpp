@@ -297,7 +297,8 @@ i32 ShinyMetal_UpdateHint(HINT_s *hint) {
     GIZMOBLOWUP_s *blowup = WORLD->gizmo_blowups;
     if (blowup == NULL)
         return 0;
-    for (i32 i = 0; i < WORLD->gizmo_blowup_count; ++i, ++blowup) {
+    i32 count = WORLD->gizmo_blowup_count;
+    for (i32 i = 0; i < count; ++i, ++blowup) {
         if ((blowup->draw_flags & 2) == 0 || (blowup->status_flags & 0x804001) != 0x804000)
             continue;
         if (NuVecDistSqr(&player->apiobj.position, &blowup->mid_position, NULL) < 4.0f) {
@@ -307,6 +308,7 @@ i32 ShinyMetal_UpdateHint(HINT_s *hint) {
                 return hint->control_mode_ids[0] == 0x283;
             return hint->control_mode_ids[0] == 0x61d;
         }
+        count = WORLD->gizmo_blowup_count;
     }
     return 0;
 }

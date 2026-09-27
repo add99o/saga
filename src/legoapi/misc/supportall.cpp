@@ -2,6 +2,7 @@
 #include "nu2api/nu3d/nuprim_internal.h"
 #include "nu2api/nu3d/nuvport.h"
 #include "nu2api/nu3d/android/nuptl_android.h"
+#include "nu2api/nu3d/android/nutimebar_plain.h"
 #include "nu2api/numath/nuvec.h"
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nutrig.h"
@@ -158,6 +159,55 @@ static i32 TBGAMECOUNT;
 static i32 TBDRAWCOUNT;
 static i32 TBPLAYERCOUNT;
 static i32 TBAICOUNT;
+
+struct TIMINGBAR_LABEL {
+    char name[11];
+    u8 type;
+};
+DECOMP_ASSERT(sizeof(TIMINGBAR_LABEL) == 12, "Timing-bar label size");
+
+static TIMINGBAR_LABEL GameTB[12];
+static TIMINGBAR_LABEL PlayerTB[12];
+static TIMINGBAR_LABEL AITB[12];
+static TIMINGBAR_LABEL DrawTB[12];
+extern i32 app_tbgameset;
+extern i32 app_tbplayerset;
+extern i32 app_tbaiset;
+extern i32 app_tbdrawset;
+
+static inline void TBSTART(i32 slot, i32 type) {
+    switch (type) {
+        case 2:
+            _NuTimeBarSlotBegin(app_tbgameset, slot, NULL);
+            break;
+        case 3:
+            _NuTimeBarSlotBegin(app_tbplayerset, slot, NULL);
+            break;
+        case 4:
+            _NuTimeBarSlotBegin(app_tbaiset, slot, NULL);
+            break;
+        case 5:
+            _NuTimeBarSlotBegin(app_tbdrawset, slot, NULL);
+            break;
+    }
+}
+
+static inline void TBEND(i32 slot, i32 type) {
+    switch (type) {
+        case 2:
+            _NuTimeBarSlotEnd(app_tbgameset, slot);
+            break;
+        case 3:
+            _NuTimeBarSlotEnd(app_tbplayerset, slot);
+            break;
+        case 4:
+            _NuTimeBarSlotEnd(app_tbaiset, slot);
+            break;
+        case 5:
+            _NuTimeBarSlotEnd(app_tbdrawset, slot);
+            break;
+    }
+}
 
 f32 TargetDist_Near2;
 f32 TargetDist_Mid2;
@@ -1547,8 +1597,49 @@ void TBRESET() {
     TBAICOUNT = 0;
 }
 
-void TBOPENFN(char *, i32) {
-    STUBBED();
+void TBOPENFN(char *name, i32 type) {
+    TIMINGBAR_LABEL *labels;
+    i32 *count;
+    switch (type) {
+        case 2:
+            labels = GameTB;
+            count = &TBGAMECOUNT;
+            break;
+        case 3:
+            labels = PlayerTB;
+            count = &TBPLAYERCOUNT;
+            break;
+        case 4:
+            labels = AITB;
+            count = &TBAICOUNT;
+            break;
+        case 5:
+            labels = DrawTB;
+            count = &TBDRAWCOUNT;
+            break;
+        default:
+            return;
+    }
+    const i32 existing_count = *count;
+    for (i32 index = 0; index < existing_count; ++index) {
+        if (NuStrCmp(name, labels[index].name) == 0) {
+            TBSTART(index, type);
+            return;
+        }
+    }
+    if (*count < 12) {
+        char label[256];
+        NuStrCpy(label, name);
+        i32 length = NuStrLen(label);
+        if (length > 0) {
+            if (length > 10)
+                label[10] = '\0';
+            NuStrCpy(labels[*count].name, label);
+            labels[*count].type = static_cast<u8>(type);
+            TBSTART(*count, type);
+            ++*count;
+        }
+    }
 }
 
 f32 GetAspectRatio();
@@ -1598,6 +1689,44 @@ void RndrArrow(float x, float y, float scale, i32 angle, i32 colour) {
     NuPrim2DEnd();
 }
 
-void TBCLOSEFN(char *, i32) {
-    STUBBED();
+void TBCLOSEFN(char *name, i32 type) {
+    TIMINGBAR_LABEL *label;
+    switch (type) {
+        case 2:
+            label = GameTB;
+            for (i32 index = 0, count = TBGAMECOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+        case 3:
+            label = PlayerTB;
+            for (i32 index = 0, count = TBPLAYERCOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+        case 4:
+            label = AITB;
+            for (i32 index = 0, count = TBAICOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+        case 5:
+            label = DrawTB;
+            for (i32 index = 0, count = TBDRAWCOUNT; index < count; ++index, ++label) {
+                if (NuStrCmp(name, label->name) == 0) {
+                    TBEND(index, type);
+                    return;
+                }
+            }
+            break;
+    }
 }

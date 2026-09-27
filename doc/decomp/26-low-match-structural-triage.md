@@ -1367,3 +1367,85 @@ to parameters, targets, world, radius, object, gamepad, and button masks.
 The harness source copies omit only unrelated registry instances so their
 unused callback graphs can be discarded; production registry binding is
 checked separately. External services are mocked, not gameplay-executed.
+
+## Timing-bar labels and shiny-metal hint traversal
+
+This batch raises linked fuzzy matching from **64.189720% to 64.217150%**:
+
+| Function | Before | After |
+| --- | ---: | ---: |
+| `TBOPENFN` | 4.36% | 62.78% |
+| `TBCLOSEFN` | 3.36% | 91.93% |
+| `ShinyMetal_UpdateHint` | 2.04% | 73.88% |
+
+These are the only changed function scores. There are no regressions or
+lost exact matches; both source files retain their existing `-O2` setting.
+
+The timing-bar stubs lacked four private twelve-entry label tables. Each
+entry contains eleven name bytes and a one-byte type, with a checked
+twelve-byte stride. Types 2/3/4/5 select the game/player/AI/draw set. Use
+the existing canonical time-bar services and externally owned set IDs;
+do not replace them with unused same-named namespace-local HUD stubs.
+
+Opening searches the original count for the first case-sensitive match.
+On a miss it reloads the count, checks the twelve-slot limit, copies into
+the retail 256-byte local buffer, and ignores empty names. New names are
+truncated to ten characters. The count is reloaded after string callbacks
+and incremented after the begin callback. Full untruncated names are used
+for lookup, so reopening a long name can allocate duplicate truncated
+labels; closing the full name will not find that truncated label. Closing
+uses a pointer traversal with a snapshotted count and ends only the first
+match. Reset changes only counts, not stored labels. Counts in 0..12 and
+input names fitting the local buffer remain trusted retail preconditions.
+
+Ordinary `inline` start/end helpers improve matching without forced-inline
+attributes. Replacing the close function's index-based traversal with the
+retail twelve-byte pointer loop raises object matching from 71.344% to
+91.248%. The remaining close gap includes GCC's missing private game-end
+clone; do not hand-author a register-ABI clone. Opening remains larger
+than retail because of different helper inlining and block generation.
+
+`ShinyMetal_UpdateHint` already had its behavior reconstructed. Its loop
+unnecessarily kept the world pointer live across the distance callback.
+An explicit count local, refreshed after an unsuccessful distance test,
+reproduces retail's register-resident bound between callbacks. It still
+reloads both world and count after that call, while preserving the captured
+blowup-array base. Object matching improves to 73.332%, with 738 bytes
+versus retail's 736. A nested-filter-only experiment produced 0% and was
+not retained. Remaining differences are predominantly block placement
+and register choices, not missing hint logic.
+
+Verification: target/native builds and all five repository checks pass.
+The timing-bar harness passes 15,554 cases on NDK 32-bit and normal-global
+64-bit ASan/UBSan builds: all four types, all slot counts, name lengths
+0..255, first-match/truncation behavior, invalid types, reset preservation,
+callback count/set mutations, and 10,000 stateful oracle operations.
+The hint harness passes 23,225 cases on both architectures, including
+signed counts, packed filter bits, hint/character/Free Play combinations,
+strict/NaN/infinite distances, first selection, palace proximity, and
+callback changes to count, world, array, player, hint, and availability.
+Only the unrelated `Hints_LSW` dispatch table is excluded from host ASan
+registration so its unused callback graph can be discarded; tested arrays,
+objects, globals, stack, and heap retain normal instrumentation. External
+services are mocked; no gameplay or visual profiling run is claimed.
+
+Additional low-score triage, deferred rather than repeatedly tuned:
+
+- `eduiGradStageSetHSV` already implements HSV conversion. GCC duplicates
+  color packing across switch arms. Reusing the canonical HSV helper still
+  produces 660 bytes against retail's 446 and 0% object matching; this
+  candidate is not retained.
+- `WindShear` has a wrong zero-argument placeholder. Retail accepts output
+  and input matrices plus signed amplitude and speed/seed arguments. Its
+  source ownership belongs with the rendering path, and the LUT angle
+  conversion needs an audited policy for large frame-derived values.
+  Reconstruct the caller/signature and ownership before implementing it;
+  do not invent floating-point guards or matching-only conversion tricks.
+- `ImplodeMakeTree` needs missing private heap/length/code helpers and
+  shared Huffman state. Its return ABI is also wrong. This is a grouped
+  reconstruction, not a useful isolated stub target.
+- `NuGScnReadForMultiRender` needs the private graphics reader's ownership
+  and scene clone ABI audited together. Retail copies **0x20c** bytes per
+  scene, while the current `NUGSCN` declaration ends at **0x1f8**. Audit the
+  missing tail and all allocations before adding clone copies; do not
+  copy past the current type or expose an artificial private register ABI.
