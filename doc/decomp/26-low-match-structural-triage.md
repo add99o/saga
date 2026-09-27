@@ -1782,3 +1782,81 @@ Bounded experiments not retained:
   `NuRndrLine3d` from 21.33% to 3.40% and does not improve either new
   screen function. Restore the original helper instead of retaining
   that cross-caller tradeoff. No exact matches were lost in the trial.
+
+## Batch 27: save-slot rendering and card-warning transitions
+
+Linked fuzzy matching improves from **64.403740% to 64.481260%**.
+Six functions improve, none regress, and no exact matches are lost.
+The optimization map and matching denominator are unchanged.
+
+- `APIMenuDrawGameState`: 1.308% to **99.268%**.
+- `APIMenuDrawMemCardSlots`: 0.844% to **87.167%**.
+- `MenuUpdateCardWarning`: 6.885% to **51.033%**.
+- The unchanged `MenuDrawSaveConfirm`, `MenuUpdateFormatting`, and
+  `DrawMenuEntryEx` also improve slightly. Their before/after diffs only
+  change local addresses, jump encoding/alignment, or register choices.
+
+The slot renderer uses the existing four-argument callback ABI: X, Y,
+highlight, and slot index. Recover controller/touch colour selection,
+unsigned colour-to-float interpolation, signed truncation before byte
+narrowing, the 32-byte formatted slot label, and occupied/empty/no-space
+messages. Label drawing narrows `MenuA` to a byte, while the following
+smart-text call receives its full signed value. Reload scale, alpha,
+slot usage, free space, and message colours after the label callback.
+The supplied slot must index the six-entry save array, and the formatted
+label must fit its retail buffer. No new truncation policy was invented.
+
+The carousel decrements positive left/right slide counters, starts a
+ten-frame slide when selection changes, and shows a centred three-slot
+window with an extra departing slot while sliding. For at most three
+slots it centres the complete list; above six it uses `memcard_slotsused`
+as the existing-slot boundary. Preserve the cached window/count and
+per-callback reloads of selection, last column, slide state, colours,
+scale, alpha, and the slot-info function pointer. The callback is required
+when an existing slot is drawn. New-save text uses 0.85 X/Y scale;
+navigation arrows use doubled scale and appear only with both slide
+counters zero. Arrow colour and scale are captured before the left-arrow
+callback, but alpha and the right-arrow availability test are reloaded.
+Its second argument is a Y coordinate, not elapsed time.
+
+Card-warning state 0 waits for save/load status exactly 1, then records
+the warning/last flow and backs out. State 7 backs out on confirmation
+with the select sound; state 3 backs out immediately. Preserve the
+previous-state snapshot and callback ordering. The reconstructed
+compiler removes the redundant transition-reset tail that retail still
+contains, accounting for much of the remaining mismatch. Do not add
+volatile state or change optimization settings merely to retain it.
+
+Validation passes with the original 32-bit toolchain and 64-bit
+ASan/UBSan:
+
+- **19,424 slot-state cases** cover all colour byte values, selected and
+  unselected controller/touch modes, pulse boundaries, signed alpha and
+  free-space comparisons, all six slots, geometry, and callback changes.
+- **38,536 carousel cases** cover empty/small/extended lists, signed
+  slide counters, ten-frame progression, callback replacement, selection
+  and count changes, colour interpolation, arrows, and nonfinite geometry.
+- **25,088 integration cases** run the actual carousel and slot renderer
+  together across all 64 occupancy patterns, controller/touch selection,
+  small/extended lists, and available/insufficient storage.
+- **249,156 card-warning cases** use the real `BackupMenu`, verify the
+  whole menu array, and exercise state/status/input boundaries, four stack
+  depths, and state-mutating enter/exit callbacks.
+
+Carousel and warning tests retain normal global instrumentation. Only
+the unrelated `GameMenuInfo`/`MenuInfo` callback tables are excluded from
+ASan registration in the isolated slot-state and combined-renderer tests;
+all tested globals, stack, and heap remain instrumented. Target/native
+builds and all five repository tests pass. Rendering is mocked, and no
+gameplay or visual run is claimed.
+
+Deferred bounded experiment: `MenuUpdateAutoSaveCancel` has an audited
+`MenuASCancelFinished` flag and initially true local `firstTimeIn` byte.
+An existing finished flag clears before backing out. On save failure,
+first entry disables prompts and sets a five-second delay; positive delay
+waits, otherwise prompts are enabled before `NewMenu(1000, -1, -1)`, then
+the finished/first-entry flags and delay reset before checking current
+confirm/cancel input. NaN delay follows the retry path. Two equivalent
+source forms compile to the same poorly aligned 290-byte/0% object body
+versus retail's 258 bytes. The unvalidated candidate and its added state
+were not retained; revisit with new control-flow/compiler evidence.

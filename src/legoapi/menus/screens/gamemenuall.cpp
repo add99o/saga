@@ -78,6 +78,7 @@ extern char *apitxt_DOYOUWANTTOABORTFORMAT;
 extern char *apitxt_CONFIRMDELETE;
 extern char *apitxt_RETRY;
 extern char *apitxt_SLOT;
+extern char *apitxt_NEWSAVE;
 extern char *apitxt_CANCEL;
 extern char *apitxt_NODATAAVAILABLE;
 extern char *apitxt_NOTENOUGHSPACE;
@@ -231,8 +232,116 @@ static bool MenuCheatUnlocked(i32 cheat) {
     return (unlocked[cheat >> 5] & (1u << (cheat & 31))) != 0;
 }
 
-void APIMenuDrawMemCardSlots(MENU *menu, f32 time) {
-    UNIMPLEMENTED();
+static inline i32 MenuSlotColourLerp(u32 first, u32 second, f32 amount) {
+    return static_cast<i32>(first * amount + second * (1.0f - amount));
+}
+
+void APIMenuDrawMemCardSlots(MENU *menu, f32 y) {
+    if (slideright > 0) {
+        --slideright;
+    }
+    if (slideleft > 0) {
+        --slideleft;
+    }
+
+    i32 count = SAVESLOTS;
+    i32 first, last;
+    f32 x;
+    if (count > 3) {
+        if (menu->selected_column != lastslot) {
+            if (menu->selected_column < lastslot) {
+                slideright = 10;
+            } else {
+                slideleft = 10;
+            }
+            lastslot = menu->selected_column;
+        }
+        const f32 right_offset = slideright * 0.5f / 10.0f;
+        const f32 left_offset = slideleft * 0.5f / 10.0f;
+        first = slideleft != 0 ? menu->selected_column - 2 : menu->selected_column - 1;
+        last = slideright != 0 ? menu->selected_column + 2 : menu->selected_column + 1;
+        if (count > 6) {
+            count = memcard_slotsused;
+        }
+        x = 0.0f - (menu->selected_column - first) * 0.5f - right_offset + left_offset;
+    } else {
+        first = 0;
+        last = count - 1;
+        x = (count - 1) * -0.25f;
+    }
+
+    for (i32 slot = first; slot <= last; ++slot, x += 0.5f) {
+        const i32 highlight =
+            menu->selected_row == menu->first_row && menu->selected_column == slot && slideleft == 0 && slideright == 0;
+        if (slot < 0 || slot > menu->last_column) {
+            continue;
+        }
+        if (slot < count) {
+            drawslotinfofn(x, y, highlight, slot);
+        } else {
+            i32 red, green, blue;
+            if (menu->selected_column == count && menu->selected_row == 0 && TestForController()) {
+                if (menu_pulsate > 0.0f) {
+                    red = MenuSlotColourLerp(MENUFLASH0R, MENUFLASH1R, menu_pulsate);
+                    green = MenuSlotColourLerp(MENUFLASH0G, MENUFLASH1G, menu_pulsate);
+                    blue = MenuSlotColourLerp(MENUFLASH0B, MENUFLASH1B, menu_pulsate);
+                } else if (menu_flash != 0) {
+                    red = MENUFLASH0R;
+                    green = MENUFLASH0G;
+                    blue = MENUFLASH0B;
+                } else {
+                    red = MENUFLASH1R;
+                    green = MENUFLASH1G;
+                    blue = MENUFLASH1B;
+                }
+            } else if (menu_pulse > 0.0f) {
+                red = MenuSlotColourLerp(MENUFLASH0R, MENUNORMALR, menu_pulse);
+                green = MenuSlotColourLerp(MENUFLASH0G, MENUNORMALG, menu_pulse);
+                blue = MenuSlotColourLerp(MENUFLASH0B, MENUNORMALB, menu_pulse);
+            } else {
+                red = MENUENTRYR;
+                green = MENUENTRYG;
+                blue = MENUENTRYB;
+            }
+            MenuText3DEx(apitxt_NEWSAVE, x, y, 1.0f, MENUTEXTSCALE * 0.85f, MENUTEXTSCALE * 0.85f, MENUTEXTSCALE, 0,
+                         red, green, blue, static_cast<u8>(MenuA));
+        }
+    }
+
+    i32 red, green, blue;
+    if (menu->selected_row == 0 && TestForController()) {
+        if (menu_pulsate > 0.0f) {
+            red = MenuSlotColourLerp(MENUFLASH0R, MENUFLASH1R, menu_pulsate);
+            green = MenuSlotColourLerp(MENUFLASH0G, MENUFLASH1G, menu_pulsate);
+            blue = MenuSlotColourLerp(MENUFLASH0B, MENUFLASH1B, menu_pulsate);
+        } else if (menu_flash != 0) {
+            red = MENUFLASH0R;
+            green = MENUFLASH0G;
+            blue = MENUFLASH0B;
+        } else {
+            red = MENUFLASH1R;
+            green = MENUFLASH1G;
+            blue = MENUFLASH1B;
+        }
+    } else if (menu_pulse > 0.0f) {
+        red = MenuSlotColourLerp(MENUFLASH0R, MENUNORMALR, menu_pulse);
+        green = MenuSlotColourLerp(MENUFLASH0G, MENUNORMALG, menu_pulse);
+        blue = MenuSlotColourLerp(MENUFLASH0B, MENUNORMALB, menu_pulse);
+    } else {
+        red = MENUENTRYR;
+        green = MENUENTRYG;
+        blue = MENUENTRYB;
+    }
+    f32 scale = MENUTEXTSCALE;
+    if (slideleft == 0 && slideright == 0) {
+        scale *= 2.0f;
+        if (first > 0) {
+            MenuText3DEx("<", -0.8f, y, 1.0f, scale, scale, scale, 0, red, green, blue, static_cast<u8>(MenuA));
+        }
+        if (menu->last_column > last) {
+            MenuText3DEx(">", 0.8f, y, 1.0f, scale, scale, scale, 0, red, green, blue, static_cast<u8>(MenuA));
+        }
+    }
 }
 
 void MenuDrawLoad(MENU_s *menu) {
@@ -1414,8 +1523,36 @@ void MenuEnterStartNewGame(MENU_s *) {
     BackupMenu();
 }
 
-void MenuUpdateCardWarning(MENU_s *) {
-    STUBBED();
+void MenuUpdateCardWarning(MENU_s *menu) {
+    menu->previous_item = MenuCardWarningState;
+    if (MenuCardWarningState == 0) {
+        if (saveload_status == 1) {
+            MenuCardWarningState = 3;
+            Menu_InWarningFlow = 1;
+            Menu_LastFlow = 1;
+            BackupMenu();
+            return;
+        }
+    } else if (MenuCardWarningState == 7) {
+        if (menu->confirm_pressed != 0) {
+            MenuCardWarningState = 3;
+            MenuSFX = MENUSFX_MENUSELECT;
+            BackupMenu();
+            return;
+        }
+    } else if (MenuCardWarningState == 3) {
+        BackupMenu();
+        return;
+    } else {
+        return;
+    }
+    if (menu->previous_item != MenuCardWarningState) {
+        if (MenuCardWarningState != 0) {
+            MenuAlpha = 0.0f;
+            MenuA = 0;
+        }
+        menu->unk = 0.0f;
+    }
 }
 
 void MenuUpdateFileCorrupt(MENU_s *menu) {
