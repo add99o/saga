@@ -1682,12 +1682,12 @@ SPACE_LEVEL_CALL void ProcessSpaceLevel(spacelevel_s *space) {
         if (space->unknown_337c == 4) {
             u8 *sequence = reinterpret_cast<u8 *>(space->unknown_3370);
             u8 *action = sequence + space->unknown_3378 * 8;
-            space->unknown_3374 = reinterpret_cast<i32>(action);
+            space->unknown_3374 = static_cast<i32>(reinterpret_cast<usize>(action));
             ++space->unknown_3378;
             space->unknown_337c = *reinterpret_cast<i32 *>(action);
             if (space->unknown_337c == 3) {
                 action = sequence;
-                space->unknown_3374 = reinterpret_cast<i32>(action);
+                space->unknown_3374 = static_cast<i32>(reinterpret_cast<usize>(action));
                 space->unknown_3378 = 1;
                 space->unknown_337c = *reinterpret_cast<i32 *>(action);
             }
