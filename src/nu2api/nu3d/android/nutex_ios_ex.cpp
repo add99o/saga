@@ -361,6 +361,65 @@ GLuint CreateTexturePS(void) {
     return tex;
 }
 
+char const *GetNativeTextureFormatName(NUTEXFORMAT format) {
+    switch (format) {
+        case NUTEX_DXT1:
+            return "NUTEX_FMT_DXT1";
+        case NUTEX_DX1A:
+            return "NUTEX_FMT_DXT1A";
+        case NUTEX_DXT5:
+            return "NUTEX_FMT_DXT5";
+        case NUTEX_RGBA32:
+            return "NUTEX_FMT_8888";
+        case NUTEX_FLOAT16:
+            return "NUTEX_FMT_A16B16G16R16F";
+        case NUTEX_FLOAT32:
+            return "NUTEX_FMT_A32B32G32R32F";
+        case NUTEX_L8:
+            return "NUTEX_FMT_L8";
+        case NUTEX_ETC1:
+            return "NUTEX_FMT_ETC1";
+        case NUTEX_PVRTC2:
+            return "NUTEX_FMT_PVRTC1_2_RGB";
+        case NUTEX_PVRTC2A:
+            return "NUTEX_FMT_PVRTC1_2";
+        case NUTEX_PVRTC4:
+            return "NUTEX_FMT_PVRTC1_4_RGB";
+        case NUTEX_PVRTC4A:
+            return "NUTEX_FMT_PVRTC1_4";
+        case NUTEX_ATCA:
+            return "NUTEX_FMT_ATITC_RGBA";
+        case NUTEX_ATC:
+            return "NUTEX_FMT_ATITC_RGB";
+        case NUTEX_RT_RGBX32:
+            return "NUTEX_FMT_RT_RGBX32";
+        case NUTEX_RT_RGBA32:
+            return "NUTEX_FMT_RT_RGBA32";
+        case NUTEX_RT_D24S8:
+            return "NUTEX_FMT_RT_D24S8";
+        case NUTEX_RT_A16B16G16R16:
+            return "NUTEX_FMT_RT_A16B16G16R16";
+        case NUTEX_RT_R32F:
+            return "NUTEX_FMT_RT_R32F";
+        case NUTEX_RT_ZBUFFER:
+            return "NUTEX_FMT_RT_ZBUFFER";
+        case NUTEX_RT_SHADOWMAP_COLOR:
+            return "NUTEX_FMT_RT_SHADOWMAP_COLOR";
+        case NUTEX_RT_SHADOWMAP_DEPTH:
+            return "NUTEX_FMT_RT_SHADOWMAP_DEPTH";
+        case NUTEX_RT_G16R16F:
+            return "NUTEX_FMT_RT_G16R16F";
+        case NUTEX_RT_HDR:
+            return "NUTEX_FMT_RT_HDR";
+        case NUTEX_RT_A16B16G16R16F:
+            return "NUTEX_FMT_RT_A16B16G16R16F";
+        case NUTEX_RT_A2R10G10B10:
+            return "NUTEX_FMT_RT_A2R10G10B10";
+        default:
+            return "Not defined";
+    }
+}
+
 void GetNativeTextureFormat(NUTEXFORMAT inFormat, i32 &outBpp, u32 &outInternalFormat, u32 &outType, u32 &outFormat,
                             bool &outIsCompressed, NUTEXFORMAT &outFormatEnum) {
     i32 formatToCheck = inFormat;

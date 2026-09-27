@@ -3201,3 +3201,188 @@ Both suites retain full global ASan instrumentation. Batch 40's 24,576
 lifecycle cases are also rebuilt and rerun on both architectures after
 the final header cleanup. Target/native builds, all five repository checks,
 and `git diff --check` pass. No gameplay execution was performed.
+
+## Batch 42: integer conversion and texture-format diagnostics
+
+Restore two value-returning stubs. Linked matching rises **64.753750%
+to 64.760590%**, with four improved functions, no regressions and no
+exact-match transitions. `charToInt` improves **8.936% to 77.447%**;
+`GetNativeTextureFormatName` improves **9.890% to 99.681%**. The unchanged
+font reader and texture-file loader gain small address-only improvements;
+before/after review finds two literal/table operands in each, not changed
+behavior.
+
+`charToInt` returns `i32`, recognizes only an initial minus sign, and sums
+signed character-minus-`'0'` terms from right to left with decimal place
+weights. It does not skip whitespace, accept a plus sign specially, validate
+digits, or stop at a non-digit. Empty strings and a lone minus yield zero.
+Keep arithmetic modulo 32 bits using `u32`, including the initial index
+decrement, rather than introduce signed-overflow undefined behavior. Add its
+shared declaration to the existing utility header. Its current catch-all
+owner stays `-O3`; adjacency to `getNumDigits` is insufficient evidence to
+move it to that helper's `-O2` owner.
+
+The first isolated parser draft used a signed `length - 1` and matched
+95.170% before linking, but that subtraction can overflow after `strlen`
+is narrowed. The retained explicit wrapping index produces 123 rather than
+136 bytes and prevents GCC from making the same induction transformation.
+One direct reverse-pointer-loop probe fell to 63.617% and changed the extreme
+length gate; discard it. Keep the safe arithmetic without hints, artificial
+attributes or repeated compiler permutations. Null/nonterminated inputs are
+not valid; multi-gigabyte string behavior was not exercised.
+
+The texture-name helper returns a persistent string pointer, not `void`.
+Decode the original 120-entry jump table and all 26 non-default labels;
+unrecognized values return `"Not defined"`, including holes within the
+enum range and signed out-of-range inputs. Restore missing luminance and
+render-target enum names with their verified values and preserve all
+existing values. The default label is intentionally not replaced by a
+modernized format name.
+
+Move this helper from the gameplay catch-all beside `GetNativeTextureFormat`
+in `nu2api/nu3d/android/nutex_ios_ex.cpp`, preserving `-O3` at both owners
+and declaring it in the texture API header. Retail has the 255-byte name
+helper at `0x29f150` immediately followed by the converter at `0x29f250`,
+inside the texture-loading run with an embedded platform source path.
+The rebuilt helper is also 255 bytes; every remaining difference is a PIC,
+literal, or jump-table address operand. This placement does not claim the
+entire original translation-unit boundary is recovered.
+
+**139,924 integer-parser cases per architecture** pass against the actual
+production unit on NDK x86 and full-global 64-bit ASan/UBSan. An independent
+forward Horner oracle checks both signs for every one- and two-byte input,
+embedded terminators, decimal overflow boundaries, and 8,320 randomized
+strings through 64 bytes. Exact-sized allocations check termination bounds
+and input preservation. No external parsing service is mocked.
+
+**85,540 texture-name cases per architecture** pass with the actual platform
+unit and full global ASan/UBSan: all signed 16-bit inputs, four signed-32-bit
+boundaries and 20,000 full-width random values. Verify exact spelling,
+persistent/default pointer identity, and the thirteen added enum values.
+No GL services are exercised or mocked. Target/native builds and all five
+repository checks pass; no gameplay or graphics-context run was performed.
+
+## Batch 43: typed mouse state and emulated touch input
+
+`NuInputDevice::ConvertToEmulatedTouchFromMouse` improves **7.925% to
+16.321%**, raising whole fuzzy matching **64.760590% to 64.761140%** with
+no other score changes. The existing public `Update` caller does not regress.
+All eleven PR checks for published batch-41 commit `1a7b0979` are green.
+
+The old conversion body was empty. The original sets both current and last
+valid type to touch, clears both type indices and the current touch count,
+and emits zero, one or two touches in mouse-button order. Each active button
+produces active value one, copies its release and press bytes, copies mouse
+X/Y, and uses the button index as touch ID. It then clears all sixteen mouse
+bytes and replaces capabilities with `0x400`. It does not clear unused
+touch records, padding or the two additional per-touch float fields.
+
+Replace the mouse record's six anonymous bytes with two three-byte button
+states, retain two reserved bytes, and correct its two coordinate fields
+from `u32` to `f32`. Original `movss` loads and their touch-coordinate stores
+establish the float interpretation. Static assertions preserve the sixteen-
+byte record and offsets 8/12 on every host. No source uses the removed
+anonymous fields; platform mouse readers already clear the complete record.
+
+Use an ordinary two-button loop in the existing `-O2` unit. The rebuilt
+197-byte body is smaller than the original 313 bytes: the latter has separate
+button blocks, a vectorized type/index store and a different frame. Do not
+force vectorization, add alignment or manually expand the loop merely for
+matching. Its behavior is now present despite the remaining low score.
+
+**65,536 cases per architecture** pass with NDK x86 and full-global 64-bit
+ASan/UBSan: 16,384 direct conversions compare the complete object against an
+oracle; 49,152 integrations call the real constructor and public `Update`,
+with emulation enabled/disabled and an already-touch device. Tests exercise
+both button masks, non-boolean byte patterns, all byte values for press and
+release, signed-zero/infinite/NaN/subnormal coordinates, reserved bytes,
+untouched touch slots and fields, copied previous-touch state and actual
+translator dispatch arguments.
+
+The existing canonical friend is the private-access test seam; no private
+macro rewrite, raw native offset or fake vtable is used. Platform polling,
+the translator and scalar maximum service are mocks; the separately owned
+empty destructor has an empty fixture definition. Actual mouse hardware,
+button widgets and the full input manager were not run. Target/native
+builds and all five repository checks pass.
+
+## Batch 44: play-cutscene action and script registration
+
+`Action_PlayCutScene` improves **8.750% to 99.562%**, raising whole fuzzy
+matching **64.761140% to 64.764220%** with no other score changes. Correct
+its return type to `i32` and restore the null `PlayCutScene` script-table
+callback using the canonical action header.
+
+On the first invocation, scan positive-count parameters with `NuStrIStr`.
+The actual keyword is `"name"`, **not** `"name="`; the selected pointer is
+always five bytes after the match, without validating the separator. The
+last matching parameter wins, even if later parameters do not match. Only
+after scanning does the handler load `WORLD->cutscene_sys` and call
+`NewCutScene(NULL, system, name, 0)`. It ignores the returned cut pointer and
+always returns one. Do not add world/system guards or validate the name
+beyond the original scan; `WORLD` is required only on the request path,
+while a null cutscene system is forwarded to the downstream API.
+
+The rebuilt function is 160 bytes, exactly the original size. Only two
+independent zeroing instructions exchange order and one literal address
+differs. Full ELF table inspection verifies original record 110 at
+`0x61f528`, callback `0x190890`, and `(1, 0, 0)` flags against the rebuilt
+table. The previously restored `EndCameraCut` record remains correct.
+
+**122,880 cases per architecture**, plus three null-world gate checks,
+pass on NDK x86 and full-global 64-bit ASan/UBSan. The matrix covers every
+three-token sequence from eight miss/case/embedded-key/separator patterns,
+negative/zero/positive counts, zero/positive/negative first-time values,
+null/non-null cutscene systems, queue success/failure, and search callbacks
+changing the current world, its system, or a future parameter. Tests verify
+the exact search order, selected pointer, final callback arguments and
+return value. `NewCutScene` and unrelated locator services are mocks; no
+full script-VM or cutscene playback execution is claimed.
+
+Rebuild and rerun all **327,680 neighboring end-camera cases per
+architecture** against this final owner. Target/native builds and all five
+repository checks pass. No compiler hints, calling-convention attributes
+or source optimization changes were introduced.
+
+## Batch 45: cached Android documents path and preserved host override
+
+`NuIOS_GetDocumentsPath` improves **7.683% to 99.905%**, raising whole fuzzy
+matching **64.764220% to 64.769320%** with no other changed scores. Restore
+the original **256-byte GLOBAL `g_internalPath`** cache and its shared
+declaration; the already-recovered `g_internalDataPath` remains owned by
+the JNI/platform state unit and is accessed through its canonical header.
+
+On an empty cache, the original probes
+`mnt/sdcard/TTGames/com.ttfusion.legosaga/save.here` in `"rb"` mode. Success
+copies `mnt/sdcard/TTGames/com.ttfusion.legosaga/` into the cache before
+closing the marker. Failure copies `g_internalDataPath` and appends `/`.
+The missing leading slash in those literals and unconditional appended
+slash are retail behavior, not mistakes to normalize here. A nonempty
+cache skips all probing. The returned pointer is the mutable shared cache;
+close failures do not alter the control flow.
+
+The platform fallback keeps its existing `SAGA_HOST_WEAK` boundary so
+`host/platform/documents.cpp` continues to supply the host-configured path.
+The nearby comment records that real platform-linkage requirement. No
+matching-only attribute is added. At 261 bytes the target shape is exact;
+the only two linked differences are mode/marker string address operands.
+
+**16,320 cases per architecture** pass on NDK x86 and full-global 64-bit
+ASan/UBSan with file access replaced by recording wrappers. Coverage includes
+input lengths 0–254, ordinary/slash/high-byte path contents, cached/uncached
+states, probe success/failure, post-probe source/cache changes, close-time
+cache changes, ignored close failures, repeat calls, cache reset and complete
+buffer preservation. The source-length bound leaves room for the appended
+slash and terminator in the fixed cache; longer inputs retain the original
+unbounded-copy precondition and are not claimed safe. No actual Android
+path is opened by the fixture.
+
+An additional **301 native ASan/UBSan cases** link the real strong host
+override alongside the platform owner and verify persistent pointer identity,
+configured paths and the existing 255-byte truncation behavior, with no
+Android marker probes. Target/native builds and all five repository checks
+pass. No device storage or game-save execution was tested.
+
+Across batches 42–45, seven functions improve with no regressions or exact
+matches lost. The five body/API restorations are distinct from two incidental
+literal-address improvements documented in batch 42.

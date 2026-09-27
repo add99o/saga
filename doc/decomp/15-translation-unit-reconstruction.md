@@ -339,6 +339,20 @@ The numerical-solver locals `Newton_Raphson` and
 from `numaths.c` lets the already-linked real Vorbis implementations match
 at 99.99% and 99.98%.
 
+### Texture-format diagnostic placement
+
+`GetNativeTextureFormatName` (`0x29f150`, 255 bytes) immediately precedes
+`GetNativeTextureFormat` (`0x29f250`) inside the Android texture-loading run.
+Together with the converter's existing platform owner and embedded
+`nu3d/android/nutex_ios_ex.cpp` path, this supports moving the misplaced
+gameplay-catch-all stub to that owner. Both source files retain their live
+`-O3` settings. The restored pointer-returning helper and canonical texture
+header reproduce the 120-entry dispatch and all 26 labels; only address
+operands remain different at 99.681%. Whole matching improves without
+regressions. The complete original platform TU boundary remains open.
+See [batch 42](26-low-match-structural-triage.md#batch-42-integer-conversion-and-texture-format-diagnostics)
+for return-ABI, table and native-pointer validation.
+
 ## Remaining reconstruction plan
 
 1. Extend the complete symbol ledger into a confidence-ranked original TU

@@ -1,8 +1,10 @@
 #include "nu2api/nuandroid/ios_graphics.h"
+#include "java/android.h"
 
 #include <GLES2/gl2.h>
 #include <pthread.h>
 #include <sched.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -105,11 +107,24 @@ i32 NuIOS_ShouldUseMSAA(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Filesystem shims — original iOS used NSBundle / Documents.
+// Filesystem paths; the Android documents selection is cached after first use.
 // ---------------------------------------------------------------------------
 
+char g_internalPath[256];
+
+// Native diagnostics supply a strong host-configured documents-path override.
 SAGA_HOST_WEAK char *NuIOS_GetDocumentsPath(void) {
-    return "res/";
+    if (g_internalPath[0] == '\0') {
+        FILE *marker = fopen("mnt/sdcard/TTGames/com.ttfusion.legosaga/save.here", "rb");
+        if (marker != NULL) {
+            strcpy(g_internalPath, "mnt/sdcard/TTGames/com.ttfusion.legosaga/");
+            fclose(marker);
+        } else {
+            strcpy(g_internalPath, g_internalDataPath);
+            strcat(g_internalPath, "/");
+        }
+    }
+    return g_internalPath;
 }
 
 char *NuIOS_GetAppBundlePath(void) {

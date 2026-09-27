@@ -7206,7 +7206,7 @@ extern "C" {
         {"JudderGameCamera", Action_JudderGameCamera, 0, 0, 0},
         {"CameraShake", Action_CameraShake, 0, 0, 0},
         {"ResetGameCamera", NULL, 1, 0, 0},
-        {"PlayCutScene", NULL, 1, 0, 0},
+        {"PlayCutScene", Action_PlayCutScene, 1, 0, 0},
         {"SetLevelPath", Action_SetLevelPath, 0, 0, 0},
         {"ImmuneToKillTerrain", Action_ImmuneToKillTerrain, 0, 0, 0},
         {"ImmuneToBolts", Action_ImmuneToBolts, 0, 0, 0},

@@ -65,13 +65,14 @@ enum NUTEXFORMAT : i32 {
     NUTEX_DXT3 = 4,
     NUTEX_DXT4 = 5,
     NUTEX_DXT5 = 6,
-    NUTEX_RGBA32 = 7,   // Calculated from (bVar3 * 8 + 7) for 32-bit
-    NUTEX_FLOAT16 = 8,  // 0x71 is D3DFMT_A16B16G16R16F
-    NUTEX_FLOAT32 = 9,  // 0x74 is D3DFMT_A32B32G32R32F
-    NUTEX_PAL8 = 12,    // 0xC  (PAL8)
-    NUTEX_PAL4 = 13,    // 0xD  (PAL4)
-    NUTEX_BANN = 14,    // 0xE  (BANN - likely a custom banner format)
-    NUTEX_RGB24 = 15,   // Calculated from (bVar3 * 8 + 7) for 24-bit
+    NUTEX_RGBA32 = 7,  // Calculated from (bVar3 * 8 + 7) for 32-bit
+    NUTEX_FLOAT16 = 8, // 0x71 is D3DFMT_A16B16G16R16F
+    NUTEX_FLOAT32 = 9, // 0x74 is D3DFMT_A32B32G32R32F
+    NUTEX_PAL8 = 12,   // 0xC  (PAL8)
+    NUTEX_PAL4 = 13,   // 0xD  (PAL4)
+    NUTEX_BANN = 14,   // 0xE  (BANN - likely a custom banner format)
+    NUTEX_RGB24 = 15,  // Calculated from (bVar3 * 8 + 7) for 24-bit
+    NUTEX_L8 = 16,
     NUTEX_ETC1 = 17,    // 0x11 (ETC1)
     NUTEX_ETCA = 18,    // 0x12 (ETC with Alpha)
     NUTEX_PVRTC2 = 20,  // 0x14 (PT21)
@@ -79,7 +80,19 @@ enum NUTEXFORMAT : i32 {
     NUTEX_PVRTC4 = 22,  // 0x16 (PTC1)
     NUTEX_PVRTC4A = 23, // 0x17 (PTCA)
     NUTEX_ATCA = 24,    // 0x18 (ACTA)
-    NUTEX_ATC = 25      // 0x19 (ATC)
+    NUTEX_ATC = 25,     // 0x19 (ATC)
+    NUTEX_RT_RGBX32 = 102,
+    NUTEX_RT_RGBA32 = 103,
+    NUTEX_RT_D24S8 = 105,
+    NUTEX_RT_A16B16G16R16 = 110,
+    NUTEX_RT_R32F = 111,
+    NUTEX_RT_ZBUFFER = 112,
+    NUTEX_RT_SHADOWMAP_COLOR = 113,
+    NUTEX_RT_SHADOWMAP_DEPTH = 114,
+    NUTEX_RT_G16R16F = 116,
+    NUTEX_RT_HDR = 117,
+    NUTEX_RT_A16B16G16R16F = 118,
+    NUTEX_RT_A2R10G10B10 = 119
 };
 
 struct __attribute__((packed)) dds_pixelformat_s {
@@ -174,5 +187,6 @@ void NuDDSSetTextureDescription(char *dds_data, NUTEXFORMAT format, i32 width, i
 void NuDDSGetMipLevel(i32 width, i32 height, i32 depth, NUTEXFORMAT format, i32 mip_count, bool is_cube_map, i32 level,
                       i32 face, i32 &out_width, i32 &out_height, i32 &out_size);
 i32 NuDDSGetSize(char const *dds_data);
+char const *GetNativeTextureFormatName(NUTEXFORMAT format);
 void GetNativeTextureFormat(NUTEXFORMAT inFormat, i32 &outBpp, u32 &outInternalFormat, u32 &outType, u32 &outFormat,
                             bool &outIsCompressed, NUTEXFORMAT &outFormatEnum);

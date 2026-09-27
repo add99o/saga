@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.75375,
+    "fuzzy_match_percent": 64.76932,
     "total_code": "4722419",
     "matched_code": "517928",
     "matched_code_percent": 10.96743,
@@ -54204,7 +54204,7 @@
           "address": 1640592,
           "offset": 750624,
           "size": 160,
-          "match_percent": 8.75
+          "match_percent": 99.5625
         },
         {
           "name": "_Z20Action_SetVisibilityP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -71419,14 +71419,6 @@
           "match_percent": 26.470589
         },
         {
-          "name": "_Z26GetNativeTextureFormatName11NUTEXFORMAT",
-          "demangled_name": "GetNativeTextureFormatName(NUTEXFORMAT)",
-          "address": 2748752,
-          "offset": 1858784,
-          "size": 255,
-          "match_percent": 9.89011
-        },
-        {
           "name": "_Z9DieRumbleP12GameObject_s",
           "demangled_name": "DieRumble(GameObject_s*)",
           "address": 4756656,
@@ -71456,7 +71448,7 @@
           "address": 5420400,
           "offset": 4530432,
           "size": 136,
-          "match_percent": 8.936171
+          "match_percent": 77.44681
         }
       ]
     },
@@ -90939,6 +90931,14 @@
           "match_percent": 88.386665
         },
         {
+          "name": "_Z26GetNativeTextureFormatName11NUTEXFORMAT",
+          "demangled_name": "GetNativeTextureFormatName(NUTEXFORMAT)",
+          "address": 2748752,
+          "offset": 1858784,
+          "size": 255,
+          "match_percent": 99.68132
+        },
+        {
           "name": "_Z22GetNativeTextureFormat11NUTEXFORMATRiRjS1_S1_RbRS_",
           "demangled_name": "GetNativeTextureFormat(NUTEXFORMAT, int&, unsigned int&, unsigned int&, unsigned int&, bool&, NUTEXFORMAT&)",
           "address": 2749008,
@@ -91000,7 +91000,7 @@
           "address": 2753072,
           "offset": 1863104,
           "size": 477,
-          "match_percent": 85.340576
+          "match_percent": 85.37681
         },
         {
           "name": "_Z25NuIOS_CreateGLTexFromHashj",
@@ -92651,7 +92651,7 @@
           "address": 3105200,
           "offset": 2215232,
           "size": 283,
-          "match_percent": 94.91549
+          "match_percent": 94.985916
         },
         {
           "name": "NuQFntPrintCharW",
@@ -94831,7 +94831,7 @@
           "address": 932592,
           "offset": 42624,
           "size": 261,
-          "match_percent": 7.682539
+          "match_percent": 99.90476
         },
         {
           "name": "Nu360_dxClear",
@@ -95092,7 +95092,7 @@
           "address": 2580640,
           "offset": 1690672,
           "size": 313,
-          "match_percent": 7.924528
+          "match_percent": 16.320755
         },
         {
           "name": "_ZN13NuInputDevice6UpdateEfb",

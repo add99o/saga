@@ -238,8 +238,21 @@ i32 Action_FollowPlayer(AISYS_s *sys, AISCRIPTPROCESS_s *processor, AIPACKET_s *
     return 0;
 }
 
-void Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **, i32, i32, float) {
-    STUBBED();
+i32 Action_PlayCutScene(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **params, i32 param_count, i32 first_time,
+                        float) {
+    if (first_time != 0) {
+        char *name = NULL;
+        for (i32 i = 0; i < param_count; ++i) {
+            char *value = NuStrIStr(params[i], "name");
+            if (value != NULL) {
+                name = value + 5;
+            }
+        }
+        if (name != NULL) {
+            NewCutScene(NULL, WORLD->cutscene_sys, name, 0);
+        }
+    }
+    return 1;
 }
 
 i32 Action_SetVisibility(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, char **params, i32 param_count, i32 first_time,

@@ -6,6 +6,8 @@ struct nuvec_s;
 struct numtx_s;
 struct VuVec;
 
+i32 charToInt(char const *text);
+
 f32 XZLinesClosest(nuvec_s *first_start, nuvec_s *first_end, nuvec_s *second_start, nuvec_s *second_end,
                    f32 *first_fraction, f32 *second_fraction);
 f32 LineToPointDistance(VuVec &origin, VuVec &direction, VuVec &point, VuVec *closest);

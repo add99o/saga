@@ -7,20 +7,22 @@
 extern "C" void NuPad_Interface_ResetAllTouches(void);
 void NuPad_UpdateTouchScreenData(void);
 
-struct NuInputMouseData {
-    // Types uncertain.
-    u8 unknown_0;
-    u8 unknown_1;
-    u8 unknown_2;
-    u8 unknown_3;
-    u8 unknown_4;
-    u8 unknown_5;
-
-    u16 unknown_6;
-
-    u32 unknown_8;
-    u32 unknown_c;
+struct NuInputMouseButton {
+    u8 active;
+    u8 pressed;
+    u8 released;
 };
+
+struct NuInputMouseData {
+    NuInputMouseButton buttons[2];
+    u16 reserved;
+    f32 x;
+    f32 y;
+};
+static_assert(sizeof(NuInputMouseButton) == 3, "Mouse button state size");
+static_assert(sizeof(NuInputMouseData) == 0x10, "Mouse data size");
+static_assert(offsetof(NuInputMouseData, x) == 8, "Mouse x offset");
+static_assert(offsetof(NuInputMouseData, y) == 0xc, "Mouse y offset");
 
 struct NuInputTouch {
     u8 unknown_00;
