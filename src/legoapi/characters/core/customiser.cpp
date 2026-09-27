@@ -297,8 +297,49 @@ void Customiser_AddPartAccessories(CUSTOMISER *customiser, GameObject_s *object,
     }
 }
 
-void Customiser_DumpAccessories(CUSTOMISER *) {
-    STUBBED();
+void Customiser_DumpAccessories(CUSTOMISER *customiser) {
+    if (customiser == NULL || Customiser_AccessoriesLoaded != 1)
+        return;
+
+#define DUMP_ACCESSORY(side, category)                                                               \
+    do {                                                                                              \
+        if (customiser->categories[category]->name != NULL) {                                         \
+            CUSTOMPIECERESOURCE *resource = &Accessory[side][category];                              \
+            if (resource->scene != NULL) {                                                            \
+                NuGScnRemove(resource->scene);                                                         \
+                resource->scene = NULL;                                                                \
+            } else if (resource->texture_id != 0) {                                                   \
+                NUMTL *material = resource->character_model->hierarchy->materials[resource->material_index]; \
+                material->tex_id = static_cast<i16>(resource->original_texture_id);                   \
+                NuMtlUpdate(material);                                                                 \
+                NuTexDestroy(resource->texture_id);                                                    \
+            }                                                                                         \
+        }                                                                                             \
+    } while (0)
+
+    if (apicharsys->playermodelids[customiser->character_ids[0]] != -1) {
+        DUMP_ACCESSORY(0, 0);
+        DUMP_ACCESSORY(0, 1);
+        DUMP_ACCESSORY(0, 2);
+        DUMP_ACCESSORY(0, 3);
+        DUMP_ACCESSORY(0, 4);
+        DUMP_ACCESSORY(0, 5);
+        DUMP_ACCESSORY(0, 6);
+        DUMP_ACCESSORY(0, 7);
+        DUMP_ACCESSORY(0, 8);
+    }
+    if (apicharsys->playermodelids[customiser->character_ids[1]] != -1) {
+        DUMP_ACCESSORY(1, 0);
+        DUMP_ACCESSORY(1, 1);
+        DUMP_ACCESSORY(1, 2);
+        DUMP_ACCESSORY(1, 3);
+        DUMP_ACCESSORY(1, 4);
+        DUMP_ACCESSORY(1, 5);
+        DUMP_ACCESSORY(1, 6);
+        DUMP_ACCESSORY(1, 7);
+        DUMP_ACCESSORY(1, 8);
+    }
+#undef DUMP_ACCESSORY
 }
 
 void Customiser_LoadAll(CUSTOMISER *customiser, WORLDINFO_s *world) {
