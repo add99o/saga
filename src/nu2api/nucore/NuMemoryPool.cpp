@@ -368,7 +368,75 @@ void NuMemoryPool::ReleaseUnreferencedPages() {
 }
 
 void NuMemoryPool::ReleaseUnreferencedPages_OLD() {
-    STUBBED();
+    FreeBlock volatile **free_lists = reinterpret_cast<FreeBlock volatile **>(reserved_0x1c);
+    Page *previous = NULL;
+    Page *recycled = NULL;
+    u32 released_count = 0;
+    u32 recycled_count = 0;
+
+    for (Page *page = pages; page != NULL;) {
+        const usize page_begin = reinterpret_cast<usize>(page->ptr);
+        const usize page_end = page_begin + page->size;
+        u32 free_block_count = 0;
+        for (u32 index = 0; index < 256; ++index) {
+            for (FreeBlock volatile *block = free_lists[index]; block != NULL; block = block->next) {
+                const usize address = reinterpret_cast<usize>(block);
+                if (address >= page_begin && address < page_end)
+                    ++free_block_count;
+            }
+        }
+
+        if (free_block_count != page->allocation_count) {
+            previous = page;
+            page = page->next;
+            continue;
+        }
+
+        for (u32 index = 0; index < 256; ++index) {
+            FreeBlock volatile *block = free_lists[index];
+            FreeBlock volatile *previous_block = NULL;
+            while (block != NULL) {
+                FreeBlock volatile *next = block->next;
+                const usize address = reinterpret_cast<usize>(block);
+                if (address >= page_begin && address < page_end) {
+                    if (previous_block != NULL)
+                        previous_block->next = next;
+                    else
+                        free_lists[index] = next;
+                } else {
+                    previous_block = block;
+                }
+                block = next;
+            }
+        }
+
+        Page *next = page->next;
+        if (previous != NULL)
+            previous->next = next;
+        else
+            pages = next;
+        if (event_handler->ReleasePage(this, page->ptr)) {
+            InterlockedSub(&free_bytes, page->size);
+            NU_FREE(page);
+            ++released_count;
+        } else {
+            page->allocation_count = 0;
+            page->offset = 0;
+            page->next = recycled;
+            recycled = page;
+            ++recycled_count;
+        }
+        page = next;
+    }
+
+    while (recycled != NULL) {
+        Page *next = recycled->next;
+        recycled->next = pages;
+        pages = recycled;
+        recycled = next;
+    }
+    unknown_0x438 = released_count;
+    unknown_0x43c = recycled_count;
 }
 
 void NuMemoryPool::VisitPools(IVisitor *visitor) {
