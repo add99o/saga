@@ -15,6 +15,7 @@
 #include "legoapi/gizmo/object/gizmoblowups.h"
 #include "legoapi/gizmos/object/newblowup.h"
 #include "legoapi/gizmos/object/gizbuildits.h"
+#include "legoapi/gizmos/trigger/gizspecial.h"
 #include "legoapi/audio/sfx.h"
 #include "nu2api/numath/nurand.h"
 #include "legoapi/core/input/qrand.h"
@@ -61,6 +62,9 @@ struct SarlaccBattlePacket {
 SarlaccBattlePacket *sarlaccb_netpacket;
 static u8 sarlaccdisco[0x400];
 f32 disco_base_offset = -0.12f;
+f32 sarlaccdiscotime = 40.0f;
+f32 discoheightseek = 2.0f;
+f32 discoheight = 1.27f;
 f32 SeekValF(f32, f32, f32);
 void PlayRadio(char *, char *, i32);
 GIZMO *obstMirrorBall;
@@ -69,6 +73,8 @@ nuhspecial_s LevSpecial[7];
 void *LevelBuildits[2];
 extern i32 obstacle_gizmotype_id, force_gizmotype_id;
 extern "C" i16 id_RANCOR;
+i32 GizBuildIt_AtEnd(GIZBUILDIT_s *);
+void SarlaccPitB_SpecialUpdate(WORLDINFO_s *);
 static __used__ i32 power;
 static __used__ i32 recharging;
 static __used__ i32 target_shield[2];
@@ -366,8 +372,207 @@ void SarlaccPitB_Reset(WORLDINFO_s *world) {
         GizObstacle_Stop(static_cast<GIZOBSTACLE_s *>(obstMirrorBall->object));
 }
 
-void SarlaccPitB_Update(WORLDINFO_s *) {
-    STUBBED();
+void SarlaccPitB_Update(WORLDINFO_s *world) {
+    static NUVEC lumppos;
+    static f32 enginetimer;
+    u8 &phase = sarlaccdisco[0x3dd];
+    i32 count = static_cast<i8>(sarlaccdisco[0x3dc]);
+    u8 *tile_state = &sarlaccdisco[0x3cc];
+    f32 &timer = *reinterpret_cast<f32 *>(&sarlaccdisco[0x3e0]);
+    f32 &base_height = *reinterpret_cast<f32 *>(&sarlaccdisco[0x3e4]);
+    f32 &floor_height = *reinterpret_cast<f32 *>(&sarlaccdisco[0x3e8]);
+
+    if (netclient == 0) {
+        sarlaccb_netpacket->completion_cue_played = 0;
+        SetGizAIMessage(gizaimessagesys, "HelpWithDisco", 0.0f,
+                        *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f0]));
+        SetGizAIMessage(gizaimessagesys, "DiscoComplete", 0.0f,
+                        *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f4]));
+        SetGizAIMessage(gizaimessagesys, "DiscoState", static_cast<f32>(static_cast<i8>(phase)),
+                        *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f8]));
+
+        GIZMO *panel = GizmoFindByName(world->gizmo_sys, gizspecial_gizmotype_id, "qaz_panel2");
+        GizmoGetOutput(world->gizmo_sys, panel, 0, 0);
+        i32 ready = GizBuildIt_AtEnd(static_cast<GIZBUILDIT_s *>(LevelBuildits[0])) &&
+                    GizBuildIt_AtEnd(static_cast<GIZBUILDIT_s *>(LevelBuildits[1])) && panel != NULL &&
+                    static_cast<GIZSPECIAL_s *>(panel->object)->anim_set->state == 2;
+        if (ready && (*reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f4]))->value == 0.0f)
+            SetGizAIMessage(gizaimessagesys, "discoflooropen", 1.0f, NULL);
+
+        if (phase == 0) {
+            sarlaccb_netpacket->disco_active = 0;
+            AIAREA_s *area = *reinterpret_cast<AIAREA_s **>(&sarlaccdisco[0]);
+            i32 in_area = 0;
+            if (area != NULL) {
+                i32 area_index = static_cast<i32>(area - world->ai_sys->areas);
+                for (i32 index = 0; index < 2; ++index) {
+                    GameObject_s *object = Player[index];
+                    if (object == NULL)
+                        continue;
+                    if (area_index < 32)
+                        in_area |= (object->apiobj.ai_area_mask_low & (1u << area_index)) != 0;
+                    else
+                        in_area |= (object->apiobj.ai_area_mask_high & (1u << (area_index - 32))) != 0;
+                }
+            }
+            if (ready && NuSpecialExistsFn(&LevSpecial[0]) && in_area) {
+                phase = 1;
+                timer = 0.0f;
+                i32 available[16];
+                i32 available_count = 0;
+                for (i32 index = 0; index < count; ++index) {
+                    if (tile_state[index] == 0)
+                        available[available_count++] = index;
+                }
+                sarlaccdisco[0x3de] = available_count != 0 ? available[NuRand(NULL) % available_count] : 0xff;
+                available_count = 0;
+                for (i32 index = 0; index < count; ++index) {
+                    if (tile_state[index] == 0 && index != static_cast<i8>(sarlaccdisco[0x3de]))
+                        available[available_count++] = index;
+                }
+                sarlaccdisco[0x3df] = available_count != 0 ? available[NuRand(NULL) % available_count] : 0xff;
+                for (i32 slot = 0; slot < 2; ++slot) {
+                    i32 index = static_cast<i8>(sarlaccdisco[0x3de + slot]);
+                    if (index >= 0)
+                        tile_state[index] = 1;
+                }
+            }
+        } else if (phase == 1) {
+            sarlaccb_netpacket->disco_active = 0;
+            if (!ready) {
+                SarlaccPitB_Reset(world);
+                return;
+            }
+            i32 pressed_count = 0;
+            i32 help_tile = -1;
+            for (i32 slot = 0; slot < 2; ++slot) {
+                i32 index = static_cast<i8>(sarlaccdisco[0x3de + slot]);
+                if (index < 0 || index >= count)
+                    continue;
+                u8 old_state = tile_state[index];
+                tile_state[index] = 1;
+                NUVEC *position = NuSpecialGetPos(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0xc4 + 12 * index]));
+                if (position == NULL)
+                    continue;
+                for (i32 player_index = 0; player_index < 8; ++player_index) {
+                    GameObject_s *object = Player[player_index];
+                    if (object == NULL || (object->apiobj.field_0x1f8 & 0x1001) != 0x1001 ||
+                        object->apiobj.field_0x27d == 0)
+                        continue;
+                    f32 dx = position->x - object->apiobj.position.x;
+                    f32 dz = position->z - object->apiobj.position.z;
+                    if (dx * dx + dz * dz >= 0.04f)
+                        continue;
+                    tile_state[index] = 2;
+                    ++pressed_count;
+                    if (object == player)
+                        help_tile = index;
+                    if (old_state != 2) {
+                        NUMTX *matrix =
+                            NuSpecialGetDrawMtx(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0x244 + 12 * index]));
+                        *reinterpret_cast<NUVEC **>(&sarlaccdisco[0x3fc]) = NUMTX_GET_ROW_VEC(matrix, 3);
+                        sarlaccb_netpacket->tile_masks[5] |= 1 << index;
+                    }
+                    break;
+                }
+            }
+            if (pressed_count == 2) {
+                timer = 0.0f;
+                tile_state[sarlaccdisco[0x3de]] = 3;
+                tile_state[sarlaccdisco[0x3df]] = 3;
+                i32 available[16];
+                i32 available_count = 0;
+                for (i32 index = 0; index < count; ++index) {
+                    if (tile_state[index] == 0)
+                        available[available_count++] = index;
+                }
+                if (available_count == 0) {
+                    phase = 2;
+                    for (i32 index = 0; index < count; ++index)
+                        tile_state[index] = 4;
+                } else {
+                    sarlaccdisco[0x3de] = available[NuRand(NULL) % available_count];
+                    available_count = 0;
+                    for (i32 index = 0; index < count; ++index) {
+                        if (tile_state[index] == 0 && index != static_cast<i8>(sarlaccdisco[0x3de]))
+                            available[available_count++] = index;
+                    }
+                    sarlaccdisco[0x3df] = available_count != 0 ? available[NuRand(NULL) % available_count] : 0xff;
+                    tile_state[sarlaccdisco[0x3de]] = 1;
+                    if (sarlaccdisco[0x3df] != 0xff)
+                        tile_state[sarlaccdisco[0x3df]] = 1;
+                }
+            } else {
+                timer += FRAMETIME;
+                if (timer > 5.0f) {
+                    timer = 0.0f;
+                    for (i32 repeat = 0; repeat < 2; ++repeat) {
+                        i32 completed[16];
+                        i32 completed_count = 0;
+                        for (i32 index = 0; index < count; ++index) {
+                            if (tile_state[index] == 3)
+                                completed[completed_count++] = index;
+                        }
+                        if (completed_count != 0)
+                            tile_state[completed[NuRand(NULL) % completed_count]] = 0;
+                    }
+                }
+                if (player2 == NULL && LevelLocator != NULL && help_tile >= 0) {
+                    i32 other_index = help_tile == static_cast<i8>(sarlaccdisco[0x3de])
+                                          ? static_cast<i8>(sarlaccdisco[0x3df])
+                                          : static_cast<i8>(sarlaccdisco[0x3de]);
+                    if (other_index >= 0) {
+                        NUVEC *position =
+                            NuSpecialGetPos(reinterpret_cast<nuhspecial_s *>(&sarlaccdisco[0xc4 + 12 * other_index]));
+                        if (position != NULL) {
+                            SetGizAIMessage(gizaimessagesys, "HelpWithDisco", 1.0f,
+                                            *reinterpret_cast<GIZAIMESSAGE_s **>(&sarlaccdisco[0x3f0]));
+                            LevelLocator->position.x = position->x;
+                            LevelLocator->position.z = position->z;
+                        }
+                    }
+                }
+            }
+        } else if (phase == 2) {
+            sarlaccb_netpacket->disco_active = 1;
+            timer += FRAMETIME;
+            if (timer >= sarlaccdiscotime || !ready) {
+                sarlaccb_netpacket->disco_active = 0;
+                SarlaccPitB_Reset(world);
+                return;
+            }
+        }
+
+        f32 fraction = (discoheight - floor_height) / (discoheight - base_height);
+        if (fraction < 0.0f)
+            fraction = 0.0f;
+        if (fraction > 1.0f)
+            fraction = 1.0f;
+        floor_height = SeekValF(floor_height, discoheight, (1.0f - fraction) * discoheightseek);
+        for (i32 index = 0; index < 5; ++index)
+            sarlaccb_netpacket->tile_masks[index] = 0;
+        for (i32 index = 0; index < count; ++index) {
+            if (tile_state[index] <= 4)
+                sarlaccb_netpacket->tile_masks[tile_state[index]] |= 1 << index;
+        }
+    }
+
+    if (LevFlag[0] == 0 && NuSpecialGetVisibilityFn(&LevHSpecial[0]) != 0) {
+        NUVEC *position = NuSpecialGetDrawPos(&LevHSpecial[0]);
+        lumppos = *position;
+        enginetimer = 0.1f;
+        LevFlag[0] = 1;
+    }
+    if (LevFlag[0] != 0) {
+        enginetimer -= FRAMETIME;
+        if (enginetimer <= 0.0f)
+            enginetimer = 10.0f;
+        NUVEC *position = NuSpecialGetDrawPos(&LevHSpecial[0]);
+        position->z = lumppos.z + 0.05f * enginetimer;
+        PlaySfx("env_curtain_lp", NuSpecialGetDrawPos(&LevHSpecial[0]));
+    }
+    if (netclient != 0)
+        SarlaccPitB_SpecialUpdate(world);
 }
 
 void SarlaccPitB_SpecialUpdate(WORLDINFO_s *) {
