@@ -318,7 +318,7 @@ template <typename T> static T *CloneSceneAllocate(VARIPTR *buffer, usize count,
     return result;
 }
 
-extern "C" NUDLDLISTSCENE *NuDisplaySceneClone(NUDLDLISTSCENE *source, VARIPTR *buffer) {
+extern "C" NUDLDLISTSCENE *NuDisplaySceneClone(NUDLDLISTSCENE *source, VARIPTR *buffer, VARIPTR *) {
     NuThreadCriticalSectionBegin(global_dlist_manager.loading_critical_section);
     NUDLDLISTSCENE *scene = CloneSceneAllocate<NUDLDLISTSCENE>(buffer, 1);
     *scene = *source;

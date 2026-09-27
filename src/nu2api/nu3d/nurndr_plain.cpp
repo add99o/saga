@@ -192,9 +192,6 @@ NUGSCNVIDEOMEMFN video_mem_to_gscene;
 extern "C" void NuGScnFromVideoMem(NUGSCNVIDEOMEMFN callback) {
     video_mem_to_gscene = callback;
 }
-extern "C" void NuGScnReadForMultiRender(void) {
-    STUBBED();
-}
 extern "C" void NuGScnRndr(NUGSCN *scene) {
     if (scene->additional_scenes != NULL && scene->rendered_additional_scene_count > 0) {
         NuDisplaySceneRndr(scene->additional_scenes[scene->rendered_additional_scene_count - 1]->display_list);

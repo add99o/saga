@@ -768,6 +768,27 @@ static NUGSCN *NuReadGraphicsData(VARIPTR *buf, VARIPTR *buf_end, char *path, ch
 
 // --- Extern "C": NuGScn functions have C linkage in original ---
 extern "C" {
+    NUGSCN *NuGScnReadForMultiRender(VARIPTR *buf, VARIPTR buf_end, char *path, i32 render_count) {
+        NUGSCN *scene = NuReadGraphicsData(buf, &buf_end, path, NULL, NULL);
+        if (scene == NULL || render_count <= 1) {
+            return scene;
+        }
+
+        buf->addr = ALIGN(buf->addr, 0x20);
+        NUGSCN **additional = reinterpret_cast<NUGSCN **>(buf->void_ptr);
+        buf->addr += render_count * sizeof(NUGSCN *);
+        for (i32 i = 0; i < render_count - 1; ++i) {
+            additional[i] = reinterpret_cast<NUGSCN *>(ALIGN(buf->addr, 0x20));
+            buf->addr = ALIGN(buf->addr, 0x20) + sizeof(NUGSCN);
+            memcpy(additional[i], scene, sizeof(NUGSCN));
+            additional[i]->display_list = NuDisplaySceneClone(scene->display_list, buf, &buf_end);
+            additional[i]->display_list->gscene = additional[i];
+        }
+        additional[render_count - 1] = NULL;
+        scene->additional_scenes = additional;
+        return scene;
+    }
+
     NUGSCN *NuGScnRead(VARIPTR *buf, VARIPTR buf_end, char *path) {
         RemoveDirectionalMaps = 1;
         RemoveNormalMaps = 1;
