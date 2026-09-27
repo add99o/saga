@@ -5,6 +5,8 @@
 #include "java/android.h"
 #include "nu2api/nucore/NuInputDevice.h"
 #include "nu2api/nucore/android/NuInputDevice_android.h"
+#include "nu2api/nucore/nucore.hpp"
+#include "nu2api/nu3d/nuscreen.hpp"
 
 ANativeWindow *g_appWindow;
 i32 g_obbMainVersion;
@@ -61,6 +63,17 @@ JavaVM *g_javaVM = &host_javaVM;
 
 jclass g_activityClass;
 
+static bool g_isStopped = true;
+static bool g_isPaused = true;
+static bool g_validSurface;
+
+static void UpdateApplicationStatus() {
+    NuApplicationState *state = NuCore::GetApplicationState();
+    if (state != NULL)
+        state->SetStatus(!g_isPaused && !g_isStopped && g_validSurface ? NUAPPLICATIONSTATUS_IDLE
+                                                                       : NUAPPLICATIONSTATUS_RENDERING);
+}
+
 extern "C" {
 
     jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -75,8 +88,10 @@ extern "C" {
         env->GetJavaVM(&g_javaVM);
     }
 
-    void Java_com_tt_tech_TTActivity_nativeOnCreate(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeOnCreate(JNIEnv *, jobject) {
+        NuApplicationState *state = NuCore::GetApplicationState();
+        if (state != NULL)
+            state->SetStatus(NUAPPLICATIONSTATUS_RENDERING);
     }
 
     void Java_com_tt_tech_TTActivity_nativeOnKeyDown(JNIEnv *, jobject, jint key) {
@@ -87,24 +102,28 @@ extern "C" {
         NuInputDevicePS::HandleKeyUp_ANDROID_SPECIFIC(key);
     }
 
-    void Java_com_tt_tech_TTActivity_nativeOnPause(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeOnPause(JNIEnv *, jobject) {
+        g_isPaused = true;
+        UpdateApplicationStatus();
     }
 
-    void Java_com_tt_tech_TTActivity_nativeOnResume(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeOnResume(JNIEnv *, jobject) {
+        g_isPaused = false;
+        UpdateApplicationStatus();
     }
 
     void Java_com_tt_tech_TTActivity_nativeOnSensorUpdate(JNIEnv *, jobject, jint sensor, jfloat x, jfloat y, jfloat z) {
         NuInputDevicePS::HandleSensor_ANDROID_SPECIFIC(sensor, x, y, z);
     }
 
-    void Java_com_tt_tech_TTActivity_nativeOnStart(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeOnStart(JNIEnv *, jobject) {
+        g_isStopped = false;
+        UpdateApplicationStatus();
     }
 
-    void Java_com_tt_tech_TTActivity_nativeOnStop(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeOnStop(JNIEnv *, jobject) {
+        g_isStopped = true;
+        UpdateApplicationStatus();
     }
 
     void Java_com_tt_tech_TTActivity_nativeOnTouchDown(JNIEnv *, jobject, jint device, jint touch, jfloat x, jfloat y) {
@@ -125,8 +144,9 @@ extern "C" {
         env->ReleaseStringUTFChars(version, text);
     }
 
-    void Java_com_tt_tech_TTActivity_nativeSetAssetManager(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeSetAssetManager(JNIEnv *, jobject, jobject manager) {
+        // Host asset access uses filesystem paths; the manager is an opaque token.
+        g_assetManager = reinterpret_cast<AAssetManager *>(manager);
     }
 
     void Java_com_tt_tech_TTActivity_nativeSetCaps(JNIEnv *, jobject, jint caps) {
@@ -173,12 +193,16 @@ extern "C" {
         env->ReleaseStringUTFChars(external, text);
     }
 
-    void Java_com_tt_tech_TTActivity_nativeSetScreenDimesions(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeSetScreenDimesions(JNIEnv *, jobject, jfloat width, jfloat height) {
+        if (!NuScreen::Exists())
+            NuScreen::Create();
+        NuScreen::Get()->SetSceeenDimensions(width, height);
     }
 
-    void Java_com_tt_tech_TTActivity_nativeSetSurface(void) {
-        STUBBED();
+    void Java_com_tt_tech_TTActivity_nativeSetSurface(JNIEnv *, jobject, jobject surface) {
+        g_appWindow = reinterpret_cast<ANativeWindow *>(surface);
+        g_validSurface = surface != NULL;
+        UpdateApplicationStatus();
     }
 
     void Java_com_tt_tech_TTActivity_nativeUpdateGamepadAxisValues(JNIEnv *, jobject, jfloat x, jfloat y, jfloat z,

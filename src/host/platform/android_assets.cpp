@@ -1,6 +1,7 @@
 #include "decomp.h"
 #include "java/asset_manager.h"
 #include "java/native_window.h"
+#include "nu2api/nu3d/nuscreen.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -59,16 +60,18 @@ extern "C" off_t AAsset_getLength(AAsset *asset) {
     return asset == NULL ? 0 : asset->length;
 }
 
-// The host renderer does not create Android native windows.
-extern "C" int32_t ANativeWindow_getWidth(ANativeWindow *) {
-    STUBBED();
-    return 0;
+// Host windows expose their dimensions through the engine screen singleton.
+extern "C" int32_t ANativeWindow_getWidth(ANativeWindow *window) {
+    return window != NULL && NuScreen::Exists() ? static_cast<int32_t>(NuScreen::Get()->GetWidth()) : 0;
 }
-extern "C" int32_t ANativeWindow_getHeight(ANativeWindow *) {
-    STUBBED();
-    return 0;
+extern "C" int32_t ANativeWindow_getHeight(ANativeWindow *window) {
+    return window != NULL && NuScreen::Exists() ? static_cast<int32_t>(NuScreen::Get()->GetHeight()) : 0;
 }
-extern "C" int32_t ANativeWindow_setBuffersGeometry(ANativeWindow *, int32_t, int32_t, int32_t) {
-    STUBBED();
-    return -1;
+extern "C" int32_t ANativeWindow_setBuffersGeometry(ANativeWindow *window, int32_t width, int32_t height, int32_t) {
+    if (window == NULL || width <= 0 || height <= 0)
+        return -1;
+    if (!NuScreen::Exists())
+        NuScreen::Create();
+    NuScreen::Get()->SetSceeenDimensions(static_cast<f32>(width), static_cast<f32>(height));
+    return 0;
 }

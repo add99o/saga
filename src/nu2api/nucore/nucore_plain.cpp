@@ -4439,9 +4439,7 @@ extern "C" {
         }
         return -1;
     }
-    void NuVisiBoxTree(void) {
-        STUBBED();
-    }
+    i32 do_boxtree;
     i32 VisiSysCameraLock;
     i32 LoadedOcclusionData;
     i32 UsingOcclusionData;
