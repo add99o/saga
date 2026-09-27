@@ -2,12 +2,21 @@
 #include "legoapi/legoapi_types.h"
 #include "legoapi/render/light/fade.h"
 #include "legoapi/render/core/screen.h"
+#include "legoapi/core/startup/main.h"
+#include "legoapi/menus/core/text.h"
 #include "legoapi/core/input/qrand.h"
+#include "gameapi/edtools/edgra.h"
 #include "nu2api/nu3d/numtl.h"
+#include "nu2api/nu3d/nurndr.h"
 #include "nu2api/nu3d/nuspecial.h"
+#include "nu2api/nucore/nuapi.h"
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numath/nutrig.h"
 extern f32 FRAMETIME;
+extern f32 DEFAULTFRAMETIME;
+extern "C" f32 NuFrameEnd(void);
+extern "C" i32 NuRndrBeginScene(i32);
+f32 SeekLinearF(f32, f32, f32);
 extern i32 pause_rndr_on;
 extern i32 wait_till_next_frame;
 extern void DrawFadeScreenWipe(void);
@@ -278,6 +287,32 @@ void CreateFadeMaterials() {
     NuMtlUpdate(FadeMtl);
 }
 
-void FadeLoop(char *, i32, float, void (*)(float)) {
-    STUBBED();
+void FadeLoop(char *text, i32 mode, float duration, void (*draw)(float)) {
+    const f32 target = mode == 0 ? 1.0f : 0.0f;
+    f32 progress = mode == 0 ? 0.0f : 1.0f;
+    const f32 rate = duration == 0.0f ? 10.0f : 1.0f / duration;
+    FRAMETIME = DEFAULTFRAMETIME;
+    while (progress != target) {
+        NuFrameBegin();
+        progress = SeekLinearF(progress, target, rate * FRAMETIME);
+        NuRndrBeginScene(-1);
+        NuRndrClear(0xb00, 0, 1.0f);
+        if (FadeLoop_ObjScene != NULL)
+            FadeLoop_DrawObj(progress);
+        if (text != NULL) {
+            SetQFont2D();
+            Text3D(text, 0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0, static_cast<u8>(255.0f * progress),
+                   static_cast<u8>(191.0f * progress), 0);
+        }
+        if (draw != NULL)
+            draw(progress);
+        NuRndrEndScene();
+        edGraEnableTerrainSwap();
+        FRAMETIME = NuFrameEnd();
+        edGraDisableTerrainSwap();
+    }
+    if (mode == 1) {
+        FadeLoop_SetObj(NULL, NULL);
+        FinishLoop(2);
+    }
 }
