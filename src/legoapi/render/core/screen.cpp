@@ -22,6 +22,7 @@
 #include "nu2api/nu3d/NuRenderDevice.h"
 #include "nu2api/nu3d/android/nutex_ios_ex.h"
 #include "nu2api/nuandroid/ios_graphics.h"
+#include "nu2api/numath/nufloat.h"
 
 #include <GLES2/gl2.h>
 #include <stdio.h>
@@ -356,8 +357,33 @@ void PreRenderFlashHack() {
     }
 }
 
-void UCStretchToCorners(i16 *, i16 *) {
-    STUBBED();
+void UCStretchToCorners(i16 *x_out, i16 *y_out) {
+    f32 x = *x_out;
+    f32 y = *y_out;
+    f32 abs_x = NuFabs(x);
+    f32 abs_y = NuFabs(y);
+    f32 length = NuFsqrt(abs_x * abs_x + abs_y * abs_y);
+    f32 scale;
+    if (abs_y > abs_x)
+        scale = 32767.0f / abs_y;
+    else if (abs_x != 0.0f)
+        scale = 32767.0f / abs_x;
+    else
+        scale = 1.0f;
+    length *= scale;
+    scale = length / 32768.0f;
+    x *= scale;
+    y *= scale;
+    if (x < -32767.0f)
+        x = -32767.0f;
+    if (x > 32767.0f)
+        x = 32767.0f;
+    if (y < -32767.0f)
+        y = -32767.0f;
+    if (y > 32767.0f)
+        y = 32767.0f;
+    *x_out = static_cast<i16>(x);
+    *y_out = static_cast<i16>(y);
 }
 
 void PostRenderFlashHack() {

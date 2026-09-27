@@ -417,9 +417,21 @@ void EvaluateSplineXZIntersection(nugspline_s *, i32, SPLINEPOS_s *, nugspline_s
     STUBBED();
 }
 
-static __used__ f32 SplineLength(nugspline_s *, i32) {
-    STUBBED();
-    return 0.0f;
+static __used__ f32 SplineLength(nugspline_s *spline, i32 closed) {
+    if (spline == NULL || spline->length <= 1)
+        return 0.0f;
+
+    const i32 last = closed ? spline->length : spline->length - 1;
+    f32 length = 0.0f;
+    NUVEC *previous = spline->pts;
+    for (i32 index = 1; index <= last; ++index) {
+        NUVEC *current = index == spline->length ? spline->pts : &spline->pts[index];
+        NUVEC difference;
+        NuVecSub(&difference, current, previous);
+        length += NuVecMag(&difference);
+        previous = current;
+    }
+    return length;
 }
 
 void LevelSplines_InitForLevel(WORLDINFO_s *world) {
