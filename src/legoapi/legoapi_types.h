@@ -1028,7 +1028,7 @@ struct ClassItem {
     EdRef *reference;
 };
 struct DETONATOR_s {
-    u8 field_0x00[0xc];
+    NUVEC field_0x00;
     NUVEC field_0x0c;
     NUVEC field_0x18;
     GameObject_s *object;
