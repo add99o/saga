@@ -1952,3 +1952,122 @@ ASan/UBSan passes:
 Target/native builds and all five repository tests pass. File/parser
 services and rendering are mocked; no asset-loading gameplay or visual
 run is claimed. All eleven PR checks were green on the preceding batch.
+
+## Display-list diagnostics and pickup callbacks batch (29)
+
+Baseline: `278d05b4`. Linked fuzzy matching rises from **64.508064% to
+64.558060%**. Three functions improve and three regress; no exact matches
+are gained or lost:
+
+| Function | Linked fuzzy before | Linked fuzzy after |
+| --- | ---: | ---: |
+| `DisplayListPrintItem` | 1.184% | 78.704% |
+| `Pup_CollectRedBrick` | 4.719% | 87.843% |
+| `Pup_CollectCharKit` | 5.250% | 84.988% |
+
+The display-list diagnostic printer's third argument is a filter count,
+not a depth. Recover the two-argument C ABIs of `DisplayListDebugPS` and
+`DisplayListPrintItemPS` in the shared header. Retail Android's debug hook
+returns zero without touching the supplied buffer; its print hook is
+intentionally empty. Both remain exact matches. Do not manufacture an
+unknown-type diagnostic when the platform debug hook returns zero: in
+that case the existing index text is appended again.
+
+Recover all 28 padded labels from the retail switch table and immediate
+stores; each label was checked byte-for-byte. The printer builds its
+256-byte text/detail buffers even without an output handle. A zero filter
+count selects all types, a negative count selects none, and positive
+counts compare the current item type against the array. HTML output
+requires selection, a positive debug level, and a nonzero handle. The
+platform print hook still runs for every nonzero handle even if filtered
+out or debug output is disabled. Preserve the green/blue prefix, low-32-bit
+next-pointer text, line break, and conditional black-font reset. Reload
+mutable item fields after external calls. The original contains no
+console logger call for a zero handle. Separate colour-copy branches and
+the boolean filter loop improve the first object candidate from 70.628%
+to 78.507%; the linked result is 78.704%. Remaining differences include
+stack/register selection and instruction scheduling, not missing labels.
+
+Restore both pickup callbacks in `gizmopickup.cpp`, using the existing
+typed world, save, object, and message layouts. Publish the existing
+minikit callbacks and panel coordinates through their canonical headers.
+Both pickups copy the entire `AddGameMsg_Default` before overwriting their
+position/target, scale, flags `0x2112d`, duration, icon, special handle,
+tick/end callbacks, and byte `0x4d`. Preserve the stack target vector's
+lifetime through the synchronous queue call and native-width pointers.
+
+- Red bricks emit debris `0x62` and the `MK-Pickup` sound before reloading
+  `WORLD` and checking the save byte. Area `-1` bypasses the save check.
+  Eligible pickups queue icon `0xd2` without a model-active gate, set the
+  draw timer even if allocation fails, and reload the world after queuing
+  before setting area red-brick state. Pad buzzing is always last. The
+  callback does not write the persistent save byte.
+- Character kits buzz first, emit debris `0x13`, then gate on the current
+  `0xcf` model's active byte. A queued message receives target type six
+  only when allocation succeeds. Draw time and the signed count update
+  still occur on allocation failure. Counts below ten increment, including
+  negative counts; ten and larger remain unchanged. There is no sound call
+  in this callback.
+- Move the existing static `EndRedBrickMessage` from the unrelated hint
+  unit into its pickup owner, in retail definition order. The actual
+  callback reference makes its old `__used__` retention attribute
+  unnecessary. Its unchanged body remains **100%**: nonzero area state
+  becomes two, scale becomes two, then sound, all-player rumble, and
+  current-camera judder execute in order.
+
+The two reconstructed pickup bodies have the retail sizes (415 and 408
+bytes). Read the complete object diffs; remaining differences are
+scheduling and register/stack operands. No optimization-map changes,
+inline assembly, calling-convention attributes, or artificial retention
+references are used. The aggregate report also records these collateral
+changes, with complete before/after diffs reviewed:
+
+- `GameMsg_EndDelay_Game`: 99.212% to 94.773%, register allocation and
+  instruction scheduling after removing the misowned static callback.
+- `NuDisplayListCaptureSortPriority`: 68.829% to 68.614%, two integer
+  register operands after adding the printer body.
+- `CollectMinikit`: 68.652% to 68.616%, a literal-address representation.
+
+Retain the correct ownership and larger verified gains rather than adding
+matching-only source artifacts to hide these differences.
+
+Original-toolchain 32-bit and full-global 64-bit ASan/UBSan harnesses pass:
+
+- **1,492,992 diagnostic-printer cases** per architecture cover every
+  item type, ID classes, signed index/count boundaries, filter hits/misses,
+  debug/handle gates, pointer bits, all platform fallback modes, and
+  callback changes to type, ID, next pointer, filter, and debug state.
+  Exact output and call traces are checked. Platform-supplied text must
+  still fit the retail fixed buffers.
+- **53,888 pickup cases** per architecture invoke the real pickup-table
+  bindings and check the entire copied message, target coordinates, queue
+  result writes, and final state. Coverage includes all 72 save slots,
+  area `-1`, every save/model byte value, signed counter extremes,
+  allocation failures, and callback changes to world, pad, camera,
+  coordinates, defaults, and area counters. The relocated completion
+  callback is checked separately with signed state boundaries and
+  mutations at each external call. Unrelated callbacks retained by ASan's
+  real table registration are aborting mocks, not excluded globals.
+
+Target/native builds and all five repository checks pass. External
+rendering, input, audio, and queue services are mocked; no gameplay or
+visual validation is claimed. All eleven PR checks on the baseline commit
+were verified green before publication of this batch.
+
+### Additional low-match triage
+
+`NuTouchInputStick::Render` and the related button renderer require a
+shared-helper contract audit before reconstruction. Retail passes a
+packed colour converted to float as `RndrUnfilledCircle`'s progress
+argument, with integer colour argument 128. The initialized white/grey
+values (`0x32ffffff` and `0x32646464`) make the helper's progress-times-360
+integer conversion out of range. The current C++ helper therefore has
+undefined conversion behavior for these actual caller values, while the
+retail x86 instruction yields its integer-indefinite value. Do not silently
+swap the arguments to make the image plausible, or restore the callers
+without auditing this behavior on target and native platforms. No touch
+renderer experiment was retained.
+
+`NuErrorSleep` likewise passes an uninitialized local `va_list` to its
+font-print helper in retail. No speculative variadic reconstruction was
+made. These findings are recorded to avoid repeated low-yield attempts.

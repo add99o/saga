@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 64.508064,
+    "fuzzy_match_percent": 64.55806,
     "total_code": "4722419",
     "matched_code": "516316",
     "matched_code_percent": 10.933295,
@@ -55579,7 +55579,15 @@
           "address": 1977984,
           "offset": 1088016,
           "size": 408,
-          "match_percent": 5.25
+          "match_percent": 84.9875
+        },
+        {
+          "name": "_ZL18EndRedBrickMessageP13GAMEMESSAGE_s",
+          "demangled_name": "EndRedBrickMessage(GAMEMESSAGE_s*)",
+          "address": 1978400,
+          "offset": 1088432,
+          "size": 166,
+          "match_percent": 100.0
         },
         {
           "name": "_ZL19Pup_CollectRedBrickP11WORLDINFO_sP13GIZMOPICKUP_siP12GameObject_si",
@@ -55587,7 +55595,7 @@
           "address": 1981056,
           "offset": 1091088,
           "size": 415,
-          "match_percent": 4.719101
+          "match_percent": 87.8427
         },
         {
           "name": "_ZL20Pup_UpdatePurpleCoinP11WORLDINFO_sP13GIZMOPICKUP_s",
@@ -62702,7 +62710,7 @@
           "address": 1985920,
           "offset": 1095952,
           "size": 667,
-          "match_percent": 68.652176
+          "match_percent": 68.615944
         },
         {
           "name": "_Z20AllMiniKits_LSW_SkipP14STATUS_STAGE_sP14STATUSPACKET_s",
@@ -67192,7 +67200,7 @@
           "address": 1158336,
           "offset": 268368,
           "size": 326,
-          "match_percent": 99.21212
+          "match_percent": 94.77273
         },
         {
           "name": "_Z18Percent_UpdateHintP6HINT_s",
@@ -67201,14 +67209,6 @@
           "offset": 871312,
           "size": 344,
           "match_percent": 84.08889
-        },
-        {
-          "name": "_ZL18EndRedBrickMessageP13GAMEMESSAGE_s",
-          "demangled_name": "EndRedBrickMessage(GAMEMESSAGE_s*)",
-          "address": 1978400,
-          "offset": 1088432,
-          "size": 166,
-          "match_percent": 100.0
         },
         {
           "name": "_ZL28GameMsg_Draw_MiniKitDetectorP13GAMEMESSAGE_sP7nuvec_sf",
@@ -91767,7 +91767,7 @@
           "address": 3065168,
           "offset": 2175200,
           "size": 2201,
-          "match_percent": 1.184211
+          "match_percent": 78.70395
         },
         {
           "name": "NuDisplayListDebugToFile",
@@ -91783,7 +91783,7 @@
           "address": 3068064,
           "offset": 2178096,
           "size": 249,
-          "match_percent": 68.828575
+          "match_percent": 68.61429
         },
         {
           "name": "NuDisplayListDrawRenderScene",

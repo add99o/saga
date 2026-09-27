@@ -20,6 +20,9 @@ void DrawObjectOnCharacter(WORLDINFO_s *world, GameObject_s *object, i32 object_
                            NUVEC *translation, f32 alpha, f32 scale);
 void BackDrop_ResetColours(void);
 extern f32 KITPOSY;
+extern f32 KITPOSX;
+extern f32 PANEL_MINIKITY;
+extern f32 PANEL_MINIKITSCALE;
 void DrawStatusIcons(STATUSPACKET_s *status, f32 y, f32 alpha);
 void DrawMiniSnowTroopers(WORLDINFO_s *world);
 void DrawForceBackEffect(nuhspecial_s *special);
