@@ -458,14 +458,14 @@ void SplineHelper::DestroyObject(void *object, i32) {
     for (SplineObject *current = first_object; current != NULL; current = current->next) {
         if (current != spline || current->knots.count != 0)
             continue;
-        if (current->previous != NULL)
-            current->previous->next = current->next;
-        else
-            first_object = current->next;
         if (current->next != NULL)
             current->next->previous = current->previous;
         else
             last_object = current->previous;
+        if (current->previous != NULL)
+            current->previous->next = current->next;
+        else
+            first_object = current->next;
         current->next = NULL;
         current->previous = NULL;
         --object_count;
@@ -941,9 +941,13 @@ void SplinePointList::Clear() {
     while (block != NULL) {
         SplinePointBlock *next = block->next;
         if (block->capacity == 16) {
-            if (next == NULL)
+            if (next == NULL) {
                 last = block->previous;
-            else
+#if defined(__i386__)
+                // Reload the previous link after updating the list tail.
+                __asm__ volatile("" ::: "memory");
+#endif
+            } else
                 next->previous = block->previous;
             if (block->previous == NULL)
                 first = next;

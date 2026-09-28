@@ -608,11 +608,10 @@ extern "C" {
     }
 
     void rtlSetLights(rtldata_s *data) {
-        const NUVEC *directions = data->direction;
-        const NUCOLOUR3 *colours = data->intensity;
-        NuRndrSetDirectionalLightsPS(&directions[0], &colours[0], &directions[1], &colours[1], &directions[2],
-                                     &colours[2]);
-        NuRndrSetAmbientLightPS(&data->ambient_colour);
+        rtldata_s *record = data;
+        NuRndrSetDirectionalLightsPS(&record->direction[0], &record->intensity[0], &record->direction[1],
+                                     &record->intensity[1], &record->direction[2], &record->intensity[2]);
+        NuRndrSetAmbientLightPS(&record->ambient_colour);
     }
 
     void rtlSetSpecularLight(rtldata_s *data) {

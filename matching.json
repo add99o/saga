@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.33054,
+    "fuzzy_match_percent": 65.33695,
     "total_code": "4722419",
-    "matched_code": "528325",
-    "matched_code_percent": 11.1875925,
+    "matched_code": "528752",
+    "matched_code_percent": 11.196635,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6370,
-    "matched_functions_percent": 47.328926,
+    "matched_functions": 6374,
+    "matched_functions_percent": 47.358643,
     "total_units": 1
   },
   "text": {
@@ -19444,7 +19444,7 @@
           "address": 4015104,
           "offset": 3125136,
           "size": 147,
-          "match_percent": 59.75
+          "match_percent": 61.673077
         },
         {
           "name": "_ZL27creatureEditor_cbSetLocatorP10eduimenu_sP10eduiitem_sj",
@@ -19532,7 +19532,7 @@
           "address": 4020736,
           "offset": 3130768,
           "size": 127,
-          "match_percent": 55.142857
+          "match_percent": 72.82143
         },
         {
           "name": "_ZL32creatureEditor_cb_min_n_respawnsP10eduimenu_sP10eduiitem_sj",
@@ -19540,7 +19540,7 @@
           "address": 4020864,
           "offset": 3130896,
           "size": 127,
-          "match_percent": 55.142857
+          "match_percent": 72.82143
         },
         {
           "name": "_ZL27creatureEditor_cbCancelMenuP10eduimenu_sS0_",
@@ -19604,7 +19604,7 @@
           "address": 4032240,
           "offset": 3142272,
           "size": 319,
-          "match_percent": 73.22222
+          "match_percent": 75.62963
         },
         {
           "name": "_ZL31creatureEditor_cbRenameCreatureP10eduimenu_sP10eduiitem_sj",
@@ -19660,7 +19660,7 @@
           "address": 4222448,
           "offset": 3332480,
           "size": 1704,
-          "match_percent": 74.801956
+          "match_percent": 74.81418
         },
         {
           "name": "creatureEditor_GetNearest",
@@ -19684,7 +19684,7 @@
           "address": 4231136,
           "offset": 3341168,
           "size": 144,
-          "match_percent": 67.74359
+          "match_percent": 99.97436
         },
         {
           "name": "_ZL26creatureEditor_cbSetScriptP10eduimenu_sP10eduiitem_sj",
@@ -28141,7 +28141,7 @@
           "address": 5482640,
           "offset": 4592672,
           "size": 145,
-          "match_percent": 89.74468
+          "match_percent": 89.893616
         },
         {
           "name": "_ZN12SplineHelper12CreateObjectEPvii",
@@ -28245,7 +28245,7 @@
           "address": 5579856,
           "offset": 4689888,
           "size": 132,
-          "match_percent": 89.55556
+          "match_percent": 100.0
         },
         {
           "name": "_ZN15SplinePointList4DrawEv",
@@ -59432,7 +59432,7 @@
           "address": 1858080,
           "offset": 968112,
           "size": 129,
-          "match_percent": 73.947365
+          "match_percent": 100.0
         },
         {
           "name": "_ZL26edgizforce_ReadAnimSetDataP13GAMEANIMOBJ_sh",
@@ -59440,7 +59440,7 @@
           "address": 1858224,
           "offset": 968256,
           "size": 91,
-          "match_percent": 74.666664
+          "match_percent": 100.0
         },
         {
           "name": "_ZL23GizForces_ClearProgressPvS_",
@@ -59632,7 +59632,7 @@
           "address": 1871168,
           "offset": 981200,
           "size": 100,
-          "match_percent": 21.166666
+          "match_percent": 39.0
         },
         {
           "name": "_Z21GizForce_StoodOnForceP10GIZFORCE_sP12GameObject_s",
@@ -59640,7 +59640,7 @@
           "address": 1871280,
           "offset": 981312,
           "size": 75,
-          "match_percent": 64.8
+          "match_percent": 100.0
         },
         {
           "name": "_Z22GizForces_AngleToForceP7nuvec_sP10GIZFORCE_s",
@@ -59656,7 +59656,7 @@
           "address": 1871440,
           "offset": 981472,
           "size": 62,
-          "match_percent": 55.714287
+          "match_percent": 87.38095
         },
         {
           "name": "_Z17GizForce_CompleteP10GIZFORCE_s",
@@ -59672,7 +59672,7 @@
           "address": 1871600,
           "offset": 981632,
           "size": 300,
-          "match_percent": 48.258064
+          "match_percent": 51.376343
         },
         {
           "name": "_ZL16GizForces_UpdatePvS_f",
@@ -59712,7 +59712,7 @@
           "address": 1880112,
           "offset": 990144,
           "size": 112,
-          "match_percent": 60.22222
+          "match_percent": 99.666664
         },
         {
           "name": "_Z19GizForces_FindForceP11WORLDINFO_sPc",
@@ -75994,7 +75994,7 @@
           "address": 3848671,
           "offset": 2958703,
           "size": 136,
-          "match_percent": 80.72093
+          "match_percent": 90.023254
         },
         {
           "name": "rtlSetSpecularLight",
