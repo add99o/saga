@@ -2900,7 +2900,7 @@ extern "C" {
         return 0;
     }
     i32 eduiCheckForPadMenuCancel(eduimenu_s *menu, nupad_s *pad) {
-        if (!pad || !(pad->digital_buttons_pressed & 0x10))
+        if (!pad || __builtin_expect(!(pad->digital_buttons_pressed & 0x10), 0))
             return 0;
 
         eduimenu_s *parent = menu->parent;

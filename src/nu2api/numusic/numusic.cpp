@@ -91,11 +91,11 @@ i32 NuMusic::ClassToIX(u32 i) {
         return 0;
     if (i == TRACK_CLASS_ACTION)
         return 1;
-    if (i == TRACK_CLASS_4)
+    if (__builtin_expect(i == TRACK_CLASS_4, 0))
         return 2;
-    if (i == TRACK_CLASS_8)
+    if (__builtin_expect(i == TRACK_CLASS_8, 0))
         return 3;
-    if (i == TRACK_CLASS_CUTSCENE)
+    if (__builtin_expect(i == TRACK_CLASS_CUTSCENE, 0))
         return 4;
     if (i == TRACK_CLASS_NOMUSIC)
         return 5;
@@ -423,20 +423,24 @@ NuMusic::Voice *NuMusic::FindVoiceByClass(TRACK_CLASS clazz) {
 }
 
 NuMusic::Voice *NuMusic::FindIdleVoice() {
+    NuMusic *self = this;
+#if defined(__i386__)
+    __asm__ volatile("" : "+d"(self));
+#endif
     i32 index = -1;
-    if (voices[0].status == VOICE_STATUS_READY) {
+    if (self->voices[0].status == VOICE_STATUS_READY) {
         index = 0;
-    } else if (voices[1].status == VOICE_STATUS_READY) {
+    } else if (self->voices[1].status == VOICE_STATUS_READY) {
         index = 1;
-    } else if (voices[0].status == VOICE_STATUS_STOPPED) {
+    } else if (self->voices[0].status == VOICE_STATUS_STOPPED) {
         index = 0;
-    } else if (voices[1].status == VOICE_STATUS_STOPPED) {
+    } else if (self->voices[1].status == VOICE_STATUS_STOPPED) {
         index = 1;
     }
     if (index < 0) {
         return NULL;
     }
-    return &voices[index];
+    return &self->voices[index];
 }
 
 bool NuMusic::SelectTrackByHandle(TRACK_CLASS clazz, i32 trackHandle) {

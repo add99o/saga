@@ -582,10 +582,13 @@ u32 NuSoundSystem::GetBufferAlignment() {
 
 i32 NuSoundSystem::GetClosestSupportedConfig(i32 config) {
     // libTTapp.so 0x31bcb0: config > 7 -> 8, config >= 6 -> 6, else 2.
+#if defined(__i386__)
+    __asm__ volatile("" : "+d"(config));
+#endif
     if (config > 7) {
         return 8;
     }
-    return (config >= 6) ? 6 : 2;
+    return 2 + (static_cast<i32>(config >= 6) << 2);
 }
 
 const NuSoundSystem::CurveData *NuSoundSystem::GetCrossfadeCurve(u32 id) const {
@@ -725,8 +728,9 @@ NuSoundVoice *NuSoundSystem::GetQuietestVoice(NuSoundSample *sample, float &quie
 }
 
 NuSoundRoutingTable *NuSoundSystem::GetRoutingTable(char const *name) {
-    for (NuSoundRoutingTable *table = routing_table_list.Front(); table != routing_table_list.End();
-         table = reinterpret_cast<NuSoundRoutingTable **>(table)[1]) {
+    NuSoundRoutingTable *table = routing_table_list.Front();
+    NuSoundRoutingTable *end = routing_table_list.End();
+    for (; table != end; table = reinterpret_cast<NuSoundRoutingTable **>(table)[1]) {
         if (NuStrICmp(table->GetName(), name) == 0) {
             return table;
         }

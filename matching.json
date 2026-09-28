@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.35116,
+    "fuzzy_match_percent": 65.35365,
     "total_code": "4722419",
-    "matched_code": "529761",
-    "matched_code_percent": 11.218001,
+    "matched_code": "529943",
+    "matched_code_percent": 11.221854,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6383,
-    "matched_functions_percent": 47.425514,
+    "matched_functions": 6385,
+    "matched_functions_percent": 47.440372,
     "total_units": 1
   },
   "text": {
@@ -35499,7 +35499,7 @@
           "address": 3807536,
           "offset": 2917568,
           "size": 128,
-          "match_percent": 41.794872
+          "match_percent": 68.82051
         },
         {
           "name": "cbInteractMenuScrollTo",
@@ -77911,7 +77911,7 @@
           "address": 3635728,
           "offset": 2745760,
           "size": 73,
-          "match_percent": 64.333336
+          "match_percent": 100.0
         },
         {
           "name": "TerrainTrackFlush",
@@ -111218,7 +111218,7 @@
           "address": 3206688,
           "offset": 2316720,
           "size": 71,
-          "match_percent": 80.2
+          "match_percent": 82.0
         },
         {
           "name": "_ZN7NuMusic5Voice11SetStatusFnEii",
@@ -111250,7 +111250,7 @@
           "address": 3206912,
           "offset": 2316944,
           "size": 86,
-          "match_percent": 56.71875
+          "match_percent": 90.25
         },
         {
           "name": "_ZN7NuMusic24SetTrackEntryTimeByClassEjf",
@@ -117341,7 +117341,7 @@
           "address": 3255136,
           "offset": 2365168,
           "size": 109,
-          "match_percent": 90.21951
+          "match_percent": 100.0
         },
         {
           "name": "_ZN13NuSoundSystem22SetDefaultRoutingTableEP19NuSoundRoutingTable",
@@ -117533,7 +117533,7 @@
           "address": 3259568,
           "offset": 2369600,
           "size": 33,
-          "match_percent": 20.0
+          "match_percent": 70.90909
         },
         {
           "name": "_ZN13NuSoundSystem28GetNumAvailableOutputDevicesEv",
