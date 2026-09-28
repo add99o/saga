@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.34392,
+    "fuzzy_match_percent": 65.35116,
     "total_code": "4722419",
-    "matched_code": "529385",
-    "matched_code_percent": 11.210038,
+    "matched_code": "529761",
+    "matched_code_percent": 11.218001,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6380,
-    "matched_functions_percent": 47.403225,
+    "matched_functions": 6383,
+    "matched_functions_percent": 47.425514,
     "total_units": 1
   },
   "text": {
@@ -42607,7 +42607,7 @@
           "address": 3436512,
           "offset": 2546544,
           "size": 63,
-          "match_percent": 57.75
+          "match_percent": 94.0
         },
         {
           "name": "SetSfxBit_On",
@@ -42655,7 +42655,7 @@
           "address": 3436912,
           "offset": 2546944,
           "size": 54,
-          "match_percent": 53.125
+          "match_percent": 98.4375
         },
         {
           "name": "SetSfxBitTab_On",
@@ -43039,7 +43039,7 @@
           "address": 5101760,
           "offset": 4211792,
           "size": 33,
-          "match_percent": 61.25
+          "match_percent": 83.333336
         },
         {
           "name": "_Z15GameAudio_Resetv",
@@ -51229,7 +51229,7 @@
           "address": 2020112,
           "offset": 1130144,
           "size": 118,
-          "match_percent": 39.441177
+          "match_percent": 100.0
         },
         {
           "name": "_Z18GoldBrick_LSW_SkipP14STATUS_STAGE_sP14STATUSPACKET_s",
@@ -51309,7 +51309,7 @@
           "address": 4819632,
           "offset": 3929664,
           "size": 70,
-          "match_percent": 86.42308
+          "match_percent": 89.57692
         },
         {
           "name": "_ZL19bgAckStreamCutSceneP12bgprocinfo_s",
@@ -51405,7 +51405,7 @@
           "address": 4837888,
           "offset": 3947920,
           "size": 126,
-          "match_percent": 77.333336
+          "match_percent": 90.55556
         },
         {
           "name": "_Z18CutScene_SnapToEndP7CUTINFO",
@@ -77520,7 +77520,7 @@
           "address": 3183552,
           "offset": 2293584,
           "size": 153,
-          "match_percent": 32.962265
+          "match_percent": 70.66038
         },
         {
           "name": "_ZNK19ShaderMtlDescFilter13hasDiffuseMapEi",
@@ -77528,7 +77528,7 @@
           "address": 3183712,
           "offset": 2293744,
           "size": 125,
-          "match_percent": 33.627453
+          "match_percent": 100.0
         },
         {
           "name": "_ZNK19ShaderMtlDescFilter14getVertexFlagsEv",
@@ -81065,7 +81065,7 @@
           "address": 4865392,
           "offset": 3975424,
           "size": 133,
-          "match_percent": 57.416668
+          "match_percent": 100.0
         },
         {
           "name": "_Z16PartUpdate_HeartP6PART_s",

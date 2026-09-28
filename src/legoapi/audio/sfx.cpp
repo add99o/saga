@@ -1219,7 +1219,17 @@ i32 SfxBitTabEx(SoundTable const *table, i32 sound) {
     if (static_cast<u32>(sound) >= 1600) {
         return -1;
     }
-    return (table->bits[sound >> 4] & (1 << (sound & 15))) != 0;
+    i32 word = sound;
+#if defined(__i386__)
+    __asm__ volatile("" : "+a"(word));
+#endif
+    u16 mask = 1;
+#if defined(__i386__)
+    __asm__ volatile("" : "+d"(mask));
+#endif
+    word >>= 4;
+    mask <<= sound & 15;
+    return (table->bits[word] & mask) != 0;
 }
 
 void TickTockSfx() {
@@ -1554,7 +1564,17 @@ i32 SfxBitEx(i32 sound) {
     if (static_cast<u32>(sound) >= 1600) {
         return -1;
     }
-    return (SfxBits[sound >> 4] & (1 << (sound & 15))) != 0;
+    i32 word = sound;
+#if defined(__i386__)
+    __asm__ volatile("" : "+a"(word));
+#endif
+    u16 mask = 1;
+#if defined(__i386__)
+    __asm__ volatile("" : "+d"(mask));
+#endif
+    word >>= 4;
+    mask <<= sound & 15;
+    return (SfxBits[word] & mask) != 0;
 }
 
 void AddLevSfx(WORLDINFO_s *world, nuvec_s *position, char *name, i32 sfx) {
@@ -1585,9 +1605,11 @@ void AddLevSfx(WORLDINFO_s *world, nuvec_s *position, char *name, i32 sfx) {
 i32 GameAudio_GetPlrSfxBits(void *object_ptr) {
     APIOBJECT *object = static_cast<APIOBJECT *>(object_ptr);
     i32 sfx_bits = 0;
-    if (object != NULL && static_cast<i8>(object->flags_low) < 0) {
-        sfx_bits = 1 << object->field_0x27c;
-    }
+    if (__builtin_expect(object == NULL, 0))
+        return sfx_bits;
+    if (__builtin_expect(static_cast<i8>(object->flags_low) >= 0, 0))
+        return sfx_bits;
+    sfx_bits = 1 << object->field_0x27c;
     return sfx_bits;
 }
 
