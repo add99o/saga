@@ -2,7 +2,8 @@
 
 pthread_mutex_t NuSoundHandle::sCriticalSection;
 
-NuSoundHandle::NuSoundHandle() : intrusive_prev(NULL), intrusive_next(NULL), voice(NULL) {
+NuSoundHandle::NuSoundHandle() : intrusive_prev(NULL), intrusive_next(NULL) {
+    voice = NULL;
 }
 
 NuSoundHandle::~NuSoundHandle() {

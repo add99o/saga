@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.322876,
+    "fuzzy_match_percent": 65.32508,
     "total_code": "4722419",
-    "matched_code": "527533",
-    "matched_code_percent": 11.170821,
+    "matched_code": "527861",
+    "matched_code_percent": 11.177767,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6358,
-    "matched_functions_percent": 47.239765,
+    "matched_functions": 6363,
+    "matched_functions_percent": 47.276913,
     "total_units": 1
   },
   "text": {
@@ -66885,7 +66885,7 @@
           "address": 5526624,
           "offset": 4636656,
           "size": 38,
-          "match_percent": 39.533333
+          "match_percent": 100.0
         },
         {
           "name": "_ZN15PlaceableHelper10FindObjectEPc",
@@ -66901,7 +66901,7 @@
           "address": 5526832,
           "offset": 4636864,
           "size": 91,
-          "match_percent": 65.73529
+          "match_percent": 66.617645
         },
         {
           "name": "_ZN20PlaceableNameControl8cbButtonEP10eduimenu_sP10eduiitem_sj",
@@ -66941,7 +66941,7 @@
           "address": 5529264,
           "offset": 4639296,
           "size": 114,
-          "match_percent": 99.61539
+          "match_percent": 100.0
         },
         {
           "name": "_ZN15PlaceableHelper14IsEditorObjectER11ClassObject",
@@ -71660,7 +71660,7 @@
           "address": 1091232,
           "offset": 201264,
           "size": 95,
-          "match_percent": 68.07692
+          "match_percent": 90.96154
         },
         {
           "name": "_Z14CheckResetBitsv",
@@ -71852,7 +71852,7 @@
           "address": 2973904,
           "offset": 2083936,
           "size": 57,
-          "match_percent": 84.7619
+          "match_percent": 100.0
         },
         {
           "name": "_Z23DisplayListRenderBufferv",
@@ -71916,7 +71916,7 @@
           "address": 3474432,
           "offset": 2584464,
           "size": 44,
-          "match_percent": 79.15385
+          "match_percent": 100.0
         },
         {
           "name": "_Z17DebFreeWithoutKeyP16debkeydatatype_s",
@@ -71948,7 +71948,7 @@
           "address": 3492288,
           "offset": 2602320,
           "size": 75,
-          "match_percent": 85.21739
+          "match_percent": 100.0
         },
         {
           "name": "_Z41DebrisSingleTorusCollisionCheckScaleYFlagiP7nuvec_sffh",
@@ -98008,7 +98008,7 @@
           "address": 2557769,
           "offset": 1667801,
           "size": 47,
-          "match_percent": 65.46667
+          "match_percent": 86.6
         },
         {
           "name": "_Z14NuWarningPrintPc",
@@ -98016,7 +98016,7 @@
           "address": 2557816,
           "offset": 1667848,
           "size": 47,
-          "match_percent": 65.46667
+          "match_percent": 86.6
         },
         {
           "name": "_Z15NuDebugMsgPrintPc",
@@ -98024,7 +98024,7 @@
           "address": 2557863,
           "offset": 1667895,
           "size": 47,
-          "match_percent": 65.46667
+          "match_percent": 86.6
         },
         {
           "name": "_Z32NuIOS_CreateGLTexFromPVRInMemoryPvPiS0_",
@@ -114097,7 +114097,7 @@
           "address": 3338464,
           "offset": 2448496,
           "size": 64,
-          "match_percent": 81.35714
+          "match_percent": 81.57143
         },
         {
           "name": "_ZN13NuSoundHandleC2Ev",
@@ -114105,7 +114105,7 @@
           "address": 3338464,
           "offset": 2448496,
           "size": 64,
-          "match_percent": 81.35714
+          "match_percent": 81.57143
         },
         {
           "name": "_ZN13NuSoundHandleD1Ev",
