@@ -446,7 +446,8 @@ extern "C" {
         NuFileWrite(file, &pad, 4);
     }
     void NuFileWriteString(NUFILE file, const char *text) {
-        NuFileWrite(file, const_cast<char *>(text), strlen(text));
+        i32 length = strlen(text);
+        NuFileWrite(file, const_cast<char *>(text), length);
     }
     i32 NuFileWriteStringV(NUFILE file, const char *format, ...) {
         i32 length;

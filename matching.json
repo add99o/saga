@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.11224,
+    "fuzzy_match_percent": 65.112434,
     "total_code": "4722419",
-    "matched_code": "520061",
-    "matched_code_percent": 11.012597,
+    "matched_code": "520126",
+    "matched_code_percent": 11.013974,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6249,
-    "matched_functions_percent": 46.4299,
+    "matched_functions": 6250,
+    "matched_functions_percent": 46.43733,
     "total_units": 1
   },
   "text": {
@@ -107279,7 +107279,7 @@
           "address": 2470963,
           "offset": 1580995,
           "size": 65,
-          "match_percent": 86.666664
+          "match_percent": 100.0
         },
         {
           "name": "NuFileWriteStringV",
