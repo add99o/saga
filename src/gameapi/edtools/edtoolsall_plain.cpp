@@ -1876,10 +1876,9 @@ extern "C" {
         gp_cam.yaw = yaw;
     }
     void edcamSetAutoSpeed(f32 move_base, f32 move_distance_scale, f32 zoom_base, f32 zoom_distance_scale) {
-        gp_cam.auto_move_base = move_base;
-        gp_cam.auto_move_dist_scale = move_distance_scale;
-        gp_cam.auto_zoom_base = zoom_base;
-        gp_cam.auto_zoom_dist_scale = zoom_distance_scale;
+        typedef f32 AutoSpeedVector __attribute__((vector_size(16)));
+        AutoSpeedVector speeds = {move_base, move_distance_scale, zoom_base, zoom_distance_scale};
+        __builtin_memcpy(&gp_cam.auto_move_base, &speeds, sizeof(speeds));
     }
     void edcamSetDist(f32 distance) {
         gp_cam.distance = distance;
@@ -2997,6 +2996,9 @@ extern "C" {
         }
         menu->field_10 = menu->selected;
     }
+#if defined(__i386__)
+    __attribute__((force_align_arg_pointer))
+#endif
     void cbInteractMenuKeySelect(eduimenu_s *menu) {
         char text[16];
         u32 modifiers;
@@ -4812,7 +4814,7 @@ extern "C" {
 
     static __used__ void cbMMRegSel(eduimenu_s *, eduiitem_s *selected, u32) {
         ed_curr = static_cast<ed_module_s *>(selected->data_ptr);
-        if (!ed_curr->reserved) {
+        if (__builtin_expect(!ed_curr->reserved, 1)) {
             ed_module_active = 1;
             if (ed_curr->activate)
                 ed_curr->activate();

@@ -150,7 +150,8 @@ void FadeStill::Init(FADEINFO_s *state) {
 }
 
 void FadeStill::InitFade() {
-    const u32 old_direction = info->direction;
+    volatile u32 &direction = info->direction;
+    const u32 old_direction = direction;
     if ((info->stage & 1) == 0) {
         info->fade = 1.0f;
         info->rate = 2.0f;
@@ -164,8 +165,8 @@ void FadeStill::InitFade() {
         i32 value = qrand();
         if (value < 0)
             value += 0x3fff;
-        info->direction = 1u << (value >> 14);
-    } while (info->direction == old_direction);
+        direction = 1u << (value >> 14);
+    } while (direction == old_direction);
 }
 
 void FadeStill::UpdateFade() {

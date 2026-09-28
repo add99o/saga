@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.327576,
+    "fuzzy_match_percent": 65.33054,
     "total_code": "4722419",
-    "matched_code": "528170",
-    "matched_code_percent": 11.18431,
+    "matched_code": "528325",
+    "matched_code_percent": 11.1875925,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6368,
-    "matched_functions_percent": 47.314064,
+    "matched_functions": 6370,
+    "matched_functions_percent": 47.328926,
     "total_units": 1
   },
   "text": {
@@ -22949,7 +22949,7 @@
           "address": 1588128,
           "offset": 698160,
           "size": 53,
-          "match_percent": 66.190475
+          "match_percent": 71.190475
         },
         {
           "name": "_ZL24Condition_IsLowEndDeviceP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPcPv",
@@ -23565,7 +23565,7 @@
           "address": 1608736,
           "offset": 718768,
           "size": 80,
-          "match_percent": 61.607143
+          "match_percent": 79.82143
         },
         {
           "name": "_ZL17Action_CancelHintP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -23685,7 +23685,7 @@
           "address": 1619552,
           "offset": 729584,
           "size": 125,
-          "match_percent": 85.10526
+          "match_percent": 100.0
         },
         {
           "name": "_ZL25Action_SnapToSockPositionP7AISYS_sP17AISCRIPTPROCESS_sP10AIPACKET_sPPciif",
@@ -34051,7 +34051,7 @@
           "address": 3732720,
           "offset": 2842752,
           "size": 61,
-          "match_percent": 74.05556
+          "match_percent": 99.888885
         },
         {
           "name": "eduicbInteractSel",
@@ -34323,7 +34323,7 @@
           "address": 3753472,
           "offset": 2863504,
           "size": 800,
-          "match_percent": 35.472908
+          "match_percent": 37.285713
         },
         {
           "name": "eduicbRenderColourSlider",
@@ -35515,7 +35515,7 @@
           "address": 3807824,
           "offset": 2917856,
           "size": 90,
-          "match_percent": 83.81481
+          "match_percent": 99.81481
         },
         {
           "name": "eduiMenuProcessInput",
@@ -35747,7 +35747,7 @@
           "address": 3817040,
           "offset": 2927072,
           "size": 62,
-          "match_percent": 47.47059
+          "match_percent": 99.94118
         },
         {
           "name": "edcamSetMouseSensitivity",
@@ -46945,7 +46945,7 @@
           "address": 2338096,
           "offset": 1448128,
           "size": 30,
-          "match_percent": 31.11111
+          "match_percent": 100.0
         },
         {
           "name": "_Z16ChrisAnakinAInitP11WORLDINFO_s",
@@ -81343,7 +81343,7 @@
           "address": 5238704,
           "offset": 4348736,
           "size": 141,
-          "match_percent": 79.82927
+          "match_percent": 84.097565
         },
         {
           "name": "_ZN8FadeWipe8InitFadeEv",
