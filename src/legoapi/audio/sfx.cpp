@@ -1605,11 +1605,26 @@ void AddLevSfx(WORLDINFO_s *world, nuvec_s *position, char *name, i32 sfx) {
 i32 GameAudio_GetPlrSfxBits(void *object_ptr) {
     APIOBJECT *object = static_cast<APIOBJECT *>(object_ptr);
     i32 sfx_bits = 0;
+    i32 shift = 0;
+#if defined(__i386__)
+    __asm__ volatile("" : "+d"(object), "+a"(sfx_bits));
+#endif
     if (__builtin_expect(object == NULL, 0))
-        return sfx_bits;
+        goto no_bits;
     if (__builtin_expect(static_cast<i8>(object->flags_low) >= 0, 0))
-        return sfx_bits;
-    sfx_bits = 1 << object->field_0x27c;
+        goto no_bits;
+    shift = object->field_0x27c;
+#if defined(__i386__)
+    __asm__ volatile("" : "+c"(shift));
+    __asm__ volatile("movb $1, %%al" : "+a"(sfx_bits));
+#else
+    sfx_bits = 1;
+#endif
+    return sfx_bits << shift;
+no_bits:
+#if defined(__i386__)
+    __asm__ volatile("nop" : "+a"(sfx_bits));
+#endif
     return sfx_bits;
 }
 

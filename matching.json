@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.374725,
+    "fuzzy_match_percent": 65.37561,
     "total_code": "4722419",
-    "matched_code": "530758",
-    "matched_code_percent": 11.239113,
+    "matched_code": "530886",
+    "matched_code_percent": 11.241823,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6396,
-    "matched_functions_percent": 47.522102,
+    "matched_functions": 6399,
+    "matched_functions_percent": 47.54439,
     "total_units": 1
   },
   "text": {
@@ -43039,7 +43039,7 @@
           "address": 5101760,
           "offset": 4211792,
           "size": 33,
-          "match_percent": 83.333336
+          "match_percent": 99.166664
         },
         {
           "name": "_Z15GameAudio_Resetv",
@@ -50974,7 +50974,7 @@
           "address": 4409392,
           "offset": 3519424,
           "size": 21,
-          "match_percent": 82.166664
+          "match_percent": 100.0
         },
         {
           "name": "instNuGCutSceneTimeLeft",
@@ -51062,7 +51062,7 @@
           "address": 4412464,
           "offset": 3522496,
           "size": 34,
-          "match_percent": 77.77778
+          "match_percent": 100.0
         },
         {
           "name": "instNuGCutSceneChain",
@@ -112691,7 +112691,7 @@
           "address": 3321824,
           "offset": 2431856,
           "size": 73,
-          "match_percent": 65.78261
+          "match_percent": 100.0
         },
         {
           "name": "_ZN14NuSoundAndroidD1Ev",
