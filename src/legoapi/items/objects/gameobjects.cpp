@@ -5560,8 +5560,20 @@ ThingManager::ThingManager(i32 max_things) {
     theThingManager = this;
 }
 
-ThingManager::~ThingManager() {
+#if defined(__ANDROID__) && defined(__i386__)
+#define THING_MANAGER_INLINE inline
+#else
+#define THING_MANAGER_INLINE
+#endif
+
+THING_MANAGER_INLINE ThingManager::~ThingManager() {
 }
+
+THING_MANAGER_INLINE void ThingManager::operator delete(void *memory) {
+    theMemoryManager.FreePool(memory, sizeof(ThingManager));
+}
+
+#undef THING_MANAGER_INLINE
 
 static eduimenu_s *edTimingMenu;
 static u32 EdAttr[] = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};

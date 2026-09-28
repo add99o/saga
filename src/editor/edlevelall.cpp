@@ -1730,6 +1730,7 @@ void LevelEditor::BeginMultiLoad(variptr_u *buffer, variptr_u *buffer_end) {
 void LevelEditor::ClearLevel(i32 index) {
     scenes[index].active = 0;
     scenes[index].scene = NULL;
+    __asm__ __volatile__("" ::: "memory");
     for (BaseEditor *editor = first_editor; editor != NULL; editor = editor->next) {
         editor->ClearLevel(index);
     }
@@ -2685,7 +2686,10 @@ eduimenu_s *PropertyTool::GetNextDefaultActiveMenu(eduimenu_s *menu) {
     if (menu == NULL) {
         return edLevelActiveMenu;
     }
-    return menu == edLevelActiveMenu ? edLevelPinnedMenu : NULL;
+    if (menu != edLevelActiveMenu) {
+        return NULL;
+    }
+    return edLevelPinnedMenu;
 }
 
 void PropertyTool::GetTypeName(EdRef *reference, char *name) {
@@ -3201,8 +3205,8 @@ void EdClass::SerialiseObject(EdStream &stream, void *object) {
     stream.EndBlock();
 }
 
-i32 EdClass::SerialiseObjectHeader(EdStream &stream, void *object) {
-    u8 present = 0;
+__attribute__((force_align_arg_pointer)) i32 EdClass::SerialiseObjectHeader(EdStream &stream, void *object) {
+    u8 present __attribute__((aligned(16))) = 0;
     if (stream.mode == 2 && object != NULL) {
         present = 1;
     }

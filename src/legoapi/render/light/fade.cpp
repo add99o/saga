@@ -86,13 +86,17 @@ void Fade::Init(FADEINFO_s *state) {
 }
 
 void Fade::InitFade() {
-    if ((info->stage & 1) == 0) {
-        info->fade = 0.0f;
-        info->rate = 2.0f;
+    f32 fade;
+    f32 rate;
+    if (__builtin_expect((info->stage & 1) == 0, 1)) {
+        fade = 0.0f;
+        rate = 2.0f;
     } else {
-        info->fade = 1.0f;
-        info->rate = -1.3333334f;
+        fade = 1.0f;
+        rate = -1.3333334f;
     }
+    info->rate = rate;
+    info->fade = fade;
 }
 
 void Fade::UpdateFade() {

@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.31637,
+    "fuzzy_match_percent": 65.322876,
     "total_code": "4722419",
-    "matched_code": "527088",
-    "matched_code_percent": 11.161398,
+    "matched_code": "527533",
+    "matched_code_percent": 11.170821,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6351,
-    "matched_functions_percent": 47.187756,
+    "matched_functions": 6358,
+    "matched_functions_percent": 47.239765,
     "total_units": 1
   },
   "text": {
@@ -20339,7 +20339,7 @@
           "address": 5518432,
           "offset": 4628464,
           "size": 90,
-          "match_percent": 87.2
+          "match_percent": 100.0
         },
         {
           "name": "_ZN11LevelEditor5FlushEv",
@@ -20643,7 +20643,7 @@
           "address": 5533296,
           "offset": 4643328,
           "size": 58,
-          "match_percent": 74.73684
+          "match_percent": 100.0
         },
         {
           "name": "_ZN12PropertyTool20SetDefaultActiveMenuEP12PropertyMenu",
@@ -20779,7 +20779,7 @@
           "address": 5543472,
           "offset": 4653504,
           "size": 78,
-          "match_percent": 81.791664
+          "match_percent": 100.0
         },
         {
           "name": "_ZN7EdClass10CopyObjectEPvS0_",
@@ -65968,7 +65968,7 @@
           "address": 4348496,
           "offset": 3458528,
           "size": 63,
-          "match_percent": 28.5
+          "match_percent": 100.0
         },
         {
           "name": "_ZN24CantPickupBombTimerAddon9OnProcessEN9MechAddon12ProcessStageEf",
@@ -66328,7 +66328,7 @@
           "address": 5147264,
           "offset": 4257296,
           "size": 41,
-          "match_percent": 11.8
+          "match_percent": 100.0
         },
         {
           "name": "_ZN16GameThingManagerD2Ev",
@@ -66336,7 +66336,7 @@
           "address": 5147264,
           "offset": 4257296,
           "size": 41,
-          "match_percent": 11.8
+          "match_percent": 100.0
         },
         {
           "name": "_ZN16GameThingManagerD0Ev",
@@ -66344,7 +66344,7 @@
           "address": 5147312,
           "offset": 4257344,
           "size": 74,
-          "match_percent": 78.82353
+          "match_percent": 100.0
         },
         {
           "name": "_ZN16GameThingManagerC1Ei",
@@ -81287,7 +81287,7 @@
           "address": 5238496,
           "offset": 4348528,
           "size": 75,
-          "match_percent": 43.52941
+          "match_percent": 76.588234
         },
         {
           "name": "_ZN4Fade10UpdateFadeEv",
@@ -81423,7 +81423,7 @@
           "address": 5239792,
           "offset": 4349824,
           "size": 248,
-          "match_percent": 74.028984
+          "match_percent": 74.08696
         },
         {
           "name": "_ZN10FadeSystem4DrawEv",
@@ -111146,7 +111146,7 @@
           "address": 3205824,
           "offset": 2315856,
           "size": 115,
-          "match_percent": 62.4375
+          "match_percent": 99.9375
         },
         {
           "name": "_ZN7NuMusicC2Ev",
@@ -111154,7 +111154,7 @@
           "address": 3205824,
           "offset": 2315856,
           "size": 115,
-          "match_percent": 62.4375
+          "match_percent": 99.9375
         },
         {
           "name": "_ZN7NuMusicD1Ev",
@@ -111394,7 +111394,7 @@
           "address": 3208864,
           "offset": 2318896,
           "size": 71,
-          "match_percent": 17.358974
+          "match_percent": 48.25641
         },
         {
           "name": "_ZN7NuMusic5xPathEP8nufpar_s",

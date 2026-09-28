@@ -70,14 +70,17 @@ i32 (*CheckMusicOtherFn)(void) = NULL;
 // GamePlayMusic consults this option byte (original: SuperOptions field 0x14).
 // Non-zero selects the quiet/action attack tracks instead of the plain theme.
 NuMusic::NuMusic() {
-    for (i32 i = 0; i < 6; i++) {
-        this->class_volumes[i] = 1.0f;
-    }
+    this->class_volumes[0] = 1.0f;
+    this->class_volumes[1] = 1.0f;
+    this->class_volumes[2] = 1.0f;
     this->albums = NULL;
     this->album_count = 0;
     this->fileinfo = NULL;
     this->file_count = 0;
+    this->class_volumes[3] = 1.0f;
     this->track_index = 0;
+    this->class_volumes[4] = 1.0f;
+    this->class_volumes[5] = 1.0f;
 }
 
 NuMusic::~NuMusic() {
@@ -1333,28 +1336,14 @@ void NuMusic::ParseTrack(u32 category, nufpar_s *fpar) {
 }
 
 char *NuMusic::RemovePath(char *str) {
-    char *str_;
-    char c;
-
-    c = *str;
-    if (c != '\0') {
-        char *last_sep = NULL;
-        str_ = str;
-
-        do {
-            if (c == '/' || c == '\\') {
-                last_sep = str_;
-            }
-            str_ = str_ + 1;
-            c = *str_;
-        } while (c != '\0');
-
-        if (last_sep != NULL) {
-            str = last_sep + 1;
+    char *last_sep = NULL;
+    for (char *cursor = str; *cursor != '\0'; cursor++) {
+        char c = *cursor;
+        if ((c == '/') | (c == '\\')) {
+            last_sep = cursor;
         }
     }
-
-    return str;
+    return last_sep != NULL ? last_sep + 1 : str;
 }
 
 void NuMusic::SubstituteString(char *dst, char *src, char *find, char *subst) {
