@@ -979,17 +979,25 @@ static __used__ void rtlProcessLight(rtl_s *light, f32 elapsed) {
 
 extern "C" {
 
-    char *rtlGetEnvPath(void) {
+#if defined(__GNUC__) && !defined(__clang__)
+#define RTL_OMIT_FRAME_POINTER __attribute__((optimize("omit-frame-pointer")))
+#else
+#define RTL_OMIT_FRAME_POINTER
+#endif
+
+    RTL_OMIT_FRAME_POINTER char *rtlGetEnvPath(void) {
         return const_cast<char *>("_new");
     }
 
-    char *rtlGetEnvSceneName(void) {
+    RTL_OMIT_FRAME_POINTER char *rtlGetEnvSceneName(void) {
         return WORLD->config_file;
     }
 
-    rtlset *rtlGetEnvSet(void) {
+    RTL_OMIT_FRAME_POINTER rtlset *rtlGetEnvSet(void) {
         return WORLD->rtl_set;
     }
+
+#undef RTL_OMIT_FRAME_POINTER
 
     void rtlProcessLights(void *set, f32 frame_time) {
         rtl_s *light;

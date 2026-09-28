@@ -10,9 +10,16 @@ void NuWindInitialise(NUWIND *wind) {
         wind->unk3 = 0.0f;
         wind->unk1 = -1;
 
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+        typedef i32 Int4 __attribute__((vector_size(16)));
+        const Int4 all_ones = {-1, -1, -1, -1};
+        __builtin_memcpy(&wind->unk0[0], &all_ones, sizeof(all_ones));
+        __builtin_memcpy(&wind->unk0[4], &all_ones, sizeof(all_ones));
+#else
         for (usize i = 0; i < 8; ++i) {
             wind->unk0[i] = -1;
         }
+#endif
     }
 }
 

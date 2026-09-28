@@ -665,7 +665,7 @@ void Bolt_Debris_LSW(BOLT_s *bolt, nuvec_s *points, i32 point, nuvec_s *, i32 no
 
 i32 Bolt_HitPartMode(BOLT_s *bolt) {
     GameObject_s *owner = bolt->owner;
-    if (owner == NULL)
+    if (__builtin_expect(owner == NULL, 0))
         return 3;
     i8 player = owner->apiobj.field_0x27c;
     if (player == 0)
@@ -675,7 +675,7 @@ i32 Bolt_HitPartMode(BOLT_s *bolt) {
 
 i32 Bolt_HitPart_LSW(BOLT_s *, PART_s *part) {
     if (part->force_player_mask == 1) {
-        if (part->scale_time < 2.0f)
+        if (__builtin_expect(part->scale_time < 2.0f, 0))
             return 1;
     } else if (part->force_player_mask == 2) {
         if (part->scale_time < 1.0f)
