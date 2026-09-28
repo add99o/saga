@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.38239,
+    "fuzzy_match_percent": 65.38282,
     "total_code": "4722419",
     "matched_code": "530872",
     "matched_code_percent": 11.241527,
@@ -36571,7 +36571,7 @@
           "address": 3032544,
           "offset": 2142576,
           "size": 56,
-          "match_percent": 82.07143
+          "match_percent": 99.92857
         },
         {
           "name": "NuWindSetSpeed",
@@ -36579,7 +36579,7 @@
           "address": 3032608,
           "offset": 2142640,
           "size": 56,
-          "match_percent": 82.07143
+          "match_percent": 99.92857
         },
         {
           "name": "NuWindCurrent",

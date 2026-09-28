@@ -25,13 +25,21 @@ void NuWindInitialise(NUWIND *wind) {
 
 void NuWindSetWorldSize(NUWIND *wind, f32 size) {
     if (wind != NULL) {
-        wind->unk2.x = 1.0f <= size ? size : 1.0f;
+        if (size >= 1.0f) {
+            wind->unk2.x = size;
+        } else {
+            wind->unk2.x = 1.0f;
+        }
     }
 }
 
 void NuWindSetSpeed(NUWIND *wind, f32 speed) {
     if (wind != NULL) {
-        wind->unk2.y = 1.0f <= speed ? speed : 1.0f;
+        if (speed >= 1.0f) {
+            wind->unk2.y = speed;
+        } else {
+            wind->unk2.y = 1.0f;
+        }
     }
 }
 
