@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.374916,
+    "fuzzy_match_percent": 65.37733,
     "total_code": "4722419",
-    "matched_code": "530527",
-    "matched_code_percent": 11.234221,
+    "matched_code": "530654",
+    "matched_code_percent": 11.236911,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6393,
-    "matched_functions_percent": 47.499813,
+    "matched_functions": 6396,
+    "matched_functions_percent": 47.522102,
     "total_units": 1
   },
   "text": {
@@ -57992,7 +57992,7 @@
           "address": 1901056,
           "offset": 1011088,
           "size": 48,
-          "match_percent": 58.92857
+          "match_percent": 85.0
         },
         {
           "name": "_ZL11Levers_DrawPvS_f",
@@ -58000,7 +58000,7 @@
           "address": 1901104,
           "offset": 1011136,
           "size": 2379,
-          "match_percent": 66.34156
+          "match_percent": 66.3107
         },
         {
           "name": "_ZN7LEVER_s22GetMechObjectInterfaceEv",
@@ -72043,7 +72043,7 @@
           "address": 2573696,
           "offset": 1683728,
           "size": 22,
-          "match_percent": 48.57143
+          "match_percent": 71.42857
         }
       ]
     },
@@ -93671,7 +93671,7 @@
           "address": 3204016,
           "offset": 2314048,
           "size": 32,
-          "match_percent": 8.222222
+          "match_percent": 82.111115
         },
         {
           "name": "NuShaderObjectBaseDestroy",
@@ -108616,7 +108616,7 @@
           "address": 2686542,
           "offset": 1796574,
           "size": 45,
-          "match_percent": 54.95238
+          "match_percent": 100.0
         },
         {
           "name": "NuLog2",
@@ -114512,7 +114512,7 @@
           "address": 3280496,
           "offset": 2390528,
           "size": 49,
-          "match_percent": 48.4375
+          "match_percent": 100.0
         },
         {
           "name": "_ZNK15NuSoundListener15GetHeadDistanceERK5VuVec",
@@ -114544,7 +114544,7 @@
           "address": 3280880,
           "offset": 2390912,
           "size": 33,
-          "match_percent": 15.666667
+          "match_percent": 100.0
         },
         {
           "name": "_ZNK15NuSoundListener11GetVelocityEv",
