@@ -57,9 +57,7 @@ static i32 GizMiniCut_GetOutput(GIZMO *gizmo, i32 output_index, i32) {
 static char *GizMiniCut_GetOutputName(GIZMO *gizmo, i32 output_index) {
     if (output_index == 0)
         return "Played";
-    if (output_index == 1)
-        return "Playing";
-    return "Unknown!";
+    return output_index != 1 ? const_cast<char *>("Unknown!") : const_cast<char *>("Playing");
 }
 
 static i32 GizMiniCut_GetNumOutputs(GIZMO *gizmo) {
@@ -142,13 +140,13 @@ void GizMiniCut_Reset(void *world_ptr, void *, void *) {
 
             nuhspecial_s special;
             NuSpecialFind(world->current_gscn, &special, part->name, 0);
-            if (NuSpecialExistsFn(&special) != 0) {
-                part->resolved_position = NuSpecialGetDrawPos(&special);
-            } else {
+            if (NuSpecialExistsFn(&special) == 0) {
                 AILOCATOR *locator = AIPathFindLocator(world->ai_sys, part->name);
                 if (locator != NULL) {
                     part->resolved_position = &locator->position;
                 }
+            } else {
+                part->resolved_position = NuSpecialGetDrawPos(&special);
             }
             if (part->resolved_position == NULL) {
                 part->resolved_position = &part->position;

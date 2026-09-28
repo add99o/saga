@@ -98,9 +98,8 @@ static i32 Grapples_GetMaxGizmos(void *world_ptr) {
 static void Grapples_AddGizmos(GIZMOSYS *gizmo_sys, i32 type_id, void *world_ptr, void *) {
     WORLDINFO *world = static_cast<WORLDINFO *>(world_ptr);
     for (i32 index = 0; index < world->grapple_count; ++index) {
-        GRAPPLE *grapple = &world->grapples[index];
-        if (NuStrLen(grapple->name) != 0) {
-            AddGizmo(gizmo_sys, type_id, NULL, grapple);
+        if (NuStrLen(world->grapples[index].name) != 0) {
+            AddGizmo(gizmo_sys, type_id, NULL, &world->grapples[index]);
         }
     }
 }
@@ -386,20 +385,21 @@ static i32 Grapple_GetOutput(GIZMO *gizmo, i32 output_index, i32) {
         (GRAPPLE_FLAG_ACTIVE | GRAPPLE_FLAG_VISIBLE)) {
         return 0;
     }
-    if (output_index == 1 || output_index == 2) {
-        return Grapple_Occupied(grapple, NULL, NULL) != 0;
+    switch (output_index) {
+        case 1:
+            return Grapple_Occupied(grapple, NULL, NULL) != 0;
+        case 2:
+            return Grapple_Occupied(grapple, NULL, NULL) != 0;
+        default:
+            return 1;
     }
-    return 1;
 }
 
 static char *Grapple_GetOutputName(GIZMO *, i32 output_index) {
     if (output_index == 1) {
         return const_cast<char *>("Occupied");
     }
-    if (output_index == 2) {
-        return const_cast<char *>("Occupied By 2");
-    }
-    return const_cast<char *>("Active");
+    return output_index != 2 ? const_cast<char *>("Active") : const_cast<char *>("Occupied By 2");
 }
 
 static i32 Grapple_GetNumOutputs(GIZMO *) {
