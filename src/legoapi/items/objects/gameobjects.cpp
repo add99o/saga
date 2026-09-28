@@ -1291,9 +1291,8 @@ static f32 Condition_InMiniCut(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *, cha
 }
 
 static f32 Condition_BigJumpComplete(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char *, void *) {
-    if (packet != NULL && packet->owner != NULL) {
-        return packet->owner->apiobj.objptr->character_context != 0x1f ? 1.0f : 0.0f;
-    }
+    if (packet != NULL && packet->owner != NULL && packet->owner->apiobj.objptr->character_context == 0x1f)
+        return 0.0f;
     return 1.0f;
 }
 
@@ -1405,12 +1404,11 @@ static f32 Condition_PartyContainsDroids(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKE
 }
 
 static f32 Condition_OpponentContext(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char *, void *argument) {
-    f32 result = 0.0f;
     if (packet != NULL && packet->opponent_object != NULL) {
         if (packet->opponent_object->objptr->character_context == reinterpret_cast<intptr_t>(argument))
-            result = 1.0f;
+            return 1.0f;
     }
-    return result;
+    return 0.0f;
 }
 
 static void *Condition_InContextInit(AISYS_s *, char *name, AISCRIPT_s *) {
@@ -1443,14 +1441,13 @@ static void *Condition_InContextInit(AISYS_s *, char *name, AISCRIPT_s *) {
 }
 
 static f32 Condition_InContext(AISYS_s *, AISCRIPTPROCESS_s *, AIPACKET_s *packet, char *, void *argument) {
-    f32 result = 0.0f;
     if (packet != NULL && packet->owner != NULL) {
         GameObject_s *object = packet->owner->apiobj.objptr;
         if (object != NULL && object->character_context == static_cast<i32>(reinterpret_cast<isize>(argument))) {
-            result = 1.0f;
+            return 1.0f;
         }
     }
-    return result;
+    return 0.0f;
 }
 
 static void *Condition_HitPointsInit(AISYS_s *system, char *name, AISCRIPT_s *) {

@@ -2448,18 +2448,32 @@ extern "C" {
     // ---------------------------------------------------------------------------
 
     void NuAccumulationMotionBlurEffect(i32 frames, f32 blend, i32 mode) {
-        currentScene.accumulation_blend = blend;
-        currentScene.unknown_174 = 1;
-        currentScene.unknown_178 = 1;
-        currentScene.accumulation_mode = mode;
-        currentScene.accumulation_frames = frames;
+        volatile nurenderscene_s *scene = &currentScene;
+        scene->accumulation_blend = blend;
+        scene->unknown_174 = 1;
+        scene->unknown_178 = 1;
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+        typedef f32 AliasedFloat __attribute__((may_alias));
+        *reinterpret_cast<volatile AliasedFloat *>(&scene->accumulation_mode) =
+            *reinterpret_cast<const AliasedFloat *>(&mode);
+#else
+        scene->accumulation_mode = mode;
+#endif
+        scene->accumulation_frames = frames;
         motionBlurAccumActiveThisFrame = 1;
     }
     void NuAccumulationMotionBlurParams(i32 frames, f32 blend, i32 mode) {
-        currentScene.accumulation_blend = blend;
-        currentScene.unknown_174 = 1;
-        currentScene.accumulation_frames = frames;
-        currentScene.accumulation_mode = mode;
+        volatile nurenderscene_s *scene = &currentScene;
+        scene->accumulation_blend = blend;
+        scene->unknown_174 = 1;
+        scene->accumulation_frames = frames;
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+        typedef f32 AliasedFloat __attribute__((may_alias));
+        *reinterpret_cast<volatile AliasedFloat *>(&scene->accumulation_mode) =
+            *reinterpret_cast<const AliasedFloat *>(&mode);
+#else
+        scene->accumulation_mode = mode;
+#endif
     }
     extern nurenderscene_s currentScene;
     void NuBackbufferCopy(i32 texture_id) {

@@ -135,9 +135,11 @@ void FadeStillWipe::Init(FADEINFO_s *state) {
 }
 
 void FadeStill::DrawFade() {
-    if (wait_till_next_frame != 0)
+    if (wait_till_next_frame != 0) {
+        --wait_till_next_frame;
         return;
-    if (info->stage & 2)
+    }
+    if (__builtin_expect((info->stage & 2) != 0, 1))
         DrawStillScreen(1);
     else
         DrawPauseScreenWipe();
