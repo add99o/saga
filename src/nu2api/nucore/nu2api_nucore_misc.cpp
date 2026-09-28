@@ -75,7 +75,10 @@ i32 GetIntCurveVal(ani3_animheader_s *animation, f32 *values, i32 curve) {
         return reinterpret_cast<i32 *>(values)[curve];
     }
     const f32 value = values[curve];
-    return static_cast<i32>(value < 0.0f ? value - 0.5f : value + 0.5f);
+    if (value < 0.0f) {
+        return static_cast<i32>(value - 0.5f);
+    }
+    return static_cast<i32>(value + 0.5f);
 }
 
 extern "C" void NuAnimBuffCreateScratch(nuanimbuff_s *buffer);
