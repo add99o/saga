@@ -4281,9 +4281,17 @@ extern "C" {
         return scene != NULL ? static_cast<u16>(scene->num_rooms) : 0;
     }
     void NuPortalResetActive(NUGSCN *scene) {
-        for (u32 i = 0; i < scene->max_portals; ++i) {
-            scene->portals[i].is_active |= NUPORTAL_FLAG_ACTIVE | NUPORTAL_FLAG_DEFAULT_ACTIVE;
-        }
+        const u32 count = scene->max_portals;
+        if (count == 0)
+            return;
+        const u32 portal_bytes = count * sizeof(*scene->portals);
+        u8 *portals = reinterpret_cast<u8 *>(scene->portals);
+        u32 offset = 0;
+        do {
+            reinterpret_cast<decltype(scene->portals)>(portals + offset)->is_active |=
+                NUPORTAL_FLAG_ACTIVE | NUPORTAL_FLAG_DEFAULT_ACTIVE;
+            offset += sizeof(*scene->portals);
+        } while (portal_bytes != offset);
     }
     i32 NuPortalRoomClipTest(NUGSCN *scene, i16 room_id) {
         if (scene == NULL || scene->max_portals == 0) {

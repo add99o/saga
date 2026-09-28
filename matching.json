@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.362404,
+    "fuzzy_match_percent": 65.37326,
     "total_code": "4722419",
-    "matched_code": "530526",
-    "matched_code_percent": 11.2342,
+    "matched_code": "530758",
+    "matched_code_percent": 11.239113,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6392,
-    "matched_functions_percent": 47.492386,
+    "matched_functions": 6396,
+    "matched_functions_percent": 47.522102,
     "total_units": 1
   },
   "text": {
@@ -34555,7 +34555,7 @@
           "address": 3771056,
           "offset": 2881088,
           "size": 68,
-          "match_percent": 93.13636
+          "match_percent": 100.0
         },
         {
           "name": "eduiMenuAddItemFirst",
@@ -34563,7 +34563,7 @@
           "address": 3771136,
           "offset": 2881168,
           "size": 69,
-          "match_percent": 85.47619
+          "match_percent": 100.0
         },
         {
           "name": "eduiMenuAddItemLast",
@@ -34571,7 +34571,7 @@
           "address": 3771216,
           "offset": 2881248,
           "size": 68,
-          "match_percent": 91.52381
+          "match_percent": 100.0
         },
         {
           "name": "eduiMenuAddItemAfter",
@@ -35467,7 +35467,7 @@
           "address": 3807248,
           "offset": 2917280,
           "size": 71,
-          "match_percent": 67.08696
+          "match_percent": 72.08696
         },
         {
           "name": "eduiMenuProcessSelectedItem",
@@ -63720,7 +63720,7 @@
           "address": 1156368,
           "offset": 266400,
           "size": 27,
-          "match_percent": 73.125
+          "match_percent": 100.0
         },
         {
           "name": "_ZL17LEGO_100PercentFnv",
@@ -100976,7 +100976,7 @@
           "address": 2984816,
           "offset": 2094848,
           "size": 45,
-          "match_percent": 89.28571
+          "match_percent": 99.28571
         },
         {
           "name": "NuPortalNumRooms",
@@ -117221,7 +117221,7 @@
           "address": 3252384,
           "offset": 2362416,
           "size": 137,
-          "match_percent": 38.76
+          "match_percent": 57.78
         },
         {
           "name": "_ZN13NuSoundSystem13StopAllVoicesEv",
@@ -117229,7 +117229,7 @@
           "address": 3252528,
           "offset": 2362560,
           "size": 109,
-          "match_percent": 19.268293
+          "match_percent": 90.439026
         },
         {
           "name": "_ZN13NuSoundSystem10StopVoicesEi",
@@ -117237,7 +117237,7 @@
           "address": 3252640,
           "offset": 2362672,
           "size": 121,
-          "match_percent": 52.711113
+          "match_percent": 89.17778
         },
         {
           "name": "_ZN13NuSoundSystem10StopVoicesERK13NuSoundSource",
@@ -117245,7 +117245,7 @@
           "address": 3252768,
           "offset": 2362800,
           "size": 125,
-          "match_percent": 22.956522
+          "match_percent": 90.28261
         },
         {
           "name": "_ZN13NuSoundSystem11PauseVoicesEi",
@@ -117253,7 +117253,7 @@
           "address": 3252896,
           "offset": 2362928,
           "size": 129,
-          "match_percent": 53.916668
+          "match_percent": 94.020836
         },
         {
           "name": "_ZN13NuSoundSystem14PauseAllVoicesEv",
@@ -117261,7 +117261,7 @@
           "address": 3253040,
           "offset": 2363072,
           "size": 101,
-          "match_percent": 20.125
+          "match_percent": 90.2
         },
         {
           "name": "_ZN13NuSoundSystem12ResumeVoicesEi",
@@ -117269,7 +117269,7 @@
           "address": 3253152,
           "offset": 2363184,
           "size": 129,
-          "match_percent": 53.916668
+          "match_percent": 94.020836
         },
         {
           "name": "_ZN13NuSoundSystem15ResumeAllVoicesEv",
@@ -117277,7 +117277,7 @@
           "address": 3253296,
           "offset": 2363328,
           "size": 101,
-          "match_percent": 20.125
+          "match_percent": 90.2
         },
         {
           "name": "_ZN13NuSoundSystem14GetOldestVoiceEP13NuSoundSampleRf",

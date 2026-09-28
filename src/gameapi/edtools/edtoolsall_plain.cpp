@@ -3829,10 +3829,14 @@ extern "C" {
             menu->first = item;
         item->previous = menu->last;
         item->next = NULL;
-        menu->last = item;
         menu->field_0c = menu->first;
+        eduiitem_s **last_item = &edui_last_item;
+#if defined(__i386__)
+        __asm__ volatile("" : "+c"(last_item));
+#endif
+        menu->last = item;
         menu->field_10 = 0;
-        edui_last_item = item;
+        *last_item = item;
         return item;
     }
     void eduiMenuAddItemAfter(eduimenu_s *menu, eduiitem_s *item, eduiitem_s *after) {
@@ -3870,11 +3874,15 @@ extern "C" {
         else
             menu->last = item;
         item->next = menu->first;
+        eduiitem_s **last_item = &edui_last_item;
+#if defined(__i386__)
+        __asm__ volatile("" : "+c"(last_item));
+#endif
         item->previous = NULL;
         menu->first = item;
         menu->field_0c = item;
         menu->field_10 = 0;
-        edui_last_item = item;
+        *last_item = item;
     }
     void eduiMenuAddItemLast(eduimenu_s *menu, eduiitem_s *item) {
         if (menu->last)
@@ -3882,11 +3890,15 @@ extern "C" {
         else
             menu->first = item;
         item->previous = menu->last;
+        eduiitem_s **last_item = &edui_last_item;
+#if defined(__i386__)
+        __asm__ volatile("" : "+c"(last_item));
+#endif
         item->next = NULL;
         menu->last = item;
         menu->field_0c = item;
         menu->field_10 = 0;
-        edui_last_item = item;
+        *last_item = item;
     }
     i32 eduiMenuAttach(eduimenu_s *menu, eduimenu_s *child) {
         if (child->parent)
@@ -4063,8 +4075,14 @@ extern "C" {
     i32 eduiMenuIsActive(eduimenu_s *menu) {
         if (!eduiGetUsingMenuFocus())
             return 1;
-        if (eduiGetUsingMenuFocus() && active_menu == menu)
-            return 1;
+        i32 using_focus = eduiGetUsingMenuFocus();
+#if defined(__i386__)
+        __asm__ volatile("" : "+d"(using_focus));
+#endif
+        if (using_focus) {
+            if (active_menu == menu)
+                return 1;
+        }
         return 0;
     }
     i32 eduiMenuItemMoveDown(eduimenu_s *menu, eduiitem_s *item) {

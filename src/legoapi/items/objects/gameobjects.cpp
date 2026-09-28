@@ -3634,7 +3634,11 @@ void SnapCreaturePos(GameObject_s *object, NUVEC *position, i32 angle, AIPATHINF
 
 i32 Game_IgnoreInput() {
     extern i32 newgamecam;
-    return newgamecam != 0;
+    i32 value = newgamecam;
+#if defined(__i386__)
+    __asm__ volatile("" : "+d"(value));
+#endif
+    return value != 0;
 }
 
 extern i16 id_GONKDROID;
