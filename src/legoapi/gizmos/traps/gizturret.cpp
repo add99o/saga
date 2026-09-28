@@ -489,8 +489,9 @@ static i32 GizmoTurret_ActivateRev(GIZMO *gizmo, i32 active, i32 reverse) {
         if ((turret->flags & GIZTURRET_FLAG_ACTIVE) != 0) {
             return 0;
         }
+        const i32 result = active == 0;
         turret->flags &= ~0x10;
-        return active == 0;
+        return result;
     }
     u8 active_flag = active == 0;
     active_flag += active_flag;
