@@ -582,10 +582,12 @@ u32 NuSoundSystem::GetBufferAlignment() {
 
 i32 NuSoundSystem::GetClosestSupportedConfig(i32 config) {
     // libTTapp.so 0x31bcb0: config > 7 -> 8, config >= 6 -> 6, else 2.
-    if (config > 7) {
-        return 8;
+    i32 value = config;
+    i32 result = 8;
+    if (__builtin_expect(value <= 7, 1)) {
+        result = 2 + (static_cast<i32>(value >= 6) << 2);
     }
-    return 2 + (static_cast<i32>(config >= 6) << 2);
+    return result;
 }
 
 const NuSoundSystem::CurveData *NuSoundSystem::GetCrossfadeCurve(u32 id) const {

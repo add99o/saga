@@ -111,7 +111,7 @@ u32 Cheat_CheckFlags(i32 cheat_index, u32 flag_mask) {
 }
 
 void Cheat_SetOn(i32 cheat, i32 on, i32) {
-    if (cheat < 0 || cheat >= CheatSystem.cheats_count) {
+    if (cheat < 0 || __builtin_expect(cheat >= CheatSystem.cheats_count, 0)) {
         return;
     }
     CheatSystem.cheats[cheat].enabled = on != 0;

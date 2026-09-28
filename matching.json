@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.378914,
+    "fuzzy_match_percent": 65.37944,
     "total_code": "4722419",
     "matched_code": "530716",
     "matched_code_percent": 11.238223,
@@ -48867,7 +48867,7 @@
           "address": 5116704,
           "offset": 4226736,
           "size": 62,
-          "match_percent": 73.22222
+          "match_percent": 99.05556
         },
         {
           "name": "_Z10Cheat_IsOni",
@@ -117533,7 +117533,7 @@
           "address": 3259568,
           "offset": 2369600,
           "size": 33,
-          "match_percent": 20.0
+          "match_percent": 47.272728
         },
         {
           "name": "_ZN13NuSoundSystem28GetNumAvailableOutputDevicesEv",
