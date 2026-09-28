@@ -92,10 +92,10 @@ void FindAnglesZX(nuvec_s *normal, u16 *x_rotation, u16 *z_rotation) {
 }
 
 i32 getNumDigits(i32 value) {
-    if (__builtin_expect(value <= 9, 0))
-        return 1;
-    i32 threshold = 10;
     i32 digits = 1;
+    if (__builtin_expect(value <= 9, 0))
+        return digits;
+    i32 threshold = 10;
     do {
         threshold *= 10;
         ++digits;
@@ -494,9 +494,9 @@ bool LineIntersectCircle(NUVEC *origin, NUVEC *direction, NUVEC *center, f32 rad
     f32 x = center->x - origin->x;
     f32 z = center->z - origin->z;
     f32 projection = direction->x * x + direction->z * z;
-    if (projection >= 0.0f)
-        return x * x + z * z - projection * projection <= radius_squared;
-    return false;
+    if (0.0f > projection)
+        return false;
+    return x * x + z * z - projection * projection <= radius_squared;
 }
 
 i32 LineIntersectSphere(NUVEC *origin, NUVEC *direction, NUVEC *center, f32 radius_squared, f32 *distance_squared) {

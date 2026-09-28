@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.355995,
+    "fuzzy_match_percent": 65.362404,
     "total_code": "4722419",
-    "matched_code": "529994",
-    "matched_code_percent": 11.222935,
+    "matched_code": "530526",
+    "matched_code_percent": 11.2342,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6386,
-    "matched_functions_percent": 47.447803,
+    "matched_functions": 6392,
+    "matched_functions_percent": 47.492386,
     "total_units": 1
   },
   "text": {
@@ -55390,7 +55390,7 @@
           "address": 4959408,
           "offset": 4069440,
           "size": 129,
-          "match_percent": 71.297295
+          "match_percent": 99.5946
         },
         {
           "name": "_Z29GizBlowup_DeleteSingleTerrainP13GIZMOBLOWUP_s",
@@ -55406,7 +55406,7 @@
           "address": 4959680,
           "offset": 4069712,
           "size": 113,
-          "match_percent": 41.266666
+          "match_percent": 51.933334
         },
         {
           "name": "_ZL13Blowups_ResetPvS_S_",
@@ -55598,7 +55598,7 @@
           "address": 4975712,
           "offset": 4085744,
           "size": 144,
-          "match_percent": 75.22449
+          "match_percent": 99.5102
         },
         {
           "name": "_Z22FindNearestGizmoBlowUpP11WORLDINFO_sP7nuvec_sf",
@@ -58230,7 +58230,7 @@
           "address": 5057152,
           "offset": 4167184,
           "size": 87,
-          "match_percent": 76.17647
+          "match_percent": 100.0
         },
         {
           "name": "_ZL16Grapple_ActivateP7GIZMO_si",
@@ -58270,7 +58270,7 @@
           "address": 5057408,
           "offset": 4167440,
           "size": 47,
-          "match_percent": 93.69231
+          "match_percent": 99.07692
         },
         {
           "name": "_ZL21Grapple_GetNumOutputsP7GIZMO_s",
@@ -58342,7 +58342,7 @@
           "address": 5060528,
           "offset": 4170560,
           "size": 105,
-          "match_percent": 67.333336
+          "match_percent": 99.833336
         },
         {
           "name": "_ZL17Grapples_DrawListP11WORLDINFO_sP9GRAPPLE_sitf",
@@ -72336,7 +72336,7 @@
           "address": 4795328,
           "offset": 3905360,
           "size": 100,
-          "match_percent": 79.333336
+          "match_percent": 93.333336
         },
         {
           "name": "_Z13VecRotateAxisP7nuvec_stS0_",
@@ -72400,7 +72400,7 @@
           "address": 5420544,
           "offset": 4530576,
           "size": 51,
-          "match_percent": 79.666664
+          "match_percent": 100.0
         },
         {
           "name": "_Z10HashStringPh",
@@ -114878,7 +114878,7 @@
           "address": 3332256,
           "offset": 2442288,
           "size": 88,
-          "match_percent": 37.095238
+          "match_percent": 100.0
         },
         {
           "name": "_ZN16NuSoundLoaderOGG13SeekPCMSampleEy",
@@ -114886,7 +114886,7 @@
           "address": 3332352,
           "offset": 2442384,
           "size": 96,
-          "match_percent": 70.44
+          "match_percent": 100.0
         },
         {
           "name": "_ZN16NuSoundLoaderOGG11SeekRawDataEy",
@@ -114998,7 +114998,7 @@
           "address": 3333904,
           "offset": 2443936,
           "size": 101,
-          "match_percent": 75.85185
+          "match_percent": 100.0
         },
         {
           "name": "_ZNK16NuSoundHeaderOGG20GetEncodedDataFormatEv",
@@ -115245,7 +115245,7 @@
           "address": 3329408,
           "offset": 2439440,
           "size": 109,
-          "match_percent": 73.02631
+          "match_percent": 100.0
         },
         {
           "name": "_ZN16NuSoundLoaderWAV10MakeFourCCEPc",
