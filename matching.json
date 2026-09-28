@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.37944,
+    "fuzzy_match_percent": 65.381966,
     "total_code": "4722419",
-    "matched_code": "530716",
-    "matched_code_percent": 11.238223,
+    "matched_code": "530872",
+    "matched_code_percent": 11.241527,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6397,
-    "matched_functions_percent": 47.529533,
+    "matched_functions": 6399,
+    "matched_functions_percent": 47.54439,
     "total_units": 1
   },
   "text": {
@@ -57602,7 +57602,7 @@
           "address": 2004640,
           "offset": 1114672,
           "size": 66,
-          "match_percent": 44.782608
+          "match_percent": 88.695656
         },
         {
           "name": "_Z22GizPanel_RegisterGizmoi",
@@ -93576,7 +93576,7 @@
           "address": 3182576,
           "offset": 2292608,
           "size": 78,
-          "match_percent": 42.94737
+          "match_percent": 100.0
         },
         {
           "name": "NuShaderManagerRetrieveShader",
@@ -93584,7 +93584,7 @@
           "address": 3182656,
           "offset": 2292688,
           "size": 78,
-          "match_percent": 40.944443
+          "match_percent": 100.0
         },
         {
           "name": "NuShaderObjectKeyGenerate3",
