@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.37858,
+    "fuzzy_match_percent": 65.38191,
     "total_code": "4722419",
-    "matched_code": "531056",
-    "matched_code_percent": 11.245422,
+    "matched_code": "531482",
+    "matched_code_percent": 11.254444,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6403,
-    "matched_functions_percent": 47.574116,
+    "matched_functions": 6410,
+    "matched_functions_percent": 47.62612,
     "total_units": 1
   },
   "text": {
@@ -32755,7 +32755,7 @@
           "address": 3389680,
           "offset": 2499712,
           "size": 97,
-          "match_percent": 85.391304
+          "match_percent": 100.0
         },
         {
           "name": "_ZL23edanimcbSetParticleTypeP10eduimenu_sP10eduiitem_sj",
@@ -32763,7 +32763,7 @@
           "address": 3389792,
           "offset": 2499824,
           "size": 93,
-          "match_percent": 85.17391
+          "match_percent": 100.0
         },
         {
           "name": "_ZL14cbPtlTorusMenuP10eduimenu_sP10eduiitem_sj",
@@ -39726,7 +39726,7 @@
           "address": 4173536,
           "offset": 3283568,
           "size": 24,
-          "match_percent": 49.0
+          "match_percent": 100.0
         },
         {
           "name": "InitFn_MidSpecialMove",
@@ -39734,7 +39734,7 @@
           "address": 4173568,
           "offset": 3283600,
           "size": 24,
-          "match_percent": 49.0
+          "match_percent": 100.0
         }
       ]
     },
@@ -49425,7 +49425,7 @@
           "address": 4754672,
           "offset": 3864704,
           "size": 78,
-          "match_percent": 52.333332
+          "match_percent": 100.0
         },
         {
           "name": "_Z13GamePads_Initv",
@@ -49505,7 +49505,7 @@
           "address": 4755760,
           "offset": 3865792,
           "size": 74,
-          "match_percent": 72.882355
+          "match_percent": 76.47059
         },
         {
           "name": "_Z13NewBuzzFramesP7nupad_sii",
@@ -98008,7 +98008,7 @@
           "address": 2557769,
           "offset": 1667801,
           "size": 47,
-          "match_percent": 86.6
+          "match_percent": 99.933334
         },
         {
           "name": "_Z14NuWarningPrintPc",
@@ -98016,7 +98016,7 @@
           "address": 2557816,
           "offset": 1667848,
           "size": 47,
-          "match_percent": 86.6
+          "match_percent": 99.933334
         },
         {
           "name": "_Z15NuDebugMsgPrintPc",
@@ -98024,7 +98024,7 @@
           "address": 2557863,
           "offset": 1667895,
           "size": 47,
-          "match_percent": 86.6
+          "match_percent": 99.933334
         },
         {
           "name": "_Z32NuIOS_CreateGLTexFromPVRInMemoryPvPiS0_",
@@ -105700,7 +105700,7 @@
           "address": 2935008,
           "offset": 2045040,
           "size": 52,
-          "match_percent": 66.4
+          "match_percent": 99.73333
         },
         {
           "name": "NuTexAnimProcessList",
@@ -107311,7 +107311,7 @@
           "address": 2470963,
           "offset": 1580995,
           "size": 65,
-          "match_percent": 86.666664
+          "match_percent": 100.0
         },
         {
           "name": "NuFileWriteStringV",
@@ -108616,7 +108616,7 @@
           "address": 2686542,
           "offset": 1796574,
           "size": 45,
-          "match_percent": 54.95238
+          "match_percent": 100.0
         },
         {
           "name": "NuLog2",

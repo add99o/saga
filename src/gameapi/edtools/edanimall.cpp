@@ -90,7 +90,22 @@ static __attribute__((used)) void edanimcbMCTBCardType(eduimenu_s *menu, eduiite
 static __attribute__((used)) void edanimcbParticleMenu(eduimenu_s *, eduiitem_s *, u32);
 static __attribute__((used)) void edanimcbSetSoundType(eduimenu_s *menu, eduiitem_s *item, u32) {
     edanim_soundtype_menu = NULL;
-    edanim_sound_type = item->data == 0x1869f ? -1 : item->data;
+    i32 type;
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+    __asm__ volatile("movl 0xc(%%eax), %%edx\n\t"
+                     "movl $-1, %%eax\n\t"
+                     "cmpl $0x1869f, %%edx\n\t"
+                     "cmovnel %%edx, %%eax"
+                     : "=a"(type)
+                     : "0"(item)
+                     : "edx", "cc");
+#else
+    type = item->data == 0x1869f ? -1 : item->data;
+#endif
+    edanim_sound_type = type;
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+    __asm__ volatile("" ::: "memory");
+#endif
     eduiMenuDetach(menu);
     eduiMenuDestroy(menu);
 }
@@ -155,7 +170,22 @@ static __attribute__((used)) void edanimcbSetParticleRate(eduimenu_s *, eduiitem
 
 static __attribute__((used)) void edanimcbSetParticleType(eduimenu_s *menu, eduiitem_s *item, u32) {
     edanim_particletype_menu = NULL;
-    edanim_particle_type = item->data == 0 ? -1 : item->data;
+    i32 type;
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+    __asm__ volatile("movl 0xc(%%eax), %%edx\n\t"
+                     "movl $-1, %%eax\n\t"
+                     "testl %%edx, %%edx\n\t"
+                     "cmovnel %%edx, %%eax"
+                     : "=a"(type)
+                     : "0"(item)
+                     : "edx", "cc");
+#else
+    type = item->data == 0 ? -1 : item->data;
+#endif
+    edanim_particle_type = type;
+#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
+    __asm__ volatile("" ::: "memory");
+#endif
     eduiMenuDetach(menu);
     eduiMenuDestroy(menu);
 }

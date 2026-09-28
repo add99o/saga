@@ -87,7 +87,8 @@ extern nurenderscene_s currentScene;
 extern HashRedirect g_shaderProgramRedirects[417];
 
 #if defined(__GNUC__) && !defined(__clang__)
-#define NU_PRINT_FRAME_POINTER __attribute__((optimize("no-omit-frame-pointer")))
+#define NU_PRINT_FRAME_POINTER                                                                                         \
+    __attribute__((optimize("no-omit-frame-pointer", "no-schedule-insns", "no-schedule-insns2")))
 #else
 #define NU_PRINT_FRAME_POINTER
 #endif
