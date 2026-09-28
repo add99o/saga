@@ -303,12 +303,7 @@ extern "C" {
 
     i32 instNuGCutSceneIsFinished(instNUGCUTSCENE_s *instance) {
         i8 finished = static_cast<i8>(instance->flags_89 << 3);
-#if defined(__i386__)
-        __asm__ volatile("sarb $7, %0" : "+q"(finished));
-        return finished;
-#else
         return finished >> 7;
-#endif
     }
 
     void instNuGCutScenePlay(instNUGCUTSCENE_s *instance, i32 forward) {
@@ -507,13 +502,7 @@ extern "C" {
 
     void instNuGCutSceneWaitAtEnd(instNUGCUTSCENE_s *instance, u8 enabled) {
         u32 enabled_word = enabled;
-#if defined(__i386__)
-        __asm__ volatile("" : "+d"(enabled_word));
-#endif
         u32 bits = (enabled_word & 1) << 6;
-#if defined(__i386__)
-        __asm__ volatile("" : "+d"(bits) : : "memory");
-#endif
         instance->flags_8c = (instance->flags_8c & ~0x40) | bits;
     }
 

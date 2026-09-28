@@ -31,9 +31,6 @@ NuSoundClock::NuSoundClock() : previous_ticks(0) {
 
 void NuSoundClock::RemoveCallback(NuSoundClock::Callback *callback) {
     NuSoundClock *self = this;
-#if defined(__i386__)
-    __asm__ volatile("" : "+c"(self));
-#endif
     Callback *next = callback->intrusive_next;
     Callback *previous;
     if (next != NULL) {

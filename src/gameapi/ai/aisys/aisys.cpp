@@ -8727,7 +8727,6 @@ static f32 Condition_BeenToLevel(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char *,
     }
     const u8 *progress = static_cast<const u8 *>(LevelProgressData) + area_level * LEVEL_PROGRESS_STRIDE;
     u32 completion = progress[LEVEL_PROGRESS_COMPLETION_FLAGS_OFFSET] & LEVEL_PROGRESS_STORY_COMPLETE;
-    asm volatile("" : "+r"(completion));
     return static_cast<f32>(completion);
 }
 

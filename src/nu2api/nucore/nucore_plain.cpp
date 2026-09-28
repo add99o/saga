@@ -2139,13 +2139,16 @@ extern "C" {
         }
 
         u8 *lod_animation = static_cast<u8 *>(animation);
-        while (lod-- != 0) {
+        if (lod == 0) {
+            return lod_animation;
+        }
+        do {
             const u16 next_lod = *reinterpret_cast<u16 *>(lod_animation + 0x14);
             if (next_lod == 0) {
                 return NULL;
             }
             lod_animation += next_lod;
-        }
+        } while (--lod != 0);
         return lod_animation;
     }
     i32 NuAnimGetUseQuatsFlag(void) {
@@ -2166,11 +2169,14 @@ extern "C" {
         return ForceEulerToQuat;
     }
     i32 NuAnimPushSetUseQuatsFlag(i32 enabled) {
-        const i32 previous = ForceEulerToQuat;
-        if (NumQuatPushes > 3) {
+        i32 *push_count = &NumQuatPushes;
+        i32 previous = ForceEulerToQuat;
+        i32 current_count = *push_count;
+        if (current_count > 3) {
             return 0;
         }
-        QuatPushes[NumQuatPushes++] = ForceEulerToQuat;
+        QuatPushes[current_count] = previous;
+        *push_count = current_count + 1;
         ForceEulerToQuat = static_cast<u8>(enabled);
         return previous;
     }

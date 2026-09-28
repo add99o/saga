@@ -943,16 +943,14 @@ void SplinePointList::Clear() {
         if (block->capacity == 16) {
             if (next == NULL) {
                 last = block->previous;
-#if defined(__i386__)
-                // Reload the previous link after updating the list tail.
-                __asm__ volatile("" ::: "memory");
-#endif
             } else
                 next->previous = block->previous;
-            if (block->previous == NULL)
+            // Read the previous link after updating the list tail.
+            SplinePointBlock *previous = *reinterpret_cast<SplinePointBlock *volatile *>(&block->previous);
+            if (previous == NULL)
                 first = next;
             else
-                block->previous->next = next;
+                previous->next = next;
             block->next = NULL;
             block->previous = NULL;
             --block_count;

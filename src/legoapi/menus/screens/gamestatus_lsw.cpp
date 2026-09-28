@@ -201,11 +201,16 @@ void SetBonusWinner(i32 player) {
 }
 
 STATUS_STAGE_s *FindStatusStage(i32 type) {
-    for (STATUS_STAGE_s *stage = StatusStages; stage->type != -1; ++stage) {
+    STATUS_STAGE_s *stage = StatusStages;
+    if (stage->type == -1) {
+        return NULL;
+    }
+    do {
         if (stage->type == type) {
             return stage;
         }
-    }
+        ++stage;
+    } while (stage->type != -1);
     return NULL;
 }
 
@@ -1246,10 +1251,16 @@ i32 InitStatusScreen_LSW(WORLDINFO_s *, STATUSPACKET_s *) {
 
 void RegisterStatusScreen(STATUS_STAGE_s *stages, i32 *, REGISTERSTATUSPACKET_s *registration) {
     StatusStages = stages;
+#if defined(__i386__) && defined(__GNUC__)
+    typedef u32 CallbackVector __attribute__((vector_size(16), aligned(1), may_alias));
+    *reinterpret_cast<CallbackVector *>(&StatusPacket.init_callback) =
+        *reinterpret_cast<const CallbackVector *>(&registration->init_callback);
+#else
     StatusPacket.init_callback = registration->init_callback;
     StatusPacket.finish_callback = registration->finish_callback;
     StatusPacket.reset_callback = registration->reset_callback;
     StatusPacket.draw_background_callback = registration->draw_background_callback;
+#endif
     StatusPacket.lsw_packet = registration->lsw_packet;
     StatusPacket.field_0x68 = registration->stage_delay;
 }

@@ -3635,9 +3635,6 @@ void SnapCreaturePos(GameObject_s *object, NUVEC *position, i32 angle, AIPATHINF
 i32 Game_IgnoreInput() {
     extern i32 newgamecam;
     i32 value = newgamecam;
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(value));
-#endif
     return value != 0;
 }
 

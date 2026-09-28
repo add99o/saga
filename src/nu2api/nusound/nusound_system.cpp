@@ -582,9 +582,6 @@ u32 NuSoundSystem::GetBufferAlignment() {
 
 i32 NuSoundSystem::GetClosestSupportedConfig(i32 config) {
     // libTTapp.so 0x31bcb0: config > 7 -> 8, config >= 6 -> 6, else 2.
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(config));
-#endif
     if (config > 7) {
         return 8;
     }

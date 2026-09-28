@@ -1730,7 +1730,6 @@ void LevelEditor::BeginMultiLoad(variptr_u *buffer, variptr_u *buffer_end) {
 void LevelEditor::ClearLevel(i32 index) {
     scenes[index].active = 0;
     scenes[index].scene = NULL;
-    __asm__ __volatile__("" ::: "memory");
     for (BaseEditor *editor = first_editor; editor != NULL; editor = editor->next) {
         editor->ClearLevel(index);
     }

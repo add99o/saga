@@ -490,9 +490,6 @@ static void Grapples_Reset(void *world_ptr, void *, void *progress_ptr) {
 static void *Grapples_ReserveBufferSpace(void *world_ptr) {
     WORLDINFO *world = static_cast<WORLDINFO *>(world_ptr);
     void *reserved_space = NULL;
-#if defined(__i386__)
-    __asm__ volatile("" : "+a"(reserved_space));
-#endif
     world->grapples = NULL;
     world->grapple_count = 0;
 

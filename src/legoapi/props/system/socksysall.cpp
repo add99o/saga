@@ -242,52 +242,42 @@ static __used__ void SockParBlend(nufpar_s *parser, void *) {
     sockpar_sock->blend_count = index + 1;
 }
 
-// The selected socket is captured before parsing, as in the original callbacks.
-#if defined(__i386__)
-#define CAPTURE_SOCKPAR_SOCKET()                                                                                       \
-    register SOCK *socket asm("esi");                                                                                  \
-    asm("movl %1, %0" : "=S"(socket) : "m"(sockpar_sock))
-#else
-#define CAPTURE_SOCKPAR_SOCKET() SOCK *socket = sockpar_sock
-#endif
-
 static __used__ void SockCamATSTLIFT(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_character_close_lift = NuFParGetFloat(parser);
 }
 static __used__ void SockCamATSTDIST(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_min_distance = NuFParGetFloat(parser);
 }
 static __used__ void SockCamATSTCAMRANGE(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_range_of_effect = NuFParGetFloat(parser);
 }
 static __used__ void SockCamATSTTILT(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_tilt_angle_change = NuFParGetFloat(parser);
 }
 static __used__ void SockCamATSTTILTRATE(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_tilt_angle_rate = NuFParGetFloat(parser);
 }
 static __used__ void SockCamCAMERARAYTILTDIST(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_tilt_distance = NuFParGetFloat(parser);
 }
 static __used__ void SockCamCAMERARAYTILTHEIGHT(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->camera_tilt_height = NuFParGetFloat(parser);
 }
 static __used__ void SockManCam_MAX_X(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->manual_camera_max_x = NuFParGetFloat(parser);
 }
 static __used__ void SockManCam_MAX_Y(nufpar_s *parser, void *) {
-    CAPTURE_SOCKPAR_SOCKET();
+    SOCK *socket = sockpar_sock;
     socket->manual_camera_max_y = NuFParGetFloat(parser);
 }
-#undef CAPTURE_SOCKPAR_SOCKET
 static __used__ void SockTerrainCamInActive(nufpar_s *, void *) {
     sockpar_sock->terrain_camera_inactive = 1;
 }

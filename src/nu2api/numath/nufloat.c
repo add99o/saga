@@ -82,28 +82,9 @@ f32 NuCosf(f32 angle) {
 }
 
 i32 NuPower2(i32 value) {
-#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
-    register i32 power asm("esi");
-    if (value > 127)
-        power = 128;
-    else
-        power = 1;
-    register i32 limit asm("edi") = value;
-    asm volatile("jmp 2f\n"
-                 "1: add %0, %0\n"
-                 "2: cmp %1, %0\n"
-                 "setl %%al\n"
-                 "test %%al, %%al\n"
-                 "jne 1b"
-                 : "+r"(power)
-                 : "r"(limit)
-                 : "eax", "cc");
-#else
     i32 power = value > 127 ? 128 : 1;
-    i32 limit = value;
-    while (power < limit)
+    while (power < value)
         power += power;
-#endif
     return power;
 }
 

@@ -32,29 +32,10 @@ extern "C" void NuTexAnimSetMask(i32 mask) {
 }
 
 extern "C" void NuTexAnimSetSignals(u32 signals) {
-#if defined(__i386__) && defined(__GNUC__) && !defined(__clang__)
-    u32 new_signals;
-    u32 off;
-    u32 on;
-    asm volatile("mov %3, %%edx\n"
-                 "mov %4, %%eax\n"
-                 "mov %%edx, %%ecx\n"
-                 "or %%eax, %%edx\n"
-                 "not %%ecx\n"
-                 "xor %%eax, %%edx\n"
-                 "and %%eax, %%ecx"
-                 : "=a"(new_signals), "=d"(off), "=c"(on)
-                 : "m"(nta_sig_old), "m"(signals)
-                 : "cc");
-    *reinterpret_cast<volatile u32 *>(&nta_sig_off) = off;
-    *reinterpret_cast<volatile u32 *>(&nta_sig_on) = on;
-    *reinterpret_cast<volatile u32 *>(&nta_sig_old) = new_signals;
-#else
     const u32 previous_signals = nta_sig_old;
     nta_sig_off = (previous_signals | signals) ^ signals;
     nta_sig_on = ~previous_signals & signals;
     nta_sig_old = signals;
-#endif
 }
 
 static i32 NuTexAnimLabelIndex(char *name, char (*table)[21], i32 *count) {

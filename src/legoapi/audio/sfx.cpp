@@ -1220,13 +1220,7 @@ i32 SfxBitTabEx(SoundTable const *table, i32 sound) {
         return -1;
     }
     i32 word = sound;
-#if defined(__i386__)
-    __asm__ volatile("" : "+a"(word));
-#endif
     u16 mask = 1;
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(mask));
-#endif
     word >>= 4;
     mask <<= sound & 15;
     return (table->bits[word] & mask) != 0;
@@ -1565,13 +1559,7 @@ i32 SfxBitEx(i32 sound) {
         return -1;
     }
     i32 word = sound;
-#if defined(__i386__)
-    __asm__ volatile("" : "+a"(word));
-#endif
     u16 mask = 1;
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(mask));
-#endif
     word >>= 4;
     mask <<= sound & 15;
     return (SfxBits[word] & mask) != 0;
@@ -1606,25 +1594,14 @@ i32 GameAudio_GetPlrSfxBits(void *object_ptr) {
     APIOBJECT *object = static_cast<APIOBJECT *>(object_ptr);
     i32 sfx_bits = 0;
     i32 shift = 0;
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(object), "+a"(sfx_bits));
-#endif
     if (__builtin_expect(object == NULL, 0))
         goto no_bits;
     if (__builtin_expect(static_cast<i8>(object->flags_low) >= 0, 0))
         goto no_bits;
     shift = object->field_0x27c;
-#if defined(__i386__)
-    __asm__ volatile("" : "+c"(shift));
-    __asm__ volatile("movb $1, %%al" : "+a"(sfx_bits));
-#else
     sfx_bits = 1;
-#endif
     return sfx_bits << shift;
 no_bits:
-#if defined(__i386__)
-    __asm__ volatile("nop" : "+a"(sfx_bits));
-#endif
     return sfx_bits;
 }
 

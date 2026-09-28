@@ -127,9 +127,6 @@ __attribute__((optimize("no-omit-frame-pointer")))
 #endif
 i32 ScaleAndClamp(volatile i32 value) {
     i32 scaled = value << 7;
-#if defined(__i386__)
-    __asm__("" : "+r"(scaled));
-#endif
     i32 shifted = scaled << 5;
     scaled += shifted;
     value = scaled / 1048576;

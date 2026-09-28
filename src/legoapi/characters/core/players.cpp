@@ -1703,9 +1703,6 @@ i32 GetNumLocalPlayers() {
 
 i32 UnderPlayerControl(GameObject_s *object) {
     i32 active = 1;
-#if defined(__i386__)
-    asm volatile("" : "+a"(active));
-#endif
     if (static_cast<i8>(object->apiobj.flags_low) < 0)
         return active;
     if (object->field_0xcc0 != NULL && static_cast<i8>(object->field_0xcc0->apiobj.flags_low) < 0)

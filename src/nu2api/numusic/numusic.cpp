@@ -406,9 +406,6 @@ NuMusic::Voice *NuMusic::FindVoiceByTrack(Track *track) {
 
 NuMusic::Voice *NuMusic::FindVoiceByClass(TRACK_CLASS clazz) {
     NuMusic *self = this;
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(self), "+S"(clazz));
-#endif
     i32 index;
     Track *track;
 
@@ -428,9 +425,6 @@ NuMusic::Voice *NuMusic::FindVoiceByClass(TRACK_CLASS clazz) {
 
 NuMusic::Voice *NuMusic::FindIdleVoice() {
     NuMusic *self = this;
-#if defined(__i386__)
-    __asm__ volatile("" : "+d"(self));
-#endif
     i32 index = -1;
     if (self->voices[0].status == VOICE_STATUS_READY) {
         index = 0;
@@ -1344,9 +1338,6 @@ void NuMusic::ParseTrack(u32 category, nufpar_s *fpar) {
 }
 
 char *NuMusic::RemovePath(char *str) {
-#if defined(__i386__)
-    __asm__ volatile("" : "+D"(str));
-#endif
     char *last_sep = NULL;
     for (char *cursor = str; *cursor != '\0'; cursor++) {
         char c = *cursor;
