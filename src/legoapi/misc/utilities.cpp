@@ -122,9 +122,16 @@ i32 LineCrossedXZ(f32 ax, f32 az, f32 bx, f32 bz, f32 cx, f32 cz, f32 dx, f32 dz
     return 1;
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
+__attribute__((optimize("no-omit-frame-pointer")))
+#endif
 i32 ScaleAndClamp(volatile i32 value) {
     i32 scaled = value << 7;
-    scaled += scaled << 5;
+#if defined(__i386__)
+    __asm__("" : "+r"(scaled));
+#endif
+    i32 shifted = scaled << 5;
+    scaled += shifted;
     value = scaled / 1048576;
     if (value < -128)
         value = -128;

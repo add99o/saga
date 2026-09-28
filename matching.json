@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.35365,
+    "fuzzy_match_percent": 65.355995,
     "total_code": "4722419",
-    "matched_code": "529943",
-    "matched_code_percent": 11.221854,
+    "matched_code": "529994",
+    "matched_code_percent": 11.222935,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6385,
-    "matched_functions_percent": 47.440372,
+    "matched_functions": 6386,
+    "matched_functions_percent": 47.447803,
     "total_units": 1
   },
   "text": {
@@ -57179,7 +57179,7 @@
           "address": 4891936,
           "offset": 4001968,
           "size": 115,
-          "match_percent": 82.63158
+          "match_percent": 99.86842
         },
         {
           "name": "_ZL26GizObstacles_ClearProgressPvS_",
@@ -57219,7 +57219,7 @@
           "address": 4894368,
           "offset": 4004400,
           "size": 102,
-          "match_percent": 80.344826
+          "match_percent": 96.55173
         },
         {
           "name": "_ZL22GizmoObstacle_ActivateP7GIZMO_si",
@@ -57315,7 +57315,7 @@
           "address": 4900128,
           "offset": 4010160,
           "size": 51,
-          "match_percent": 49.0
+          "match_percent": 100.0
         },
         {
           "name": "_ZL27GizObstacleUpdate_AutoStartP13GIZOBSTACLE_s",
@@ -57371,7 +57371,7 @@
           "address": 4901920,
           "offset": 4011952,
           "size": 112,
-          "match_percent": 39.555557
+          "match_percent": 60.22222
         },
         {
           "name": "_Z23GizObstacle_JumpToStartP13GIZOBSTACLE_s",
@@ -72080,7 +72080,7 @@
           "address": 2556718,
           "offset": 1666750,
           "size": 70,
-          "match_percent": 53.52174
+          "match_percent": 86.08696
         },
         {
           "name": "_Z4IToXPci",
@@ -113160,7 +113160,7 @@
           "address": 3270768,
           "offset": 2380800,
           "size": 82,
-          "match_percent": 80.53571
+          "match_percent": 83.21429
         },
         {
           "name": "_ZN12NuSoundClock15HandleCallbacksEv",
