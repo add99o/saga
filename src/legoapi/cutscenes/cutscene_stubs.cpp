@@ -501,8 +501,7 @@ extern "C" {
     }
 
     void instNuGCutSceneWaitAtEnd(instNUGCUTSCENE_s *instance, u8 enabled) {
-        u32 enabled_word = enabled;
-        u32 bits = (enabled_word & 1) << 6;
+        u8 bits = (enabled & 1) << 6;
         instance->flags_8c = (instance->flags_8c & ~0x40) | bits;
     }
 
