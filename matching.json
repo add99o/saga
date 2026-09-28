@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.37733,
+    "fuzzy_match_percent": 65.37827,
     "total_code": "4722419",
-    "matched_code": "530654",
-    "matched_code_percent": 11.236911,
+    "matched_code": "530716",
+    "matched_code_percent": 11.238223,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6396,
-    "matched_functions_percent": 47.522102,
+    "matched_functions": 6397,
+    "matched_functions_percent": 47.529533,
     "total_units": 1
   },
   "text": {
@@ -54616,7 +54616,7 @@
           "address": 5032800,
           "offset": 4142832,
           "size": 62,
-          "match_percent": 52.894737
+          "match_percent": 100.0
         },
         {
           "name": "_ZL24GizBuildIts_GetMaxGizmosPv",
@@ -70998,7 +70998,7 @@
           "address": 5533360,
           "offset": 4643392,
           "size": 49,
-          "match_percent": 56.57895
+          "match_percent": 88.947365
         }
       ]
     },
