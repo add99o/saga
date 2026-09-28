@@ -48,7 +48,7 @@ extern "C" {
 }
 #endif
 i32 DrawPanel3DObject(float, float, float, float, float, float, u16, u16, u16, nuhspecial_s *, i32, float);
-void DrawPanel3DObjectMtx(nuhspecial_s *special, numtx_s *matrix, f32 alpha);
+i32 DrawPanel3DObjectMtx(nuhspecial_s *special, numtx_s *matrix, f32 alpha);
 i32 DrawPanel3DObjectNoAlpha(f32 x, f32 y, f32 z, f32 scale_x, f32 scale_y, f32 scale_z, u16 rotate_x, u16 rotate_y,
                              u16 rotate_z, nuhspecial_s *special, i32 rotate_order);
 void DrawMiniKitCount(f32 position, f32 scale, i32 count, i32 maximum);

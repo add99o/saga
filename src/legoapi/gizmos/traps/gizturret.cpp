@@ -422,14 +422,21 @@ static i32 GizmoTurret_GetOutput(GIZMO *gizmo, i32 output_index, i32) {
     GIZTURRET_s *turret = static_cast<GIZTURRET_s *>(gizmo->object);
     switch (output_index) {
         case 0:
-            return (turret->flags & 0x30) != 0;
+            if ((turret->flags & 0x30) != 0)
+                return 1;
+            break;
         case 1:
-            return static_cast<i8>(turret->flags) < 0;
+            if (static_cast<i8>(turret->flags) < 0)
+                return 1;
+            break;
         case 2:
-            return turret->field_0x132[0] >= turret->field_0x131;
+            if (turret->field_0x132[0] >= turret->field_0x131)
+                return 1;
+            break;
         default:
-            return 0;
+            break;
     }
+    return 0;
 }
 
 static char *GizmoTurret_GetOutputName(GIZMO *gizmo, i32 output_index) {

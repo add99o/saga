@@ -1488,14 +1488,16 @@ void DrawPauseFade() {
     if (editor_active != 0 || screendump != 0)
         return;
 
+    i32 paused = Paused;
+    f32 current_fade = pause_fade;
     f32 step = FRAMETIME * 2.0f;
     i32 fade;
-    if (Paused == 0 && NetPaused == 0) {
-        fade = static_cast<i32>(pause_fade - step);
+    if (paused == 0 && NetPaused == 0) {
+        fade = static_cast<i32>(current_fade - step);
         if (fade < 0)
             fade = 0;
     } else {
-        fade = static_cast<i32>(pause_fade + step);
+        fade = static_cast<i32>(current_fade + step);
         if (fade > 0) {
             pause_fade = 1.0f;
             return;
@@ -1831,20 +1833,20 @@ void DrawStatusText(char *text, u16 angle, float x, float y, float scale, u32 co
     NuQFntSetCoordinateSystem(NUQFNT_CSMODE_NORMALISED);
 }
 
-void Draw3DObjectMtx(WORLDINFO_s *world, i32 object_index, numtx_s *mtx) {
-    if (object_index == -1) {
-        return;
-    }
-    if (world == NULL) {
-        world = WorldInfo_CurrentlyActive();
+i32 Draw3DObjectMtx(WORLDINFO_s *world, i32 object_index, numtx_s *mtx) {
+    if (object_index != -1) {
         if (world == NULL) {
-            return;
+            world = WorldInfo_CurrentlyActive();
+        }
+        if (world != NULL) {
+            LEVEL_OBJECT_RUNTIME &object = world->lev_objs[object_index];
+            if (object.active != 0) {
+                return NuSpecialDrawAt(&object.special, mtx);
+            }
+            return 0;
         }
     }
-    LEVEL_OBJECT_RUNTIME &object = world->lev_objs[object_index];
-    if (object.active != 0) {
-        NuSpecialDrawAt(&object.special, mtx);
-    }
+    return 1;
 }
 
 void DrawGameObjects() {
@@ -2744,8 +2746,8 @@ void DrawGameObjectsDraw(i32) {
 void Draw_AUTOSAVECANCEL() {
 }
 
-void DrawPanel3DObjectMtx(nuhspecial_s *special, numtx_s *matrix, float alpha) {
-    if (alpha > 0.0f) {
+i32 DrawPanel3DObjectMtx(nuhspecial_s *special, numtx_s *matrix, float alpha) {
+    if (0.0f < alpha) {
         NUVEC scale = {1.0f / CameraZoom, 1.0f / CameraZoom, 1.0f / CameraZoom};
         NuMtxPreScale(matrix, &scale);
         if (special != NULL && NuSpecialExistsFn(special) != 0) {
@@ -2753,6 +2755,7 @@ void DrawPanel3DObjectMtx(nuhspecial_s *special, numtx_s *matrix, float alpha) {
             NuSpecialDrawAtAlpha(special, matrix, alpha);
         }
     }
+    return 0;
 }
 
 void Draw_AUTOSAVEWARNING() {
@@ -4115,8 +4118,9 @@ void BackDrop_Init(char *path, variptr_u *buf, variptr_u *buf_end) {
 }
 
 void BackDrop_Dump() {
-    backdrop_scene = nullptr;
-    memset(s_backdrop_hspecial, 0, sizeof(s_backdrop_hspecial));
+    if (backdrop_scene != NULL) {
+        NuGScnRemove(backdrop_scene);
+    }
 }
 
 void BackDrop_Update(float dt) {

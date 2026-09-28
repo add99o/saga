@@ -526,7 +526,9 @@ extern "C" {
 
     void APIObjectDestroyAll(APIOBJECTSYS_s *system) {
         if (system != NULL) {
-            memset(system->objects, 0, system->object_size * 64);
+            u32 size = system->object_size;
+            size <<= 6;
+            memset(system->objects, 0, size);
         }
     }
 
@@ -1067,15 +1069,9 @@ extern "C" {
     }
 
     APICHARACTERMODEL *APICharacterLoaded(i32 character_id) {
-        if (character_id == -1) {
-            return NULL;
-        }
-
-        const i16 model_index = apicharsys->playermodelids[character_id];
-        if (model_index == -1) {
-            return NULL;
-        }
-        return &apicharsys->models[model_index];
+        return character_id != -1 && apicharsys->playermodelids[character_id] != -1
+                   ? &apicharsys->models[apicharsys->playermodelids[character_id]]
+                   : NULL;
     }
 
     // Original @0x3cd1ea. Destroy the area-loaded hierarchy tail in mode 0
@@ -1083,9 +1079,8 @@ extern "C" {
     void APIDumpCharacterModels(i32 mode) {
         i32 model_index = mode == 0 ? apicharsys->permanent_model_count : 0;
         while (model_index < apicharsys->loaded_model_count) {
-            APICHARACTERMODEL &model = apicharsys->models[model_index];
-            if (model.hierarchy != NULL) {
-                NuHGobjDestroy(model.hierarchy);
+            if (apicharsys->models[model_index].hierarchy != NULL) {
+                NuHGobjDestroy(apicharsys->models[model_index].hierarchy);
             }
             ++model_index;
         }
@@ -1150,13 +1145,18 @@ extern "C" {
             return 0;
         }
 
-        i32 count = 0;
-        u32 layer_bit = 1;
-        for (i32 layer = 0; layer <= 31 && layer < model->hierarchy->render_count; ++layer) {
+        u32 layer_bit;
+        i32 layer;
+        i32 count;
+        count = 0;
+        layer_bit = 1;
+        layer = 0;
+        while (layer <= 31 && layer < model->hierarchy->render_count) {
             if ((mask & layer_bit) != 0) {
                 *layers++ = static_cast<i16>(layer);
                 ++count;
             }
+            ++layer;
             layer_bit <<= 1;
         }
         return count;
@@ -1682,11 +1682,9 @@ extern "C" {
     }
 
     f32 AnimListFrame(CHARACTERMODEL_s *model, i32 animation, i32 frame) {
-        if (animation == -1 || model->model_data_b[animation] == NULL || frame < 0 || frame > 3) {
-            return 0.0f;
-        }
-        CHARACTERANIM_s *info = static_cast<CHARACTERANIM_s *>(model->model_data_a[animation]);
-        return info->event_frames[frame];
+        return animation != -1 && model->model_data_b[animation] != NULL && frame >= 0 && frame <= 3
+                   ? static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->event_frames[frame]
+                   : 0.0f;
     }
 
     f32 AnimStopFrame(CHARACTERMODEL_s *model, i32 animation) {
@@ -1696,11 +1694,9 @@ extern "C" {
     }
 
     f32 *AnimListFrameArray(CHARACTERMODEL_s *model, i32 animation) {
-        if (animation == -1 || model->model_data_b[animation] == NULL) {
-            return NULL;
-        }
-        CHARACTERANIM_s *info = static_cast<CHARACTERANIM_s *>(model->model_data_a[animation]);
-        return info->event_frames;
+        return animation != -1 && model->model_data_b[animation] != NULL
+                   ? static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->event_frames
+                   : NULL;
     }
 
     i32 AnimsAvailableToBothCharacters(ANIMPACKET_s *packet, i32 first_character, i32 second_character) {
@@ -2783,7 +2779,7 @@ extern "C" {
     i32 NuRndrGlobalFrameCount(void);
 
     void __attribute__((optimize("O2,omit-frame-pointer"))) WindShear(NUMTX *output, const NUMTX *input, i32 scale,
-                                                                    i32 seed) {
+                                                                      i32 seed) {
         const f32 wind_scale = (static_cast<f32>(scale) / 65535.0f) * global_windscale;
         const f32 wind_speed = (static_cast<f32>(seed) / 65535.0f) * global_windspeed;
         const f32 random = NuRandFloatSeeded(reinterpret_cast<u32 *>(&seed));
@@ -2796,12 +2792,11 @@ extern "C" {
                             (NuTrigTable[(static_cast<i32>((phase * 2.1f) * angle_scale) >> 1) & 0x7fff] * 0.5f +
                              NuTrigTable[(static_cast<i32>(phase * angle_scale) >> 1) & 0x7fff])) *
                            wind_scale;
-        const f32 wave_z = (NuTrigTable[((static_cast<i32>((phase * 4.4f) * angle_scale) + 0x4000) >> 1) & 0x7fff] *
-                                0.25f +
-                            (NuTrigTable[((static_cast<i32>((phase * 2.3f) * angle_scale) + 0x4000) >> 1) & 0x7fff] *
-                                 0.5f +
-                             NuTrigTable[((static_cast<i32>((phase * 1.1f) * angle_scale) + 0x4000) >> 1) & 0x7fff])) *
-                           wind_scale;
+        const f32 wave_z =
+            (NuTrigTable[((static_cast<i32>((phase * 4.4f) * angle_scale) + 0x4000) >> 1) & 0x7fff] * 0.25f +
+             (NuTrigTable[((static_cast<i32>((phase * 2.3f) * angle_scale) + 0x4000) >> 1) & 0x7fff] * 0.5f +
+              NuTrigTable[((static_cast<i32>((phase * 1.1f) * angle_scale) + 0x4000) >> 1) & 0x7fff])) *
+            wind_scale;
 
         *output = *input;
         output->m10 = input->m00 * wave_x + input->m10 + input->m20 * wave_z;

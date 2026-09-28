@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.33695,
+    "fuzzy_match_percent": 65.34392,
     "total_code": "4722419",
-    "matched_code": "528752",
-    "matched_code_percent": 11.196635,
+    "matched_code": "529385",
+    "matched_code_percent": 11.210038,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6374,
-    "matched_functions_percent": 47.358643,
+    "matched_functions": 6380,
+    "matched_functions_percent": 47.403225,
     "total_units": 1
   },
   "text": {
@@ -36524,7 +36524,7 @@
           "address": 3435824,
           "offset": 2545856,
           "size": 80,
-          "match_percent": 77.333336
+          "match_percent": 100.0
         },
         {
           "name": "CRC_ProcessStringN",
@@ -36532,7 +36532,7 @@
           "address": 3435904,
           "offset": 2545936,
           "size": 144,
-          "match_percent": 47.93182
+          "match_percent": 67.84091
         },
         {
           "name": "CRC_ProcessStringIgnoreCase",
@@ -36540,7 +36540,7 @@
           "address": 3436048,
           "offset": 2546080,
           "size": 129,
-          "match_percent": 48.711113
+          "match_percent": 66.977776
         },
         {
           "name": "CRC_ProcessStringNIgnoreCase",
@@ -36548,7 +36548,7 @@
           "address": 3436192,
           "offset": 2546224,
           "size": 147,
-          "match_percent": 35.14516
+          "match_percent": 42.98387
         }
       ]
     },
@@ -59815,7 +59815,7 @@
           "address": 4991392,
           "offset": 4101424,
           "size": 79,
-          "match_percent": 67.0
+          "match_percent": 95.0
         },
         {
           "name": "_ZL25GizmoTurret_GetNumOutputsP7GIZMO_s",
@@ -60753,7 +60753,7 @@
           "address": 3960010,
           "offset": 3070042,
           "size": 68,
-          "match_percent": 81.5
+          "match_percent": 88.90909
         },
         {
           "name": "QuickNewRayCast",
@@ -60977,7 +60977,7 @@
           "address": 3985800,
           "offset": 3095832,
           "size": 98,
-          "match_percent": 45.14706
+          "match_percent": 100.0
         },
         {
           "name": "APIDumpCharacterModels",
@@ -60985,7 +60985,7 @@
           "address": 3985898,
           "offset": 3095930,
           "size": 138,
-          "match_percent": 80.111115
+          "match_percent": 100.0
         },
         {
           "name": "FindAnimIX",
@@ -61009,7 +61009,7 @@
           "address": 3986798,
           "offset": 3096830,
           "size": 126,
-          "match_percent": 94.61539
+          "match_percent": 100.0
         },
         {
           "name": "StoreLocatorCoordinates",
@@ -61145,7 +61145,7 @@
           "address": 3994574,
           "offset": 3104606,
           "size": 106,
-          "match_percent": 44.314285
+          "match_percent": 99.97143
         },
         {
           "name": "AnimStopFrame",
@@ -61161,7 +61161,7 @@
           "address": 3994767,
           "offset": 3104799,
           "size": 60,
-          "match_percent": 64.13043
+          "match_percent": 100.0
         },
         {
           "name": "AnimsAvailableToBothCharacters",
@@ -74908,7 +74908,7 @@
           "address": 1095536,
           "offset": 205568,
           "size": 12138,
-          "match_percent": 36.387154
+          "match_percent": 36.158886
         },
         {
           "name": "_Z19DrawGameObjectsDrawi",
@@ -75516,7 +75516,7 @@
           "address": 4765184,
           "offset": 3875216,
           "size": 40,
-          "match_percent": 11.583333
+          "match_percent": 99.916664
         },
         {
           "name": "_Z12DrawParallaxP12nuhspecial_s",
@@ -75548,7 +75548,7 @@
           "address": 4771408,
           "offset": 3881440,
           "size": 138,
-          "match_percent": 70.95238
+          "match_percent": 83.45238
         },
         {
           "name": "_Z18DrawFadeScreenWipev",
@@ -75588,7 +75588,7 @@
           "address": 4802336,
           "offset": 3912368,
           "size": 131,
-          "match_percent": 82.5
+          "match_percent": 100.0
         },
         {
           "name": "_Z17DrawPanel3DObjectfffffftttP12nuhspecial_sif",
@@ -75612,7 +75612,7 @@
           "address": 4803296,
           "offset": 3913328,
           "size": 177,
-          "match_percent": 86.18604
+          "match_percent": 88.51163
         },
         {
           "name": "_Z27DrawPanel3DObjectMtxNoAlphaP12nuhspecial_sP7numtx_s",
