@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.11224,
+    "fuzzy_match_percent": 65.11403,
     "total_code": "4722419",
-    "matched_code": "520061",
-    "matched_code_percent": 11.012597,
+    "matched_code": "520650",
+    "matched_code_percent": 11.025069,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6249,
-    "matched_functions_percent": 46.4299,
+    "matched_functions": 6253,
+    "matched_functions_percent": 46.459618,
     "total_units": 1
   },
   "text": {
@@ -58270,7 +58270,7 @@
           "address": 5057408,
           "offset": 4167440,
           "size": 47,
-          "match_percent": 93.69231
+          "match_percent": 99.07692
         },
         {
           "name": "_ZL21Grapple_GetNumOutputsP7GIZMO_s",
@@ -58302,7 +58302,7 @@
           "address": 5057568,
           "offset": 4167600,
           "size": 137,
-          "match_percent": 89.90476
+          "match_percent": 100.0
         },
         {
           "name": "_ZL13Grapples_LoadPvS_",
@@ -58342,7 +58342,7 @@
           "address": 5060528,
           "offset": 4170560,
           "size": 105,
-          "match_percent": 67.333336
+          "match_percent": 100.0
         },
         {
           "name": "_ZL17Grapples_DrawListP11WORLDINFO_sP9GRAPPLE_sitf",
@@ -60189,7 +60189,7 @@
           "address": 5082512,
           "offset": 4192544,
           "size": 44,
-          "match_percent": 93.63636
+          "match_percent": 100.0
         },
         {
           "name": "_ZL29GizMiniCut_ReserveBufferSpacePv",
@@ -60221,7 +60221,7 @@
           "address": 5083440,
           "offset": 4193472,
           "size": 303,
-          "match_percent": 89.84536
+          "match_percent": 100.0
         },
         {
           "name": "_Z19GizMiniCut_ActivateP7GIZMO_si",
