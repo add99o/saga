@@ -260,12 +260,12 @@ void MechInputTouchSystem::CreateGamePanels() {
         return;
     }
 
-    MechSystems *systems = MechSystems::Get();
     inputTouchDevice->AddAlwaysActiveElement(
-        reinterpret_cast<NuTouchInputElement *>(&systems->gesture_tracking_system));
+        reinterpret_cast<NuTouchInputElement *>(&MechSystems::Get()->gesture_tracking_system));
 
-    systems->menu_controller = new MechInputTouchMenuController(0);
-    inputTouchDevice->AddAlwaysActiveElement(reinterpret_cast<NuTouchInputElement *>(systems->menu_controller));
+    MechInputTouchMenuController *menu_controller = new MechInputTouchMenuController(0);
+    MechSystems::Get()->menu_controller = menu_controller;
+    inputTouchDevice->AddAlwaysActiveElement(reinterpret_cast<NuTouchInputElement *>(menu_controller));
 
     inputTouchDevice->GetAspectRatio();
     CreateGamePlayLayoutConsoleMode(*inputTouchDevice, 1);
@@ -276,7 +276,7 @@ void MechInputTouchSystem::CreateGamePanels() {
     CreateGamePlayLayoutGestureBased_SpeederChase(*inputTouchDevice, 6);
     CreateGamePlayLayoutBlank(*inputTouchDevice, 7);
 
-    control_mode = SuperOptions.touch_controls == 1 ? 2 : 1;
+    control_mode = SuperOptions.touch_controls != 0 ? 2 : 1;
     inputTouchDevice->SetCurrentLayoutIndex(control_mode);
 }
 
@@ -788,7 +788,7 @@ void MechInputTouchSystem::ProcessEvenWhenPaused(ThingProcessData *data) {
     if (inputTouchDevice == NULL) {
         return;
     }
-    const i32 layout = ChooseTouchLayout(data != NULL && data->paused != 0);
+    const i32 layout = ChooseTouchLayout(data->paused != 0);
     if (inputTouchDevice->GetCurrentLayoutIndex() != static_cast<u32>(layout)) {
         ResetAllOwners();
         inputTouchDevice->SetCurrentLayoutIndex(layout);
