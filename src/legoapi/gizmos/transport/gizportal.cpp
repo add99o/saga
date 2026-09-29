@@ -31,7 +31,7 @@ static void Portal_AddGizmos(GIZMOSYS *gizmo_sys, i32 type_id, void *world_info,
         return;
     }
 
-    for (i32 i = 0; i < world->current_gscn->max_portals; i++) {
+    for (i32 i = 0; i < static_cast<i32>(world->current_gscn->max_portals); i++) {
         NUPORTAL *portal = &world->current_gscn->portals[i];
 
         if (portal->id == 0) {
@@ -91,14 +91,19 @@ static i32 Portal_ActivateRev(GIZMO *gizmo, i32 is_inactive, i32 unknown) {
 
     NUPORTAL *portal = (NUPORTAL *)gizmo->object;
 
-    if ((unknown & 1) == 0) {
-        NuPortalSetActiveDirect(portal, is_inactive == 0);
-    } else if (is_inactive != 0) {
-        if ((portal->is_active & 1) == 0 || is_inactive != 1) {
-            return 0;
+    if ((unknown & 1) != 0) {
+        if (is_inactive != 0) {
+            if ((portal->is_active & 1) == 0) {
+                return 0;
+            }
+            if (is_inactive != 1) {
+                return 0;
+            }
         }
+        return 1;
     }
 
+    NuPortalSetActiveDirect(portal, is_inactive == 0);
     return 1;
 }
 
@@ -125,7 +130,7 @@ static void Portals_StoreProgress(void *world_info, void *, void *progress) {
     }
 
     if (world == NULL || world->current_gscn == NULL || portal_progress == NULL ||
-        world->current_gscn->max_portals <= 0) {
+        static_cast<i32>(world->current_gscn->max_portals) <= 0) {
         return;
     }
 
@@ -158,12 +163,12 @@ static void Portals_Reset(void *world_info, void *, void *progress) {
     PortalDoors_Reset(world);
 
     NUGSCN *gscn = world->current_gscn;
-    if (gscn->max_portals <= 0) {
+    if (static_cast<i32>(gscn->max_portals) <= 0) {
         return;
     }
 
     i32 index = 0;
-    for (i32 i = 0; i < gscn->max_portals; i++) {
+    for (i32 i = 0; i < static_cast<i32>(gscn->max_portals); i++) {
         NUPORTAL *portal = &gscn->portals[i];
         if (portal->id == 0) {
             continue;
