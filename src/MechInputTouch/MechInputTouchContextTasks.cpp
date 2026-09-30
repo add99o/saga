@@ -973,9 +973,10 @@ bool MechTouchTaskUseTeleport::Update() {
     if (target.Get() != NULL) {
         VuVec position;
         target.Get()->GetPos(position, -1);
-        position.x -= player->apiobj.position.x;
-        position.y -= player->apiobj.position.y;
-        position.z -= player->apiobj.position.z;
+        const NUVEC player_position = player->apiobj.position;
+        position.x -= player_position.x;
+        position.y -= player_position.y;
+        position.z -= player_position.z;
         const f32 distance_squared = position.x * position.x + position.y * position.y + position.z * position.z;
         if (distance_squared < 0.25f) {
             controller->button_pressed[3] = 1;
@@ -992,13 +993,14 @@ MechTouchTaskAstroJetPack::MechTouchTaskAstroJetPack(MechInputTouchGestureBasedC
 }
 
 bool MechTouchTaskAstroJetPack::Update() {
+    const f32 updated_start_timeout = start_timeout - FRAMETIME;
     controller->button_was_pressed[2] = 1;
-    start_timeout -= FRAMETIME;
     started |= player->character_context == LEGOCONTEXT_JUMP;
+    start_timeout = updated_start_timeout;
     if (player->apiobj.field_0x27d != 0) {
         grounded_time += FRAMETIME;
     }
-    if ((started || start_timeout < 0.0f) &&
+    if ((started || updated_start_timeout < 0.0f) &&
         (player->character_context != LEGOCONTEXT_JUMP || (player->apiobj.field_0x27d != 0 && grounded_time > 0.75f))) {
         return false;
     }

@@ -197,7 +197,6 @@ bool MechInputTouchVirtualConsoleController::OnDown(GameObject_s &object, TouchH
 bool MechInputTouchVirtualConsoleController::OnRelease(GameObject_s &, TouchHolder &touch) {
     if (dpad_touch == &touch) {
         dpad_touch = NULL;
-        return false;
     }
     if (drag_touch != &touch) {
         return false;
@@ -267,15 +266,34 @@ bool MechInputTouchVirtualConsoleController::ShouldBeActive() {
     if (Paused != 0 && GetMenuID() != 25) {
         return false;
     }
-    if (CUTSTOPGAME != 0 || GetMenuID() == 12 || GetMenuID() == 16 || WORLD == NULL ||
-        (WORLD->current_level->flags & 0x4e2) != 2 || !TouchHacks::TouchControlsActive || MiniCutCam == 2) {
+    if (CUTSTOPGAME != 0) {
         return false;
     }
-    if (MechSystems::Get()->PlayerButton().selector != NULL &&
-        MechSystems::Get()->PlayerButton().selector->field_0x88 == 0) {
-        return MechSystems::Get()->PlayerButton().selector->BlendedOut();
+    if (GetMenuID() == 12) {
+        return false;
     }
-    return true;
+    if (GetMenuID() == 16) {
+        return false;
+    }
+    if (WORLD == NULL) {
+        return false;
+    }
+    if ((WORLD->current_level->flags & 0x4e2) != 2) {
+        return false;
+    }
+    if (TouchHacks::TouchControlsActive) {
+        return false;
+    }
+    if (MiniCutCam == 2) {
+        return false;
+    }
+    if (MechSystems::Get()->PlayerButton().selector == NULL) {
+        return true;
+    }
+    if (MechSystems::Get()->PlayerButton().selector->field_0x88 != 0) {
+        return true;
+    }
+    return MechSystems::Get()->PlayerButton().selector->BlendedOut();
 }
 
 void MechInputTouchVirtualConsoleController::Update(NuInputTouchData const *) {
@@ -360,39 +378,31 @@ void MechInputTouchVirtualConsoleController::Update(NuInputTouchData const *) {
 }
 
 void MechInputTouchVirtualConsoleController::UpdateButtonPositions() {
-    const f32 radius = NuIOS_IsSmallScreen() ? 0.29f : 0.23f;
+    f32 radius = 0.23f;
+    if (NuIOS_IsSmallScreen()) {
+        radius = 0.29f;
+    }
     const f32 aspect = GetAspectRatio();
-    const f32 y = SuperOptions.right_control_y;
     const f32 x = SuperOptions.right_control_x;
+    const f32 y = SuperOptions.right_control_y;
     const f32 dx = aspect * radius;
 
     MechTouchUIElement *button = buttons[0];
-    button->position.z = 0.0f;
-    button->position.w = 1.0f;
-    button->position.y = y - radius;
-    button->position.x = x;
+    button->position = VuVec(x, y - radius, 0.0f, 1.0f);
 
     button = buttons[1];
-    button->position.z = 0.0f;
-    button->position.w = 1.0f;
-    button->position.y = y;
-    button->position.x = x + dx;
+    button->position = VuVec(x + dx, y, 0.0f, 1.0f);
 
     button = buttons[2];
-    button->position.z = 0.0f;
-    button->position.w = 1.0f;
-    button->position.y = y + radius;
-    button->position.x = x;
+    button->position = VuVec(x, y + radius, 0.0f, 1.0f);
 
     button = buttons[3];
-    button->position.z = 0.0f;
-    button->position.w = 1.0f;
-    button->position.y = y;
-    button->position.x = x - dx;
+    button->position = VuVec(x - dx, y, 0.0f, 1.0f);
 
-    if (button_mover != NULL) {
-        button_mover->position.x = x;
-        button_mover->position.y = y;
+    MechTouchUIElement *const mover = button_mover;
+    if (mover != NULL) {
+        mover->position.x = x;
+        mover->position.y = y;
     }
 }
 

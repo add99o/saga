@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
   "measures": {
-    "fuzzy_match_percent": 65.112434,
+    "fuzzy_match_percent": 65.12448,
     "total_code": "4722419",
-    "matched_code": "520126",
-    "matched_code_percent": 11.013974,
+    "matched_code": "522012",
+    "matched_code_percent": 11.053911,
     "total_data": "14606528",
     "matched_data": "543696",
     "matched_data_percent": 3.722281,
     "total_functions": 13459,
-    "matched_functions": 6250,
-    "matched_functions_percent": 46.43733,
+    "matched_functions": 6262,
+    "matched_functions_percent": 46.52649,
     "total_units": 1
   },
   "text": {
@@ -14696,7 +14696,7 @@
           "address": 4444512,
           "offset": 3554544,
           "size": 355,
-          "match_percent": 72.0
+          "match_percent": 99.88095
         },
         {
           "name": "_ZN20MechInputTouchSystem4InitEv",
@@ -14768,7 +14768,7 @@
           "address": 4447600,
           "offset": 3557632,
           "size": 126,
-          "match_percent": 70.44444
+          "match_percent": 91.611115
         },
         {
           "name": "_ZN20MechInputTouchSystem15FindTargetForceEP11WORLDINFO_sR12GameObject_sRK5VuVecS6_RfRP19MechObjectInterfaceRbb",
@@ -15476,7 +15476,7 @@
           "address": 4461408,
           "offset": 3571440,
           "size": 214,
-          "match_percent": 84.40351
+          "match_percent": 92.22807
         },
         {
           "name": "_ZN21MechTouchTaskUseZipUp7OnStartEv",
@@ -15740,7 +15740,7 @@
           "address": 4470304,
           "offset": 3580336,
           "size": 245,
-          "match_percent": 87.88525
+          "match_percent": 99.983604
         },
         {
           "name": "_ZN21MechTouchTaskUseForce6UpdateEv",
@@ -17836,7 +17836,7 @@
           "address": 4537504,
           "offset": 3647536,
           "size": 137,
-          "match_percent": 92.121216
+          "match_percent": 100.0
         },
         {
           "name": "_ZThn108_N38MechInputTouchVirtualConsoleController9OnReleaseER12GameObject_sR11TouchHolder",
@@ -17892,7 +17892,7 @@
           "address": 4539296,
           "offset": 3649328,
           "size": 277,
-          "match_percent": 80.72414
+          "match_percent": 99.965515
         },
         {
           "name": "_ZN38MechInputTouchVirtualConsoleController29ResetButtonPositionsToDefaultEv",
@@ -17924,7 +17924,7 @@
           "address": 4540944,
           "offset": 3650976,
           "size": 285,
-          "match_percent": 83.29114
+          "match_percent": 100.0
         },
         {
           "name": "_ZN38MechInputTouchVirtualConsoleController8ActivateEv",
@@ -17932,7 +17932,7 @@
           "address": 4541232,
           "offset": 3651264,
           "size": 689,
-          "match_percent": 94.42236
+          "match_percent": 94.515526
         },
         {
           "name": "_ZN38MechInputTouchVirtualConsoleController6UpdateEPK16NuInputTouchData",
@@ -17940,7 +17940,7 @@
           "address": 4541936,
           "offset": 3651968,
           "size": 1411,
-          "match_percent": 90.85612
+          "match_percent": 90.91007
         }
       ]
     },
@@ -18472,7 +18472,7 @@
           "address": 4544864,
           "offset": 3654896,
           "size": 147,
-          "match_percent": 97.09091
+          "match_percent": 100.0
         },
         {
           "name": "_ZN11MechTouchUI6OnDownER12GameObject_sR11TouchHolder",
@@ -18488,7 +18488,7 @@
           "address": 4545136,
           "offset": 3655168,
           "size": 177,
-          "match_percent": 95.65574
+          "match_percent": 100.0
         },
         {
           "name": "_ZN20MechTouchUITagButton6RenderEv",
@@ -18512,7 +18512,7 @@
           "address": 4546752,
           "offset": 3656784,
           "size": 486,
-          "match_percent": 93.41129
+          "match_percent": 97.04032
         },
         {
           "name": "_ZN20MechTouchUITexButton7ProcessEf",
@@ -18576,7 +18576,7 @@
           "address": 4548752,
           "offset": 3658784,
           "size": 197,
-          "match_percent": 95.790695
+          "match_percent": 99.69768
         },
         {
           "name": "_ZN23MechTouchUIPlayerButtonC2Ev",
@@ -18584,7 +18584,7 @@
           "address": 4548752,
           "offset": 3658784,
           "size": 197,
-          "match_percent": 95.790695
+          "match_percent": 99.69768
         },
         {
           "name": "_ZN23MechTouchUIPlayerButton14TriggerTagNextEv",
@@ -58151,7 +58151,7 @@
           "address": 5240592,
           "offset": 4350624,
           "size": 201,
-          "match_percent": 85.28125
+          "match_percent": 100.0
         },
         {
           "name": "_ZL18Portal_ActivateRevP7GIZMO_sii",
@@ -58159,7 +58159,7 @@
           "address": 5240800,
           "offset": 4350832,
           "size": 120,
-          "match_percent": 66.875
+          "match_percent": 100.0
         },
         {
           "name": "_Z15Portal_ActivateP7GIZMO_si",
@@ -58191,7 +58191,7 @@
           "address": 5241088,
           "offset": 4351120,
           "size": 129,
-          "match_percent": 85.75
+          "match_percent": 100.0
         },
         {
           "name": "_ZL21Portals_StoreProgressPvS_S_",
@@ -58199,7 +58199,7 @@
           "address": 5241232,
           "offset": 4351264,
           "size": 101,
-          "match_percent": 74.87805
+          "match_percent": 100.0
         },
         {
           "name": "_Z20Portal_RegisterGizmoi",
@@ -58270,7 +58270,7 @@
           "address": 5057408,
           "offset": 4167440,
           "size": 47,
-          "match_percent": 93.69231
+          "match_percent": 99.07692
         },
         {
           "name": "_ZL21Grapple_GetNumOutputsP7GIZMO_s",
@@ -58302,7 +58302,7 @@
           "address": 5057568,
           "offset": 4167600,
           "size": 137,
-          "match_percent": 89.90476
+          "match_percent": 100.0
         },
         {
           "name": "_ZL13Grapples_LoadPvS_",
@@ -58342,7 +58342,7 @@
           "address": 5060528,
           "offset": 4170560,
           "size": 105,
-          "match_percent": 67.333336
+          "match_percent": 100.0
         },
         {
           "name": "_ZL17Grapples_DrawListP11WORLDINFO_sP9GRAPPLE_sitf",
@@ -58796,7 +58796,7 @@
           "address": 1243232,
           "offset": 353264,
           "size": 340,
-          "match_percent": 92.81481
+          "match_percent": 99.48148
         }
       ]
     },
@@ -60165,7 +60165,7 @@
           "address": 5082368,
           "offset": 4192400,
           "size": 65,
-          "match_percent": 69.23077
+          "match_percent": 97.69231
         },
         {
           "name": "_ZL24GizMiniCut_GetNumOutputsP7GIZMO_s",
@@ -60189,7 +60189,7 @@
           "address": 5082512,
           "offset": 4192544,
           "size": 44,
-          "match_percent": 93.63636
+          "match_percent": 100.0
         },
         {
           "name": "_ZL29GizMiniCut_ReserveBufferSpacePv",
@@ -60221,7 +60221,7 @@
           "address": 5083440,
           "offset": 4193472,
           "size": 303,
-          "match_percent": 89.84536
+          "match_percent": 100.0
         },
         {
           "name": "_Z19GizMiniCut_ActivateP7GIZMO_si",
