@@ -495,7 +495,7 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
-extern f32 SuperStoryTimer[4];
+extern TIMER SuperStoryTimer;
 extern u32 SuperStoryScore;
 
 extern f32 DrawMiniKitTime;
@@ -521,7 +521,7 @@ extern i32 LevMusicAction;
 extern i32 LevMusicAmbient;
 extern i32 LevMusicOtherAction;
 extern i32 LevMusicOtherAmbient;
-extern i16 AreaMusic;
+extern i32 AreaMusic;
 extern i32 radios_playing;
 extern i32 last_chatter_sfx;
 
@@ -641,6 +641,7 @@ extern u64 _0xffffffffffffffff;
 extern f32 engagefiretime;
 extern f32 idealgoalrange;
 extern i32 LEGOHINT_BUILD;
+extern i32 LEGOHINT_GRAPPLE;
 extern i32 LEGOHINT_SHOOTCAMERAS;
 extern i32 WeaponInOut_NoAIJediSfx;
 extern i32 Lap;
@@ -708,6 +709,7 @@ extern i32 HINTS_ON;
 // ------------------------------------------------------------------------
 extern i32 FreePlay;
 extern i32 FreePlayModelCount;
+extern "C" i32 makefreeplaymodellist;
 extern i32 FreePlayResidentCount;
 extern i32 FreePlayBonusCount;
 extern CHARCAT_s *CharCategory;

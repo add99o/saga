@@ -62,21 +62,6 @@ namespace {
         PANEL_MENU_LOAD = 26,
     };
 
-    bool CoinTotalCanOpen() {
-        if (FadeSys.fade != 0.0f || CUTSTOPGAME != 0) {
-            return false;
-        }
-        if (Paused == 0 && NetPaused == 0 && DrawCoinTotalTime <= 0.0f) {
-            return false;
-        }
-        if (screendump != 0 || MenuInMemoryCard() != 0) {
-            return false;
-        }
-
-        const i32 menu = GetMenuID();
-        return menu != PANEL_MENU_EPISODE_I && menu != PANEL_MENU_EPISODE_II && menu != PANEL_MENU_EPISODE_III &&
-               menu != PANEL_MENU_EPISODE_IV && menu != PANEL_MENU_SAVE && menu != PANEL_MENU_LOAD;
-    }
 } // namespace
 
 enum COIN_TOTAL_SOURCE { COIN_TOTAL_SAVED_GAME, COIN_TOTAL_SUPER_STORY, COIN_TOTAL_BONUS };
@@ -98,7 +83,8 @@ static void DrawCoinTotal(i32 source, i32 hide_super_story_target) {
     i32 blue = 0;
 
     if (source == COIN_TOTAL_SUPER_STORY) {
-        DrawSuperStoryTime(-y, SuperStoryTimer[0], Game.episode_save[SuperStoryEpisode].superstory_time_limit, 0, 1);
+        DrawSuperStoryTime(-y, SuperStoryTimer.time_elapsed, Game.episode_save[SuperStoryEpisode].superstory_time_limit,
+                           0, 1);
         total = static_cast<i32>(SuperStoryScore);
 
         if (Game.episode_save[SuperStoryEpisode].superstory_score_target != 0) {
@@ -406,31 +392,136 @@ void DrawAutoSaveIcon(void) {
 }
 
 void UpdateStats() {
-    LEVELDATA *level = WORLD->current_level;
-    if ((level->flags & LEVEL_GAMEPLAY) == 0) {
+    if ((WORLD->current_level->flags & LEVEL_GAMEPLAY) == 0)
         return;
-    }
-
     f32 stats_target = 0.0f;
     if (FadeSys.fade == 0.0f && CUTSTOPGAME == 0 && newgamecam == 0) {
-        const bool hub_camera_hidden = HUB_ADATA != NULL && WORLD->area == HUB_ADATA && GameCam->mode == 4;
-        const i32 menu = GetMenuID();
-        if (!hub_camera_hidden && (menu < PANEL_MENU_EPISODE_I || menu > PANEL_MENU_EPISODE_IV)) {
+        const bool hub_hidden = HUB_ADATA != NULL && WORLD->area == HUB_ADATA && GameCam->mode == 4;
+        if (!hub_hidden && GetMenuID() != PANEL_MENU_EPISODE_I && GetMenuID() != PANEL_MENU_EPISODE_II &&
+            GetMenuID() != PANEL_MENU_EPISODE_III && GetMenuID() != PANEL_MENU_EPISODE_IV)
             stats_target = 1.0f;
-        }
     }
     statstime = SeekLinearF(statstime, stats_target, FRAMETIME);
-
-    if ((level->flags & LEVEL_SHOW_COIN_TOTAL) != 0) {
+    if (SuperStory != 0) {
+        DrawMiniKitTime = 0.0f;
+        MiniKitScale = 1.0f;
+        DrawBuildUpTime = 0.0f;
+        builduptime = 0.0f;
+        BuildUpScale = 1.0f;
+        DrawRedBrickTime = 0.0f;
+        redbrickslidetime = 0.0f;
+        RedBrickScale = 1.0f;
+    } else {
+        if (ChallengeMode != 0)
+            DrawMiniKitTime = 2.0f;
+        if (DrawMiniKitTime > 0.0f)
+            DrawMiniKitTime -= FRAMETIME;
+        f32 target = 1.0f;
+        if (FadeSys.fade != 0.0f || CUTSTOPGAME != 0 || (Paused == 0 && NetPaused == 0 && DrawMiniKitTime <= 0.0f) ||
+            screendump != 0 || GetMenuID() == PANEL_MENU_SAVE || GetMenuID() == PANEL_MENU_LOAD ||
+            GetMenuID() == PANEL_MENU_EPISODE_I || GetMenuID() == PANEL_MENU_EPISODE_II ||
+            GetMenuID() == PANEL_MENU_EPISODE_III || GetMenuID() == PANEL_MENU_EPISODE_IV)
+            target = 0.0f;
+        if (ChallengeMode != 0) {
+            f32 hint_alpha = CurrentHintAlpha();
+            if (hint_alpha > 0.0f)
+                target *= 1.0f - hint_alpha;
+        }
+        minikittime = SeekLinearF(minikittime, target, FRAMETIME);
+        MiniKitScale = SeekLinearF(MiniKitScale, 1.0f, 5.0f * FRAMETIME);
+        if (ChallengeMode != 0) {
+            redbrickslidetime = 0.0f;
+            DrawBuildUpTime = 0.0f;
+            builduptime = 0.0f;
+            BuildUpScale = 1.0f;
+            DrawRedBrickTime = 0.0f;
+            RedBrickScale = 1.0f;
+        } else {
+            if (DrawRedBrickTime > 0.0f)
+                DrawRedBrickTime -= FRAMETIME;
+            const i32 area = WORLD->level_sub_id;
+            const bool red_brick = area != -1 && Game.area_save[area].red_brick_collected != 0;
+            const bool network_red = NetPaused != 0 && (AreaGlobals.values.field_0x08 != 0 || red_brick);
+            target = 1.0f;
+            if (FadeSys.fade != 0.0f || CUTSTOPGAME != 0 || (Paused == 0 && !network_red && DrawRedBrickTime <= 0.0f) ||
+                screendump != 0 || GetMenuID() == PANEL_MENU_SAVE || GetMenuID() == PANEL_MENU_LOAD ||
+                GetMenuID() == PANEL_MENU_EPISODE_I || GetMenuID() == PANEL_MENU_EPISODE_II ||
+                GetMenuID() == PANEL_MENU_EPISODE_III || GetMenuID() == PANEL_MENU_EPISODE_IV)
+                target = 0.0f;
+            redbrickslidetime = SeekLinearF(redbrickslidetime, target, FRAMETIME);
+            RedBrickScale = SeekLinearF(RedBrickScale, 1.0f, 5.0f * FRAMETIME);
+            if (DrawBuildUpTime > 0.0f)
+                DrawBuildUpTime -= FRAMETIME;
+            target = 1.0f;
+            if (FadeSys.fade != 0.0f || CUTSTOPGAME != 0 ||
+                (Paused == 0 && NetPaused == 0 && DrawBuildUpTime <= 0.0f) || screendump != 0 ||
+                GetMenuID() == PANEL_MENU_SAVE || GetMenuID() == PANEL_MENU_LOAD ||
+                GetMenuID() == PANEL_MENU_EPISODE_I || GetMenuID() == PANEL_MENU_EPISODE_II ||
+                GetMenuID() == PANEL_MENU_EPISODE_III || GetMenuID() == PANEL_MENU_EPISODE_IV)
+                target = 0.0f;
+            builduptime = SeekLinearF(builduptime, target, FRAMETIME);
+            const i32 freeplay = GAMEDEMO != 0 ? 0 : FreePlay;
+            if (WORLD->area != NULL && (WORLD->area->flags & 0x4010) != 0) {
+                AREASAVE_s &save = Game.area_save[area];
+                const bool complete = BOTHTRUEJEDIGOLDBRICKS == 0
+                                          ? save.story_buildup_complete != 0 || save.freeplay_buildup_complete != 0
+                                      : freeplay != 0 ? save.freeplay_buildup_complete != 0
+                                                      : save.story_buildup_complete != 0;
+                if (!complete) {
+                    const u32 maximum =
+                        static_cast<u32>(freeplay != 0 ? WORLD->area->field38_0x90 : WORLD->area->field37_0x8c);
+                    if (maximum != 0) {
+                        if (BuildUpDone == 0) {
+                            BuildUpTotal = 0;
+                            if (Player[0] != NULL && Player[0]->coinpacket != NULL)
+                                BuildUpTotal = Player[0]->coinpacket->coins;
+                            if (Player[1] != NULL && Player[1]->coinpacket != NULL)
+                                BuildUpTotal += Player[1]->coinpacket->coins;
+                            if (maximum <= static_cast<u32>(BuildUpTotal)) {
+                                BuildUpScale = 2.5f;
+                                BuildUpDone = 1;
+                                AddFancyMessage(TTab[tTRUEHERO], 0.0f, 0.0f, 1.0f, 1.0f, 1, 0);
+                            }
+                        }
+                        BuildUpScale = SeekLinearF(BuildUpScale, 1.0f, 3.0f * FRAMETIME);
+                    }
+                }
+            }
+        }
+    }
+    if (SuperStory != 0 && (WORLD->current_level->flags & LEVEL_SHOW_COIN_TOTAL) != 0)
         DrawCoinTotalTime = 1.0f;
-    }
-    if (DrawCoinTotalTime > 0.0f) {
+    if (DrawCoinTotalTime > 0.0f)
         DrawCoinTotalTime -= FRAMETIME;
-    }
-
-    const f32 coin_total_target = CoinTotalCanOpen() ? 1.0f : 0.0f;
-    cointotaltime = SeekLinearF(cointotaltime, coin_total_target, FRAMETIME);
+    f32 coin_target = 1.0f;
+    if (FadeSys.fade != 0.0f || CUTSTOPGAME != 0 || (Paused == 0 && NetPaused == 0 && DrawCoinTotalTime <= 0.0f) ||
+        screendump != 0 || MenuInMemoryCard() != 0 || GetMenuID() == PANEL_MENU_SAVE ||
+        GetMenuID() == PANEL_MENU_LOAD || GetMenuID() == PANEL_MENU_EPISODE_I || GetMenuID() == PANEL_MENU_EPISODE_II ||
+        GetMenuID() == PANEL_MENU_EPISODE_III || GetMenuID() == PANEL_MENU_EPISODE_IV)
+        coin_target = 0.0f;
+    cointotaltime = SeekLinearF(cointotaltime, coin_target, FRAMETIME);
     CoinTotalScale = SeekLinearF(CoinTotalScale, 1.0f, 3.0f * FRAMETIME);
+    if (HUB_ADATA == NULL || WORLD->area != HUB_ADATA) {
+        goldbricktime = 0.0f;
+    } else {
+        f32 target = 1.0f;
+        if ((Paused == 0 && NetPaused == 0) || MenuInMemoryCard() != 0 || GetMenuID() == PANEL_MENU_SAVE ||
+            GetMenuID() == PANEL_MENU_LOAD || GetMenuID() == PANEL_MENU_EPISODE_I ||
+            GetMenuID() == PANEL_MENU_EPISODE_II || GetMenuID() == PANEL_MENU_EPISODE_III ||
+            GetMenuID() == PANEL_MENU_EPISODE_IV)
+            target = 0.0f;
+        goldbricktime = SeekLinearF(goldbricktime, target, FRAMETIME);
+    }
+    Arcade_UpdatePanel(Paused != 0 || NetPaused != 0);
+    if (Paused == 0 && NetPaused == 0) {
+        const f32 rotation = 16384.0f * FRAMETIME;
+        PowerUp_PanelYRot[0] = static_cast<u16>(static_cast<i32>(static_cast<f32>(PowerUp_PanelYRot[0]) + rotation));
+        PowerUp_PanelYRot[1] = static_cast<u16>(static_cast<i32>(static_cast<f32>(PowerUp_PanelYRot[1]) + rotation));
+    }
+    f32 target = Paused == 0 && Player[0] != NULL && Player[0]->timer_d5c <= 0.0f ? 1.0f : 0.0f;
+    PowerUp_PanelPosMul[0] = SeekLinearF(PowerUp_PanelPosMul[0], target, FRAMETIME + FRAMETIME);
+    target = Paused == 0 && Player[1] != NULL && Player[1]->timer_d5c <= 0.0f ? 1.0f : 0.0f;
+    PowerUp_PanelPosMul[1] = SeekLinearF(PowerUp_PanelPosMul[1], target, FRAMETIME + FRAMETIME);
 }
 
 void DrawPlayerIconPrompts(i32, i32, float, i32, i32, i32, i32, i32, i32, float, i32, i32, i32, i32) {
@@ -791,7 +882,7 @@ void DrawPanel() {
     const i32 paused = screendump ? save_paused : Paused;
     // The original loading shortcut reads this before initialization. Give that path a stable result.
     i32 removed_controller = -1;
-    char text[128], auxiliary[128], loading_text[128];
+    char text[512], auxiliary[128], loading_text[128];
     // Original debug coordinates were never initialized by this port.
     NUVEC coordinate_positions[8] = {};
     f32 status_y = 0.0f;
@@ -827,7 +918,7 @@ void DrawPanel() {
                 removed_controller = GamePad[i].pad->port;
                 sprintf(text, apitxt_CONTROLLERREMOVED, removed_controller + 1, removed_controller + 1);
                 i32 alpha = static_cast<u8>(static_cast<i32>((i == 0 ? 0.75f + pulse : 0.75f - pulse) * 128.0f));
-                SmartTextEx(text, 0.0f, i == 0 ? 0.5f : -0.5f, 1.0f, 0.4f, 0.4f, 0.4f, 0, 63, 127, 255, 1.5f, 4, 0, 0,
+                SmartTextEx(text, 0.0f, i == 0 ? 0.5f : -0.5f, 1.0f, 0.4f, 0.4f, 0.4f, 0, 0, 255, 0, 1.5f, 4, 0, 0,
                             alpha);
             }
         }
@@ -869,11 +960,23 @@ void DrawPanel() {
                     NU_SIN_LUT(static_cast<u16>(NuFmod(GlobalTimer.time_elapsed_mod_seconds, 0.5f) * 2.0f * 65536.0f));
                 GameObject_s *object = Player[0];
                 if (object != NULL) {
-                    f32 base_alpha = 1.0f;
-                    if (paused && pause_i_pad != 0 && static_cast<i8>(object->apiobj.flags_low) < 0)
+                    f32 base_alpha;
+                    f32 dropin_alpha = 1.0f;
+                    f32 icon_x;
+                    if (!paused || pause_i_pad == 0) {
+                        icon_x = -ICONX;
+                        base_alpha = 1.0f;
+                        if (static_cast<i8>(object->apiobj.flags_low) >= 0)
+                            dropin_alpha = DROPINALPHA;
+                    } else if (static_cast<i8>(object->apiobj.flags_low) < 0) {
                         base_alpha = 0.5f;
-                    f32 alpha = base_alpha * (static_cast<i8>(object->apiobj.flags_low) < 0 ? 1.0f : DROPINALPHA);
-                    f32 icon_x = -ICONX;
+                        icon_x = -ICONX;
+                    } else {
+                        icon_x = -ICONX;
+                        base_alpha = 1.0f;
+                        dropin_alpha = DROPINALPHA;
+                    }
+                    f32 alpha = dropin_alpha * base_alpha;
                     drawcharicon_i_panel = 0;
                     i32 alpha_byte = static_cast<i32>(alpha * 128.0f);
                     f32 icon_size = ICONSIZE;
@@ -881,10 +984,16 @@ void DrawPanel() {
                         icon_size *= 1.2f;
                     bool own_icon = WORLD->current_level == DAGOBAHE_LDATA && object->field_0xcc0 != NULL &&
                                     object->field_0xcc0->id == id_YODA;
-                    f32 icon_time = object->hud_icon_timer;
-                    i32 visible = icon_time <= 0.0f || (icon_time < 2.0f && NuFmod(icon_time, 0.4f) < 0.2f);
-                    i32 id = own_icon || object->field_0xcc0 == NULL ? object->id : object->field_0xcc0->id;
-                    DrawCharIcon(id, icon_x, status_y, 0.0f, icon_size, 0xa6, alpha, alpha, visible, NULL);
+                    if (own_icon) {
+                        f32 icon_time = object->hud_icon_timer;
+                        i32 visible = icon_time <= 0.0f || (icon_time < 2.0f && NuFmod(icon_time, 0.4f) < 0.2f);
+                        DrawCharIcon(object->id, icon_x, status_y, 0.0f, icon_size, 0xa6, alpha, alpha, visible, NULL);
+                    } else {
+                        f32 icon_time = object->hud_icon_timer;
+                        i32 visible = icon_time <= 0.0f || (icon_time < 2.0f && NuFmod(icon_time, 0.4f) < 0.2f);
+                        i32 id = object->field_0xcc0 == NULL ? object->id : object->field_0xcc0->id;
+                        DrawCharIcon(id, icon_x, status_y, 0.0f, icon_size, 0xa6, alpha, alpha, visible, NULL);
+                    }
                     f32 name_x = -(ICONX + 0.075f);
                     if (static_cast<i8>(object->apiobj.flags_low) < 0 && object->apiobj.character_data->name_id != -1) {
                         bool draw_name = paused != 0;

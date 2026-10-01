@@ -1658,26 +1658,70 @@ void SetToLastSafePos(GameObject_s *object) {
 }
 
 i32 AvailableToPlayer(u32 character_flags, i32 weapon_action, i32 context, i32 require_all) {
-    for (i32 index = 0; index < 8; ++index) {
-        GameObject_s *object = Player[index];
-        if (object == NULL || object->apiobj.character_data == NULL)
-            continue;
-        if (require_all != 0) {
-            if ((character_flags == 0 ||
-                 (object->apiobj.character_data->model_flags & character_flags) == character_flags) &&
-                (weapon_action == -1 ||
-                 static_cast<i8>(object->apiobj.character_data->game_character->uses_weapon_action) == weapon_action) &&
-                (context == 0 || object->field_0x108e == context))
-                return 1;
+#define CHECK_AVAILABLE_PLAYER(index, predicate)                                                                       \
+    do {                                                                                                               \
+        GameObject_s *object = Player[index];                                                                          \
+        if (object != NULL && object->apiobj.character_data != NULL && (predicate))                                    \
+            return 1;                                                                                                  \
+    } while (0)
+#define CHECK_AVAILABLE_PLAYERS(predicate)                                                                             \
+    CHECK_AVAILABLE_PLAYER(0, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(1, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(2, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(3, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(4, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(5, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(6, predicate);                                                                              \
+    CHECK_AVAILABLE_PLAYER(7, predicate)
+#define PLAYER_HAS_FLAGS ((object->apiobj.character_data->model_flags & character_flags) == character_flags)
+#define PLAYER_HAS_WEAPON                                                                                              \
+    (static_cast<i8>(object->apiobj.character_data->game_character->uses_weapon_action) == weapon_action)
+#define PLAYER_HAS_CONTEXT (object->field_0x108e == context)
+
+    if (require_all == 0) {
+        if (character_flags == 0) {
+            if (context == 0) {
+                CHECK_AVAILABLE_PLAYERS(true);
+            } else if (weapon_action == -1) {
+                CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_CONTEXT);
+            } else {
+                CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_WEAPON || PLAYER_HAS_CONTEXT);
+            }
+        } else if (weapon_action == -1) {
+            if (context == 0) {
+                CHECK_AVAILABLE_PLAYERS(true);
+            } else {
+                CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_FLAGS || PLAYER_HAS_CONTEXT);
+            }
         } else {
-            if ((character_flags != 0 &&
-                 (object->apiobj.character_data->model_flags & character_flags) == character_flags) ||
-                (weapon_action != -1 &&
-                 static_cast<i8>(object->apiobj.character_data->game_character->uses_weapon_action) == weapon_action) ||
-                context == 0 || object->field_0x108e == context)
-                return 1;
+            CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_FLAGS || PLAYER_HAS_WEAPON || context == 0 || PLAYER_HAS_CONTEXT);
+        }
+    } else {
+        if (character_flags == 0) {
+            if (weapon_action == -1) {
+                if (context == 0) {
+                    CHECK_AVAILABLE_PLAYERS(true);
+                } else {
+                    CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_CONTEXT);
+                }
+            } else if (context == 0) {
+                CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_WEAPON);
+            } else {
+                CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_WEAPON && PLAYER_HAS_CONTEXT);
+            }
+        } else if (weapon_action != -1) {
+            CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_FLAGS && PLAYER_HAS_WEAPON && (context == 0 || PLAYER_HAS_CONTEXT));
+        } else {
+            CHECK_AVAILABLE_PLAYERS(PLAYER_HAS_FLAGS && (context == 0 || PLAYER_HAS_CONTEXT));
         }
     }
+
+#undef PLAYER_HAS_CONTEXT
+#undef PLAYER_HAS_WEAPON
+#undef PLAYER_HAS_FLAGS
+#undef CHECK_AVAILABLE_PLAYERS
+#undef CHECK_AVAILABLE_PLAYER
+
     if (FreePlay != 0) {
         for (i32 index = 0; index < apicharsys->character_count; ++index) {
             i32 model = apicharsys->playermodelids[index];
@@ -1716,17 +1760,18 @@ i32 UnderPlayerControl(GameObject_s *object) {
 }
 
 i32 ActivePlayerInRange(nuvec_s *position, float range_squared, float *distance_squared) {
-    for (i32 i = 0; i < 8; ++i) {
-        GameObject_s *object = Player[i];
-        if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0) {
-            const f32 distance = NuVecDistSqr(&object->apiobj.collision_position, position, NULL);
-            if (distance < range_squared) {
-                if (distance_squared != NULL)
-                    *distance_squared = distance;
-                return 1;
-            }
+    f32 distance;
+#define PLAYER_IN_RANGE(index)                                                                                         \
+    (Player[index] != NULL && static_cast<i8>(Player[index]->apiobj.flags_low) < 0 &&                                  \
+     (distance = NuVecDistSqr(&Player[index]->apiobj.collision_position, position, NULL)) < range_squared)
+    if (PLAYER_IN_RANGE(0) || PLAYER_IN_RANGE(1) || PLAYER_IN_RANGE(2) || PLAYER_IN_RANGE(3) || PLAYER_IN_RANGE(4) ||
+        PLAYER_IN_RANGE(5) || PLAYER_IN_RANGE(6) || PLAYER_IN_RANGE(7)) {
+        if (distance_squared != NULL) {
+            *distance_squared = distance;
         }
+        return 1;
     }
+#undef PLAYER_IN_RANGE
     return 0;
 }
 
@@ -1902,29 +1947,44 @@ bool FindNearestPlayerToVec(nuvec_s *position, GameObject_s **nearest_player, fl
     *nearest_player = NULL;
     distance_squared = 0.0f;
 
-    for (i32 index = 0; index < 8; ++index) {
-        GameObject_s *candidate = Player[index];
-        if (candidate == NULL || static_cast<i8>(candidate->apiobj.flags_low) >= 0) {
-            continue;
-        }
+#define CONSIDER_PLAYER_DISTANCE(index, filtered)                                                                      \
+    do {                                                                                                               \
+        GameObject_s *candidate = Player[index];                                                                       \
+        if (candidate != NULL && static_cast<i8>(candidate->apiobj.flags_low) < 0) {                                   \
+            const f32 candidate_distance = NuVecDistSqr(&candidate->apiobj.position, position, NULL);                  \
+            if (candidate_distance < distance_squared || *nearest_player == NULL) {                                    \
+                candidate = Player[index];                                                                             \
+                CHARACTERDATA *character = candidate == NULL ? NULL : candidate->apiobj.character_data;                \
+                GAMECHARACTERDATA *game_character = character == NULL ? NULL : character->game_character;              \
+                if (!(filtered) || (game_character != NULL && (game_character->flags_090 & character_flags) != 0)) {   \
+                    distance_squared = candidate_distance;                                                             \
+                    *nearest_player = candidate;                                                                       \
+                }                                                                                                      \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
 
-        const f32 candidate_distance = NuVecDistSqr(&candidate->apiobj.position, position, NULL);
-        if (*nearest_player != NULL && candidate_distance >= distance_squared) {
-            continue;
-        }
-
-        if (require_character_flags) {
-            CHARACTERDATA *character = candidate->apiobj.character_data;
-            GAMECHARACTERDATA *game_character =
-                character == NULL ? NULL : static_cast<GAMECHARACTERDATA *>(character->field11_0x24);
-            if (game_character == NULL || (game_character->flags_090 & character_flags) == 0) {
-                continue;
-            }
-        }
-
-        distance_squared = candidate_distance;
-        *nearest_player = candidate;
+    if (require_character_flags) {
+        CONSIDER_PLAYER_DISTANCE(0, true);
+        CONSIDER_PLAYER_DISTANCE(1, true);
+        CONSIDER_PLAYER_DISTANCE(2, true);
+        CONSIDER_PLAYER_DISTANCE(3, true);
+        CONSIDER_PLAYER_DISTANCE(4, true);
+        CONSIDER_PLAYER_DISTANCE(5, true);
+        CONSIDER_PLAYER_DISTANCE(6, true);
+        CONSIDER_PLAYER_DISTANCE(7, true);
+    } else {
+        CONSIDER_PLAYER_DISTANCE(0, false);
+        CONSIDER_PLAYER_DISTANCE(1, false);
+        CONSIDER_PLAYER_DISTANCE(2, false);
+        CONSIDER_PLAYER_DISTANCE(3, false);
+        CONSIDER_PLAYER_DISTANCE(4, false);
+        CONSIDER_PLAYER_DISTANCE(5, false);
+        CONSIDER_PLAYER_DISTANCE(6, false);
+        CONSIDER_PLAYER_DISTANCE(7, false);
     }
+
+#undef CONSIDER_PLAYER_DISTANCE
 
     return *nearest_player != NULL;
 }
@@ -1955,9 +2015,9 @@ void CheckForPlayersTurnedOff() {
                 continue;
             }
 
-            GAMECHARACTERDATA *character = target->apiobj.character_data->game_character;
-            if (target->apiobj.field_0x27d != 0 || (target->field_0xe31 == 1 && character->field_0x28 > 0.0f)) {
-                TagCharacter(source, target, 1);
+            if (target->apiobj.field_0x27d != 0 ||
+                (target->field_0xe31 == 1 && target->apiobj.character_data->game_character->field_0x28 > 0.0f)) {
+                TagCharacter(Player[source_index], target, 1);
             }
         }
     }
@@ -1968,23 +2028,44 @@ bool FindFurthestPlayerFromVec(nuvec_s *position, GameObject_s **furthest_player
     *furthest_player = NULL;
     distance_squared = 0.0f;
 
-    for (i32 index = 0; index < 8; ++index) {
-        GameObject_s *candidate = Player[index];
-        if (candidate == NULL || static_cast<i8>(candidate->apiobj.flags_low) >= 0)
-            continue;
+#define CONSIDER_PLAYER_DISTANCE(index, filtered)                                                                      \
+    do {                                                                                                               \
+        GameObject_s *candidate = Player[index];                                                                       \
+        if (candidate != NULL && static_cast<i8>(candidate->apiobj.flags_low) < 0) {                                   \
+            const f32 candidate_distance = NuVecDistSqr(&candidate->apiobj.position, position, NULL);                  \
+            if (candidate_distance > distance_squared || *furthest_player == NULL) {                                   \
+                candidate = Player[index];                                                                             \
+                CHARACTERDATA *character = candidate == NULL ? NULL : candidate->apiobj.character_data;                \
+                GAMECHARACTERDATA *game_character = character == NULL ? NULL : character->game_character;              \
+                if (!(filtered) || (game_character != NULL && (game_character->flags_090 & character_flags) != 0)) {   \
+                    distance_squared = candidate_distance;                                                             \
+                    *furthest_player = candidate;                                                                      \
+                }                                                                                                      \
+            }                                                                                                          \
+        }                                                                                                              \
+    } while (0)
 
-        const f32 candidate_distance = NuVecDistSqr(&candidate->apiobj.position, position, NULL);
-        if (*furthest_player != NULL && candidate_distance <= distance_squared)
-            continue;
-
-        if (require_character_flags &&
-            (candidate->apiobj.character_data->game_character->flags_090 & character_flags) == 0) {
-            continue;
-        }
-
-        distance_squared = candidate_distance;
-        *furthest_player = candidate;
+    if (require_character_flags) {
+        CONSIDER_PLAYER_DISTANCE(0, true);
+        CONSIDER_PLAYER_DISTANCE(1, true);
+        CONSIDER_PLAYER_DISTANCE(2, true);
+        CONSIDER_PLAYER_DISTANCE(3, true);
+        CONSIDER_PLAYER_DISTANCE(4, true);
+        CONSIDER_PLAYER_DISTANCE(5, true);
+        CONSIDER_PLAYER_DISTANCE(6, true);
+        CONSIDER_PLAYER_DISTANCE(7, true);
+    } else {
+        CONSIDER_PLAYER_DISTANCE(0, false);
+        CONSIDER_PLAYER_DISTANCE(1, false);
+        CONSIDER_PLAYER_DISTANCE(2, false);
+        CONSIDER_PLAYER_DISTANCE(3, false);
+        CONSIDER_PLAYER_DISTANCE(4, false);
+        CONSIDER_PLAYER_DISTANCE(5, false);
+        CONSIDER_PLAYER_DISTANCE(6, false);
+        CONSIDER_PLAYER_DISTANCE(7, false);
     }
+
+#undef CONSIDER_PLAYER_DISTANCE
 
     return *furthest_player != NULL;
 }

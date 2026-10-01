@@ -4903,3 +4903,1662 @@ Further read-only triage confirms that the 146-byte `NuVisiInstTree` needs
 the shared instance-tree layout and its private `ClipInstTree` clone, not
 an isolated wrapper implementation or forced register-passing attributes.
 No source experiment was made for that visibility group.
+
+## Batch 95: episode-selection menus
+
+After rebasing onto main `05429366`, the linked baseline is **65.124480%**.
+Restore the private `DrawEpisodesMenu` and public episode update/draw callbacks
+in `hub.cpp`, next to their initializer and their original private
+`EpisodeNumerals` table. This closes the previously documented ownership split;
+the existing `-O3` configuration is unchanged. Remove the HUD/menu placeholders,
+restore the six-byte signed `i_clip` array and initialized
+`hub_goto_clipsmenu_episode`, and publish the shared clip-grid declaration.
+
+Reference control flow distinguishes the six-episode grid, seven-column clip
+selection, play confirmation and exit animation. Preserve physical-pad versus
+touch input, confirm-before-cancel priority, directional repetition and wrapping,
+unavailable-episode opacity, item hitboxes, and the exit state's two frame-time
+increments. Keep the ordinary static C++ helper: GCC supplies its private
+register convention without calling-convention attributes. Branch source order
+is material: the first grid-before-episode trial produced zero fuzzy matching
+for the helper; recovering the original episode-first control-flow order raises
+it to **69.594666%**. Update/draw reach **32.404540% / 85.771240%**.
+
+Overall linked fuzzy matching reaches **65.240974%** (+0.116494 percentage
+points), with **6,262** exact functions unchanged. The Android target, all five
+repository checks, cross-file declaration check and symbol-surface check pass.
+This is assembly-reviewed reconstruction, not a gameplay integration claim;
+no controller/touch runtime harness has yet been run for this batch.
+
+## Batch 96: word-based font justification and glyph submission
+
+Recover `NuQFntPrintJustifiedRSW` from its complete reference control flow.
+The old line-by-line approximation treated encoded hyphens as forced line
+breaks, dropped them, and used the wrong width/stretch decisions. Restore
+word-segment accumulation, punctuation-adjacent spacing, collapsed spaces,
+single-word stretching, final-line scale limiting and the mandatory initial
+line (including empty strings). Keep saved spacing/gap restoration and matrix
+mode forwarding. It improves **0% to 22.646488%** at the unchanged `-O2`.
+
+Also recover glyph-width caching across Unicode callbacks, signed digit-glyph
+indices, left-associated advance arithmetic, and stream advancement from the
+captured vertex pointer. Keep half-colour calculation outside the glyph loop
+and refresh second 2D UVs after primitive submission. These correctness changes
+do not yet improve the zero-scoring `NuQFntPrintCharW`; its remaining stack,
+register and block-layout gaps are not forced with attributes or flags.
+
+Overall linked fuzzy matching rises **65.240974% to 65.249770%**, with no other
+function-score changes or exact-match loss. Extracted production bodies pass
+**10,009** wrapping boundary/property cases and **960** vertex/state cases on
+32-bit native and 64-bit ASan/UBSan. Wrapping checks preserve collapsed input
+across random word/hyphen/punctuation sequences, line positions, height and
+spacing restoration. Vertex checks cover 2D/3D flags, mono-width digits, spaces,
+texture/no-texture dimensions, half UVs, overbrightening, scales, complete
+coordinates/colours and cursor/count/coordinate-stack state. Rendering/font
+services are fixtures, not real graphics or a retail execution oracle; callback
+mutation and invalid/out-of-capacity text are outside these tests. LeakSanitizer
+is disabled because sandbox tracing prevents it from running; ASan/UBSan remain
+enabled with ordinary global instrumentation.
+
+Three bounded force-progress loop trials remain at zero matching despite
+recovering reference-style signed indices, a separate 128-entry exit and
+ordinary nested group loops. All are reverted. The progress layout is already
+correct; do not repeat these control-flow-only trials without new evidence.
+
+## Batch 97: customizer menu and minikit animation
+
+Replace the empty `CustomiserMenu_Update` and `CustomiserMenu_Draw` bodies in
+their existing `customise.cpp` owner, retaining the effective `-O2`. Recover
+the private category/name cursors and 38-character alphabet from the original
+symbols/data, and give the two reserved menu-packet byte arrays semantic
+aliases without changing their layout. Restore player swapping, physical and
+touch input, repeat/conflict handling, piece randomisation and availability,
+name-edit backups/commit/cancel/filtering, two-player demo exit agreement,
+save-change detection and the auto-save completion handoff.
+
+Restore name/glyph rendering, preview icons, idle pulses, touch hitboxes and
+drop-in opacity. Constants are read from the original literal pool, not
+approximated. The update improves **0.423654% to 46.128860%**; its two-player
+setup is unrolled as in the reference. The draw improves **0.784314% to
+19.261438%**. One fixed-width name-trimming expansion lowers the draw score
+and is reverted; keep the bounded loop. The blank-name trim in the updater
+checks the lower bound before reading, unlike the original's underflowing
+all-space loop, and reaches its intended localized default-name path.
+
+Also correct `DrawStatusMiniKit`: only current/new pieces receive the sliding
+oscillation, whereas completed pieces take the built-scale branch directly.
+Reload piece-array state after callbacks as in the reference. This function
+still scores zero; no compiler or calling-convention workaround is introduced.
+
+Overall linked fuzzy matching rises **65.249770% to 65.315160%**, or
+**+0.190680 percentage points** from this branch's main baseline. Exact
+functions remain **6,262**. There are tiny linked-layout score variations in
+the camera/material-clip functions; do not attribute those to behavior fixes.
+Extracted production bodies pass fixed customizer input/save/drawing fixtures
+and minikit completed/new-piece, bounds and callback-array replacement cases
+on native i386 and 64-bit ASan/UBSan. Tests include name cancellation, bad-word
+rollback, all-space localized fallback, side swapping, directional conflicts,
+demo agreement, save success/deferred completion and preview hitboxes.
+Rendering, audio, pad, save and random services are fixtures, not a gameplay
+integration test or a retail runtime oracle. LeakSanitizer is disabled for
+the sandbox; normal address/undefined-behavior instrumentation remains on.
+
+Read-only matcher triage finds another reason not to chase zero scores blindly:
+the linked x86 GOT recovery in the installed objdiff fork conservatively skips
+entire functions containing indirect branches (including switch tables).
+Such functions retain raw GOT offsets while straightforward functions receive
+symbolic GOT normalization. This is a deliberate control-flow proof boundary,
+not evidence that their C++ should be distorted. The matcher, metric and
+baseline are unchanged in this batch.
+
+## Batch 98: private space-flight drawing closure
+
+The reference's contiguous Chris level-function cluster contains
+`DrawStarFighter`, `DrawSpaceLevel` and all three level draw callbacks, together
+with the existing reset/spline/radial callbacks and `DogDebKey`. Recover this
+private closure in `chris.cpp` at its unchanged effective `-O2`: move the fighter
+renderer out of `render.cpp`, remove the empty HUD space-draw placeholder and
+move its three direct draw callers from `chris_stubs.cpp`/`episodeIII.cpp`.
+Keep exact local symbol spelling and ordinary static linkage. The restored
+callers make synthetic retention annotations unnecessary; removing those
+annotations lets GCC infer private register passing. No register-passing
+attribute, optimization override or manual assembly is used.
+
+Add asserted runtime views for the eight five-fighter groups, their markers,
+96 queued fighters, two cross controls and quick-bolt records. Preserve the
+old reset views and allocation size: their addresses cover suffixes of fighter
+records, not the matrix origins used by drawing. Recover `Jetpos`'s verified
+12-byte initialized data and the original private quick-bolt model tables.
+Restore active/group gates, marker transforms, queue/bolt rendering, twin
+exhaust creation/update/free and player reloads after service calls.
+
+`DrawSpaceLevel` improves **0.429338% to 53.974957%**, and `DrawStarFighter`
+improves **84.398880% to 85.747190%**. The linked report reaches
+**65.379440%**, or **+0.254960 percentage points** from main. The three draw
+wrappers become exact, increasing exact functions **6,262 to 6,265**. The
+stack matrices retain the reference's 16-byte alignment; this does not change
+the score, and remaining instruction-layout differences are deferred.
+
+Extracted production drawing bodies pass native i386 and 64-bit ASan/UBSan
+fixtures covering all 40 grouped fighters, inactive-group gates, the final
+queued slot, both marker transforms, all four bolt model pairs, zero-duration
+bolts, both players' twin exhausts, cleanup, null-player preservation and a
+callback that clears a player between exhaust updates. The special missile
+draw checks its scaling/debris branch. Graphics/debris/model services are
+fixtures; this is not real rendering or flight-gameplay integration. Ordinary
+global sanitizer instrumentation is enabled; LeakSanitizer remains disabled
+for sandbox compatibility.
+
+## Batch 99: space-flight formation, update and reset closure
+
+Continue the original `chris` symbol neighborhood with the nearly empty
+`MakeWingFormation`, `StarFighterAlign`, `ProcessStarFighter` and
+`ProcessSpaceLevel`. Move their original callers into the same existing
+`-O2` owner. The original `ChrisDogFightAUpdate` explicitly calls
+`ProcessSpaceLevel` at `0x23b118`; the former reconstruction omitted that
+call. Without this second caller, GCC inlines the updater into
+`ChrisAnakinAUpdate` and its original local symbol disappears. Restoring
+the caller retains the ordinary private function and makes the Anakin
+wrapper exact, without a calling-convention or retention attribute.
+
+Recover the whole group beginning at level offset `0xa0`, including its
+leader matrix; the drawing-only suffix previously began at `0xd0`.
+The five fighters still begin at `0xe0`, and all drawing addresses are
+unchanged. Add verified pointer-bearing starfighter fields, spline records
+and action-pair views. Preserve the target's `0x128` fighter stride,
+`0x658` group stride and `0x63ef4` allocation with assertions; host arrays
+and allocations follow their native pointer-bearing types.
+
+The private alignment calls pass distance/duration in XMM0 and a separate
+integer mode on the stack. Ghidra misidentifies those stack words as float
+parameters. Check the call instructions directly before reconstructing
+formation modes, death banking and spline-spawn alignment. Recover literal
+values from the original pool instead of interpreting decompiler bitcasts.
+The reference's aligned stack vectors use the existing aligned vector and
+matrix types; effective build options are unchanged.
+
+Restore formation-slot selection, five-ship initialization, death/escort
+paths, spline lookahead, targeting/interception, circular bolt allocation,
+missile spawning, action timing, player hits, spawn/repeat schedules and
+checkpoint doors. Integrate reset with these canonical fields: the old
+queued view cleared unrelated vector words, copied the repeat count in the
+wrong direction, and omitted draw-scale/checkpoint/rumble constants. Reset
+now clears the actual active and parent/spline fields, also on 64-bit hosts.
+
+The linked report reaches **65.492920%**, or **+0.368440 percentage points**
+from main. `MakeWingFormation` reaches **64.132576%**, `StarFighterAlign`
+**84.962500%**, `ProcessStarFighter` **37.052630%**, `ProcessSpaceLevel`
+**26.112532%**, and `ResetSpaceLevel` **54.866325%**. Exact functions increase
+**6,265 to 6,266**. Drawing scores are unchanged. The roughly two-point PR
+target remains unfinished; instruction-layout differences are deferred.
+
+Extracted production code passes 64-bit ASan/UBSan and optimized native
+i386 fixtures for all eight formation slots, full-slot refusal, alignment
+distance/mode gates, death and parent following, spline completion and
+audio pitch, last-slot target acquisition, bolt wraparound/full/NaN slots,
+action rewind/wait/formation commands, callback-sensitive player hits,
+seven spawn-model classes, repeat counters, checkpoint selection and all
+group/queued reset fields. The prior drawing fixtures also pass on both
+ABIs. Math services are compiled separately to preserve the production
+translation-unit boundary; matrix pre-rotation services record calls,
+rather than validate actual rotation rendering. These are focused fixtures,
+not full flight-gameplay integration. LeakSanitizer remains disabled for
+sandbox compatibility.
+
+## Batch 100: swept space-bolt collisions and coin history
+
+Restore the remaining private collision closure in the evidenced `chris`
+owner, with unchanged compiler options. `ChrisExtraBoltCollision` checks
+the level-allocation flag, space-state pointer and bolt flags, then checks
+five fighters in each of eight enabled groups and all 96 queued fighters.
+Stop on the first hit. Move the empty private `CollideBoltStarFighter` out
+of `bolts.cpp`; its real caller now retains it without `__used__` or an
+explicit calling-convention attribute.
+
+Recover relative-velocity swept-sphere intersection over `[-FRAMETIME, 0]`,
+including stationary, tangent and ordered-float rejection paths. Restore
+escort exceptions, debris callbacks, projectile deactivation, pickup/heart
+effects, owner credit, hit audio and the fighter hit counter. The allocator's
+final 4 KiB is a 256-entry coin-history table keyed by spline ID and spawn
+time; assert the `0x10` record stride and `0x62ef4` table offset. Move
+`ShipDropCoins` from its byte-offset implementation in `collection.cpp`
+into the original owner and use the shared pointer-bearing fields.
+
+Two guards cover invalid states without altering valid retail paths:
+formation ships have no spline identity, so skip coin-history insertion
+instead of dereferencing null; reject a corrupted history count above 256
+before scanning its fixed array. History duplicate/cap handling remains
+unchanged for valid counts. A bounded-loop first draft scored zero for this
+small function; placing the capacity guard before the ordinary counted scan
+retains safety and raises it to **70.711860%**. Do not remove the guards to
+chase reference crashes.
+
+`CollideBoltStarFighter` reaches **73.729256%**, and
+`ChrisExtraBoltCollision` improves **0.597826% to 58.501358%**. Overall
+matching reaches **65.546680%**, or **+0.422200 percentage points** from main,
+with **6,266** exact functions unchanged. The approximately two-point PR
+goal is still in progress.
+
+Production-body fixtures pass 64-bit ASan/UBSan and optimized native i386:
+coin-history duplicate/new identities, slot 255 and full/corrupt capacities,
+null spline, stationary/swept/future/past/tangent/miss/NaN intersections,
+relative ship velocity, both escort IDs, pickup amounts and owner credit,
+audio selection, allocation/flag gates, every grouped slot, inactive groups,
+the final queued slot and first-hit termination. Services are fixtures, not
+full flight-gameplay integration; LeakSanitizer is disabled for the sandbox.
+
+## Batch 101: clip-viewer panels and free-play menu lifecycle
+
+Restore the cutscene-viewer branch of `Hub_DrawAreaStats`, including episode
+and clip titles, the signed chapter sentinel, and selection-transition fades.
+Mode 18 does not require a valid area index. Door panels compare the configured
+door's index, rather than pointer identity. Recover the reference's `0.05`
+vertical icon offsets and exact `0.20100002` horizontal constant; preserve
+live area-flag reloads after callbacks. Keep the normal-panel invalid-index
+guard. The function improves **1.486945% to 9.691906%**.
+
+Restore `Hub_DrawFreePlaySelect` and its private cursor closure together with
+`Hub_UpdateFreePlaySelect`. The old updater treated selection state as a roster
+index and launched directly, so simply restoring drawing left its private
+opacity/timer state disconnected. Recover entry, selection, return, team
+assembly and launch states, two-player confirmation/cancellation, touch's
+9999 confirmation sentinel, directional repeats and grid navigation, network
+rosters, challenge/arcade launch state, easing, name prompts, touch hitboxes,
+radar pulses and the final two-row roster. Share the existing icon-wibble
+state through its owning header; add the missing network roster storage in
+`netplay`, with its verified 49-entry allocation. Compiler options and public
+signatures are unchanged; private callers retain natural compiler specialization.
+
+Preserve the reference's exact-zero versus negative transition-timer behavior
+and its pre-update confirmation count. Add narrow malformed-data guards:
+bound a roster while leaving its terminator, cap a network roster at its
+verified allocation, avoid division by zero or endless duplicate-only grid
+navigation, ignore invalid touch indices, and avoid challenge initialization
+through a null next-level pointer. These guards do not change valid data paths.
+
+The renderer improves **11.027806% to 35.422245%**. The complete updater's
+indirect switch table crosses the linked matcher's GOT-proof boundary and
+currently reports **0%**, down from the old partial body's **9.455767%**.
+Do not change compiler options or the scoring contract to conceal that limit.
+Overall matching still reaches **65.572440%** (**+0.447960 percentage points**
+from main), with **6,266** exact functions. The approximately two-point goal
+remains unfinished.
+
+Extracted production bodies pass optimized i386 and 64-bit ASan/UBSan fixtures:
+all clip/title/fade combinations, index-based doors, chapters and completion
+variants; free-play transition geometry, prompts, locked models, radar timing,
+roster capacity, touch/controller priority, opposing directions, exact-zero
+timers, confirmations/cancellations, network filtering, launch and malformed
+grid boundaries. Rendering/audio/network services are stand-ins, not gameplay
+integration. LeakSanitizer is disabled for the sandbox; the menu fixture also
+disables vptr checks because its radar service stand-in has no engine object.
+
+## Batch 102: free-play roster producer and selector consumer
+
+Restore the missing resident, capability-category, Imperial-access, vehicle,
+minikit and extra-model portions of `MakeFreePlayModelList`. Preserve duplicate
+checks, the early `PlayerList` writes, the 48-model limit and the reference's
+resident count even when an entry duplicates another model. Recover category
+hat requirements and retry, customiser exclusions, unlocked Imperial selection,
+live area-flag reloads and ordered extra-model dependencies. Keep signatures
+and compiler options unchanged; share the canonical `Move_DEFAULT` declaration.
+
+Initialize an empty roster's terminator, avoid forming `ADataList[-1]`, and bound
+the vehicle scratch list. With the complete producer restored, remove the hub's
+temporary collection fallback, which is absent from the reference. Bound its
+resident/bonus scan by the actual model count so duplicate resident counts
+cannot make it read beyond the roster. Preserve its filtering and shuffle.
+
+The producer improves **9.693764% to 43.912025%**; the selector helper reaches
+**8.046808%**. Overall matching reaches **65.598720%**, or **+0.474240 percentage
+points** from main, with **6,266** exact functions. The approximately two-point
+goal remains in progress.
+
+Extracted producer and consumer bodies pass optimized i386 and 64-bit
+ASan/UBSan fixtures: explicit/fallback players, duplicate writes, residents,
+arcade suppression, category/hat retry, Imperial access and exclusions,
+minikits/vehicles, chained extra models, empty input, capacity and selector
+filtering. Services remain stand-ins, not full gameplay integration;
+LeakSanitizer is disabled for sandbox compatibility.
+
+## Batch 103: AI loader stream alignment and legacy versions
+
+Remove the version-20-only gate from `AISysLoadEx` after recovering the
+reference's section and field gates. Path connection indices change from bytes
+to shorts to integers; version 1 has its extra byte; old nodes use the default
+height tolerance and lack route masks/special-route IDs. Gate areas, locators,
+locator sets, antinodes and the game-specific loader at their actual versions.
+
+Fix creature stream alignment for shipped assets too: always read its type name,
+including an empty/default script name, and read spawn counts and path state in
+older versions. Recover legacy respawn/stagger/range defaults. Read vectors as
+three float fields as in the reference, and pass the actual caller's buffer end
+to script loading instead of the temporary pak cursor. Keep the locator-entry
+allocation multiplier despite its unusual appearance: the reference confirms
+it. Public signatures, ABI declarations and compiler options are unchanged.
+
+The function improves **13.837194% to 26.910553%**. A bounded single-function
+parser/shared-scratch reconstruction passed fixtures but reported zero matching
+and was not retained; keep the corrected sectioned parser and document this
+source-structure debt rather than changing flags or calling conventions.
+Overall matching reaches **65.616190%**, **+0.491710 percentage points** from
+main, with **6,266** exact functions. The approximately two-point goal continues.
+
+Extracted production-body fixtures pass 64-bit ASan/UBSan and optimized i386:
+versions 1 through 20, empty/nonempty paths, all connection-index widths, node
+heights, route-mask and special-route gates, default/explicit scripts, creature
+fields and callbacks, nonempty areas/locators/sets, references, activation areas,
+antinodes and special handles, route character masks, pak success/fallback and
+missing files. Services are stand-ins, not full asset/gameplay integration;
+LeakSanitizer is disabled for sandbox compatibility.
+
+## Batch 104: terrain query handles and platform reach
+
+Restore the explicit position/movement/radius arguments of `NewScanHandelFull`
+and `NewScanHandelSubset`, instead of serializing an unrelated global query.
+Recover cell/group bounds, skin allocation, masks, platform motion expansion,
+rotating-platform radial/vertex tests and subset wall filtering. Preserve the
+full handle's override state and copy wall pairs into its arena so subsequent
+queries do not overwrite them. Bound allocation; retain pointer-width headers
+for native consumers. Remove the unused serialization helper.
+
+Recover `ScanTerrainPlatform`'s broad-phase formulas, including the non-mode-one
+squared movement reach and exact 0.05 expansion. Keep existing transformation
+helpers and compiler options: a single-function reconstruction scored worse.
+The subset improves **2.659130% to 16.001740%** and platform scan **5.650155%
+to 12.652219%**. The restored full body reports zero; its helper/source layout
+remains unresolved. Overall matching is **65.624590%**, **+0.500110 percentage
+points** from main, with **6,266** exact functions.
+
+Extracted bodies pass optimized i386 and 64-bit ASan/UBSan fixtures: explicit
+query arguments, static/platform/rotating geometry, motion expansion, masks,
+visibility, subsets, triangle normals, vertical scaling, wall-copy lifetime,
+invalid inputs and repeated arena allocation. Services are stand-ins, not
+full gameplay integration; LeakSanitizer is disabled for the sandbox.
+
+## Batch 105: pod-race update, panel and mixed-font text
+
+Replace the incomplete `PodRaceUpdate` body with countdown/startup sounds,
+elapsed-time failure and adaptive lap allowance, host/client synchronization,
+spline-driven racers, Sebulba's mine throws, transform/position publication,
+and one-shot level resets. Recover the 20-byte network packet, attempt counter
+and pod displacement/spline views. Keep private `RacePodAlign` and its natural
+caller closure; no calling-convention or compiler-option changes. Initialize
+the close-range mine velocity: the reference leaves it indeterminate.
+
+Restore the pod panel's actual lap object drawing, numeric pulse scaling and
+start-countdown colour. Remove the null-text draw and erroneous early return.
+`Text3DEx` now resets empty-result metrics, handles separate button-font runs,
+nonuniform button scaling, inline colour presets/reset, half-intensity RGB and
+follow-on colour state. Recover preset tables from the binary; bound invalid
+preset escapes rather than indexing outside the tables.
+
+`PodRaceUpdate` improves **4.656635% to 10.575923%** and `PodRacePanel` reaches
+**81.398735%**. Text's restored body scores **6.461642%**, below its incomplete
+**11.325707%** baseline; its source/compiler layout remains debt. The combined
+unit improves overall matching to **65.642480%**, **+0.518000 percentage points**
+from main. The approximately two-point goal continues.
+
+Extracted bodies pass optimized i386 and 64-bit ASan/UBSan fixtures for race
+timers, fading, network state, spline advancement/end motion, transforms,
+close/medium/far mine throws and resets; panel object/numeric rendering;
+text/button segmentation, three scale modes, presets, half colours, alignment,
+follow-on state, empty/hidden input and long/multibyte boundaries. Rendering,
+math and engine services are stand-ins, not full gameplay integration.
+LeakSanitizer is disabled for sandbox compatibility.
+
+## Batch 106: indexed lighting and HUD timer states
+
+Recover the complete `rtlApplySetScaleLoop` producer/consumer closure: indexed
+or dynamic traversal, identity masks, inner/outer falloff, modifiers, ambient
+and directional priorities, anti-lights, cached shadows and specular wobble.
+Use the canonical pointer-width index representation in `IndexLights` and
+recover version-two through version-four conversion/defaults and UID/chain
+initialization in `rtlLoadSet`. Bound full scans and fall back to them when a
+cell would exceed the original signed-char count. Packed 32-bit asset decoding
+on 64-bit hosts remains separate preexisting debt; typed fixtures do not prove
+real asset loading there.
+
+Restore `UpdateStats`' missing minikit, red-brick, True Jedi, gold-brick and
+power-up states. Preserve ordered menu queries, challenge and Super Story
+differences, network red-brick gates, per-player coin aggregation and one-shot
+awards. Share the existing canonical message declaration. Public signatures,
+compiler options and calling conventions are unchanged.
+
+The lighting scan improves **9.961600% to 43.038400%**; the HUD update improves
+**9.256757% to 9.948648%**. Loader/index helper scores regress with the restored
+versions and safe producer/consumer representation, but the combined unit
+raises overall matching to **65.671646%**, **+0.547166 percentage points** from
+main, with **6,270** exact functions. The approximately two-point goal continues.
+
+Extracted production-body fixtures pass optimized i386 and 64-bit ASan/UBSan:
+lighting masks, falloff, shadows, wobble, dynamic/indexed sets, full cells,
+legacy versions and UID wrap; HUD menu/fade/pause gates, timers, challenge,
+Super Story, True Jedi completion/awards, hub gold bricks and power-ups.
+Services are stand-ins, not full gameplay or packed-asset integration;
+LeakSanitizer is disabled for sandbox compatibility.
+
+## Batch 107: customizer previews and status/save drawing
+
+Recover `Customiser_Update`'s preview angles, head/arms/legs animation,
+hat-height interpolation, active/other-player selection, animation availability,
+touch-arrow rendering/hitboxes and texture gates. Correct its reversed use of
+the intro-state and draw-delay fields and restore the 30-frame animation step.
+Move the private `UpdateCustomPieceAnim` into its actual caller's translation
+unit; both source and destination use the effective `-O2` command. Recover the
+binary's random normalization constant. No forced calling convention is used.
+
+Recover `Customiser_Draw3D`'s GC-data owner, cape preview override, hidden hats,
+hat translation, hand-held weapons and lightsaber layers. Its matrix uses the
+existing aligned type because the original frame is verified 16-byte aligned.
+Preserve the reference's touch-hitbox publication order. Fix setup so a replacing
+torso suppresses head model flags but still inherits head gameplay flags.
+
+Restore `DrawStatusScreen`'s demo options and empty-status countdown wobble;
+restore `DrawGameState`'s current-game percentage, entry colours, message-box
+mode and two-line empty/no-space text. Keep public signatures and compiler
+options unchanged; bound save-slot indexing and missing resources.
+
+Customizer update improves **20.133759% to 28.945860%**, drawing **13.484848%
+to 20.353535%** and setup **15.048014% to 15.230132%**. Status drawing improves
+**10.994845% to 21.864262%** and save drawing **4.385246% to 23.893442%**.
+Overall matching reaches **65.693980%**, **+0.569500 percentage points** from
+main, with **6,270** exact functions. The approximately two-point goal continues.
+
+Extracted production-body fixtures pass 64-bit ASan/UBSan and optimized i386
+(SSE arithmetic for the custom-piece random endpoint): intro availability and
+expiry, draw delay, preview-side selection, touch edges/idle pulse, hat offsets,
+texture changes, cape/hats/weapons/lightsabers, inherited flags; status callbacks,
+fade/demo gates, countdown and stage alpha; current/used/empty/no-space saves,
+menu colours and invalid slots. Engine/rendering services are stand-ins, not
+full gameplay integration; LeakSanitizer is disabled for sandbox compatibility.
+
+## Batch 108: spinner outputs, aimed detonators and menu input routing
+
+Recover `GizSpinners_Update`'s animation visibility, failure debris, disabled
+input release, timed output pauses and output-marker return motion. Name the
+pause float at the verified 0x2d4 offset without changing the record layout.
+Bound arms and outputs to their canonical arrays. Cap the arm count before
+traversal: putting a constant bound in the loop caused GCC to expand eight
+matrix-copy bodies (5,696 bytes); the capped runtime traversal avoids that
+duplication with unchanged `-O3`. The retail owner-release path incorrectly
+indexes Player by spinner index; release actual matching owners instead of
+copying the unrelated/OOB access. Preserve the binary's animation rate field,
+pause timer source and rotation constants.
+
+Restore `ThermalDetonator_Throw`'s hint updates, throw locator, Jango randomized
+orientation, normalized joint basis and obstruction ray. Recover managed-target
+arc aiming, target release and the reference's X-only clamp, fixed vertical
+velocity and blocked-origin correction. Restore radius-derived part dimensions,
+the collision callback, position pointer and active marker. Remove the extra
+movement-flag clear absent from the reference. Missing resources and locator
+indices are guarded; no compile-option or calling-convention changes.
+
+Restore `UpdateGameMenu`'s controller ownership, pause/network pad selection,
+credits player state, 15-entry button history, startup input delay, fade/editor/
+level-transition gates, loader-preserved widescreen setting, navigation sounds,
+resume and area-reset behavior. Its ID queries belong with the text/menu-entry
+helpers evidenced by reference symbol neighbors; move them to `text.cpp`,
+preserving that file's existing `-O2` and the input updater's existing `-O3`.
+Both queries remain exact. The fuller updater currently scores **0%**, down
+from **10.994350%**; retain the recovered behavior and record the unresolved
+control-flow/register-layout mismatch, not a claimed per-function gain.
+
+Spinner matching improves **16.920895% to 27.322388%**; throwing improves
+**4.619512% to 46.248780%**. Overall matching is **65.714170%**, **+0.589690
+percentage points** from main, with **6,270** exact functions. Target remains
+approximately **67.124480%**. All eleven checks passed for the preceding commit.
+
+Extracted production-body fixtures pass 64-bit ASan/UBSan and optimized i386
+SSE builds: throw defaults, hints, managed target lifetime and X clamps, valid/
+missing locators, normalized and Jango transforms, blocked throws, allocation
+failure and part callbacks; spinner output entry/expiry, owners in slot seven,
+visibility/debris, positive/negative return motion, exact marker snap and array
+bounds; combined/single/pause/network/credits controllers, startup threshold,
+loader transitions, editor/fade gates, sound/resume, history and invalid input.
+Service calls are mocks, not a full game-runtime test; LeakSanitizer is disabled.
+
+## Batch 109: area configuration and AI kill selectors
+
+Restore `Area_Configure`'s mission roster shuffle and mission target, streamed
+level options, supercounter blocks, music propagation and story/freeplay coin
+and challenge settings. Preserve the reference's lone `story_only` token
+behavior and initial `AreaMusic` value. Correct `AreaMusic` from 16-bit to
+32-bit: its reference BSS symbol is four bytes and its stores are 32-bit.
+Publish counters through the character arena with target-compatible alignment
+and capacity checks; bound model, level, pickup and counter arrays. Initialize
+counter runtime fields rather than copying uninitialized scratch bytes.
+
+Correct `Action_Kill`'s AI-controlled flag, selection precedence (all AI before
+creature set before area), area-system ownership and packet-owner object
+indirection. Explicitly selected objects do not need the group traversal's
+in-use/character flags. Preserve dead checks, debris/parts and respawn modes.
+Separate the group traversals and debris call branches to recover natural
+compiler specialization, without changing optimization or calling convention.
+
+Area configuration improves **17.381910% to 17.859297%** and AI kill improves
+**22.329342% to 26.444110%**. Overall matching reaches **65.718450%**,
+**+0.593970 percentage points** from main, with **6,270** exact functions.
+All eleven GitHub checks passed for the preceding commit; the approximately
+two-point goal continues.
+
+Extracted production-body fixtures pass 64-bit ASan/UBSan and optimized i386
+SSE builds: missing-file defaults, model deduplication, mission shuffle, music
+flags/tracks, AI messages, coin/time settings, streaming options and duplicates,
+counter locations/colours/capacity/arena exhaustion; AI selection precedence,
+actual area ownership, packet indirection, opponents, exclusion/dead checks,
+high area-mask bits, parts/debris and respawn flags. Services are stand-ins,
+not a packed-asset or full game-runtime integration test; LeakSanitizer is
+disabled for sandbox compatibility.
+
+## Batch 110: versioned particle effects and callback-sensitive weapons
+
+Restore `FileLoadSingleEffectType`'s legacy formats instead of accepting only
+versions 34 through 41 while its caller accepts versions 5 through 41. Recover
+short-based frequency/timing conversion, discarded legacy fields, emitter
+defaults, float versus byte colour keys, collision/torus gates, old sound
+tables and versioned trail/radial fields. Preserve untouched runtime fields
+and use canonical members after pointer-bearing data, not target byte offsets
+on 64-bit hosts. Consume excess sound records without overflowing the four
+stored slots; clamp negative counts. The first draft passed the count read
+directly into the side-effect-unsafe `MAX` macro; the zero-count fixture caught
+the double read, and the final code reads once before clamping.
+
+Recover `DrawWeapons`'s character-data reloads after cheat/Anakin services and
+between hands. Preserve the explicit-weapon branch decision instead of testing
+possibly replaced character data after subsequent callbacks. Restore ordered
+float distinctions in `CodeMenu`'s slide/repeat gates and `PartCollide`'s age,
+XZ overlap and shield checks. Snapshot the particle player mask per object,
+while allowing callback changes to affect subsequent objects. No compiler
+options, public signatures, attributes or matching normalization are changed.
+
+Effect loading improves **25.140778% to 58.571846%**; weapon drawing improves
+**0% to 45.720722%**. Code-menu and particle-collision matching remain **0%**;
+retain the verified behavior corrections without claiming a per-function gain.
+Overall matching reaches **65.795960%**, **+0.671480 percentage points** from
+main, with **6,270** exact functions. All eleven GitHub checks passed for the
+preceding area/AI commit. The approximately two-point goal continues.
+
+Extracted production-body fixtures pass 64-bit ASan/UBSan and optimized i386
+SSE builds: **1,720** effect-record cases spanning every version 0 through 42,
+signed/zero frequencies, colour widths, defaults, negative/zero/oversized sound
+counts, special names and untouched runtime fields; weapon families, cheats,
+four hands, hilt scaling, trails, two-sided blades, reflections and callbacks
+replacing character data; shop navigation, cancellation, unlock deduplication,
+network input and NaN slides; collision ages/XZ bounds/shields including NaN,
+2D versus 3D, pickups/torpedoes, deflection, impulses and callback mask changes.
+Services are stand-ins, not rendering/gameplay or packed-asset integration;
+LeakSanitizer is disabled for sandbox compatibility.
+
+## Batch 111: fixed-roster selectors and canonical grapple fields
+
+Recover `AvailableToPlayer`'s selector dispatch and eight explicit player slots
+from the reference. Keep the predicate in locally scoped macros, following the
+existing fixed-slot `UpdateExplosions` convention; do not add optimizer flags
+or forced-inlining attributes. Separate-loop and private-helper experiments
+did not recover the reference's specialized flag/weapon/context branches.
+The final dispatch improves matching **9.245283% to 42.385933%** without
+changing results or cheat-service calls. The free-play roster path remains
+unchanged.
+
+Correct `Grapple_MoveCode`'s canonical movement-facing angle (offset `0x5a`,
+not the distinct facing angle at `0x58`), byte-sized `use_action` check and
+half-body-height rope limit. Matching improves **18.462273% to 19.468004%**.
+A complete grapple movement candidate recovered automatic entry, hanging,
+jump ascent and swing-cycle damping and passed isolated fixtures, but scored
+0% or near zero under several ordinary source structures. It is deferred in
+temporary files rather than committed as a matching gain. Substantial
+grapple behavior is therefore still incomplete in the committed function.
+
+Recover `GizPanel_Update`'s fixed player probes, retained tracking state across
+untracked panels, radius-squared threshold and yaw-relative pitch clamp.
+Its matching falls **4.762963% to 0.789630%** despite the verified corrections;
+do not claim a per-function improvement. Raw instructions confirm one
+`0.245f` vertical offset for every model-2 probe, including player zero; a
+provisional double-offset interpretation was rejected before committing.
+
+The net batch raises overall matching **65.795960% to 65.824610%**,
+**+0.700130 percentage points** from the rebased main baseline, with **6,270**
+exact functions. The approximately two-point goal is not complete. All eleven
+GitHub checks passed for the preceding effects/weapon commit.
+
+Extracted committed production bodies pass 64-bit ASan/UBSan and optimized
+i386 SSE fixtures: **100,000** availability/oracle cases, identical cheat
+call counts and explicit coverage of all eight slots; **2,401** panel angle
+combinations, every player probe, retained state, timers, invalid players and
+NaN distances; grapple field separation, nonzero action-frame bytes and rope
+limits. External services are stand-ins, not full gameplay integration.
+
+## Batch 112: distance selectors, callbacks and fixed collision slots
+
+Recover the eight explicit player slots in both distance selectors and debris
+collision handling, and the ten explicit detonator slots. Use local macros
+with unchanged public signatures, owners and optimization modes. Preserve
+callback reloads, first-player ties and ordered floating comparisons: later
+NaN distances must not replace an existing selection, and NaN protection
+timers must not admit a player to debris damage. Detonator instruction checks
+confirm the ordinary ordered thresholds, including NaN owner charge.
+
+Recover `SetMoveAndAnimateFunctions`'s outer mask/callback dispatch instead of
+testing every optional condition within one generic loop. A zero mask disables
+its filter even with a nonzero requested value; absent callbacks leave their
+fields untouched. Do not access game-character data when both its mask and
+movement-type filter are disabled. Preserve signed byte movement types.
+
+Raw reference instructions for `FindFurthestPlayerFromVec` write to absolute
+address zero rather than its output argument; no dynamic text relocation
+repairs those stores. Do not reproduce that unsafe reference defect. Retain
+the valid output-parameter behavior already provided by the reconstruction.
+
+Matching improves: nearest **10.457627% to 63.364407%**, furthest
+**9.867392% to 49.756523%**, callback assignment **3.943870% to 35.453472%**,
+detonators **8.665255% to 82.582630%**, and debris/player collisions
+**14.922028% to 81.072130%**. Overall reaches **65.954880%**, **+0.830400
+percentage points** from main, with **6,270** exact functions. All eleven
+GitHub checks passed for batch 111. The two-point goal remains unfinished.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **100,000** distance/oracle queries, ties, NaNs, all eight slots and
+callback replacements; **100,000** callback-selector cases covering masks,
+signed types, all callback combinations, counts and absent optional data;
+all ten detonator slots, timing thresholds, projection, NaNs and callbacks;
+all eight debris slots, eligibility guards, ordered timer tests, both damage
+checks and callback ordering. Services are stand-ins, not engine integration.
+
+## Batch 113: hub transitions, range checks, climbing and music
+
+Recover the hub door helper's ten area checks, eight player path updates and
+eight table lookups, including short circuits and callback reloads. The
+reference uses the separate current `player` global, not `Player[0]`; reload
+it between area services. Matching improves **15.849056% to 42.490566%**.
+Recover the active-range query's eight probes and shared successful return:
+**20.891891% to 60.124325%**. Recover the climb helper's eight explicit angles
+and shared result stores: **18.038252% to 71.448090%**. Raw instructions
+confirm sign extension of the terrain service's low byte; no calling-
+convention attributes are added to approximate its private optimized ABI.
+
+Recover six fixed music track slots with outer stop/fade dispatch, retaining
+voice state checks, service order and fade flags: **15.105140% to 59.266354%**.
+Recover eight ordered dodge-hint checks, retaining the early model-flag veto
+and both animation alternatives: **16.115625% to 52.243750%**.
+
+Retain two narrow behavior corrections even though their individual matching
+does not improve: reload the tagging source after callbacks and only read
+optional character data when needed (`CheckForPlayersTurnedOff`,
+**5.473088% to 0%**); use ordered six-axis explosion bounds and the canonical
+game-character pointer (`UpdateExplosion_Generic`, **9.010430% to 8.408084%**).
+Explicit tagging fanout and explosion ring expansion scored zero and are
+deferred; do not continue source-layout trials without new evidence.
+
+The net batch reaches **66.018790%**, **+0.894310 percentage points** from
+main, with **6,270** exact functions. All eleven GitHub checks passed for
+batch 112. The approximately two-point goal remains unfinished. Owners,
+compiler options, public signatures and scoring normalization are unchanged.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **90** hub area/table combinations plus cleanup and callback
+reloads; all player range/tag slots, thresholds, NaNs and lazy optional data;
+all climb stop positions and misses, node selection and byte terrain results;
+**50,000** music stop/fade oracle cases with identical service sequences;
+all dodge slots, both animation alternatives and short circuits; explosion
+NaNs on every bounding axis, contact boundaries, canonical flags and particle
+call counts. External services are stand-ins, not full engine integration.
+
+## Batch 114: snake caller closures and hub/projectile behavior
+
+Recover the shared snake-debris caller closures with a locally scoped macro,
+preserving segment order, matrix scaling, optional specials, particle fields
+and lighting. `SnakeBeenHit` improves **8.266394% to 76.032780%** and
+`BlowUpSnakeBody` **17.456375% to 87.570470%**. Keep the macro local to the
+two callers rather than adding forced-inline or ABI attributes. The adjacent
+`EatVictim` changes **100% to 99.531250%** after translation-unit codegen
+shifts; its behavior and source are unchanged.
+
+Recover all five hub selection states from the decoded reference jump table,
+including single-vehicle launch, trailer launch, pack eligibility, lost-temple
+rejection, two-player direction/confirmation priority and touch inputs.
+Preserve ordered timer comparisons: NaN launches states 1/2 but does not
+complete states 3/4. Retain the invalid-area safety guard instead of the
+reference's unsafe area-array access. Use the canonical game save and the
+reference-inferred integer selector widths. `Hub_UpdateSelectMode` improves
+**14.719807% to 49.115944%**.
+
+Replace the `GizObstacles_BoltHit` stub with active-obstacle eligibility,
+ordered six-axis bounds, reverse sphere probes and nearest-hit selection.
+The initial distance limit is **1,000,000,000**, verified from this function's
+literal address; its local `.LC4` label must not be confused with another
+translation unit's 1.0 literal. Preserve bolt-type/cheat service calls,
+signed owner index, deflection, attacker rumble and targeting callbacks.
+Matching reaches **20.900000%** from the stub.
+
+Overall matching reaches **66.065210%**, **+0.940730 percentage points**
+from the rebased main baseline, with **6,269** exact functions. All eleven
+GitHub checks passed for batch 113. The approximately two-point goal remains
+unfinished. Owners, optimization modes, public ABI and score normalization
+are unchanged. The font renderer already has its vertex helpers inlined;
+defer further closure experiments there without new structural evidence.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: snake counts 0–11, both scales, special filtering and all particle
+fields; all hub states, fade/render gates, thresholds/NaNs, choice limits,
+eligibility, vehicle counts and controller/touch priority; obstacle reverse
+probe ordering, nearest ties, all bounds' NaNs, flags, signed owners,
+deflection/rumble service sequences and callback changes to active count.
+External services are stand-ins, not full engine integration.
+
+## Batch 115: level paths, thermal throws, minikits and boulder AI
+
+Restore Dooku's four path-connection flag transitions and six coordinate
+arrangements, with live node/path-system reloads after callbacks. Retain
+boss-kill/outro guards and force effects. `DookuC_Update` improves
+**10.920000% to 23.516363%**.
+
+Recover `ThermalDetonator_ThrowMom` as a particle-creation operation rather
+than a caller-velocity calculation. Preserve the supplied velocity, default
+position, locator normalization, Jango random rotations, ignored ray result,
+particle fields, sound and rumble. Matching improves **6.336283% to
+61.176990%**. The ordinary throw implementation is unchanged.
+
+Restore both Hoth minikit counters, pickup guards, completion camera angles,
+gizmo activation and messages. Reload the gizmo after the camera callback.
+`IncrementMinikitCounter` improves **2.641510% to 40.735847%**. Deliberately
+use the valid averaged-player position for every message: the retail
+completion branch passes an uninitialized local, which is not reproduced.
+
+Replace `Action_BoulderSection`'s stub with parameter parsing, category
+short circuits, ordered nearest selection, toggle timing, weapon retention,
+look-target assignment and player-path following. Raw assembly verifies the
+integer return channel; repair the stub's incorrect void return without
+changing its mangled symbol or argument ABI. Parameter parsing uses the
+packet's embedded script processor for named values and the separate
+processor for the movement argument, matching the actual pointer identities.
+The reference symbol table confirms `boulder_part` is only two pointers
+(eight bytes), although the action also probes padding after it. Preserve
+the recovered two-entry global and omit that out-of-bounds third probe;
+also guard missing follow-player data. Matching improves **2.297872% to
+57.314890%**.
+
+Overall matching reaches **66.098850%**, **+0.974370 percentage points**
+from the rebased main baseline, with **6,269** exact functions. All eleven
+GitHub checks passed for batch 114. The approximately two-point goal remains
+unfinished. Source owners, optimization modes and scoring normalization are
+unchanged; the only signature correction is the reference-proven action
+return type described above.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: all six Dooku coordinate arrangements bit-for-bit, traversal flags,
+missing data and callback replacements; 72 thermal locator/Jango/allocation
+combinations, matrix normalization, particle fields and unchanged input;
+6,144 minikit count/flag cases, camera parameters and completion messaging;
+3,136 boulder nearest/category combinations, ties, processor identities,
+ordered timer/NaN cases and absent follow-player data. External services are
+stand-ins, not full engine integration.
+
+## Batch 116: terrain bounds, scan order and caller closures
+
+Recover the shared bound, wall-list and scaled-shape closures inside their
+retail scan callers using local macros, without forced-inline attributes.
+Preserve the bound expressions' separate padding/radius operations and their
+caller-specific addition order. Recover the sweep-diagonal `NuFsqrt` call,
+including the wall-only caller where its result is unused, and the main
+scan's object-scale radius adjustment and rotating-platform range rejection.
+Retain guards for disabled groups and absent rotating matrices.
+
+Recover static terrain, pickup, then platform group ordering. Raw reference
+stores and the `TerrainPlatformMoveCheck`/`PlatformChecks` consumers confirm
+the saved `scan_list` points to the start of the platform section, not the
+start of all scan records. Store that boundary after fixed/pickup groups and
+before platform traversal. Clear `TerrOverRideScan` even when the one-shot
+`IgnoreWallSplines` flag suppresses wall collection.
+
+`ScanTerrain` improves **12.396799% to 24.492273%**; wall-only scanning
+**5.813115% to 22.331148%**; `NewScanHandelFull` **0% to 11.876629%**.
+The unchanged `HitTerrain` shifts **78.555950% to 79.972030%** from
+translation-unit codegen. Overall matching reaches **66.137150%**,
+**+1.012670 percentage points** from main, with **6,269** exact functions.
+All eleven GitHub checks passed for batch 115. The approximately two-point
+goal remains unfinished; owners, compiler options, ABI and score
+normalization are unchanged.
+
+The large shared platform closure alone regressed net matching. Expanding
+its triangle normal loop also scored zero in both main scan entry points;
+both experiments were removed. Do not repeat them without new evidence.
+Sanitizer tests caught a macro-local radius name collision before commit;
+the corrected macro uses a distinct local and evaluates its outputs once.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **4,116** bitwise bound/radius cases; scaled triangle/quad parity,
+zero normals and NaN scale; static/pickup/platform ordering and the saved
+platform boundary; override suppression cleanup, disabled platform groups
+and absent rotating matrices; both scan modes and four masks with 160 wall
+segments capped safely at 64 records. Existing handle spatial filtering,
+subsets, copied walls, platforms and arena-boundary tests also pass. External
+services are stand-ins, not full engine integration.
+
+## Batch 117: particle envelopes and opponent-selection behavior
+
+Recover the reference's explicit eight-stage rotation and size envelopes,
+including post-stage termination checks and the live `edui_last_item` reload
+after slider formatting. Rotation improves **34.047092% to 63.155%** and
+size **22.137032% to 34.256%**. Color and torus expansion trials regressed
+and were removed. A separate NDK experiment confirms the reference's
+unsigned-byte-to-float intermediate, but the color trial still scored zero;
+do not repeat it without resolving the surrounding structural difference.
+
+Restore `Action_SetOpponent`'s droid roster filtering and persistent cycling,
+named and last-attacker selections, nearest-enemy clear, and type callbacks
+plus first matching object lookup. Preserve the reference's slot-seven
+unordered-timer behavior, candidate accumulation across parameters and
+parameter precedence. Remove the extra packet-opponent write: the reference
+only stores the game object's opponent. Retain guards for absent character
+data and cap the original ten-entry array when malformed scripts repeat the
+droid parameter. Matching improves **16.536873% to 60.67%**.
+
+Overall matching reaches **66.151820%**, **+1.027340 percentage points**
+from main, with **6,269** exact functions. All eleven GitHub checks passed
+for batch 116. The two-point goal remains unfinished. Owners, optimization,
+ABI and scoring are unchanged.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **1,944** envelope numeric/termination/reload combinations, equal
+and reversed ranges, NaNs, infinities, post-callback termination changes,
+menu allocation failure, widget arguments and callback-driven last-item
+replacement; **344** opponent roster/type combinations, round-robin state,
+signed-byte type translation, script priority, nearest clear visibility,
+missing callbacks, repeated-parameter capacity and packet preservation.
+External services are stand-ins, not full engine integration.
+
+## Batch 118: retained post-filter draw and parameter closures
+
+Restore quad/grid draws through the existing private full vertex-binding
+helpers, including attribute enable/disable masks, pointers, buffer state
+and indexed grid drawing. The public vertex-format setter remains unchanged.
+Recover the seven fixed motion samples and thirteen Gaussian taps, retaining
+the reference's float operations and normalization. Reuse the private
+register-search/constant-setter closure at motion, accumulation, blur,
+speed and depth-of-field call sites; preserve first-register-match behavior
+and callback-driven program reloads. Do not enable the retained filter graph
+or change Android no-op/null-return entry points.
+
+Motion improves **21.480713% to 75.827896%**, accumulation
+**23.276102% to 65.953600%**, the three copy overloads to **85.535090%**,
+**85.895164%** and **87.417270%**, blend to **85.535090%**, blur 5x5 to
+**83.940200%**, speed to **69.088980%**, depth-of-field to **81.749%** and
+Gaussian offsets **17.247313% to 81.634410%**. Overall matching reaches
+**66.251830%**, **+1.127350 percentage points** from main, with **6,269**
+exact functions. All eleven GitHub checks passed for batch 117. The
+approximately two-point goal remains unfinished. Ownership, compiler
+options, ABI and scoring normalization are unchanged.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **8,192** quad/grid transitions over six active attribute bits;
+**864** motion numeric/proxy combinations including NaNs, infinities and
+program replacement during a setter; **3,840** accumulation frame/weight
+combinations; **512** Gaussian dimension/scale combinations; **112** shader
+register/first-match/setter cases. These use service stand-ins, not a real
+GL context or full engine integration. Invalid accumulation frame counts
+outside 1..256 remain deferred rather than introducing unrelated policy.
+
+An `Action_Kill` expansion trial produced 11,114 bytes instead of the
+reference's 4,428 and scored zero. It was fully removed, including its
+behavior changes. Do not repeat the sixteen specialized-loop expansion
+without new compiler/structural evidence.
+
+## Batch 119: fixed customizer previews, music tracks and emulator conversions
+
+Recover the customizer's two explicit character previews and fixed layer /
+piece categories, including head suppression by replacing torsos, gameplay
+flag merging and cape layer exclusion. Preserve the existing null, count
+and selection-index guards: absent/empty torso, cape and weapon tables are
+not dereferenced merely because the original assumes configured arrays.
+Matching improves **15.230132% to 23.089403%**.
+
+Restore six fixed pause and resume track closures, retaining track order,
+voice/status filtering and pause-bit writes after the stream callbacks.
+Pause improves **27.575580% to 73.744190%**, resume
+**27.343023% to 73.831400%**. Recover the network emulator's reference-proven
+unsigned conversion closure: signed casts of bounded high/low sixteen-bit
+components, multiply by 65,536, then add. This is equivalent over the full
+`u32` domain and follows the existing profiler conversion audit, not a
+compiler-option workaround. Retain send/queue/statistics ordering and the
+post-statistics floating-point ratio test. `NuNetEmu::Update` improves
+**6.453039% to 77.375694%**.
+
+Overall matching reaches **66.280270%**, **+1.155790 percentage points**
+from main, with **6,269** exact functions. All eleven GitHub checks passed
+for batch 118. The approximately two-point goal remains unfinished.
+Ownership, optimization, ABI and score normalization remain unchanged.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **20,000** customizer state/guard comparisons; **50,000** six-track
+pause/resume state and service-order cases; **1,000,008** unsigned conversion
+comparisons and **20,000** emulator queue/timing/statistics cases, including
+counter replacement by callbacks, unsigned timestamp wrap and linked-list
+removal. Emulator deadline conversions are tested within the existing
+defined numeric range; zero bandwidth / out-of-range float-to-int policy
+remains deferred. Services are stand-ins, not full gameplay/audio/network
+integration.
+
+Three eight-slot push-hint expansions scored zero and were removed.
+Clipping shared-edge capture and per-corner arithmetic-order trials also
+regressed and were fully removed. Structured emulator flow alone emitted
+the same bytes; its gain comes from the evidenced conversion closure.
+Hardware bootstrap remains deferred pending its variadic cursor and
+cross-owner initialization prototype audit. The incomplete batarang
+targeting caller requires recovering its natural private target-search
+helper, not directly exposing the compiler's `.isra.0` calling convention.
+
+## Batch 120: gameplay timing and canonical super-story timer
+
+Restore the omitted level-name fade, pause, pickup flicker, join-in,
+gameplay, overall gameplay, bonus, super-story, mission and challenge
+timing paths. Preserve service order, the 36,000-second super-story cap,
+mission expiry's network-client gate, and the reference's unordered
+challenge-time comparison. Capture the double-score step before the menu
+callback. Retain null-world and malformed mission/index guards.
+
+Replace the provisional four-float `SuperStoryTimer` with the canonical
+16-byte `TIMER`; update all four consumers, removing the raw timer cast.
+The exported global name, storage size and section remain unchanged.
+`GameTiming` improves **29.68% to 87.301%**. Overall matching reaches
+**66.296400%**, **+1.171920 percentage points** from main, with **6,269**
+exact functions. All eleven GitHub checks passed for batch 119; the
+approximately two-point goal remains unfinished.
+
+The extracted production body passes **16,384** state, expiry and
+service-order comparisons under 64-bit ASan/UBSan and optimized i386 SSE.
+Fixtures cover pause/screenshot/cutscene gates, missing level/area/save
+data, two-player availability, super-story cap crossings, network-client
+mission gating, NaN challenge limits and optional game-time output.
+Services are stand-ins, not full gameplay integration.
+
+NewCast full candidate, roof-only and alternative structured-selection
+trials all regressed and were fully removed; unresolved callback-visible
+selection updates and ceiling policy remain deferred. The full SmartTextEx
+wrapping/measurement/box trial emitted a natural GCC `.part.1` clone and
+regressed; it and its forward declarations were fully removed. Do not
+force inlining or compiler attributes to hide the discrepancy.
+FindNearestBreak punctuation/capture and Force-gizmo guard/bounds trials
+also regressed and were fully removed. No ownership, optimization, ABI or
+scoring changes are used.
+
+## Batch 121: portal debug visibility and cutscene reset subsystems
+
+Restore the four camera rays, scaled world-space corners, eight alternating
+white/red debug lines, camera unlock/relock and subsequent room traversal.
+Capture the near clip before the room-query callback. Recover the reference's
+exported `nuvec_one` / `nuvec_minus_one` three-float initialized objects;
+the frustum builder receives these canonical objects rather than local copies.
+`NuPortalVisibility` improves **28.79558% to 85.572%**.
+
+Restore cutscene chaining/callback clearing, rigid special visibility and
+matrix resets, locator reset callbacks and VFX handles, trigger first-frame
+state evaluation, character reset and camera-lock reset. Promote the locator
+entry's target `+0x08` reset callback to its proven four-argument function
+pointer type. Describe the external trigger owner's known state pointer and
+four-byte records with canonical provisional structures; use these members
+in both reset and the existing update, avoiding fixed pointer offsets in
+host execution. Keep the existing missing-system guards. The external owner's
+first twelve bytes remain unknown, not an invented complete runtime layout.
+`instNuGCutSceneReset` improves **22.56% to 61.859%**.
+
+Four packed quaternion evaluators use the reference's ordered lower frame
+clamp, mapping NaN to the first key while retaining negative zero, and the
+first evaluator uses signed division by four. Their aggregate improves
+slightly; two individual scores regress by about 0.14 and 0.01 points.
+Do not restore undefined NaN-to-integer conversions just to recover those
+small differences.
+
+Overall matching reaches **66.327040%**, **+1.202560 percentage points**
+from main, with **6,269** exact functions. All eleven GitHub checks passed
+for batch 120. The approximately two-point goal remains unfinished.
+Ownership, optimization settings, public ABI and scoring stay unchanged.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE
+fixtures: **8,000** portal state/service/geometry cases, **10,000** cutscene
+reset cases and **12,000** four-format animation cases. Tests include
+camera and locator metadata changes during callbacks, missing systems,
+first-frame trigger visibility, preserved state-word upper bytes, NaNs,
+infinities, negative zero and key boundaries. Animation interpolation and
+external services use stand-ins; this is not full engine integration.
+
+The eight-slot quick-path expansion regressed from 19.57% to zero and was
+fully reverted. Its original private path helper passes arguments through
+registers and SSE as a compiler optimization; the current source retains
+ordinary portable calls. Do not add calling-convention attributes or infer
+an extra public argument from the decompiler's undefined stack temporary.
+
+## Batch 122: batarang targeting closure and throw transitions
+
+Restore the private search called by both `Batarang_MoveCode` (screen-space)
+and `Batarang_Release` (forward automatic targeting). Recover object, ten
+detonator and gizmo filters, duplicate selection rejection, first-match versus
+nearest-match ordering, ray/platform acceptance and five-slot FIFO rollover.
+Object screen selection intentionally retains its 64-unit-squared comparison
+limit for the subsequent detonator scan; it is not an ordinary closest-of-all
+selection. Automatic candidates use the reference's 16-unit-squared limit.
+Null-world handling lives at both callers. The ordinary three-argument private
+helper naturally becomes GCC's `.isra.0` clone, without ABI annotations or
+explicit clone calls, and matches **37.038322%**.
+
+Restore aim ramp, held-action release, animation event/duration gates, buffered
+jump, input cancellation, HUD sight/target markers and message colours. Raw
+disassembly at `0x1d9313`–`0x1d9355` establishes the three colour writes that
+the decompiler omitted. Grouping the returned RGB components as a three-element
+array recovers the non-realigned stack frame naturally. `Batarang_MoveCode`
+improves **18.244944% to 34.422470%**.
+
+Release uses the reference's four-unit horizontal velocity, keeps ricochet
+state, obtains position after the rumble callback, and uses the configured
+joint when available. Automatic release searches before creating the inline
+type-three fallback two units ahead. Recover the fallback's three-float payload
+at target `+0x08` in `BATARANG_TARGET_s` and signed `batarang_joint` at config
+`+0x112`, with layout assertions and retained compatibility views.
+`Batarang_Release` improves **16.741072% to 58.080357%**.
+
+Keep existing null/flight guards. New marker calls reject negative or out-of-
+storage target indices inside the position helper, while retaining the
+in-flight return-to-owner case at index equal to the active count. Its old
+temporary `__used__` marker is retired now that both real callers exist.
+The helper regresses **71.9802% to 32.72277%** with these guard/caller changes;
+seek-to-target improves **93.26887% to 95.49056%**. The full batch is positive
+and loses no exact functions. Do not undo bounds safety merely for its score.
+
+Overall matching reaches **66.355930%**, **+1.231450 percentage points**
+from main, with **6,269** exact functions. All eleven GitHub checks passed
+for batch 121. The approximately two-point goal remains unfinished.
+Compiler options, ownership, public ABI and score normalization stay unchanged.
+
+Extracted production bodies pass 64-bit ASan/UBSan and optimized i386 SSE:
+**20,000** target-selection/raycast/FIFO cases, **30,000** throw transitions and
+**10,000** release cases, including null worlds, callback replacement of the
+batarang, post-callback position, joint origins, inline fallback pointers,
+HUD colours and bounded marker access. Selection and caller state machines
+are isolated with service stand-ins, not full gameplay integration. Existing
+out-of-range joint metadata and unbounded timer-to-integer inputs remain
+separate policy audits.
+
+Batch 121 follow-up: typed trigger-state update lowered its own score from
+83.916664% to 82.766670%, and two animation evaluator scores declined slightly;
+these are documented semantic/layout fixes in a net-positive batch, not
+hidden by changing the comparison settings.
+
+## Batch 123: rejected editor/player source-shape trials
+
+The reference's player checks and particle colour stages contain fixed-slot
+closures. Unrolling them under their live `-O2` owners did not improve
+matching: the player routine stayed at zero, and the colour routine fell
+from 21.344992% to zero, including a reference-proven bounded high/low
+sixteen-bit colour conversion. These trials were reverted completely.
+
+The path renderer has separate equal-radius and solid-wall geometry branches;
+restoring their direct perpendicular sides reduced matching from 25.327837%
+to 2.336%. The path editor's two fixed first-free connection-pair searches
+passed 131,072 exhaustive canonical-record cases under both host sanitizers
+and optimized i386, but reduced its score from 28.321720% to 22.997%.
+Restoring its forward/backward traversal closures and fixed menu slot lookup
+reduced it further to 14.019%. All editor trials were reverted. No source
+ownership, optimization or scoring changes were made to accommodate them.
+
+## Batch 124: character attachment animation and save-state protocol
+
+Restore `Animate_CHARACTER`'s Jabba hub override, held special-action choices,
+uncontrolled-context jetpack idle/run choices, Penguin umbrella packet and
+glidepack context variants. Correct the pending-target fallback to inspect
+the model's fall-animation entry, not unrelated target bytes. Restore the
+game-character fall gating and use canonical suit and mini-packet fields.
+Keep guards for missing worlds, attachment IDs and character-system arenas.
+The routine improves **32.489490% to 66.885890%**.
+
+Restore `UpdateSaveSlots`'s mutually exclusive message/result delay pairs,
+autosave pre/post timing, load failure distinctions, save completion callback,
+deletion and formatting state transitions. A request and its completion are
+mutually exclusive within one update. Missing save/load buffers fail before
+later operations. Recover the original four-byte `saveload_error` BSS global
+in the framework save module and publish its declaration. The routine improves
+**34.625600% to 67.099200%**.
+
+Checksum trailers use their exact byte offset with `memcpy`, including sizes
+not divisible by four. Keep the existing extra-buffer checksum validation:
+retail's raw instructions at `0x42a4ae` call the extra-data checksum but
+`0x42a4b3` compares the earlier main-data checksum in EDI against the main
+trailer again. This integrity safeguard deliberately differs from that
+reference bug; it is not hidden by comparison normalization. Buffer capacity,
+very large sizes and callback mutation of allocation metadata remain separate
+audits; fixtures use allocated, bounded buffers and service stand-ins.
+
+Make inline `NuASin` use the polynomial addition grouping already recovered
+by the 99.921210%-matching standalone implementation. Preserve multiplication
+grouping, coefficients and the defined input domain. This improves retained
+render-grid and batarang ricochet callers. The path renderer declines slightly
+to 24.320078%; animation-neighbor/register changes are below 0.27 points.
+No exact function is lost. Overall matching reaches **66.392570%**,
+**+1.268090 percentage points** from main, with **6,269** exact functions;
+the approximately two-point goal remains unfinished.
+
+Extracted production-body fixtures pass 64-bit ASan/UBSan and optimized
+i386 SSE: **60,000** character selection/attachment cases, **20,000** save
+state and multi-frame protocol cases, and **2,000,001** valid-domain arcsine
+comparisons against the retained standalone polynomial. Animation handlers,
+storage services and square root are stand-ins, not complete gameplay or
+filesystem integration. All eleven GitHub checks passed for batch 122.
+
+## Batch 125: hardware bootstrap and variadic setup cursor
+
+Restore `NuInitHardware`'s token widths, four pad output pointers, setup
+options and complete initialization order. The platform parser now receives
+the address of the actual variadic cursor rather than consuming a pointer
+argument unconditionally; END does not consume another argument. Publish the
+recovered deferred-FX and sound-target-manager globals. Preserve the legacy
+mode token's consumed-but-unused behavior: this bootstrap selects mode 2.
+
+Use canonical public initialization declarations, including the framebuffer
+setup arguments and occlusion manager. `va_list *` expresses the platform
+parser's cursor contract portably and retains the original `(i32, char **)`
+mangled name on i386. Do not add a third renderer-init argument merely because
+the original caller writes an unused extra stack slot: its callee reads only
+the existing two arguments. No calling-convention, optimization or alignment
+shortcuts are introduced.
+
+Capture the arena end after platform initialization and retain that snapshot
+through geometry, font and occlusion initialization. Material override receives
+the snapshot's address, not the caller's live end pointer. Recover aspect,
+brightness, host filesystem, persistent DFS selection, pads/online, initial
+clear/swap and the successful return value.
+
+`NuInitHardware` improves **19.691824% to 79.919815%**. Whole-binary matching
+reaches **66.424866%**, **+1.300386 percentage points** from main; all **6,269**
+exact functions are retained. All eleven GitHub checks passed for batch 124.
+The approximately two-point goal is still unfinished.
+
+Extracted production-body fixtures pass **8,193 cases on each ABI**:
+64-bit ASan/UBSan and optimized i386 SSE. They cover every flag combination,
+all sixteen pad-output masks, mixed option widths, platform cursor consumption,
+END-only calls, invalid format retention, persistent/empty DFS names, cached
+arena-end semantics and complete service order. Engine services are stand-ins,
+not an Android or full gameplay execution.
+
+Two reference-informed eight-way `FindPart` filter specializations decline
+from 31.284% to 13.407%/14.013% under the unchanged O2 owner. Revert both;
+do not retain the larger source merely because its semantics resemble retail.
+
+## Batch 126: socket search, rail samples and camera bounds
+
+Recover `BestSockPosition`'s alternating segment search, genuine initialized
+search state and shared successful return path. Invalid/out-of-bounds sockets
+return zero; valid outer bounds without an accepted segment return the original
+1,000,000 failure distance. Keep ordered inner bounds and the reference outer
+rejection tests, including their unordered comparison behavior. Copy the first
+eight resolved bytes after `FillSockPosition` without type-punned word reads.
+The routine improves **0% to 93.943214%**.
+
+Restore `SockRailAngles`'s three fixed corner-average samples when its explicit
+spline argument is null; do not substitute an independently populated
+`sock->mid`. Recover the local helper's returned output cursor, integer
+edge count, live camera-rail length and open/looping endpoint rules. Its score
+improves **37.894497% to 74.100914%**. Restore the socket-local plane/line
+predicates' original integer results; no calling-convention attributes are used.
+
+Restore the camera owner's used plain LOCAL `VuVecMtxMul` at original
+`0x2a3b35`, supported by the query's direct calls and the recovered camera TU
+boundary. Do not move or artificially emit the unused copy in `vumath.c`.
+`NuCameraClipTestExtentsAxisAligned` restores temporary global far-plane
+adjustment, helper calls, six rejection tests and conditional scissor tests.
+Raw SSE instructions establish the fourth/far/near projection grouping:
+translation + (z product + (x product + y product)). Ghidra's flattened
+expression obscures this rounding-sensitive order. Preserve the fourth
+absolute scissor translation and restore the far plane before classification.
+The query improves **23% to 89.820710%**, with unchanged center/extent arguments.
+
+Whole-binary matching reaches **66.503426%**, **+1.378946 percentage points**
+from main, with **6,270** exact functions and no exact function lost.
+All eleven GitHub checks passed for batch 125. The two-point target remains
+unfinished; compiler flags, scoring normalization and source ownership maps
+are unchanged.
+
+Production-body fixtures pass on 64-bit ASan/UBSan and optimized i386 SSE:
+**399,600** bounded socket cases, **90,000** rail geometry/callback cases and
+**65,536** camera cases. Socket services check plane/edge arguments, search
+order, short-circuiting, output bytes and post-fill snapshot timing. Rail tests
+cover explicit versus corner samples, open/looping endpoints and callback
+length mutation. Camera tests include cancellation, zero extents, unordered
+inputs, far overrides, all outcomes and byte-exact global restoration.
+Math/engine callbacks are stand-ins; these are not full gameplay integration
+or an Android device run.
+
+## Batches 127–128: light calculation, editor drawing and state publication
+
+Recover `rtlCalcLights`'s direct callback-sensitive light reads, three fixed
+direction scales, ambient intensity multiplication and ordered saturation.
+Null directional slots use the original shared `nuvec_y` vector; restore that
+verified twelve-byte `(0, 1, 0)` global alongside the existing math vectors.
+The original local routine returns void, and its only caller ignores the
+result. Its score improves **30.318650% to 58.001470%**.
+
+Restore editor light types 3, 6, 7 and 8, separate radius-pair switch arms,
+direct line endpoint math and post-callback set reads. Mask each packed RGB
+component before its unsigned shift, avoiding the previous negative signed
+shift. `edrtlDrawLightEx` improves **33.998290% to 54.582905%**. Do not add a
+fourth `RndrOSquare` parameter: the original caller writes an extra material
+slot, but the callee reads only its existing three arguments.
+
+Restore the two renderer-local lighting wrappers' shared-state writes before
+their platform calls. `rtlSetLights` calls these wrappers rather than bypassing
+them. Both local setters and the public submission routine become exact:
+**three new exact functions**, with no exact function lost. Whole-binary
+matching reaches **66.530655%**, **+1.406175 percentage points** from main,
+with **6,273** exact functions. All eleven GitHub checks passed for batch 126;
+the approximately two-point goal remains unfinished.
+
+Extracted production-body tests pass on 64-bit ASan/UBSan and optimized i386
+SSE: **50,000** lighting cases and **20,000** editor/state-publication cases
+on each ABI. Lighting tests include mutable selected lights during callbacks,
+all supported types, null positions, shared vector reads and unordered ambient
+clamping. Editor tests cover bounded negative/over-one colours, selection,
+radius ordering, geometry and service order; state tests check publication
+before callbacks and callback mutation before ambient submission. Engine and
+math services are stand-ins, not complete renderer integration.
+
+A restored Huffman tree/helper trial regresses overall matching and is fully
+reverted. Live compile actions show that its current `inflate.cpp` owner uses
+O3, while the reference helper family has O0 code shape. That alone does not
+prove source ownership. Do not change options, move the family or force helper
+emission merely to improve the score. Build configuration, normalization and
+ownership maps remain unchanged.
+
+## Batches 129–130: grapple transitions and light-set selection
+
+Recover `Grapple_MoveCode`'s activation gates, ledge release, jump services,
+animation-rate floors, rope-depth limits and phase-boundary amplitude changes.
+Restore the verified `LEGOHINT_GRAPPLE` global initialized to -1. Preserve
+existing null/context safeguards and reload the current grapple after services.
+The function improves **19.468004% to 20.639%**; this is a modest matching gain,
+despite substantial recovered behavior. Production-body fixtures pass on
+64-bit ASan/UBSan and optimized i386 SSE: twenty focused scenarios and a
+multi-frame ledge acquisition/release transition per ABI. Mock engine services
+check callback order, hint/jump parameters and state transitions; these are not
+full gameplay integration tests.
+
+Restore `rtlApplySetScaleLoop`'s distinct ambient, directional and anti-light
+paths, direct distance expressions, nested upper/lower falloff clamp, integer
+restriction state and short-circuit grid coordinates. Keep the existing light
+array and modifier-index safeguards. The raw reference confirms the nested
+clamp's repeated expression, rather than a call to `ClampUnit`. New shadow
+selection publishes its blend after the vector callback; refreshing an already
+selected shadow does not restart its blend. The score improves
+**43.038400% to 82.144000%**, without optimization or ownership changes.
+
+The extracted lighting-loop fixture passes **20,000** bounded cases on each of
+64-bit ASan/UBSan and optimized i386 SSE. It checks all light types, identity
+and restriction masks, null positions, dynamic versus indexed iteration,
+radius/falloff and modifier selection, specular wobble and shadow callback
+mutation/order. Math and renderer services are stand-ins.
+
+Whole-binary matching reaches **66.569060%**, **+1.444580 percentage points**
+from main, with **6,273** exact functions and no exact function lost. All eleven
+GitHub checks passed for batches 127–128. The approximately two-point goal
+remains unfinished; build flags and scoring normalization are unchanged.
+
+## Batches 131–136: Euler quaternion sampling, turret traversal and wind loops
+
+Recover the two V4 Euler-quaternion players' endpoint decoding and quaternion
+interpolation rather than interpolating Euler angles before conversion. Restore
+fixed three-axis skip groups, the reference's count-before-first-joint clamp,
+single-key nonblend sampling, and the blend player's distinct upper-key test.
+Constant nonblend rotations need only one Euler conversion; animated blend
+rotations always convert both endpoints before harmonizing and normalizing.
+The blend path preserves root-translation publication before blending, including
+aliasing with the output joint, and normalizes the absent-rotation identity blend.
+The nonblend player improves **23.303432% to 30.146180%**, and the blend player
+**23.958164% to 35.286736%**. Public signatures and compiler options are unchanged.
+
+Production-body fixtures pass **20,000** bounded animation cases per ABI on
+64-bit ASan/UBSan and optimized i386 SSE: mixed packed/constant rotations,
+quarter-three packet transitions, skipped joints, count clamping, single keys,
+default groups, flags, frame limits, conversion/normalization calls, blend state,
+and null/separate/aliased root outputs. Math services are stand-ins, not an
+Android animation integration test. Generic unsigned-conversion and branchless
+frame-selection trials regressed or failed to improve matching and were reverted.
+
+Recover the turret update's initial count check and do-loop, live count reloads,
+flag-clearing order, and three separate eligibility gates. Matching improves
+**1.011% to 4.347758%**. A focused fixture extracts the edited outer loop and
+gates, replacing the unchanged inner engine body with a callback. **50,000**
+cases pass on both ABIs, including early continues, all flag combinations,
+rotation-sound state, zero counts and callback count shrink/extension. It does
+not test turret firing or the complete update body. Matrix/controller branch
+reordering regressed matching and was reverted.
+
+Recover `NuWindUpdateArray`'s separate wind-only and contact loops, shared
+interaction latch, reusable scalar state, direct distance expressions and
+reference Z-wave arithmetic grouping. Raw instructions, not flattened Ghidra
+conditions, determine the ordered visibility and contact comparisons. Retain
+the existing wrapping counter increments. Matching improves **68.013% to
+91.000%**. **20,000** bounded three-group/matrix oracle cases pass on both ABIs,
+including null/all-null positions, all eight candidate slots, nearest selection,
+wind-only/contact paths, clamp limits, inactive/undrawn/zero-scale groups,
+multi-group latch behavior and square-root call counts. Additional checks cover
+NaN visibility bounds and an empty update. The oracle independently uses the
+previous combined-loop body with the verified Z-wave grouping; math services
+are stand-ins. An initial split-loop trial with incorrect branch grouping and
+duplicate square roots was replaced before retention.
+
+Terrain persistent-state types/evaluation-order trials did not improve matching
+and were reverted. Fixed push-hint fanout also scored worse and was reverted;
+the earlier rejected experiment remains applicable. The unresolved variadic
+contract of `NuErrorSleep` remains deferred, not reconstructed speculatively.
+
+Whole-binary matching reaches **66.614655%**, **+1.490175 percentage points**
+from main, with **6,273** exact functions and no exact function lost. All eleven
+GitHub checks passed for commit **65a78f4f** (batches 129–130). The approximately
+two-point goal continues. No optimization, ownership or scoring changes are made.
+
+## Batches 137–142: object traversal and debris-frame tables
+
+Restore `UpdateGameObjects`' four cached object-pointer walks. Each pass captures
+`Obj` once and retains a live `HIGHGAMEOBJECT` limit across callbacks; the lighting
+pass captures its array before `FindGameObject`. Restore the missing AI, player
+terrain/animation, lighting and collision timing callbacks. Raw instructions
+confirm that the lighting tail calls `TBOPENFN`, not `TBCLOSEFN`; preserve that
+reference behavior and recheck `TimingBarSet` before opening collision timing.
+Recover the cadence miss's early continue, aggregate saved-position copies, and
+two fixed player-indicator/message blocks. Ordinary fixed-expansion macros share
+the two message bodies without forcing inlining or changing compiler options.
+Matching improves **29.453% to 43.470867%**.
+
+A focused production traversal/cadence fixture passes **20,000** cases on each
+of 64-bit ASan/UBSan and optimized i386 SSE, including callback array replacement,
+count shrink/extension, empty passes, cadence flags and saved-position restoration.
+The unchanged engine bodies are replaced with callbacks; this does not verify
+the complete object update, message rendering or timing-service implementation.
+
+Recover `GenericDebinfoDmaTypeUpdate`'s shared key index and scalar interpolation
+state, direct key-array accesses, repeated trigonometric expressions, unsigned
+texture-coordinate extraction and reference reciprocal scaling. Preserve the
+FLY effect's ordered coordinate stores and per-colour clamp sequence. Matching
+improves **60.059% to 87.231770%**. Production-body fixtures pass **20,000** bounded
+cases per ABI, checking all 64 frames, geometry, colour packing, allocation and
+exhaustion, FLY repair, gaps and repeated keys. The independent previous-loop
+oracle uses the reference-verified unsigned/reciprocal texture extraction; its
+trigonometric table and string service are test stand-ins.
+
+Whole-binary matching reaches **66.677536%**, **+1.553056 percentage points**
+from main. All eleven GitHub checks passed for commit **8c1ccb6c** (batches
+131–136). The approximately two-point goal remains in progress. No optimization,
+ownership, ABI-attribute or scoring changes are made.
+
+## Batches 143–150: socket generation and camera accumulation
+
+Recover `SockSys_GenerateData`'s cached socket/segment walks, live spline
+lengths and buffer advancement from `SockRailAngles`' actual return pointer.
+Restore the three inclusive capacity guards, four-rail normal-call order,
+corner-averaged segment midpoints independent of an optional middle rail,
+separate total-length accumulation and the reference's broad-separation versus
+narrow-overlap comparisons. Use the public overlap-bit service and immediate
+nested-loop exit when an overlap is found. Matching improves **47.207100% to
+93.096370%**. A production-body fixture passes **10,000** cases per ABI on
+64-bit ASan/UBSan and optimized i386 SSE, covering generated bytes, allocation
+limits, buffer endpoints, open/closed and two/four-rail geometry, masks and a
+callback that changes live lengths. Geometry/math services are stand-ins.
+
+Recover `SockSysCamera`'s shared scratch/scalar state, delayed candidate lookup,
+public bit query, ordered arena predicates, per-player arena height addition,
+look-target arithmetic grouping and target scaling after scalar publication.
+Restore direct single-player pullback and separate fixed spatial/planar
+two-player pullbacks without the extra positive-distance gate. Pitch/yaw wraps
+use a signed integer conversion before narrowing, as in the reference.
+Matching improves **72.991165% to 81.080020%**. Production-body fixtures pass
+**20,000** bounded cases per ABI, checking all outputs, packet state, nullable
+outputs/rails, failed socket lookup, exclusions, one/two-player modes, arena
+and pullback paths, clamps and rotation wraps. Their independent previous-body
+oracle incorporates reference-verified arithmetic and conversion corrections;
+this is not Android gameplay integration or arbitrary nonfinite-input coverage.
+
+Two `Hub_Update` fixed-fanout trials and two `AIMoveToDestination` scalar/
+arithmetic-layout trials scored worse and were fully reverted. They do not
+justify changing optimization, ABI attributes, ownership or scoring.
+
+Whole-binary matching reaches **66.728470%**, **+1.603990 percentage points**
+from main, with **6,273** exact functions. Native build and repository checks
+pass. All eleven GitHub checks passed for **cd236e31** (batches 137–142).
+The approximately two-point goal remains in progress.
+
+## Batches 151–161: menu state, animation loading and gameplay closures
+
+Recover `UpdateStats`' super-story/challenge dispatch, direct player coin
+accumulation, reference store order and HUD visibility predicates. Matching
+improves **9.948648% to 61.113514%**. Its complete production-body fixture
+passes **10,000** randomized valid states and targeted callback mutation cases
+on host ASan/UBSan and optimized i386 SSE, comparing 23 outputs and service
+order. Reference preconditions are restored: valid world/current level,
+initialized camera in the hub, valid gameplay area index and initialized
+translation table for rewards. Invalid engine initialization is not covered.
+
+Recover `GizPanel_Update`'s eight fixed player probes, reusable vector locals,
+live player reload after distance callbacks and shared pitch clamp. Matching
+improves **0.789630% to 13.106667%**. Both ABI fixtures pass **2,401** angle
+cases plus slot priority, invalid players, callback replacement/count changes
+and NaN-distance/timer cases. Raw unordered timer-clamp behavior is preserved;
+a provisional ordered clamp was rejected before integration.
+
+Recover `Hub_DrawAreaStats`' cached area base, signed episode sentinel and
+reference valid-index contract (**9.691906% to 35.291122%**). Focused i386
+fixtures cover clip transitions, doors, chapter sentinel and completion state.
+`Hub_DrawPanel` now routes on the camera socket byte, uses the reference strict
+challenge-time comparison and exact reward coordinates (**39.473606% to
+39.770596%**). Its extracted sections pass host sanitizers and i386 tests for
+room/mode distinction, below/equal/above/NaN times and reward branches.
+`Hub_Update` reloads player eligibility after each gizmo callback; matching
+reaches **15.747258%**. Its selection/fountain/fade section fixture passes
+activation, deactivation and replacement cases; it is not a full update test.
+
+Recover `UpdateAnimPacket`'s interruption/transition and shared timer dispatch,
+including the live overlay reload after end-frame callbacks. Matching reaches
+**76.789830%**; **100,000** bounded production-body/oracle cases pass per ABI.
+Recover `APILoadCharacterModels`' direct path/flag scans, post-condense list
+reload, byte-width fixup publication and missing character-local BSA fallback,
+including packed-excluded entries. Raw BSA loads do not redirect animation
+paths. Matching reaches **86.448270%**. **20,000** independent oracle cases
+pass per ABI, covering pack/raw failures, redirects, hierarchy reuse/cleanup,
+fixups, metadata byte preservation and callback list replacement. Existing
+512-byte path capacity and deterministic reused-model pack paths are retained.
+
+Recover `InitStatusScreen`'s sequential flag publication, typed completion
+byte, overflow-aware 32-bit coin sum and live mission index after score
+callbacks. Matching reaches **20.167751%**. **10,000** valid-state fixtures
+compare full packet/save bytes and service traces on host and i386; host
+ASan/UBSan uses the same bodies with the unrelated renderer table external.
+
+Restore missing `LightSabreStreakCode` collision push, spark sound/cooldown,
+rumble, NPC gizmo destruction, part hit/deflection and surrounding alerts.
+Preserve callback-sensitive metadata/effect reloads and ordered AABB predicates.
+Matching reaches **44.497646%**. Thirteen focused actual-source cases pass
+under host sanitizers and i386; they are not an exhaustive combat oracle.
+`GameObjectStuffAfterAnimation` restores audio/target callback snapshots,
+reference float operand order and three explicit Landspeeder emission sites,
+reaching **48.345737%**. Callback cases and **3,200** emission combinations
+pass on both fixture ABIs.
+
+Recover `NewScanRot`'s signed cache ages, nested static group/shape scan and
+scratch-vector normal construction, reaching **29.944540%**. **9,217** state,
+cache, call-order and normal fixtures pass on both ABIs. This is ordinary
+source-level helper closure; no forced inlining or optimization change is used.
+
+Recover `GizBuildIts_LateUpdate`'s separate manual/automatic progression,
+eight builder probes, inactive-piece bounds, direct audio position pointers,
+callback-sensitive orbit objects and fixed wobble-axis bodies. Finishing
+callbacks returning to idle correctly reach wobble. Manual NaN timers remain
+pending while automatic NaNs complete, as in retail. Matching reaches
+**22.305555%**. Host sanitizer and i386 fixtures cover these cases, rewards,
+real trig values and callback count/axis/array mutation. Manual unlinked
+completion requires an animation instance; automatic completion permits null.
+
+Recover `ShootCode`'s signed byte context, reference weapon-in branch sharing,
+guarded metadata lookup and immediate-shot tree (**13.116515%**). Remove the
+unnecessary reconstructed `__used__` marker: the unchanged compiler naturally
+infers the original private call ABI. Both objects retain all 190 text symbols
+and 11 direct calls from ten callers; no calling-convention attribute is added.
+Twenty-eight actual-source NDK i386 fixture checks pass for player/NPC gates,
+null metadata/model early exits, weapon transitions and signed contexts.
+
+Recover `DrawParaphernalia`'s normal/flickering shield dispatch, live config
+reload, pre-scale locator and reflection snapshot (**39.311780%**). Its actual
+shield block passes host sanitizers/i386 callback and flicker cases, including
+NaN timers. The original normal shield scale is retained when its flicker
+timer is not positive. Correct `DrawMiniKitCount` to use `GlobalTimer`, not
+`GameTimer`; 10,000 production-body time cases and distinct-clock checks pass
+on both ABIs, with no normalized-score change.
+
+Camera occlusion expansion, directional ladder, broad AI/terrain reorder and
+several particle expansions regressed and were rejected. Placement-only
+rendering improved in isolation, but combining it with the larger shield unit
+regressed; only the verified shield unit is retained. Raw instructions also
+disproved a suspected `NuASin` associativity difference; its header is unchanged.
+
+Whole-binary matching reaches **66.904200%**, **+1.779720 percentage points**
+from main, with **6,275** exact functions. Target/native builds and all five
+repository tests pass. All eleven GitHub checks passed for **acb9f298**.
+Fixtures use mocked engine/math services and do not establish Android gameplay
+integration. The approximately two-point cycle continues; ownership, compiler
+options and matching normalization remain unchanged.
+
+## Batches 162–175: cutscene branches, clipping and render closures
+
+Recover `MovePlayer_ROLLING`'s local Y/X/Y rotation closure, including all
+matrix rows, without changing shared math helpers. Matching improves
+**44.997390% to 76.436030%**. The production NDK i386 body and previous-body
+oracle pass 156 cases, including callback matrix mutation and Euler publication.
+`Hub_DrawFreePlaySelect` restores complete valid-capacity list traversal
+(**35.422245% to 37.611740%**). Focused host/sanitizer fixtures cover duplicate
+selection, boundary capacity and terminator/canary preservation. Original valid
+inputs require at most 339 selected entries in mode 2, and 340 including seed
+entries in modes 3/4; arbitrary overflowing inputs are not supported.
+
+Recover generic `ANI_SimpleAni3PlayerV4Joint`'s fixed nine-curve skip closure,
+node/type cursors, clamp branches and signed division (**18.765038% to
+36.280075%**). Host ASan/UBSan and i386 fixtures pass 100,000 differential cases
+per ABI, including dispatch/default groups. Valid joint/sample bounds remain
+required; NaN-to-integer conversion is not defined or claimed.
+`NuCameraClipTestExtentsGeneric` initializes each outcode in its classification
+loop rather than clearing the complete array first, allowing the original
+register-packed closure (**44.893864% to 64.241950%**). No geometry math changes.
+Both ABI fixtures pass 32,768 differential cases and five boundary probes,
+including nonfinite coordinates, flags, transforms and aliased depth output.
+
+Recover explicit optional-output/count branches in legacy and modern cutscene
+character processing. `NuGCutCharAnimProcess` improves **4.475191% to
+89.305340%**; `NuGCutCharAnimProcess_3` improves **44.898438% to 71.488280%**.
+Signed legacy counts, modern rounding, sentinel order and callback-sensitive
+count reloads remain unchanged. Each ABI passes 90,112 legacy, 8,192
+no-animation and 81,920 modern/direct output cases against independent oracles.
+
+Recover `DrawPanel`'s 512-byte text buffer, controller-two green tint, paused
+player alpha branches and distinct owned/borrowed icon submissions
+(**43.765343% to 45.216286%**). Modified-section fixtures pass 10,000 randomized
+cases plus targeted host sanitizer/i386 probes. Raw instructions disprove two
+provisional changes: bonus-score shifts are logical 0/1, not signed masks;
+challenge/mission NaN timers remain NaN. Neither rejected change is integrated.
+`DrawStatusScreen` restores stage-array rebasing after callbacks, cached demo
+labels, two explicit option closures and live fallback color reads
+(**21.890034% to 51.864260%**). Its complete-body fixture passes 10,000 bounded
+oracle cases and callback mutations on both ABIs. Menu pulse inputs are finite
+and initialized stage arrays must remain valid for the current iteration index.
+
+Recover `GizObstacles_Update`'s mode-7 start-or-stop dispatch, live animation/SFX
+reloads, stable traversal/count snapshot, reward-gated resets and unsigned pickup
+angles (**5.870968% to 47.526882%**). Both ABI fixtures pass 64 eligibility and
+640 dispatch cases plus traversal, reward and callback probes. Recover
+`UpdateExplosion_Generic`'s cached object walker and post-arcade owner reload
+(**8.408084% to 13.610169%**); complete production-source fixtures cover owner
+replacement, 12 live traversal cases and 66 emission angles. `JediB_Update`
+restores its second-plane live object lookup and stay/remove branches
+(**45.921864% to 46.792060%**); focused culling fixtures pass both ABIs. Callback
+replacement must preserve the reference's required non-null object when a
+second plane or explosion owner is actually dereferenced.
+
+Recover `NuDisplayListRndrSpecial`'s wind matrix, forced LOD/material selection,
+owning-list usage flags, transform-packet reuse, shadow-only draws, per-light
+render sets and clip-result cleanup (**16.781250% to 21.759115%**). Its actual
+function and unchanged helper bodies pass 2,048 instrumented scenarios plus
+sentinel, NaN and null-guard cases on host sanitizers/i386. The existing empty
+`WindShear` is recovered with its verified four-argument C ABI, seeded random,
+unsigned frame conversion and complete matrix shear. Raw SSE proves the
+pre-callback frequency product and quarter+(half+base) waveform grouping;
+1,040 separate/in-place calls match all 16 fields bit-exactly on both ABIs after
+correction. WindShear itself remains 0% in its unchanged owner/optimization
+mode; caller-plus-helper restoration gives a positive whole-binary result.
+
+Recover `DrawCables`'s per-control-point terrain sampling/interpolation,
+chained subdivision cursor, half-step termination, phase clamp and shared
+line/rope vertex packet. Preserve the original start-floor NaN selection,
+flat-path counter behavior and duplicated rope arguments. Both actual-body
+fixtures pass terrain/callback, zero-span, sentinel, phase and rope/flat cases;
+the previous body fails the terrain-query probe. `UpdateCables` separately
+restores target and locator snapshots across geometry callbacks; 19 cases pass
+per ABI for both wrapping directions and counts 0/1/2/3/14/15.
+
+Recover miniature snow-trooper team reloads, post-turn stop-bit rechecks,
+normal/nonzero-droid formation selection and exact random/movement constants.
+Formation 4 intentionally copies the unrotated source after an out-of-place
+rotation, as in retail. Actual update/shape fixtures pass host sanitizers and
+i386, including settling/NaN, callback replacement and random endpoints.
+Correct the timed particle routine's emission cap to 99; full routine fixtures
+pass regular/glass and allocation limits on both ABIs, with no score change.
+
+Whole-binary matching reaches **67.076330%**, **+1.951850 percentage points**
+from main, with **6,276** exact functions. All eleven GitHub checks passed for
+**00434e77**. Fixtures use mocked engine/math services and do not establish
+Android gameplay integration. Ownership, compiler options and scoring remain
+unchanged; explicit particle expansion and several curve/force layout trials
+regressed and were rejected. The approximately two-point cycle continues.
+
+## Batches 176–179: complete the two-point cycle
+
+Recover `FireCode`'s context ladder, delayed-press gate, bolt-class flag and
+pre-callback target-mode snapshot. The delayed-press parameter, not the float
+cooldown duration, controls timed rejection; the original class bit is
+`0x04000000`. A null area must not select the bonus-gunship branch when its
+area identity is also null. Isolated matching improves **44.231% to 56.947%**.
+The complete-body host sanitizer and production i386 fixtures pass 384 cases.
+Removing the existing `__used__` marker only after restoring the missing
+parameter behavior naturally retains the exact private symbol and all callers:
+all 181 translation-unit text symbols survive. A removal-only experiment that
+lost the exact symbol was rejected. No calling-convention attribute is added.
+
+Recover `GizmoPushBlockInitAndReset`'s traversal snapshots, canonical instance
+animation end-frame lookup, post-evaluation snap count and single matrix
+snapshot. Restore four explicit terrain probes, callback-sensitive metadata
+writes and original support-height summation order. Isolated matching improves
+**7.586449% to 50.175232%**. Actual-body sanitizer and optimized i386 fixtures
+cover counts 0–4, animation endpoints, capacity/exhaustion, array replacement
+in all three passes, terrain sentinels, equal/unequal/NaN support heights and
+callback mutation. Its pre-existing function-level `optimize("O2")` is unchanged;
+this batch neither introduces nor relies on a new optimization override.
+
+Recover `RenderOccluders`'s six explicit vertex submissions, material snapshot,
+signed masked colors and count publication. Restore `IsOccludedSphere`'s ordered
+radius/bounds rejection and four explicit edge closures, including normal
+initialization before normalization. Renderer negative-depth tests deliberately
+retain their original unordered behavior. Isolated scores improve
+**20.402325% to 58.855812%** and **42.135048% to 44.717040%**, respectively.
+The neighboring `RenderStats` decreases **98.701035% to 84.257730%** through
+ordinary translation-unit code generation; the net weighted gain remains
+positive. Separate-TU mocked-service fixtures pass 2,048 renderer and 32,768
+sphere cases on sanitizer/i386 builds. Geometry/color-conversion inputs obey
+the valid reference contract; the fixtures do not claim arbitrary nonfinite
+color conversion is defined.
+
+Recover `Move_VEHICLE`'s metadata reads after weapon/drop-in-out callbacks and
+the movement-disabled gate, then reload metadata after later callbacks.
+The Hoth hover hack is tested only inside the positive hover-height branch;
+the fallback height is read after the hover query. Isolated matching improves
+**18.205% to 26.926%**, or **28.699%** together with the corrected `FireCode`.
+Both actual-body fixtures pass five focused callback/gate cases, including
+null metadata on the early disabled path. Flight, smoke and combat services
+are mostly skipped or mocked: this is not a complete vehicle gameplay oracle.
+
+The combined target builds and reaches **67.128075%**, **+2.003595 percentage
+points** from main baseline `05429366`, with **6,276** exact functions. Ownership,
+compiler options and scoring remain unchanged. Merge requires all GitHub checks
+to pass on the final PR head, not merely a previous passing commit. All fixtures
+remain diagnostics with mocked services, not Android gameplay validation.

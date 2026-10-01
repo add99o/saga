@@ -14,13 +14,19 @@ struct _vuv_s {
 struct flightspline_s {
     _vuv_s points[64];
     i32 point_count; // 0x400
-    u8 unknown_404[4];
+    union {
+        u8 unknown_404[4];
+        f32 spawn_time;
+    };
     f32 field_0x408;
     f32 field_0x40c;
     f32 length;                   // 0x410
     f32 cumulative_distances[64]; // 0x414
     i32 field_0x514;
-    u8 unknown_518[4];
+    union {
+        u8 unknown_518[4];
+        i32 repeat_count;
+    };
     i32 field_0x51c;
     i32 field_0x520;
     i32 id; // 0x524
@@ -43,12 +49,15 @@ struct racepod_s {
     NUMTX matrix;
     _vuv_s previous_axis;
     _vuv_s previous_position;
-    char pad_0x60[0x10];
+    _vuv_s previous_displacement; // 0x60
     i32 pitch;
     i32 yaw;
     i32 pad_0x78;
     float speed;
-    u32 *data;
+    union {
+        u32 *data;
+        flightspline_s *spline;
+    };
     float start;
     i16 model_id;
     i16 pad_0x8a;
@@ -69,7 +78,7 @@ struct PODRACE_s {
     float max_lap_time;
     float lap_time_increment;
     i32 lap_attempts_per_increment;
-    char pad_0xaf1c[0xaf20 - 0xaf1c];
+    i32 lap_attempts; // 0xaf1c
     u8 flags;
     char pad_0xaf21[0xaf24 - 0xaf21];
 };

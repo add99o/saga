@@ -303,6 +303,8 @@ namespace {
         i32 scaled_shape_count;
     };
 
+    static TerrainScanBounds TerrainHandleBounds(const NUVEC &position, const NUVEC &movement, f32 radius);
+
     static bool TerrainBoundsOverlap(const TerrainScanBounds &bounds, const NUVEC &minimum, const NUVEC &maximum) {
         return bounds.max_x >= minimum.x && bounds.max_y >= minimum.y && bounds.max_z >= minimum.z &&
                maximum.x >= bounds.min_x && maximum.y > bounds.min_y && maximum.z > bounds.min_z;
@@ -330,50 +332,54 @@ namespace {
         writer->group_shape_count = 0;
     }
 
-    static TERRAIN_SHAPE *TerrainScaleShape(TERRAIN_SHAPE *candidate, const TERRAIN_GROUP &group,
-                                            TerrainScanWriter *writer) {
-        if (TerI->object_scale != 1.0f) {
-            TERRAIN_SHAPE *source = candidate;
-            candidate = &ScaleTerrain[writer->scaled_shape_count++];
-            candidate->material[0] = source->material[0];
-            candidate->material[1] = source->material[1];
-            candidate->flags = source->flags;
-            candidate->normal_flags = source->normal_flags;
-
-            for (i32 vector_index = 0; vector_index < 3; ++vector_index) {
-                candidate->vectors[vector_index].x = source->vectors[vector_index].x;
-                candidate->vectors[vector_index].y =
-                    (source->vectors[vector_index].y + group.origin.y) * TerI->inverse_object_scale - group.origin.y;
-                candidate->vectors[vector_index].z = source->vectors[vector_index].z;
-            }
-
-            if (source->normals[1].y < 65535.0f) {
-                candidate->vectors[3].x = source->vectors[3].x;
-                candidate->vectors[3].y =
-                    (source->vectors[3].y + group.origin.y) * TerI->inverse_object_scale - group.origin.y;
-                candidate->vectors[3].z = source->vectors[3].z;
-
-                const f32 length = NuFsqrt(source->normals[1].x * source->normals[1].x +
-                                           source->normals[1].y * source->normals[1].y * TerI->object_scale_sq +
-                                           source->normals[1].z * source->normals[1].z);
-                const f32 inverse_length = length == 0.0f ? 0.0f : 1.0f / length;
-                candidate->normals[1].x = source->normals[1].x * inverse_length;
-                candidate->normals[1].y = source->normals[1].y * TerI->object_scale * inverse_length;
-                candidate->normals[1].z = source->normals[1].z * inverse_length;
-            } else {
-                candidate->normals[1].y = 65536.0f;
-            }
-
-            const f32 length = NuFsqrt(source->normals[0].x * source->normals[0].x +
-                                       source->normals[0].y * source->normals[0].y * TerI->object_scale_sq +
-                                       source->normals[0].z * source->normals[0].z);
-            const f32 inverse_length = length == 0.0f ? 0.0f : 1.0f / length;
-            candidate->normals[0].x = source->normals[0].x * inverse_length;
-            candidate->normals[0].y = source->normals[0].y * TerI->object_scale * inverse_length;
-            candidate->normals[0].z = source->normals[0].z * inverse_length;
-        }
-        return candidate;
-    }
+    // Retail scan callers contain the scale-and-normal reconstruction directly.
+#define TERRAIN_SCALE_SCAN_SHAPE(candidate_arg, group_arg, writer_arg)                                                 \
+    do {                                                                                                               \
+        TERRAIN_SHAPE *&scale_candidate = (candidate_arg);                                                             \
+        const TERRAIN_GROUP &scale_group = (group_arg);                                                                \
+        TerrainScanWriter *scale_writer = (writer_arg);                                                                \
+        if (TerI->object_scale != 1.0f) {                                                                              \
+            TERRAIN_SHAPE *source = scale_candidate;                                                                   \
+            scale_candidate = &ScaleTerrain[scale_writer->scaled_shape_count++];                                       \
+            scale_candidate->material[0] = source->material[0];                                                        \
+            scale_candidate->material[1] = source->material[1];                                                        \
+            scale_candidate->flags = source->flags;                                                                    \
+            scale_candidate->normal_flags = source->normal_flags;                                                      \
+                                                                                                                       \
+            for (i32 vector_index = 0; vector_index < 3; ++vector_index) {                                             \
+                scale_candidate->vectors[vector_index].x = source->vectors[vector_index].x;                            \
+                scale_candidate->vectors[vector_index].y =                                                             \
+                    (source->vectors[vector_index].y + scale_group.origin.y) * TerI->inverse_object_scale -            \
+                    scale_group.origin.y;                                                                              \
+                scale_candidate->vectors[vector_index].z = source->vectors[vector_index].z;                            \
+            }                                                                                                          \
+                                                                                                                       \
+            if (source->normals[1].y < 65535.0f) {                                                                     \
+                scale_candidate->vectors[3].x = source->vectors[3].x;                                                  \
+                scale_candidate->vectors[3].y =                                                                        \
+                    (source->vectors[3].y + scale_group.origin.y) * TerI->inverse_object_scale - scale_group.origin.y; \
+                scale_candidate->vectors[3].z = source->vectors[3].z;                                                  \
+                                                                                                                       \
+                const f32 length = NuFsqrt(source->normals[1].x * source->normals[1].x +                               \
+                                           source->normals[1].y * source->normals[1].y * TerI->object_scale_sq +       \
+                                           source->normals[1].z * source->normals[1].z);                               \
+                const f32 inverse_length = length == 0.0f ? 0.0f : 1.0f / length;                                      \
+                scale_candidate->normals[1].x = source->normals[1].x * inverse_length;                                 \
+                scale_candidate->normals[1].y = source->normals[1].y * TerI->object_scale * inverse_length;            \
+                scale_candidate->normals[1].z = source->normals[1].z * inverse_length;                                 \
+            } else {                                                                                                   \
+                scale_candidate->normals[1].y = 65536.0f;                                                              \
+            }                                                                                                          \
+                                                                                                                       \
+            const f32 length = NuFsqrt(source->normals[0].x * source->normals[0].x +                                   \
+                                       source->normals[0].y * source->normals[0].y * TerI->object_scale_sq +           \
+                                       source->normals[0].z * source->normals[0].z);                                   \
+            const f32 inverse_length = length == 0.0f ? 0.0f : 1.0f / length;                                          \
+            scale_candidate->normals[0].x = source->normals[0].x * inverse_length;                                     \
+            scale_candidate->normals[0].y = source->normals[0].y * TerI->object_scale * inverse_length;                \
+            scale_candidate->normals[0].z = source->normals[0].z * inverse_length;                                     \
+        }                                                                                                              \
+    } while (0)
 
     static void TerrainScanPlatformGroup(TerrainScanWriter *writer, const TerrainScanBounds &bounds, i32 group_index,
                                          i32 terrain_mask, i32 scan_flags, f32 movement_scale, bool check_visibility) {
@@ -429,7 +435,7 @@ namespace {
                         (shape->flags & scan_flags) == 0x40)
                         continue;
                     if (!rotating) {
-                        shape = TerrainScaleShape(shape, group, writer);
+                        TERRAIN_SCALE_SCAN_SHAPE(shape, group, writer);
                     } else {
                         NUVEC4 vertices[4];
                         const bool quad = shape->normals[1].y < 65535.0f;
@@ -495,92 +501,111 @@ namespace {
         TerrainFinishScanGroup(writer, group_index);
     }
 
-    static TerrainScanBounds TerrainGetScanBounds(const TerrainQuery_s &query) {
-        const f32 padding = 0.05f;
-        TerrainScanBounds bounds;
+    // Preserve the retail arithmetic ordering and the sweep-diagonal service
+    // call, even in the wall-only caller where its result is unused.
+#define TERRAIN_GET_SCAN_BOUNDS(bounds_arg, radius_arg, wall_arg)                                                      \
+    do {                                                                                                               \
+        TerrainScanBounds &scan_bounds = (bounds_arg);                                                                 \
+        f32 &bounds_radius = (radius_arg);                                                                             \
+        const TerrainQuery_s &scan_query = *TerI;                                                                      \
+        if (scan_query.scan_result != 1) {                                                                             \
+            const f32 move_length = NuFsqrt(scan_query.movement.x * scan_query.movement.x +                            \
+                                            scan_query.movement.y * scan_query.movement.y +                            \
+                                            scan_query.movement.z * scan_query.movement.z);                            \
+            const f32 reach = (wall_arg) ? 0.1f + scan_query.collision_radius + move_length                            \
+                                         : move_length + 0.1f + scan_query.collision_radius;                           \
+            const f32 vertical = reach * scan_query.object_scale;                                                      \
+            scan_bounds.min_x = scan_query.position.x - 0.05f - reach;                                                 \
+            scan_bounds.max_x = scan_query.position.x + 0.05f + reach;                                                 \
+            scan_bounds.min_y = scan_query.position.y - 0.05f - vertical;                                              \
+            scan_bounds.max_y = scan_query.position.y + 0.05f + vertical;                                              \
+            scan_bounds.min_z = scan_query.position.z - 0.05f - reach;                                                 \
+            scan_bounds.max_z = scan_query.position.z + 0.05f + reach;                                                 \
+            bounds_radius = reach;                                                                                     \
+        } else {                                                                                                       \
+            const f32 radius = scan_query.collision_radius;                                                            \
+            if (scan_query.movement.x <= 0.0f) {                                                                       \
+                scan_bounds.min_x = scan_query.position.x + scan_query.movement.x - 0.02f - radius;                    \
+                scan_bounds.max_x = scan_query.position.x + 0.02f + radius;                                            \
+            } else {                                                                                                   \
+                scan_bounds.min_x = scan_query.position.x - 0.02f - radius;                                            \
+                scan_bounds.max_x = scan_query.position.x + scan_query.movement.x + 0.02f + radius;                    \
+            }                                                                                                          \
+            if (scan_query.movement.y <= 0.0f) {                                                                       \
+                scan_bounds.min_y = scan_query.position.y + scan_query.movement.y - 0.02f - radius;                    \
+                scan_bounds.max_y = scan_query.position.y + 0.02f + radius;                                            \
+            } else {                                                                                                   \
+                scan_bounds.min_y = scan_query.position.y - 0.02f - radius;                                            \
+                scan_bounds.max_y = scan_query.position.y + scan_query.movement.y + 0.02f + radius;                    \
+            }                                                                                                          \
+            if (scan_query.movement.z <= 0.0f) {                                                                       \
+                scan_bounds.min_z = scan_query.position.z + scan_query.movement.z - 0.02f - radius;                    \
+                scan_bounds.max_z = scan_query.position.z + 0.02f + radius;                                            \
+            } else {                                                                                                   \
+                scan_bounds.min_z = scan_query.position.z - 0.02f - radius;                                            \
+                scan_bounds.max_z = scan_query.position.z + scan_query.movement.z + 0.02f + radius;                    \
+            }                                                                                                          \
+            const f32 dx = scan_bounds.min_x - scan_bounds.max_x;                                                      \
+            const f32 dy = scan_bounds.min_y - scan_bounds.max_y;                                                      \
+            const f32 dz = scan_bounds.min_z - scan_bounds.max_z;                                                      \
+            bounds_radius = NuFsqrt(dx * dx + dy * dy + dz * dz);                                                      \
+        }                                                                                                              \
+        if (!(wall_arg) && scan_query.object_scale > 1.0f)                                                             \
+            bounds_radius += (scan_query.object_scale - 1.0f) * scan_query.collision_radius;                           \
+    } while (0)
 
-        if (query.scan_result != 1) {
-            const f32 move_length = NuFsqrt(query.movement.x * query.movement.x + query.movement.y * query.movement.y +
-                                            query.movement.z * query.movement.z);
-            const f32 reach = move_length + query.collision_radius + 0.1f;
-            const f32 vertical_reach = reach * query.object_scale;
-            bounds.min_x = query.position.x - padding - reach;
-            bounds.max_x = query.position.x + padding + reach;
-            bounds.min_y = query.position.y - padding - vertical_reach;
-            bounds.max_y = query.position.y + padding + vertical_reach;
-            bounds.min_z = query.position.z - padding - reach;
-            bounds.max_z = query.position.z + padding + reach;
-        } else {
-            const f32 reach = 0.02f + query.collision_radius;
-            if (query.movement.x > 0.0f) {
-                bounds.min_x = query.position.x - reach;
-                bounds.max_x = query.position.x + query.movement.x + reach;
-            } else {
-                bounds.min_x = query.position.x + query.movement.x - reach;
-                bounds.max_x = query.position.x + reach;
-            }
-            if (query.movement.y > 0.0f) {
-                bounds.min_y = query.position.y - reach;
-                bounds.max_y = query.position.y + query.movement.y + reach;
-            } else {
-                bounds.min_y = query.position.y + query.movement.y - reach;
-                bounds.max_y = query.position.y + reach;
-            }
-            if (query.movement.z > 0.0f) {
-                bounds.min_z = query.position.z - reach;
-                bounds.max_z = query.position.z + query.movement.z + reach;
-            } else {
-                bounds.min_z = query.position.z + query.movement.z - reach;
-                bounds.max_z = query.position.z + reach;
-            }
-        }
-        return bounds;
-    }
-
-    static void TerrainCollectWallSplines(TerrainScanBounds bounds, i32 terrain_mask) {
-        bounds.min_x -= 0.02f;
-        bounds.min_z -= 0.02f;
-        bounds.max_x += 0.02f;
-        bounds.max_z += 0.02f;
-        WallSplCount = 0;
-        for (TERRAIN_SPATIAL_NODE *node = CurTerr->spatial_nodes; node != NULL;
-             node = *reinterpret_cast<TERRAIN_SPATIAL_NODE **>(reinterpret_cast<u8 *>(node) - sizeof(void *))) {
-            const u8 mask = node->field_0x02 >> 8;
-            if (mask != 0 && (mask & terrain_mask) == 0)
-                continue;
-            for (i32 first = 0; first < node->point_count; first += 16) {
-                NUVEC *points = node->points + first;
-                i32 end = node->point_count;
-                if (points[0].y != 2147483648.0f) {
-                    if (points[1].y < bounds.min_x || points[0].y > bounds.max_x || points[3].y < bounds.min_z ||
-                        points[2].y > bounds.max_z)
-                        continue;
-                    end = MIN(end, first + 16);
-                }
-                for (i32 i = first; i < end; ++i) {
-                    NUVEC &a = node->points[i];
-                    NUVEC &b = node->points[i + 1];
-                    if ((a.x < bounds.min_x || b.x > bounds.max_x) && (b.x < bounds.min_x || a.x > bounds.max_x))
-                        continue;
-                    if ((a.z < bounds.min_z || b.z > bounds.max_z) && (b.z < bounds.min_z || a.z > bounds.max_z))
-                        continue;
-                    if (WallSplCount < 64) {
-                        WallSplList[WallSplCount].position = a;
-                        WallSplList[WallSplCount + 1].position = b;
-                        for (i32 p = 0; p < 2; ++p) {
-                            u8 *material = WallSplList[WallSplCount + p].material;
-                            material[0] = static_cast<u8>(node->field_0x02);
-                            material[1] = mask;
-                            material[2] = 0;
-                            material[3] = 0;
-                        }
-                        WallSplCount += 2;
-                    }
-                }
-            }
-        }
-        TerrOverRideScan = NULL;
-    }
+    // These wall-spline traversals are part of all three retail scan bodies.
+#define TERRAIN_COLLECT_WALL_SPLINES(bounds_arg, mask_arg, clear_arg)                                                  \
+    do {                                                                                                               \
+        TerrainScanBounds wall_bounds = (bounds_arg);                                                                  \
+        const i32 wall_mask = (mask_arg);                                                                              \
+        const bool wall_clear_override = (clear_arg);                                                                  \
+        wall_bounds.min_x -= 0.02f;                                                                                    \
+        wall_bounds.min_z -= 0.02f;                                                                                    \
+        wall_bounds.max_x += 0.02f;                                                                                    \
+        wall_bounds.max_z += 0.02f;                                                                                    \
+        WallSplCount = 0;                                                                                              \
+        for (TERRAIN_SPATIAL_NODE *node = CurTerr->spatial_nodes; node != NULL;                                        \
+             node = *reinterpret_cast<TERRAIN_SPATIAL_NODE **>(reinterpret_cast<u8 *>(node) - sizeof(void *))) {       \
+            const u8 mask = node->field_0x02 >> 8;                                                                     \
+            if (mask != 0 && (mask & wall_mask) == 0)                                                                  \
+                continue;                                                                                              \
+            for (i32 first = 0; first < node->point_count; first += 16) {                                              \
+                NUVEC *points = node->points + first;                                                                  \
+                i32 end = node->point_count;                                                                           \
+                if (points[0].y != 2147483648.0f) {                                                                    \
+                    if (points[1].y < wall_bounds.min_x || points[0].y > wall_bounds.max_x ||                          \
+                        points[3].y < wall_bounds.min_z || points[2].y > wall_bounds.max_z)                            \
+                        continue;                                                                                      \
+                    end = MIN(end, first + 16);                                                                        \
+                }                                                                                                      \
+                for (i32 i = first; i < end; ++i) {                                                                    \
+                    NUVEC &a = node->points[i];                                                                        \
+                    NUVEC &b = node->points[i + 1];                                                                    \
+                    if ((a.x < wall_bounds.min_x || b.x > wall_bounds.max_x) &&                                        \
+                        (b.x < wall_bounds.min_x || a.x > wall_bounds.max_x))                                          \
+                        continue;                                                                                      \
+                    if ((a.z < wall_bounds.min_z || b.z > wall_bounds.max_z) &&                                        \
+                        (b.z < wall_bounds.min_z || a.z > wall_bounds.max_z))                                          \
+                        continue;                                                                                      \
+                    if (WallSplCount < 64) {                                                                           \
+                        WallSplList[WallSplCount].position = a;                                                        \
+                        WallSplList[WallSplCount + 1].position = b;                                                    \
+                        for (i32 p = 0; p < 2; ++p) {                                                                  \
+                            u8 *material = WallSplList[WallSplCount + p].material;                                     \
+                            material[0] = static_cast<u8>(node->field_0x02);                                           \
+                            material[1] = mask;                                                                        \
+                            material[2] = 0;                                                                           \
+                            material[3] = 0;                                                                           \
+                        }                                                                                              \
+                        WallSplCount += 2;                                                                             \
+                    }                                                                                                  \
+                }                                                                                                      \
+            }                                                                                                          \
+        }                                                                                                              \
+        if (wall_clear_override)                                                                                       \
+            TerrOverRideScan = NULL;                                                                                   \
+    } while (0)
 
 } // namespace
 
@@ -1699,7 +1724,9 @@ void ScanTerrain(i32 scan_type, i32 terrain_mask, i32 scan_flags) {
     writer.group_shape_count = 0;
     writer.scaled_shape_count = 0;
 
-    const TerrainScanBounds bounds = TerrainGetScanBounds(*TerI);
+    TerrainScanBounds bounds;
+    f32 scan_radius;
+    TERRAIN_GET_SCAN_BOUNDS(bounds, scan_radius, false);
 
     for (i32 cell_index = 0; cell_index < CurTerr->used_cell_count; ++cell_index) {
         const TERRAIN_CELL &cell = CurTerr->cells[cell_index];
@@ -1746,7 +1773,7 @@ void ScanTerrain(i32 scan_type, i32 terrain_mask, i32 scan_flags) {
                             continue;
                         }
 
-                        candidate = TerrainScaleShape(candidate, group, &writer);
+                        TERRAIN_SCALE_SCAN_SHAPE(candidate, group, &writer);
                         *writer.cursor++ = candidate;
                         ++writer.group_shape_count;
                     }
@@ -1754,35 +1781,6 @@ void ScanTerrain(i32 scan_type, i32 terrain_mask, i32 scan_flags) {
                 batch = reinterpret_cast<TERRAIN_SHAPE_BATCH *>(shapes + batch->shape_count);
             }
             TerrainFinishScanGroup(&writer, group_index);
-        }
-    }
-
-    if (scan_type != 0) {
-        TerrainScanBounds platform_bounds = bounds;
-        platform_bounds.min_x -= 0.05f;
-        platform_bounds.min_y -= 0.05f;
-        platform_bounds.min_z -= 0.05f;
-        platform_bounds.max_x += 0.05f;
-        platform_bounds.max_y += 0.05f;
-        platform_bounds.max_z += 0.05f;
-        const i16 *groups = CurTerr->active_platform_groups;
-        i32 count = CurTerr->active_platform_count;
-        if (platform_bounds.min_x <= CurTerr->platform_scan_min.x ||
-            platform_bounds.max_x >= CurTerr->platform_scan_max.x ||
-            platform_bounds.min_z <= CurTerr->platform_scan_min.z ||
-            platform_bounds.max_z >= CurTerr->platform_scan_max.z) {
-            const TERRAIN_CELL &cell = CurTerr->cells[TERRAIN_PLATFORM_CELL];
-            groups = CurTerr->group_indices + cell.first_group;
-            count = cell.group_count;
-        }
-        for (i32 i = 0; i < count; ++i) {
-            const TERRAIN_GROUP &group = CurTerr->groups[groups[i]];
-            if (group.origin.x - group.radius > platform_bounds.max_x ||
-                group.origin.x + group.radius < platform_bounds.min_x ||
-                group.origin.z - group.radius > platform_bounds.max_z ||
-                group.origin.z + group.radius < platform_bounds.min_z)
-                continue;
-            TerrainScanPlatformGroup(&writer, platform_bounds, groups[i], terrain_mask, scan_flags, 1.0f, true);
         }
     }
 
@@ -1818,7 +1816,7 @@ void ScanTerrain(i32 scan_type, i32 terrain_mask, i32 scan_flags) {
                         continue;
                     }
 
-                    candidate = TerrainScaleShape(candidate, group, &writer);
+                    TERRAIN_SCALE_SCAN_SHAPE(candidate, group, &writer);
                     *writer.cursor++ = candidate;
                     ++writer.group_shape_count;
                 }
@@ -1828,7 +1826,49 @@ void ScanTerrain(i32 scan_type, i32 terrain_mask, i32 scan_flags) {
         TerrainFinishScanGroup(&writer, group_index);
     }
 
-    TerI->scan_list = TerI->scan_list_storage;
+    // The saved pointer marks the start of platform groups, after the fixed
+    // terrain and pickup groups; platform impact consumers start here.
+    TerI->scan_list = writer.group_header;
+    if (scan_type != 0) {
+        TerrainScanBounds platform_bounds = bounds;
+        platform_bounds.min_x -= 0.05f;
+        platform_bounds.min_y -= 0.05f;
+        platform_bounds.min_z -= 0.05f;
+        platform_bounds.max_x += 0.05f;
+        platform_bounds.max_y += 0.05f;
+        platform_bounds.max_z += 0.05f;
+        const i16 *groups = CurTerr->active_platform_groups;
+        i32 count = CurTerr->active_platform_count;
+        if (platform_bounds.min_x <= CurTerr->platform_scan_min.x ||
+            platform_bounds.max_x >= CurTerr->platform_scan_max.x ||
+            platform_bounds.min_z <= CurTerr->platform_scan_min.z ||
+            platform_bounds.max_z >= CurTerr->platform_scan_max.z) {
+            const TERRAIN_CELL &cell = CurTerr->cells[TERRAIN_PLATFORM_CELL];
+            groups = CurTerr->group_indices + cell.first_group;
+            count = cell.group_count;
+        }
+        for (i32 i = 0; i < count; ++i) {
+            const TERRAIN_GROUP &group = CurTerr->groups[groups[i]];
+            if (group.origin.x - group.radius > platform_bounds.max_x ||
+                group.origin.x + group.radius < platform_bounds.min_x ||
+                group.origin.z - group.radius > platform_bounds.max_z ||
+                group.origin.z + group.radius < platform_bounds.min_z)
+                continue;
+            if (group.chunk_type == -1)
+                continue;
+            const TERRAIN_PLATFORM &platform = CurTerr->platforms[group.scene_index];
+            if ((platform.flags & TERRAIN_PLATFORM_FLAG_ROTATING) != 0) {
+                const f32 x = (platform_bounds.min_x + platform_bounds.max_x) * 0.5f - group.origin.x;
+                const f32 y = (platform_bounds.min_y + platform_bounds.max_y) * 0.5f - group.origin.y;
+                const f32 z = (platform_bounds.min_z + platform_bounds.max_z) * 0.5f - group.origin.z;
+                const f32 reach = scan_radius + group.radius;
+                if (!(x * x + y * y + z * z < reach * reach) || platform.scene_object == NULL)
+                    continue;
+            }
+            TerrainScanPlatformGroup(&writer, platform_bounds, groups[i], terrain_mask, scan_flags, 1.0f, true);
+        }
+    }
+
     i16 *terminator = reinterpret_cast<i16 *>(writer.group_header);
     terminator[0] = 0;
     terminator[1] = 0;
@@ -1837,9 +1877,12 @@ void ScanTerrain(i32 scan_type, i32 terrain_mask, i32 scan_flags) {
     if (IgnoreWallSplines != 0) {
         IgnoreWallSplines = 0;
     } else {
-        TerrainCollectWallSplines(bounds, terrain_mask);
+        TERRAIN_COLLECT_WALL_SPLINES(bounds, terrain_mask, false);
     }
+    TerrOverRideScan = NULL;
 }
+#undef TERRAIN_SCALE_SCAN_SHAPE
+
 NUVEC TerrainSkin(PLATSKININFO *info, nuvec_s *position, float weight, i32 mode) {
     NUVEC4_ALIGNED16 point;
     NUMTX_ALIGNED16 matrix;
@@ -3345,20 +3388,30 @@ void ScanTerrainPlatform(i32 group_index, i32 terrain_mask) {
     TerI->scan_group_index = -1;
     TerrainScanWriter writer;
     writer.group_header = TerI->scan_list_storage;
-    writer.cursor = reinterpret_cast<TERRAIN_SHAPE **>(writer.group_header + sizeof(TERRAIN_SHAPE *));
-    writer.limit = TerI->scan_list_storage + sizeof(TerI->scan_list_storage) - 12;
+    writer.cursor = reinterpret_cast<TERRAIN_SHAPE **>(writer.group_header + sizeof(void *));
+    writer.limit = TerI->scan_list_storage + sizeof(TerI->scan_list_storage) - sizeof(void *) * 3;
     writer.group_shape_count = 0;
     writer.scaled_shape_count = 0;
-    TerrainScanBounds bounds = TerrainGetScanBounds(*TerI);
-    if (TerI->scan_result != 1) {
-        const f32 reach = NuFsqrt(TerI->collision_radius_sq + 0.02f + TerI->movement.x * TerI->movement.x +
-                                  TerI->movement.y * TerI->movement.y + TerI->movement.z * TerI->movement.z);
+    TerrainScanBounds bounds;
+    f32 scan_radius;
+    if (TerI->scan_result == 1) {
+        bounds = TerrainHandleBounds(TerI->position, TerI->movement, TerI->collision_radius);
+        const f32 dx = bounds.min_x - bounds.max_x;
+        const f32 dy = bounds.min_y - bounds.max_y;
+        const f32 dz = bounds.min_z - bounds.max_z;
+        scan_radius = NuFsqrt(TerI->collision_radius + 1.02f + dx * dx + dy * dy + dz * dz);
+    } else {
+        // The reference uses squared movement directly for the broad-phase reach.
+        const f32 reach = 0.02f + TerI->collision_radius_sq + TerI->movement.x * TerI->movement.x +
+                          TerI->movement.y * TerI->movement.y + TerI->movement.z * TerI->movement.z;
+        const f32 vertical = TerI->object_scale * reach;
         bounds.min_x = TerI->position.x - reach;
         bounds.max_x = TerI->position.x + reach;
-        bounds.min_y = TerI->position.y - TerI->object_scale * reach;
-        bounds.max_y = TerI->position.y + TerI->object_scale * reach;
+        bounds.min_y = TerI->position.y - vertical;
+        bounds.max_y = TerI->position.y + vertical;
         bounds.min_z = TerI->position.z - reach;
         bounds.max_z = TerI->position.z + reach;
+        scan_radius = NuFsqrt(reach + 1.0f);
     }
     bounds.min_x -= 0.05f;
     bounds.min_y -= 0.05f;
@@ -3367,11 +3420,21 @@ void ScanTerrainPlatform(i32 group_index, i32 terrain_mask) {
     bounds.max_y += 0.05f;
     bounds.max_z += 0.05f;
     TerI->scan_list = TerI->scan_list_storage;
-    TerrainScanPlatformGroup(&writer, bounds, group_index, terrain_mask, 0, 1.5f, false);
+    const TERRAIN_GROUP &group = CurTerr->groups[group_index];
+    const TERRAIN_PLATFORM &platform = CurTerr->platforms[group.scene_index];
+    bool in_range = true;
+    if ((platform.flags & TERRAIN_PLATFORM_FLAG_ROTATING) != 0) {
+        const f32 x = (bounds.min_x + bounds.max_x) * 0.5f - group.origin.x;
+        const f32 y = ((bounds.min_y + bounds.max_y) * 0.5f - group.origin.y) * TerI->inverse_object_scale;
+        const f32 z = (bounds.min_z + bounds.max_z) * 0.5f - group.origin.z;
+        const f32 reach = scan_radius + group.radius;
+        in_range = x * x + y * y + z * z < reach * reach && platform.scene_object != NULL;
+    }
+    if (in_range)
+        TerrainScanPlatformGroup(&writer, bounds, group_index, terrain_mask, 0, 1.5f, false);
     NuScratchRelease();
     i16 *terminator = reinterpret_cast<i16 *>(writer.group_header);
-    terminator[0] = 0;
-    terminator[1] = 0;
+    terminator[0] = terminator[1] = 0;
 }
 i32 TerrainBlockOnBlock(WORLDINFO_s *world, pushblock_s *block, nuvec_s *points, float *heights) {
     if (!heights || !points)
@@ -3522,11 +3585,17 @@ void ScanWallSplineTerrain(i32, i32 terrain_mask, i32) {
     ScaleTerrain = static_cast<TERRAIN_SHAPE *>(ScaleTerrainT1);
     platinrange = 0;
     TerI->scan_group_index = -1;
+    TerrainScanBounds bounds;
+    f32 scan_radius;
+    TERRAIN_GET_SCAN_BOUNDS(bounds, scan_radius, true);
     i16 *terminator = reinterpret_cast<i16 *>(TerI->scan_list_storage);
     terminator[0] = 0;
     terminator[1] = 0;
-    TerrainCollectWallSplines(TerrainGetScanBounds(*TerI), terrain_mask);
+    TERRAIN_COLLECT_WALL_SPLINES(bounds, terrain_mask, true);
 }
+
+#undef TERRAIN_GET_SCAN_BOUNDS
+
 i32 TerrainImpactPlatform(unsigned char *hit_flags) {
     TerrainMoveImpactData();
 
@@ -4750,18 +4819,20 @@ void NewScan(nuvec_s *position, i32 scan_platforms, i32 terrain_mask) {
 void NewScanRot(nuvec_s *position, i32 terrain_mask) {
     void *scratch = NuScratchAlloc32(0xd0);
     i32 cache_index = 0;
-    i32 oldest_age = CurTerr->index_levels[0].cache_age;
+    i16 oldest_age = CurTerr->index_levels[0].cache_age;
     bool cache_hit = false;
     for (i32 i = 0; i < 16; ++i) {
         TERRAIN_INDEX_LEVEL &cache = CurTerr->index_levels[i];
-        i32 age = cache.cache_age;
+        i16 age = cache.cache_age;
         if (age > 0) {
             f32 dx = (position->x + 1.0f) - cache.center_x;
-            f32 dz = (position->z + 1.0f) - cache.center_z;
-            if (dx > 0.0f && dx < 2.0f && dz > 0.0f && dz < 2.0f) {
-                cache_index = i;
-                cache_hit = true;
-                break;
+            if (dx > 0.0f && dx < 2.0f) {
+                f32 dz = (position->z + 1.0f) - cache.center_z;
+                if (dz > 0.0f && dz < 2.0f) {
+                    cache_index = i;
+                    cache_hit = true;
+                    break;
+                }
             }
         }
         if (age < oldest_age) {
@@ -4793,7 +4864,38 @@ void NewScanRot(nuvec_s *position, i32 terrain_mask) {
             const i16 *group_indices = CurTerr->group_indices + cell.first_group;
             for (i32 cell_group = 0; cell_group < static_cast<i16>(cell.group_count); ++cell_group) {
                 const i32 group_index = group_indices[cell_group];
-                ShadowScanGroup(group_index, min_x, min_z, max_x, max_z, terrain_mask, false, &writer);
+                TERRAIN_GROUP &group = CurTerr->groups[group_index];
+                if (max_x < group.bounds_min.x || max_z < group.bounds_min.z || group.bounds_max.x < min_x ||
+                    group.bounds_max.z <= min_z || group.chunk_type == -1) {
+                    continue;
+                }
+                const f32 local_max_x = max_x - group.origin.x;
+                const f32 local_min_x = min_x - group.origin.x;
+                const f32 local_max_z = max_z - group.origin.z;
+                const f32 local_min_z = min_z - group.origin.z;
+                if (group.scene_index < 0) {
+                    TerrainSkinAllocate(reinterpret_cast<terrsitu_s *>(&group));
+                }
+                TERRAIN_SHAPE_BATCH *batch = static_cast<TERRAIN_SHAPE_BATCH *>(group.data);
+                while (batch->marker >= 0) {
+                    TERRAIN_SHAPE *shapes = reinterpret_cast<TERRAIN_SHAPE *>(batch + 1);
+                    const i32 count = batch->shape_count;
+                    if (local_max_x >= batch->min_x && batch->max_x > local_min_x && local_max_z >= batch->min_z &&
+                        batch->max_z > local_min_z) {
+                        TERRAIN_SHAPE *shape = shapes;
+                        for (i32 remaining = count; remaining > 0; --remaining, ++shape) {
+                            if (shape->min_x <= local_max_x && local_min_x < shape->max_x &&
+                                shape->min_z <= local_max_z && local_min_z < shape->max_z &&
+                                reinterpret_cast<u8 *>(writer.cursor) < writer.limit &&
+                                (shape->material[1] == 0 || (shape->material[1] & terrain_mask) != 0)) {
+                                *writer.cursor++ = shape;
+                                ++writer.shape_count;
+                            }
+                        }
+                    }
+                    batch = reinterpret_cast<TERRAIN_SHAPE_BATCH *>(shapes + count);
+                }
+                ShadowFinishGroup(&writer, group_index);
             }
         }
         // Skin allocation can invalidate the cache while scanning groups.
@@ -4937,20 +5039,38 @@ void NewScanRot(nuvec_s *position, i32 terrain_mask) {
                             transformed->vectors[v] = {vertices[v].x, vertices[v].y, vertices[v].z};
                         if (!quad)
                             transformed->normals[1].y = 65536.0f;
-                        for (i32 n = quad ? 1 : 0; n >= 0; --n) {
-                            i32 origin = n ? 3 : 0, first = n ? 1 : 2, second = n ? 2 : 1;
-                            NUVEC a = {vertices[first].x - vertices[origin].x, vertices[first].y - vertices[origin].y,
-                                       vertices[first].z - vertices[origin].z};
-                            NUVEC b = {vertices[second].x - vertices[origin].x, vertices[second].y - vertices[origin].y,
-                                       vertices[second].z - vertices[origin].z};
-                            NUVEC &normal = transformed->normals[n];
-                            normal = TerCrossProduct(&a, &b);
-                            f32 length = NuFsqrt((normal.x * normal.x + normal.y * normal.y) + normal.z * normal.z);
+                        if (quad) {
+                            vertices[0].x = transformed->vectors[1].x - transformed->vectors[3].x;
+                            vertices[0].y = transformed->vectors[1].y - transformed->vectors[3].y;
+                            vertices[0].z = transformed->vectors[1].z - transformed->vectors[3].z;
+                            vertices[1].x = transformed->vectors[2].x - transformed->vectors[3].x;
+                            vertices[1].y = transformed->vectors[2].y - transformed->vectors[3].y;
+                            vertices[1].z = transformed->vectors[2].z - transformed->vectors[3].z;
+                            transformed->normals[1] = TerCrossProduct(reinterpret_cast<NUVEC *>(&vertices[0]),
+                                                                      reinterpret_cast<NUVEC *>(&vertices[1]));
+                            f32 length = NuFsqrt((transformed->normals[1].x * transformed->normals[1].x +
+                                                  transformed->normals[1].y * transformed->normals[1].y) +
+                                                 transformed->normals[1].z * transformed->normals[1].z);
                             f32 inverse = length == 0.0f ? 0.0f : 1.0f / length;
-                            normal.x *= inverse;
-                            normal.y *= inverse;
-                            normal.z *= inverse;
+                            transformed->normals[1].x *= inverse;
+                            transformed->normals[1].y *= inverse;
+                            transformed->normals[1].z *= inverse;
                         }
+                        vertices[0].x = transformed->vectors[2].x - transformed->vectors[0].x;
+                        vertices[0].y = transformed->vectors[2].y - transformed->vectors[0].y;
+                        vertices[0].z = transformed->vectors[2].z - transformed->vectors[0].z;
+                        vertices[1].x = transformed->vectors[1].x - transformed->vectors[0].x;
+                        vertices[1].y = transformed->vectors[1].y - transformed->vectors[0].y;
+                        vertices[1].z = transformed->vectors[1].z - transformed->vectors[0].z;
+                        transformed->normals[0] = TerCrossProduct(reinterpret_cast<NUVEC *>(&vertices[0]),
+                                                                  reinterpret_cast<NUVEC *>(&vertices[1]));
+                        f32 length = NuFsqrt((transformed->normals[0].x * transformed->normals[0].x +
+                                              transformed->normals[0].y * transformed->normals[0].y) +
+                                             transformed->normals[0].z * transformed->normals[0].z);
+                        f32 inverse = length == 0.0f ? 0.0f : 1.0f / length;
+                        transformed->normals[0].x *= inverse;
+                        transformed->normals[0].y *= inverse;
+                        transformed->normals[0].z *= inverse;
                         shape = transformed;
                         ++transformed_count;
                     }
@@ -6136,71 +6256,216 @@ extern "C" void NewScanInit(void) {
 }
 
 namespace {
-    static i16 *TerrainStoreScanHandle() {
+    static TerrainScanBounds TerrainHandleBounds(const NUVEC &position, const NUVEC &movement, f32 radius);
+    static bool TerrainHandleVerticesOverlap(const TerrainScanBounds &bounds, const TERRAIN_SHAPE &shape);
+    static void TerrainHandleFilterShapes(TerrainScanWriter *writer, TERRAIN_SHAPE **shapes, i32 count,
+                                          const TerrainScanBounds &bounds, i32 terrain_mask, bool rotating);
+    static bool TerrainHandleWallOverlap(const TerrainScanBounds &bounds, const TERRAIN_WALL_POINT *wall);
+
+    static bool TerrainBeginHandle(TerrainScanWriter *writer) {
         if (TempScanStack == NULL || TempStackPtr == NULL)
-            return NULL;
-
-        u8 *arena_begin = static_cast<u8 *>(TempScanStack);
-        u8 *arena_end = arena_begin + 0x2000;
-        u8 *handle_start = static_cast<u8 *>(TempStackPtr);
-        const usize header_size = sizeof(TERRAIN_SHAPE *);
-        if (handle_start < arena_begin || handle_start + header_size * 2 > arena_end)
-            return NULL;
-
-        // The original reserves three target pointer slots below the 0x800
-        // scan-list boundary.  One is the next group header; the other two
-        // leave room for the group terminator and wall-list terminator.
-        u8 *shape_limit = handle_start + 0x800 - header_size * 3;
-        if (shape_limit > arena_end)
-            shape_limit = arena_end;
-
-        u8 *source_group = TerI->scan_list_storage;
-        u8 *output_group = handle_start;
-        for (;;) {
-            i16 *source_header = reinterpret_cast<i16 *>(source_group);
-            i32 source_count = source_header[0];
-            if (source_count <= 0)
-                break;
-
-            TERRAIN_SHAPE **source_shapes = reinterpret_cast<TERRAIN_SHAPE **>(source_group + sizeof(TERRAIN_SHAPE *));
-            TERRAIN_SHAPE **output_shapes = reinterpret_cast<TERRAIN_SHAPE **>(output_group + sizeof(TERRAIN_SHAPE *));
-            i32 output_count = 0;
-            for (i32 i = 0; i < source_count && reinterpret_cast<u8 *>(output_shapes) < shape_limit; ++i) {
-                *output_shapes++ = source_shapes[i];
-                ++output_count;
-            }
-            if (output_count != 0) {
-                i16 *output_header = reinterpret_cast<i16 *>(output_group);
-                output_header[0] = static_cast<i16>(output_count);
-                output_header[1] = source_header[1];
-                output_group = reinterpret_cast<u8 *>(output_shapes);
-            }
-            source_group = reinterpret_cast<u8 *>(source_shapes + source_count);
-        }
-
-        i16 *terminator = reinterpret_cast<i16 *>(output_group);
-        terminator[0] = 0;
-        terminator[1] = 0;
-        TERRAIN_WALL_POINT **wall_output =
-            reinterpret_cast<TERRAIN_WALL_POINT **>(output_group + sizeof(TERRAIN_WALL_POINT *));
-        for (i32 i = 0; i < WallSplCount && reinterpret_cast<u8 *>(wall_output + 1) < arena_end; i += 2)
-            *wall_output++ = &WallSplList[i];
-        *wall_output++ = NULL;
-        TempStackPtr = wall_output;
-        return reinterpret_cast<i16 *>(handle_start);
+            return false;
+        u8 *begin = static_cast<u8 *>(TempScanStack);
+        u8 *end = begin + 0x2000;
+        u8 *start = static_cast<u8 *>(TempStackPtr);
+        const usize slot = sizeof(void *);
+        if (start < begin || start > end - slot * 2)
+            return false;
+        writer->group_header = start;
+        writer->cursor = reinterpret_cast<TERRAIN_SHAPE **>(start + slot);
+        const usize available = static_cast<usize>(end - start);
+        writer->limit = start + (MIN(static_cast<usize>(0x800 - slot * 3), available - slot * 2));
+        writer->group_shape_count = 0;
+        writer->scaled_shape_count = 0;
+        return true;
     }
+
 } // namespace
 
-i16 *NewScanHandelFull(nuvec_s *, nuvec_s *, f32, i32 scan_type, i32 terrain_mask) {
-    ScanTerrain(scan_type, terrain_mask, 0);
-    return TerrainStoreScanHandle();
+i16 *NewScanHandelFull(nuvec_s *position, nuvec_s *movement, f32 radius, i32 scan_type, i32 terrain_mask) {
+    TerrainScanWriter writer;
+    if (CurTerr == NULL || position == NULL || movement == NULL || !TerrainBeginHandle(&writer))
+        return NULL;
+    i16 *result = reinterpret_cast<i16 *>(writer.group_header);
+    NuScratchAlloc32(0xd0);
+    ScaleTerrain = static_cast<TERRAIN_SHAPE *>(ScaleTerrainT1);
+    platinrange = 0;
+    TerrainScanBounds bounds = TerrainHandleBounds(*position, *movement, radius);
+    const f32 dx = bounds.min_x - bounds.max_x;
+    const f32 dy = bounds.min_y - bounds.max_y;
+    const f32 dz = bounds.min_z - bounds.max_z;
+    const f32 scan_radius = NuFsqrt(dx * dx + dy * dy + dz * dz + 0.05f);
+    for (i32 cell_index = 0; cell_index < CurTerr->used_cell_count; ++cell_index) {
+        const TERRAIN_CELL &cell = CurTerr->cells[cell_index];
+        if (cell.min_x > bounds.max_x || cell.min_z > bounds.max_z || cell.max_x < bounds.min_x ||
+            cell.max_z < bounds.min_z)
+            continue;
+        const i16 *indices = CurTerr->group_indices + cell.first_group;
+        for (i32 i = 0; i < cell.group_count; ++i) {
+            const i32 index = indices[i];
+            TERRAIN_GROUP &group = CurTerr->groups[index];
+            if (group.chunk_type == -1 || !TerrainBoundsOverlap(bounds, group.bounds_min, group.bounds_max))
+                continue;
+            if (static_cast<i16>(group.scene_index) < 0)
+                TerrainSkinAllocate(reinterpret_cast<terrsitu_s *>(&group));
+            TerrainScanBounds local = bounds;
+            local.min_x -= group.origin.x;
+            local.max_x -= group.origin.x;
+            local.min_y -= group.origin.y;
+            local.max_y -= group.origin.y;
+            local.min_z -= group.origin.z;
+            local.max_z -= group.origin.z;
+            TERRAIN_SHAPE_BATCH *batch = static_cast<TERRAIN_SHAPE_BATCH *>(group.data);
+            while (batch->marker >= 0) {
+                TERRAIN_SHAPE *shapes = reinterpret_cast<TERRAIN_SHAPE *>(batch + 1);
+                if (local.max_x >= batch->min_x && batch->max_x > local.min_x && local.max_z >= batch->min_z &&
+                    batch->max_z > local.min_z) {
+                    for (i32 j = 0; j < batch->shape_count; ++j) {
+                        TERRAIN_SHAPE *shape = &shapes[j];
+                        if (TerrainShapeOverlaps(local, *shape) &&
+                            reinterpret_cast<u8 *>(writer.cursor) < writer.limit &&
+                            (shape->material[1] == 0 || (shape->material[1] & terrain_mask) != 0)) {
+                            *writer.cursor++ = shape;
+                            ++writer.group_shape_count;
+                        }
+                    }
+                }
+                batch = reinterpret_cast<TERRAIN_SHAPE_BATCH *>(shapes + batch->shape_count);
+            }
+            TerrainFinishScanGroup(&writer, index);
+        }
+    }
+    bounds.min_x -= 0.05f;
+    bounds.max_x += 0.05f;
+    bounds.min_y -= 0.05f;
+    bounds.max_y += 0.05f;
+    bounds.min_z -= 0.05f;
+    bounds.max_z += 0.05f;
+    TerI->scan_list = writer.group_header;
+    if (scan_type != 0) {
+        const TERRAIN_CELL &cell = CurTerr->cells[TERRAIN_PLATFORM_CELL];
+        const i16 *indices = CurTerr->group_indices + cell.first_group;
+        for (i32 i = 0; i < cell.group_count; ++i) {
+            const i32 index = indices[i];
+            const TERRAIN_GROUP &group = CurTerr->groups[index];
+            const TERRAIN_PLATFORM &platform = CurTerr->platforms[group.scene_index];
+            if ((platform.flags & TERRAIN_PLATFORM_FLAG_ROTATING) != 0) {
+                const f32 x = (bounds.min_x + bounds.max_x) * 0.5f - group.origin.x;
+                const f32 y = ((bounds.min_y + bounds.max_y) * 0.5f - group.origin.y) * TerI->inverse_object_scale;
+                const f32 z = (bounds.min_z + bounds.max_z) * 0.5f - group.origin.z;
+                const f32 reach = scan_radius + group.radius;
+                if (!(x * x + y * y + z * z < reach * reach) || platform.scene_object == NULL)
+                    continue;
+            }
+            TerrainScanPlatformGroup(&writer, bounds, index, terrain_mask, 0, 1.5f, true);
+        }
+    }
+    i16 *terminator = reinterpret_cast<i16 *>(writer.group_header);
+    terminator[0] = terminator[1] = 0;
+    TERRAIN_COLLECT_WALL_SPLINES(bounds, terrain_mask, false);
+    TERRAIN_WALL_POINT **walls = reinterpret_cast<TERRAIN_WALL_POINT **>(writer.group_header + sizeof(void *));
+    u8 *arena_end = static_cast<u8 *>(TempScanStack) + 0x2000;
+    i32 wall_count = WallSplCount / 2;
+    while (wall_count > 0 &&
+           reinterpret_cast<u8 *>(walls + wall_count + 1) + wall_count * 2 * sizeof(TERRAIN_WALL_POINT) > arena_end)
+        --wall_count;
+    // A handle owns wall copies: subsequent scans reuse WallSplList.
+    TERRAIN_WALL_POINT *copies = reinterpret_cast<TERRAIN_WALL_POINT *>(walls + wall_count + 1);
+    for (i32 i = 0; i < wall_count; ++i) {
+        copies[i * 2] = WallSplList[i * 2];
+        copies[i * 2 + 1] = WallSplList[i * 2 + 1];
+        walls[i] = &copies[i * 2];
+    }
+    walls[wall_count] = NULL;
+    TempStackPtr = wall_count == 0 ? static_cast<void *>(walls + 1) : static_cast<void *>(copies + wall_count * 2);
+    NuScratchRelease();
+    return result;
 }
 
-i16 *NewScanHandelSubset(i16 *subset, nuvec_s *, nuvec_s *, f32, i32 terrain_mask) {
-    if (subset == NULL)
+#undef TERRAIN_COLLECT_WALL_SPLINES
+
+i16 *NewScanHandelSubset(i16 *subset, nuvec_s *position, nuvec_s *movement, f32 radius, i32 terrain_mask) {
+    TerrainScanWriter writer;
+    if (subset == NULL || CurTerr == NULL || position == NULL || movement == NULL || !TerrainBeginHandle(&writer))
         return NULL;
-    ScanTerrainHandel(terrain_mask, subset);
-    return TerrainStoreScanHandle();
+    i16 *result = reinterpret_cast<i16 *>(writer.group_header);
+    TerrainScanBounds bounds = TerrainHandleBounds(*position, *movement, radius);
+    const f32 dx = bounds.min_x - bounds.max_x;
+    const f32 dy = bounds.min_y - bounds.max_y;
+    const f32 dz = bounds.min_z - bounds.max_z;
+    const f32 scan_radius_sq = dx * dx + dy * dy + dz * dz + 0.05f;
+    while (subset[0] > 0) {
+        const i32 count = subset[0];
+        const i32 index = subset[1];
+        TERRAIN_SHAPE **shapes = reinterpret_cast<TERRAIN_SHAPE **>(reinterpret_cast<u8 *>(subset) + sizeof(void *));
+        subset = reinterpret_cast<i16 *>(shapes + count);
+        const TERRAIN_GROUP &group = CurTerr->groups[index];
+        TerrainScanBounds local = bounds;
+        NUMTX *matrix = NULL;
+        const TERRAIN_PLATFORM *platform = NULL;
+        if (group.chunk_type == 1) {
+            platform = &CurTerr->platforms[group.scene_index];
+            matrix = static_cast<NUMTX *>(platform->scene_object);
+        }
+        if (matrix != NULL) {
+            const f32 x = (matrix->m30 - platform->previous_matrix.m30) * 1.5f;
+            const f32 y = (matrix->m31 - platform->previous_matrix.m31) * 1.5f;
+            const f32 z = (matrix->m32 - platform->previous_matrix.m32) * 1.5f;
+            if (x > 0.0f)
+                local.max_x += x;
+            else
+                local.min_x += x;
+            if (y > 0.0f)
+                local.max_y += y;
+            else
+                local.min_y += y;
+            if (z > 0.0f)
+                local.max_z += z;
+            else
+                local.min_z += z;
+        } else if (!TerrainBoundsOverlap(bounds, group.bounds_min, group.bounds_max)) {
+            continue;
+        }
+        local.min_x -= group.origin.x;
+        local.max_x -= group.origin.x;
+        local.min_y -= group.origin.y;
+        local.max_y -= group.origin.y;
+        local.min_z -= group.origin.z;
+        local.max_z -= group.origin.z;
+        const bool rotating = matrix != NULL && (platform->flags & TERRAIN_PLATFORM_FLAG_ROTATING) != 0;
+        if (rotating) {
+            const f32 x = (bounds.min_x + bounds.max_x) * 0.5f - group.origin.x;
+            const f32 y = ((bounds.min_y + bounds.max_y) * 0.5f - group.origin.y) * TerI->inverse_object_scale;
+            const f32 z = (bounds.min_z + bounds.max_z) * 0.5f - group.origin.z;
+            // The subset path uses the squared scan diagonal directly, not its square root.
+            const f32 reach = scan_radius_sq + group.radius;
+            if (!(x * x + y * y + z * z < reach * reach))
+                continue;
+        } else if (matrix != NULL && !TerrainBoundsOverlap(local, group.bounds_min, group.bounds_max)) {
+            continue;
+        }
+        TerrainHandleFilterShapes(&writer, shapes, count, local, terrain_mask, rotating);
+        TerrainFinishScanGroup(&writer, index);
+    }
+    i16 *terminator = reinterpret_cast<i16 *>(writer.group_header);
+    terminator[0] = terminator[1] = 0;
+    bounds.min_x -= 0.02f;
+    bounds.max_x += 0.02f;
+    bounds.min_z -= 0.02f;
+    bounds.max_z += 0.02f;
+    TERRAIN_WALL_POINT **source =
+        reinterpret_cast<TERRAIN_WALL_POINT **>(reinterpret_cast<u8 *>(subset) + sizeof(void *));
+    TERRAIN_WALL_POINT **walls = reinterpret_cast<TERRAIN_WALL_POINT **>(writer.group_header + sizeof(void *));
+    u8 *end = static_cast<u8 *>(TempScanStack) + 0x2000;
+    for (; *source != NULL; ++source) {
+        if (TerrainHandleWallOverlap(bounds, *source) &&
+            ((*source)->material[1] == 0 || ((*source)->material[1] & terrain_mask) != 0) &&
+            reinterpret_cast<u8 *>(walls + 1) < end)
+            *walls++ = *source;
+    }
+    *walls++ = NULL;
+    TempStackPtr = walls;
+    return result;
 }
 
 extern "C" i16 *NewScanHandel(nuvec_s *position, nuvec_s *movement, f32 radius, i32 scan_type, i16 *subset) {

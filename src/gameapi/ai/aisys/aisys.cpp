@@ -552,7 +552,7 @@ __used__ static i32 Action_Kill(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET
         return 1;
     }
 
-    GameObject_s *object = packet != NULL ? packet->owner : NULL;
+    GameObject_s *object = packet != NULL && packet->owner != NULL ? packet->owner->apiobj.objptr : NULL;
     GameObject_s *excluded = NULL;
     AIAREA *area = NULL;
     i32 creature_set = 0;
@@ -611,8 +611,8 @@ __used__ static i32 Action_Kill(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET
             continue;
         }
         value = ActionParamValue(params[index], "area");
-        if (value != NULL && sys != NULL) {
-            area = AISysFindArea(sys, value);
+        if (value != NULL && WORLD != NULL && WORLD->ai_sys != NULL) {
+            area = AISysFindArea(WORLD->ai_sys, value);
         }
     }
 
@@ -628,35 +628,54 @@ __used__ static i32 Action_Kill(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET
         if (parts_on) {
             KillParts(candidate, -1, -1, 1, 0.0f, 0, NULL);
         }
-        KillGameObject(candidate, debris ? 2 : 4, 0);
+        if (debris)
+            KillGameObject(candidate, 2, 0);
+        else
+            KillGameObject(candidate, 4, 0);
     };
 
-    if (all_ai || creature_set != 0 || area != NULL) {
-        for (i32 index = 0; Obj != NULL && index < HIGHGAMEOBJECT; ++index) {
+    if (Obj == NULL && (all_ai || creature_set != 0 || area != NULL))
+        return 1;
+    if (all_ai) {
+        for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
             GameObject_s *candidate = &Obj[index];
-            if (!may_kill(candidate) || candidate == excluded) {
+            if (may_kill(candidate) && (candidate->apiobj.field_0x1f4 & 0x400u) != 0 && candidate != excluded)
+                kill(candidate);
+        }
+        return 1;
+    }
+    if (creature_set != 0) {
+        for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
+            GameObject_s *candidate = &Obj[index];
+            if (may_kill(candidate) && candidate->ai.creature_set == creature_set)
+                kill(candidate);
+        }
+        return 1;
+    }
+    if (area != NULL) {
+        for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
+            GameObject_s *candidate = &Obj[index];
+            if (!may_kill(candidate)) {
                 continue;
             }
-            if (all_ai && (candidate->apiobj.field_0x1f4 & 0x1000u) == 0) {
-                continue;
-            }
-            if (creature_set != 0 && candidate->ai.creature_set != creature_set) {
-                continue;
-            }
-            if (area != NULL && sys != NULL) {
-                const isize area_index = area - sys->areas;
+            if (area->system != NULL && area->system->areas != NULL) {
+                const isize area_index = area - area->system->areas;
                 const u64 mask = static_cast<u64>(candidate->apiobj.ai_area_mask_low) |
                                  (static_cast<u64>(candidate->apiobj.ai_area_mask_high) << 32);
                 if (area_index < 0 || area_index >= 64 || (mask & (1ull << area_index)) == 0) {
                     continue;
                 }
+            } else {
+                continue;
             }
             kill(candidate);
         }
         return 1;
     }
 
-    if (may_kill(object)) {
+    // An explicitly selected object is not subject to the group scan's
+    // in-use/character flags; only check_if_dead gates this path.
+    if (object != NULL && (!check_if_dead || (object->apiobj.field_0x287 == 0 && object->field_0x101c <= 0.0f))) {
         kill(object);
     }
     return 1;
@@ -3602,16 +3621,67 @@ __used__ static i32 Action_SetOpponent(AISYS *sys, AISCRIPTPROCESS *processor, A
 
     GameObject_s *object = packet->owner->apiobj.objptr;
     GameObject_s *opponent = NULL;
+    GameObject_s *droids[10];
+    i32 droid_count = 0;
+    static i32 prev_droid_ix;
     for (i32 index = 0; index < param_4; ++index) {
-        char *value = NuStrIStr(params[index], "opponent=");
-        if (value != NULL && NuStrICmp(value + NuStrLen("opponent="), "nearest_enemy") != 0) {
-            opponent = GetNamedGameObject(sys, value + NuStrLen("opponent="));
+        char *value;
+        if (NuStrIStr(params[index], "opponent=droid") != NULL) {
+            // The retail script action checks eight player slots explicitly.
+            // Keep its ordered float comparisons, including slot seven's
+            // inverted rejection test (which admits an unordered death timer).
+#define OPPONENT_DROID(slot)                                                                                           \
+    {                                                                                                                  \
+        GameObject_s *candidate = Player[slot];                                                                        \
+        if (candidate != NULL && (candidate->apiobj.field_0x1f8 & 0x1001) == 0x1001 &&                                 \
+            (candidate->apiobj.field_0x287 == 0 || candidate->field_0x101c > 0.0f) &&                                  \
+            (candidate->field_0xeff & 1) == 0 && candidate->apiobj.character_data != NULL &&                           \
+            (candidate->apiobj.character_data->model_flags & 0x10) != 0 && droid_count < 10)                           \
+            droids[droid_count++] = candidate;                                                                         \
+    }
+            OPPONENT_DROID(0)
+            OPPONENT_DROID(1)
+            OPPONENT_DROID(2)
+            OPPONENT_DROID(3)
+            OPPONENT_DROID(4)
+            OPPONENT_DROID(5)
+            OPPONENT_DROID(6)
+#undef OPPONENT_DROID
+            GameObject_s *candidate = Player[7];
+            if (candidate != NULL && (candidate->apiobj.field_0x1f8 & 0x1001) == 0x1001 &&
+                !(candidate->apiobj.field_0x287 != 0 && candidate->field_0x101c <= 0.0f) &&
+                (candidate->field_0xeff & 1) == 0 && candidate->apiobj.character_data != NULL &&
+                (candidate->apiobj.character_data->model_flags & 0x10) != 0 && droid_count < 10) {
+                droids[droid_count++] = candidate;
+            }
+            // Retail accumulates candidates across parameters. Bound the
+            // original ten-entry array when malformed scripts repeat droid.
+            if (droid_count != 0) {
+                prev_droid_ix = (prev_droid_ix + 1) % droid_count;
+                opponent = droids[prev_droid_ix];
+            }
+        } else if (NuStrIStr(params[index], "opponent=nearest_enemy") != NULL) {
+            object->opponent = NULL;
+        } else if ((value = NuStrIStr(params[index], "opponent=")) != NULL) {
+            opponent = GetNamedGameObject(sys, value + 9);
         } else if (NuStrICmp(params[index], "last_attacker") == 0) {
             opponent = static_cast<GameObject_s *>(object->last_attacker);
+        } else if ((value = NuStrIStr(params[index], "opponentType")) != NULL) {
+            i32 type = 0xff;
+            if (LevelCharacterTypeIDFn != NULL && LevelCharacterGlobalIDFn != NULL) {
+                const i8 local_type = static_cast<i8>(LevelCharacterTypeIDFn(value + 13));
+                if (local_type != -1)
+                    type = LevelCharacterGlobalIDFn(static_cast<u8>(local_type));
+            }
+            for (i32 object_index = 0; object_index < HIGHGAMEOBJECT; ++object_index) {
+                if (Obj[object_index].id == type) {
+                    opponent = &Obj[object_index];
+                    break;
+                }
+            }
         }
     }
     object->opponent = opponent;
-    packet->opponent = opponent != NULL ? &opponent->apiobj : NULL;
     return 1;
 }
 

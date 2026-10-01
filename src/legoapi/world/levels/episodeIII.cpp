@@ -29,6 +29,7 @@
 #include "nu2api/numath/numtx.h"
 #include "nu2api/numusic/numusic.h"
 #include "legoapi/characters/motion.h"
+#include "legoapi/characters/motion/chris.h"
 #include "legoapi/render/fx.h"
 
 extern i32 LevFlag[4];
@@ -123,13 +124,10 @@ static i32 CruiserD_direction = 1;
 // Dogfight (Dogfight_A)
 // ===========================================================================
 
-void SpaceResetAudioPoint();
-void ProcessCurrentSpeed(WORLDINFO_s *, speedup_s *);
 extern AREADATA *DOGFIGHT_ADATA;
 void DogFightARestart();
 void ResetSpaceLevel(WORLDINFO_s *, spacelevel_s *) __asm__("_ZL15ResetSpaceLevelP11WORLDINFO_sP12spacelevel_s")
     __attribute__((visibility("hidden")));
-void DrawSpaceLevel(spacelevel_s *) __asm__("_ZL14DrawSpaceLevelP12spacelevel_s") __attribute__((visibility("hidden")));
 
 speedup_s DogFightSpeedList[] = {
     {58.0f, 0.5f},  {72.0f, 1.0f},  {174.0f, 0.5f}, {183.0f, 1.0f}, {207.0f, 0.5f},
@@ -178,20 +176,6 @@ void ChrisDogFightAReset(WORLDINFO_s *world) {
     BOLT_OVERRIDE_PLAYERBOLTDURATION = 1.5f;
     music_man.StopTrack(2, 0);
     music_man.StopTrack(0x20, 0);
-}
-
-void ChrisDogFightAUpdate(WORLDINFO_s *world) {
-    SpaceResetAudioPoint();
-    ProcessCurrentSpeed(world, DogFightSpeedList);
-
-    if (AreaGlobals.values.field_0x00 == 0 && *((u8 *)LevFlag) == 0 && DOGFIGHT_ADATA != NULL &&
-        Game.area_save[DOGFIGHT_ADATA->index].area_complete == 0 && GamePlayTimer.time_elapsed >= 3.0f) {
-        *((u8 *)LevFlag) = 1;
-    }
-}
-
-void ChrisDogFightADraw(WORLDINFO_s *world) {
-    DrawSpaceLevel(world->space_level);
 }
 
 void ChrisDogFightAPanel(WORLDINFO_s *) {

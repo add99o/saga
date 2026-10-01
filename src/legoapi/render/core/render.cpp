@@ -311,6 +311,7 @@ extern f32 memcard_loadresult_delay;
 extern u8 MENUNORMALR;
 extern u8 MENUNORMALG;
 extern u8 MENUNORMALB;
+extern u8 MENUENTRYR, MENUENTRYG, MENUENTRYB;
 extern u8 MENUFLASH0R;
 extern u8 MENUFLASH0G;
 extern u8 MENUFLASH0B;
@@ -806,6 +807,8 @@ extern NUMTL *SolidMtl3D;
 
 void DrawCables() {
     NURND_VERTEX3D vertices[2];
+    NUVEC &start = vertices[0].position;
+    NUVEC &end = vertices[1].position;
     vertices[0].colour = 0xff000000;
     vertices[1].colour = 0xff000000;
     nsegments_drawn = 0;
@@ -816,87 +819,94 @@ void DrawCables() {
         }
 
         const f32 y_span = cable.points[cable.point_count - 1].y - cable.points[0].y;
-        const f32 first_y = cable.points[0].y;
         if ((cable.flags_1e9 & 4) != 0) {
             cable.slack += FRAMETIME * cable_slack * slack_factor;
             if (cable.slack > cable_slack) {
                 cable.slack = cable_slack;
             }
-        } else if (tow_length > 0.0f && cable.total_length < tow_length) {
-            cable.slack = (1.0f - cable.total_length / tow_length) * cable_slack;
+        } else if (cable.total_length < tow_length) {
+            f32 fraction = cable.total_length / tow_length;
+            fraction = fraction <= 1.0f ? 1.0f - fraction : 0.0f;
+            cable.slack = fraction * cable_slack;
         } else {
             cable.slack = 0.0f;
         }
 
         f32 distance_along = 0.0f;
-        if (cable.slack == 0.0f) {
+        if (cable.slack != 0.0f) {
+            const f32 total_length = cable.total_length;
+            const f32 density = nsegments_per_unit;
+            NUVEC endpoint = cable.points[0];
+            endpoint.y = y_span * 0.0f + cable.points[0].y;
+            f32 ground_start = GameShadow(NULL, &endpoint, 5.0f, -1);
+            if (ground_start == 2000000.0f) {
+                ground_start = endpoint.y;
+            }
             for (i32 segment = 0; segment < cable.point_count - 1; ++segment) {
-                const f32 start_fraction = cable.total_length > 0.0f ? distance_along / cable.total_length : 0.0f;
+                NUVEC previous = endpoint;
+                endpoint = cable.points[segment + 1];
+                endpoint.y = NuFdiv(distance_along + cable.segment_lengths[segment], cable.total_length) * y_span +
+                             cable.points[0].y;
+                f32 ground_end = GameShadow(NULL, &endpoint, 5.0f, -1);
+                if (ground_end == 2000000.0f) {
+                    ground_end = endpoint.y;
+                }
+                NUVEC step;
+                NuVecSub(&step, &endpoint, &previous);
+                const f32 segment_length = cable.segment_lengths[segment];
+                const f32 subdivisions = static_cast<f32>(
+                    ceil(static_cast<double>(NuFdiv(segment_length, cable.total_length) * total_length * density)));
+                const f32 step_length = NuFdiv(segment_length, subdivisions);
+                NuVecScale(&step, &step, NuFdiv(step_length, segment_length));
+                const f32 half_step = 0.5f * step_length;
+                NUVEC cursor = previous;
+                f32 local_distance = 0.0f;
+                while (local_distance + half_step < cable.segment_lengths[segment]) {
+                    start = cursor;
+                    const f32 global_distance = distance_along + local_distance;
+                    start.y -= cable.slack *
+                               NU_SIN_LUT(static_cast<i32>(NuFdiv(global_distance, cable.total_length) * 32768.0f));
+                    const f32 start_fraction = NuFdiv(local_distance, cable.segment_lengths[segment]);
+                    const f32 start_floor =
+                        start_fraction * ground_end + (1.0f - start_fraction) * ground_start + 0.05f;
+                    start.y = start_floor > start.y ? start_floor : start.y;
+                    NuVecAdd(&cursor, &cursor, &step);
+                    end = cursor;
+                    const f32 phase = NuFdiv(global_distance + step_length, cable.total_length);
+                    const i32 angle = phase <= 1.0f ? static_cast<i32>(phase * 32768.0f) : 32768;
+                    local_distance += step_length;
+                    const f32 end_sag = cable.slack * NU_SIN_LUT(angle);
+                    const f32 end_fraction = NuFdiv(local_distance, cable.segment_lengths[segment]);
+                    const f32 end_floor = end_fraction * ground_end + (1.0f - end_fraction) * ground_start + 0.05f;
+                    end.y -= end_sag;
+                    if (end.y < end_floor) {
+                        end.y = end_floor;
+                    }
+                    if (solid_cable == 0) {
+                        NuRndrLine3d(vertices, SolidMtl3D, NULL);
+                    } else {
+                        DrawRopeSingle(&start, &end, 1.0f, ropemtl, end_sag, end_sag, 10.0f, 5.0f);
+                    }
+                    ++nsegments_drawn;
+                }
                 distance_along += cable.segment_lengths[segment];
-                const f32 end_fraction = cable.total_length > 0.0f ? distance_along / cable.total_length : 0.0f;
-                NUVEC start = cable.points[segment];
-                NUVEC end = cable.points[segment + 1];
-                start.y = first_y + y_span * start_fraction;
-                end.y = first_y + y_span * end_fraction;
+                ground_start = ground_end;
+            }
+        } else {
+            for (i32 segment = 0; segment < cable.point_count - 1; ++segment) {
+                const f32 start_fraction = NuFdiv(distance_along, cable.total_length);
+                distance_along += cable.segment_lengths[segment];
+                const f32 end_fraction = NuFdiv(distance_along, cable.total_length);
+                start = cable.points[segment];
+                end = cable.points[segment + 1];
+                start.y = y_span * start_fraction + cable.points[0].y;
+                end.y = y_span * end_fraction + cable.points[0].y;
                 if (solid_cable == 0) {
-                    vertices[0].position = start;
-                    vertices[1].position = end;
                     NuRndrLine3d(vertices, SolidMtl3D, NULL);
                 } else {
-                    DrawRopeSingle(&start, &end, 1.0f, ropemtl, start_fraction, end_fraction, 10.0f, 5.0f);
+                    DrawRopeSingle(&start, &end, 1.0f, ropemtl, end_fraction, end_fraction, 10.0f, 5.0f);
                 }
-                ++nsegments_drawn;
             }
-            continue;
-        }
-        const f32 total_subdivisions = cable.total_length * nsegments_per_unit;
-        for (i32 segment = 0; segment < cable.point_count - 1; ++segment) {
-            const f32 segment_length = cable.segment_lengths[segment];
-            const f32 desired_subdivisions =
-                cable.total_length > 0.0f ? segment_length / cable.total_length * total_subdivisions : 0.0f;
-            i32 subdivisions = static_cast<i32>(ceil(static_cast<double>(desired_subdivisions)));
-            if (subdivisions < 1) {
-                subdivisions = 1;
-            }
-            NUVEC previous = cable.points[segment];
-            for (i32 subdivision = 0; subdivision < subdivisions; ++subdivision) {
-                const f32 local_start = static_cast<f32>(subdivision) / static_cast<f32>(subdivisions);
-                const f32 local_end = static_cast<f32>(subdivision + 1) / static_cast<f32>(subdivisions);
-                const f32 global_start = cable.total_length > 0.0f
-                                             ? (distance_along + segment_length * local_start) / cable.total_length
-                                             : 0.0f;
-                const f32 global_end = cable.total_length > 0.0f
-                                           ? (distance_along + segment_length * local_end) / cable.total_length
-                                           : 0.0f;
-                NUVEC start = {
-                    cable.points[segment].x + (cable.points[segment + 1].x - cable.points[segment].x) * local_start,
-                    first_y + y_span * global_start,
-                    cable.points[segment].z + (cable.points[segment + 1].z - cable.points[segment].z) * local_start};
-                NUVEC end = {
-                    cable.points[segment].x + (cable.points[segment + 1].x - cable.points[segment].x) * local_end,
-                    first_y + y_span * global_end,
-                    cable.points[segment].z + (cable.points[segment + 1].z - cable.points[segment].z) * local_end};
-                start.y -= cable.slack * NU_SIN_LUT(static_cast<i32>(global_start * 32768.0f));
-                end.y -= cable.slack * NU_SIN_LUT(static_cast<i32>(global_end * 32768.0f));
-                f32 ground = GameShadow(NULL, &start, 5.0f, -1);
-                if (ground != 2000000.0f && start.y < ground + 0.1f) {
-                    start.y = ground + 0.1f;
-                }
-                ground = GameShadow(NULL, &end, 5.0f, -1);
-                if (ground != 2000000.0f && end.y < ground + 0.1f) {
-                    end.y = ground + 0.1f;
-                }
-                if (solid_cable == 0) {
-                    vertices[0].position = start;
-                    vertices[1].position = end;
-                    NuRndrLine3d(vertices, SolidMtl3D, NULL);
-                } else {
-                    DrawRopeSingle(&start, &end, 1.0f, ropemtl, cable.slack, cable.slack, 10.0f, 5.0f);
-                }
-                ++nsegments_drawn;
-                previous = end;
-            }
-            distance_along += segment_length;
         }
     }
 }
@@ -1414,16 +1424,18 @@ void DrawCross_Now(_vuv_s *, float, i32, i32) {
 }
 
 void DrawGameState(float x, float y, i32 highlight, i32 slot) {
-    char game_name[64];
+    if (slot < -1 || slot >= 6 || TTab == NULL)
+        return;
+    char game_name[256];
     if (slot == -1) {
         NuStrCpy(game_name, TTab[tCURRENTGAME]);
     } else {
-        sprintf(game_name, "%s %i", TTab[tGAME], slot + 1);
+        snprintf(game_name, sizeof(game_name), "%s %i", TTab[tGAME], slot + 1);
     }
 
-    u8 red = MENUNORMALR;
-    u8 green = MENUNORMALG;
-    u8 blue = MENUNORMALB;
+    u8 red = MENUENTRYR;
+    u8 green = MENUENTRYG;
+    u8 blue = MENUENTRYB;
     if (highlight != 0 && TestForController() != 0) {
         if (menu_pulsate > 0.0f) {
             red = static_cast<u8>(MENUFLASH0R * menu_pulsate + MENUFLASH1R * (1.0f - menu_pulsate));
@@ -1443,21 +1455,21 @@ void DrawGameState(float x, float y, i32 highlight, i32 slot) {
         green = static_cast<u8>(MENUFLASH0G * menu_pulse + MENUNORMALG * (1.0f - menu_pulse));
         blue = static_cast<u8>(MENUFLASH0B * menu_pulse + MENUNORMALB * (1.0f - menu_pulse));
     }
+    smarttextex_drawmessagebox = 2;
     SmartTextEx(game_name, x, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 4, red, green, blue, 0.45f, 1, NULL,
                 0, MenuA);
 
-    if (slot >= 0) {
-        if (saveload_slotused[slot] != 0) {
-            char progress[32];
-            sprintf(progress, "%.1f%%", static_cast<f32>(saveload_slotcode[slot] * 100) / COMPLETIONPOINTS);
-            Text_LocaliseDecimalPoint(progress);
-            Text3DEx(progress, x, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 1, 255, 191, 0, MenuA);
-        } else {
-            char *state = TTab[saveload_freespace < SAVESIZE_ADDITIONAL ? tNOSPACE : tEMPTY];
-            const u8 state_red = saveload_freespace < SAVESIZE_ADDITIONAL ? 255 : 0;
-            SmartTextEx(state, x, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 1, state_red, 255 - state_red,
-                        0, 0.45f, 1, NULL, 0, MenuA);
-        }
+    if (slot == -1 || saveload_slotused[slot] != 0) {
+        char progress[32];
+        const u32 completion = slot == -1 ? Game.completion : saveload_slotcode[slot];
+        sprintf(progress, "%.1f%%", static_cast<f32>(static_cast<i32>(completion * 100)) / COMPLETIONPOINTS);
+        Text_LocaliseDecimalPoint(progress);
+        Text3DEx(progress, x, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 1, 255, 191, 0, MenuA);
+    } else {
+        char *state = TTab[saveload_freespace < SAVESIZE_ADDITIONAL ? tNOSPACE : tEMPTY];
+        const u8 state_red = saveload_freespace < SAVESIZE_ADDITIONAL ? 255 : 0;
+        SmartTextEx(state, x, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 1, state_red, 255 - state_red, 0,
+                    0.45f, 2, NULL, 0, MenuA);
     }
 }
 
@@ -2152,7 +2164,7 @@ void DrawMiniKitCount(float position, float scale, i32 count, i32 maximum) {
     const f32 y = (KITPOSY - KITPOS2Y) * blend + KITPOS2Y;
     WORLDINFO_s *world = WorldInfo_CurrentlyActive();
     if (world->lev_objs[model].active != 0) {
-        const u16 rotation = static_cast<u16>(NuFmod(GameTimer.time_elapsed, 4.0f) * 0.25f * 65536.0f);
+        const u16 rotation = static_cast<u16>(NuFmod(GlobalTimer.time_elapsed, 4.0f) * 0.25f * 65536.0f);
         const u16 tilt = static_cast<u16>(1820.0f * NuTrigTable[rotation & 0x7fff]);
         const f32 size = scale * PANEL_MINIKITSCALE;
         DrawPanel3DObjectNoAlpha(x, PANEL_MINIKITY + y, 1.0f, size, size, size, tilt, rotation, 0,
@@ -2262,34 +2274,39 @@ void DrawStatusMiniKit(float x, float y, float z, float built_scale, float new_s
     do {
         HUBMINIKITPIECE_s &piece = pieces[i];
         NUMTX_ALIGNED16 matrix = piece.matrix;
-        NuMtxScale(&matrix, i < currentminikit ? &built_size : &new_size);
-
-        i32 piece_angle = 0x2000;
-        if (i == currentminikit) {
-            const f32 phase = slideseek * 16384.0f + 49152.0f + 16384.0f;
-            piece_angle = (static_cast<i32>(phase) >> 1) & 0x7fff;
-        }
-        if (piece.direction <= 5) {
-            const f32 oscillation = NuTrigTable[piece_angle];
-            switch (piece.direction) {
-                case 0:
-                    matrix.m30 -= (static_cast<f32>(piece.direction_index) * 0.025f + 0.25f) * oscillation;
-                    break;
-                case 1:
-                    matrix.m30 += (static_cast<f32>(piece.direction_index) * 0.025f + 0.25f) * oscillation;
-                    break;
-                case 2:
-                    matrix.m31 -= (static_cast<f32>(piece.direction_index) * 0.025f + 0.25f) * oscillation;
-                    break;
-                case 3:
-                    matrix.m31 += (static_cast<f32>(piece.direction_index) * 0.025f + 0.25f) * oscillation;
-                    break;
-                case 4:
-                    matrix.m32 += (static_cast<f32>(piece.direction_index) * 0.025f + 0.25f) * oscillation;
-                    break;
-                case 5:
-                    matrix.m32 -= (static_cast<f32>(piece.direction_index) * 0.025f + 0.25f) * oscillation;
-                    break;
+        if (i < currentminikit) {
+            NuMtxScale(&matrix, &built_size);
+        } else {
+            NuMtxScale(&matrix, &new_size);
+            i32 piece_angle = 0x2000;
+            if (i == currentminikit) {
+                const f32 phase = slideseek * 16384.0f + 49152.0f + 16384.0f;
+                piece_angle = (static_cast<i32>(phase) >> 1) & 0x7fff;
+            }
+            const HUBMINIKITPIECE_s *animated_pieces = static_cast<HUBMINIKITPIECE_s *>(WORLD->minikit.field_0x4);
+            const HUBMINIKITPIECE_s &animated_piece = animated_pieces[i];
+            if (animated_piece.direction <= 5) {
+                const f32 oscillation = NuTrigTable[piece_angle];
+                switch (animated_piece.direction) {
+                    case 0:
+                        matrix.m30 -= (static_cast<f32>(animated_piece.direction_index) * 0.025f + 0.25f) * oscillation;
+                        break;
+                    case 1:
+                        matrix.m30 += (static_cast<f32>(animated_piece.direction_index) * 0.025f + 0.25f) * oscillation;
+                        break;
+                    case 2:
+                        matrix.m31 -= (static_cast<f32>(animated_piece.direction_index) * 0.025f + 0.25f) * oscillation;
+                        break;
+                    case 3:
+                        matrix.m31 += (static_cast<f32>(animated_piece.direction_index) * 0.025f + 0.25f) * oscillation;
+                        break;
+                    case 4:
+                        matrix.m32 += (static_cast<f32>(animated_piece.direction_index) * 0.025f + 0.25f) * oscillation;
+                        break;
+                    case 5:
+                        matrix.m32 -= (static_cast<f32>(animated_piece.direction_index) * 0.025f + 0.25f) * oscillation;
+                        break;
+                }
             }
         }
         if (i <= currentminikit) {
@@ -2354,12 +2371,14 @@ void DrawStatusMiniKit(float x, float y, float z, float built_scale, float new_s
 
         if (i < 10) {
             KitPart[i].matrix = matrix;
-            KitPart[i].special = &piece.special;
+            KitPart[i].special = &static_cast<HUBMINIKITPIECE_s *>(WORLD->minikit.field_0x4)[i].special;
             KitPart[i].enabled = 1;
         }
         if (WORLD->lev_objs[206].active != 0)
-            DrawPanel3DObjectMtxNoAlpha(&piece.special, &matrix);
+            DrawPanel3DObjectMtxNoAlpha(&static_cast<HUBMINIKITPIECE_s *>(WORLD->minikit.field_0x4)[i].special,
+                                        &matrix);
         ++i;
+        pieces = static_cast<HUBMINIKITPIECE_s *>(WORLD->minikit.field_0x4);
     } while (i < packet->minikit_max && i < WORLD->minikit.field_0x8 && i != count);
 }
 
@@ -3316,55 +3335,6 @@ static __used__ i32 MatrixReflection_CanOverride() {
     return result;
 }
 
-static __used__ void DrawStarFighter(starfighter_s *starfighter) {
-    struct StarFighterLayout {
-        NUMTX matrix;
-        u8 reserved[0xb0];
-        f32 scale;
-        u8 more_reserved[8];
-        i16 draw_flags;
-        i16 model_id;
-    };
-    StarFighterLayout *fighter = reinterpret_cast<StarFighterLayout *>(starfighter);
-    const i32 model_id = fighter->model_id;
-    NUMTX_ALIGNED16 matrices[2];
-    NUMTX &scaled_special_matrix = matrices[0];
-    NUMTX &scaled_model_matrix = matrices[1];
-    if (model_id >= 0) {
-        const f32 scale = fighter->scale;
-        const i16 draw_flags = fighter->draw_flags;
-        const i16 model_index = apicharsys->playermodelids[model_id];
-        if (model_index == -1)
-            return;
-        NUMTX *matrix = &fighter->matrix;
-        if (scale != 1.0f) {
-            scaled_model_matrix = fighter->matrix;
-            NuMtxPreScaleUVU0(&scaled_model_matrix, scale);
-            matrix = &scaled_model_matrix;
-        }
-        GameDrawCharacterModel(&apicharsys->models[model_index], NULL, matrix, NULL, NULL, NULL, NULL, draw_flags);
-    } else {
-        NUMTX *matrix = &fighter->matrix;
-        if (model_id == -299 || model_id == -297 || model_id == -298 || model_id == -307) {
-            scaled_special_matrix = fighter->matrix;
-            scaled_special_matrix.m00 *= 1.15f;
-            scaled_special_matrix.m01 *= 1.15f;
-            scaled_special_matrix.m02 *= 1.15f;
-            scaled_special_matrix.m10 *= 1.15f;
-            scaled_special_matrix.m11 *= 1.15f;
-            scaled_special_matrix.m12 *= 1.15f;
-            scaled_special_matrix.m20 *= 1.15f;
-            scaled_special_matrix.m21 *= 1.15f;
-            scaled_special_matrix.m22 *= 1.15f;
-            matrix = &scaled_special_matrix;
-        }
-        NuSpecialDrawAt(&WORLD->lev_objs[-model_id].special, matrix);
-        if (model_id == -307)
-            AddVariableShotDebrisEffect(WORLD->debris_sys->entries[49].effect,
-                                        reinterpret_cast<NUVEC *>(&fighter->matrix.m30), 1, 0, 0);
-    }
-}
-
 static void DrawWeapon_SetSabreObjects(GameObject_s *object, i32 red, i32 green, i32 blue, i32 purple, i32 *models,
                                        i32 *hilt) {
     if (!(red || green || blue || purple))
@@ -3437,21 +3407,31 @@ static void DrawWeapons(GameObject_s *object, i32 reflection, f32 weapon_scale) 
     i32 sabre = 0;
     u16 rotation = 0;
     for (i32 hand = 0; hand < 4; ++hand) {
+        data = static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
         const i32 joint = data->weapon_joints[hand];
         if (joint != -1 && object->apiobj.character_model->points_of_interest[joint] != NULL) {
-            if (Cheat_IsOn(15) && (data->field275_0x116 == 8 || data->field275_0x116 == 1)) {
+            const i32 disguise = Cheat_IsOn(15);
+            // Services may replace the character data; the reference reloads it.
+            data = static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
+            bool explicit_weapon;
+            if (disguise && (data->field275_0x116 == 8 || data->field275_0x116 == 1)) {
                 models[0] = 0x59;
+                explicit_weapon = true;
             } else {
                 models[0] = data->weapon_model;
+                explicit_weapon = models[0] != -1;
                 if (models[0] == -1) {
                     if ((object->apiobj.character_data->model_flags & 0x90) == 0x80) {
                         models[0] = 0xd;
                     } else {
-                        i32 color = data->field_0x117;
+                        i32 color;
                         if (object->id == id_BOB) {
                             color = (object->field_0xefd & 2) ? 1 : 2;
                         } else if (AnakinGreenSabre(object)) {
                             color = 1;
+                        } else {
+                            color = static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24)
+                                        ->field_0x117;
                         }
                         if (color < 4) {
                             if (object->apiobj.field_0x27c != -1 && Cheat_IsOn(25)) {
@@ -3468,7 +3448,7 @@ static void DrawWeapons(GameObject_s *object, i32 reflection, f32 weapon_scale) 
                     }
                 }
             }
-            if (data->weapon_model != -1 || models[0] == 0x59) {
+            if (explicit_weapon) {
                 if (object->id == id_JANGOFETT) {
                     rotation = 0xd1c8;
                 } else if (models[0] == 0x65 || models[0] == 0x67 || models[0] == 0x69 || models[0] == 0x6b) {
@@ -3729,24 +3709,29 @@ static void DrawParaphernalia(GameObject_s *object) {
     }
     if (object->field_0xd24 > 0.0f || object->timer_d28 > 0.0f) {
         ResetShadowMapRendering();
-        f32 scale = object->field_0xd24;
-        bool show = scale > 0.0f;
-        if (object->field_0xe37 == 0 && config->field_0xf5 != 0) {
+        const u8 render_reflection = object->field_0x1088;
+        GAMECHARACTERDATA_s *shield_config = object->apiobj.character_data->game_character;
+        f32 scale;
+        bool show;
+        if (object->field_0xe37 != 0 || shield_config->field_0xf5 == 0 || object->timer_d28 <= 0.0f) {
+            scale = object->field_0xd24;
+            show = scale > 0.0f;
+        } else {
             scale = 1.0f;
-            show = !(object->timer_d28 > 0.0f && (GameTimer.update_count & 3) > 1);
+            show = (GameTimer.update_count & 3) < 2;
         }
         if (show) {
+            i32 locator = shield_config->shield_locator;
             NUVEC scaling = {scale, scale, scale};
             NUMTX matrix, reflected;
             NuMtxSetScale(&matrix, &scaling);
-            i32 locator = config->shield_locator;
             NUVEC *position = &object->apiobj.collision_position;
             if (locator != -1 && object->apiobj.character_model->points_of_interest[locator] != NULL)
                 position = reinterpret_cast<NUVEC *>(&joints[locator].m30);
             NuMtxTranslate(&matrix, position);
             Draw3DObjectMtx(NULL, 0x6f + (object->timer_d28 > 0.0f), &matrix);
-            if (object->field_0x1088 && MatrixReflection(&matrix, object->field_0x1087, object->field_0x1020,
-                                                         WORLD->current_level->unknown_0cc, &reflected)) {
+            if (render_reflection && MatrixReflection(&matrix, object->field_0x1087, object->field_0x1020,
+                                                      WORLD->current_level->unknown_0cc, &reflected)) {
                 NuRndrStartReflectionRender(0);
                 Draw3DObjectMtx(NULL, 0x92 + (object->timer_d28 > 0.0f), &reflected);
                 NuRndrEndReflectionRender();

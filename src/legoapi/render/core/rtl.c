@@ -54,8 +54,11 @@ static i32 rtl_dynamic_max;
 static i32 rtl_dynamic_cnt;
 static f32 rtl_frametime;
 static i16 rtl_uid = 1;
+static i32 curr_version = 5;
+static rtlindex_s *dbg_rtlindex;
 i32 rtl_error = 0;
 u16 rtltimer1 = 0;
+f32 rtlwob = 0.05f;
 f32 edrtl_text_scale = 1.0f;
 static f32 default_modifiers = 1.0f;
 f32 *modifiers = &default_modifiers;
@@ -119,10 +122,17 @@ extern "C" {
 extern "C" {
     static __used__ void NuRndrSetDirectionalLights(NUVEC *dir0, NUCOLOUR3 *colour0, NUVEC *dir1, NUCOLOUR3 *colour1,
                                                     NUVEC *dir2, NUCOLOUR3 *colour2) {
+        NuRndrLightingStateCurrent.direction[0] = *dir0;
+        NuRndrLightingStateCurrent.direction[1] = *dir1;
+        NuRndrLightingStateCurrent.direction[2] = *dir2;
+        NuRndrLightingStateCurrent.intensity[0] = *colour0;
+        NuRndrLightingStateCurrent.intensity[1] = *colour1;
+        NuRndrLightingStateCurrent.intensity[2] = *colour2;
         NuRndrSetDirectionalLightsPS(dir0, colour0, dir1, colour1, dir2, colour2);
     }
 
     static __used__ void NuRndrSetAmbientLight(NUCOLOUR3 *colour) {
+        NuRndrLightingStateCurrent.ambient = *colour;
         NuRndrSetAmbientLightPS(colour);
     }
 
@@ -398,21 +408,8 @@ void rtlSwapSetEndianess(rtlset *) {
 
 extern "C" {
     void IndexLights(rtlset *set, VARIPTR *buffer, i32 buffer_end) {
-        struct RTLGRID {
-            u32 valid;
-            u32 reserved_04;
-            u32 reserved_08;
-            i32 columns;
-            i32 rows;
-            f32 scale;
-            f32 x_offset;
-            f32 z_offset;
-            u32 cells;
-            u32 reserved_24;
-        };
-
-        RTLGRID *grid = static_cast<RTLGRID *>(buffer->void_ptr);
-        buffer->addr += sizeof(RTLGRID);
+        rtlindex_s *grid = static_cast<rtlindex_s *>(buffer->void_ptr);
+        buffer->addr += sizeof(rtlindex_s);
         memset(grid, 0, sizeof(*grid));
 
         f32 minimum_x = FLT_MAX;
@@ -433,31 +430,31 @@ extern "C" {
             return;
         }
 
-        grid->x_offset = -minimum_x;
-        grid->z_offset = -minimum_z;
+        grid->offset_x = -minimum_x;
+        grid->offset_z = -minimum_z;
         if (width <= depth) {
-            grid->rows = 16;
-            grid->columns = MIN(static_cast<i32>(width * 16.0f / depth) + 1, 16);
+            grid->depth = 16;
+            grid->width = MIN(static_cast<i32>(width * 16.0f / depth) + 1, 16);
             grid->scale = 16.0f / depth;
         } else {
-            grid->columns = 16;
-            grid->rows = MIN(static_cast<i32>(depth * 16.0f / width) + 1, 16);
+            grid->width = 16;
+            grid->depth = MIN(static_cast<i32>(depth * 16.0f / width) + 1, 16);
             grid->scale = 16.0f / width;
         }
 
-        buffer->addr = ALIGN(buffer->addr, 4);
-        grid->cells = static_cast<u32>(buffer->addr);
-        u32 *cells = buffer->u32_ptr;
-        buffer->addr += grid->columns * grid->rows * sizeof(u32);
+        buffer->addr = ALIGN(buffer->addr, alignof(char *));
+        grid->cells = static_cast<char **>(buffer->void_ptr);
+        char **cells = grid->cells;
+        buffer->addr += grid->width * grid->depth * sizeof(char *);
 
-        for (i32 row = 0; row < grid->rows; ++row) {
-            const f32 minimum_cell_z = static_cast<f32>(row) / grid->scale - grid->z_offset;
-            const f32 maximum_cell_z = static_cast<f32>(row + 1) / grid->scale - grid->z_offset;
-            for (i32 column = 0; column < grid->columns; ++column) {
-                const f32 minimum_cell_x = static_cast<f32>(column) / grid->scale - grid->x_offset;
-                const f32 maximum_cell_x = static_cast<f32>(column + 1) / grid->scale - grid->x_offset;
+        for (i32 row = 0; row < grid->depth; ++row) {
+            const f32 minimum_cell_z = static_cast<f32>(row) / grid->scale - grid->offset_z;
+            const f32 maximum_cell_z = static_cast<f32>(row + 1) / grid->scale - grid->offset_z;
+            for (i32 column = 0; column < grid->width; ++column) {
+                const f32 minimum_cell_x = static_cast<f32>(column) / grid->scale - grid->offset_x;
+                const f32 maximum_cell_x = static_cast<f32>(column + 1) / grid->scale - grid->offset_x;
                 u8 *indices = buffer->u8_ptr;
-                cells[row * grid->columns + column] = static_cast<u32>(buffer->addr);
+                cells[row * grid->width + column] = reinterpret_cast<char *>(indices);
                 *indices = 0;
                 ++buffer->addr;
 
@@ -469,6 +466,10 @@ extern "C" {
                                           light->position.z + light->outer_radius >= minimum_cell_z &&
                                           light->position.z - light->outer_radius <= maximum_cell_z;
                     if (directional || overlaps) {
+                        // GetNextRTL's original char count cannot represent 128.
+                        // Fall back to the bounded full scan for a full cell.
+                        if (indices[0] == 127)
+                            return;
                         ++indices[0];
                         indices[indices[0]] = static_cast<u8>(index);
                         ++buffer->addr;
@@ -477,26 +478,51 @@ extern "C" {
             }
         }
         (void)buffer_end;
-        grid->valid = 1;
+        grid->enabled = 1;
     }
 
     rtlset *rtlLoadSet(char *path, VARIPTR *buffer, i32 buffer_end) {
-        buffer->addr = ALIGN(buffer->addr, 4);
+        buffer->addr = ALIGN(buffer->addr, alignof(rtlset));
         rtlset *set = static_cast<rtlset *>(buffer->void_ptr);
-        memset(set, 0, 0x4f84);
+        memset(set, 0, sizeof(*set));
 
         if (NuFileLoadBuffer(path, set, buffer_end - buffer->addr) > 0) {
             rtlSwapSetEndianess(set);
         }
 
-        u8 *bytes = reinterpret_cast<u8 *>(set);
-        for (i32 i = 0; i < 0x80; ++i) {
-            *reinterpret_cast<i16 *>(bytes + i * 0x8c + 0x6e) = static_cast<i16>(i + 1);
-            *reinterpret_cast<rtlset **>(bytes + i * 0x8c + 0x80) = set;
-            *reinterpret_cast<f32 *>(bytes + i * 0x8c + 0x70) = 1.0f;
+        const u32 version = set->header;
+        if (version == 2) {
+            rtlfog_s *old_fog = reinterpret_cast<rtlfog_s *>(&set->lights[64]);
+            old_fog[0].type = 1;
+            old_fog[0].radius = 10.0f;
+            old_fog[0].position = {0.0f, 0.0f, 0.0f};
+            for (i32 i = 1; i < 32; ++i)
+                old_fog[i].type = 0;
         }
-        *reinterpret_cast<u32 *>(bytes) = 5;
-        buffer->addr += 0x4f84;
+        if (version == 2 || version == 3) {
+            rtlfog_s *old_fog = reinterpret_cast<rtlfog_s *>(&set->lights[64]);
+            memmove(set->fog, old_fog, sizeof(set->fog));
+            for (i32 i = 64; i < 128; ++i)
+                set->lights[i].type = 0;
+        }
+        if (version >= 2 && version <= 4) {
+            for (i32 i = 0; i < 128; ++i) {
+                set->lights[i].field_79 = -1;
+                set->lights[i].field_7a = -1;
+                set->lights[i].field_7b = 0;
+                set->lights[i].intensity = 1.0f;
+            }
+        }
+        if (version != 1) {
+            for (i32 i = 0; i < 128; ++i) {
+                set->lights[i].uid = rtl_uid++;
+                if (rtl_uid == 0)
+                    ++rtl_uid;
+                set->lights[i].field_7c = set->lights;
+            }
+        }
+        set->header = curr_version;
+        buffer->addr += sizeof(*set);
         IndexLights(set, buffer, buffer_end);
         return set;
     }
@@ -608,11 +634,10 @@ extern "C" {
     }
 
     void rtlSetLights(rtldata_s *data) {
-        const NUVEC *directions = data->direction;
-        const NUCOLOUR3 *colours = data->intensity;
-        NuRndrSetDirectionalLightsPS(&directions[0], &colours[0], &directions[1], &colours[1], &directions[2],
-                                     &colours[2]);
-        NuRndrSetAmbientLightPS(&data->ambient_colour);
+        rtlidata_s *record = data;
+        NuRndrSetDirectionalLights(&record->direction[0], &record->intensity[0], &record->direction[1],
+                                   &record->intensity[1], &record->direction[2], &record->intensity[2]);
+        NuRndrSetAmbientLight(&record->ambient_colour);
     }
 
     void rtlSetSpecularLight(rtldata_s *data) {
@@ -633,80 +658,83 @@ static f32 ClampUnit(f32 value) {
     return value > 1.0f ? 1.0f : value;
 }
 
-static __used__ i32 rtlCalcLights(nuvec_s *position, numtx_s *rotation, f32 scale, rtlidata_s *lighting_data) {
+static __used__ void rtlCalcLights(nuvec_s *position, numtx_s *rotation, f32 scale, rtlidata_s *lighting_data) {
     for (i32 slot = 0; slot < 3; ++slot) {
-        rtl_s *light = lighting_data->directional_lights[slot];
-        NUVEC *colour = &lighting_data->intensity_vectors[slot];
-        NUVEC *direction = &lighting_data->direction[slot];
-        if (light == NULL) {
-            *colour = {0.0f, 0.0f, 0.0f};
-            *direction = {0.0f, 1.0f, 0.0f};
+        if (lighting_data->directional_lights[slot] == NULL) {
+            lighting_data->intensity_vectors[slot] = {0.0f, 0.0f, 0.0f};
+            lighting_data->direction[slot] = nuvec_y;
         } else {
             bool invalid = false;
-            switch (light->type) {
+            switch (lighting_data->directional_lights[slot]->type) {
                 case 2:
                 case 3:
                 case 6:
                 case 8:
-                    if (position == NULL) {
+                    if (position == NULL)
                         invalid = true;
-                    } else {
-                        NuVecSub(direction, &light->position, position);
-                        NuVecNorm(direction, direction);
+                    else {
+                        NuVecSub(&lighting_data->direction[slot], &lighting_data->directional_lights[slot]->position,
+                                 position);
+                        NuVecNorm(&lighting_data->direction[slot], &lighting_data->direction[slot]);
                     }
                     break;
                 case 4:
-                    *direction = light->direction;
+                    lighting_data->direction[slot] = lighting_data->directional_lights[slot]->direction;
                     break;
                 default:
-                    *direction = {0.0f, 0.0f, 1.0f};
-                    NuVecRotateX(direction, direction, light->pitch);
-                    NuVecRotateY(direction, direction, light->yaw);
-                    NuVecMtxRotate(direction, direction, &global_camera.mtx);
-                    // Directional lights use 2.0 as their selection priority,
-                    // but their shading strength starts at one.
+                    lighting_data->direction[slot] = {0.0f, 0.0f, 1.0f};
+                    NuVecRotateX(&lighting_data->direction[slot], &lighting_data->direction[slot],
+                                 lighting_data->directional_lights[slot]->pitch);
+                    NuVecRotateY(&lighting_data->direction[slot], &lighting_data->direction[slot],
+                                 lighting_data->directional_lights[slot]->yaw);
+                    NuVecMtxRotate(&lighting_data->direction[slot], &lighting_data->direction[slot],
+                                   &global_camera.mtx);
                     lighting_data->directional_strengths[slot] = 1.0f;
                     break;
             }
-
-            if (invalid) {
-                *colour = {0.0f, 0.0f, 0.0f};
-            } else {
-                const f32 strength = static_cast<f32>(ApplyAntilights(
-                    light, lighting_data, lighting_data->directional_strengths[slot] * light->intensity));
-                NuVecScale(colour, &light->ambient, strength);
+            if (invalid)
+                lighting_data->intensity_vectors[slot] = {0.0f, 0.0f, 0.0f};
+            else {
+                f32 strength = ApplyAntilights(lighting_data->directional_lights[slot], lighting_data,
+                                               lighting_data->directional_strengths[slot] *
+                                                   lighting_data->directional_lights[slot]->intensity);
+                // Re-read selected lights after service callbacks, as in the reference.
+                lighting_data->intensity_vectors[slot].x =
+                    lighting_data->directional_lights[slot]->ambient.x * strength;
+                lighting_data->intensity_vectors[slot].y =
+                    lighting_data->directional_lights[slot]->ambient.y * strength;
+                lighting_data->intensity_vectors[slot].z =
+                    lighting_data->directional_lights[slot]->ambient.z * strength;
             }
         }
-        if (rotation != NULL) {
-            NuVecMtxRotate(direction, direction, rotation);
-        }
+        if (rotation != NULL)
+            NuVecMtxRotate(&lighting_data->direction[slot], &lighting_data->direction[slot], rotation);
     }
-
     if (scale != 1.0f) {
-        for (i32 slot = 0; slot < 3; ++slot) {
-            NUVEC *colour = &lighting_data->intensity_vectors[slot];
-            NuVecScale(colour, colour, scale);
-        }
+        NuVecScale(&lighting_data->intensity_vectors[0], &lighting_data->intensity_vectors[0], scale);
+        NuVecScale(&lighting_data->intensity_vectors[1], &lighting_data->intensity_vectors[1], scale);
+        NuVecScale(&lighting_data->intensity_vectors[2], &lighting_data->intensity_vectors[2], scale);
     }
-
-    NUVEC *ambient = &lighting_data->ambient;
-    NuVecClear(ambient);
+    NuVecClear(&lighting_data->ambient);
     for (i32 slot = 0; slot < 3; ++slot) {
-        rtl_s *light = lighting_data->ambient_lights[slot];
-        if (light == NULL) {
-            continue;
+        if (lighting_data->ambient_lights[slot] != NULL) {
+            f32 strength = ApplyAntilights(lighting_data->ambient_lights[slot], lighting_data,
+                                           lighting_data->ambient_lights[slot]->intensity *
+                                               lighting_data->ambient_strengths[slot]);
+#define RTL_AMBIENT_COMPONENT(component)                                                                               \
+    lighting_data->ambient.component =                                                                                 \
+        lighting_data->ambient.component + lighting_data->ambient_lights[slot]->ambient.component * strength <= 1.0f   \
+            ? lighting_data->ambient.component + lighting_data->ambient_lights[slot]->ambient.component * strength     \
+            : 1.0f
+            RTL_AMBIENT_COMPONENT(x);
+            RTL_AMBIENT_COMPONENT(y);
+            RTL_AMBIENT_COMPONENT(z);
+#undef RTL_AMBIENT_COMPONENT
         }
-        const f32 strength = static_cast<f32>(
-            ApplyAntilights(light, lighting_data, lighting_data->ambient_strengths[slot] * light->intensity));
-        ambient->x = MIN(ambient->x + light->ambient.x * strength, 1.0f);
-        ambient->y = MIN(ambient->y + light->ambient.y * strength, 1.0f);
-        ambient->z = MIN(ambient->z + light->ambient.z * strength, 1.0f);
     }
-    if (scale != 1.0f) {
-        NuVecScale(ambient, ambient, scale);
-    }
+    if (scale != 1.0f)
+        NuVecScale(&lighting_data->ambient, &lighting_data->ambient, scale);
     NuVecNorm(&lighting_data->field_134, &lighting_data->field_134);
-    return 0;
 }
 
 static __used__ rtl_s *GetNextRTL(void *set, rtl_s *light, char *indices, int *index) {
@@ -714,7 +742,8 @@ static __used__ rtl_s *GetNextRTL(void *set, rtl_s *light, char *indices, int *i
         if (indices != NULL && index != NULL) {
             if (*index < static_cast<i32>(*indices)) {
                 ++*index;
-                light = &static_cast<rtlset *>(set)->lights[indices[*index]];
+                const i32 light_index = indices[*index];
+                light = light_index < 0 ? NULL : &static_cast<rtlset *>(set)->lights[light_index];
             } else {
                 light = NULL;
             }
@@ -738,67 +767,180 @@ extern "C" {
     }
 }
 
-extern "C" {
-    static f32 rtlDistanceStrength(const u8 *light, const NUVEC *position) {
-        const NUVEC *light_position = reinterpret_cast<const NUVEC *>(light);
-        const f32 dx = position->x - light_position->x;
-        const f32 dy = position->y - light_position->y;
-        const f32 dz = position->z - light_position->z;
-        const f32 inner = *reinterpret_cast<const f32 *>(light + 0x34);
-        const f32 outer = *reinterpret_cast<const f32 *>(light + 0x40);
-        const f32 distance_sq = dx * dx + dy * dy + dz * dz;
-        if (distance_sq >= outer * outer) {
-            return 0.0f;
-        }
-        if (inner >= outer) {
-            return 1.0f;
-        }
-        const f32 distance = sqrtf(distance_sq);
-        return ClampUnit(1.0f - (distance - inner) / (outer - inner));
-    }
-
-} // extern "C"
-
 static void rtlApplySetScaleLoop(void *set, rtlidata_s *lighting_data, NUVEC *position, NUMTX *rotation, i32 identity,
                                  f32 scale) {
     (void)rotation;
-    (void)identity;
     (void)scale;
+    i32 restricted;
+    rtl_s *light;
+    f32 distance_sq;
+    f32 strength;
+    char *indices = NULL;
+    rtlset *lights;
+    rtlindex_s *grid;
+    i32 x, z;
+    f32 distance;
+    i32 index;
+    lighting_data->specular_value = 0.0f;
     if (set != NULL) {
-        rtl_s *light = static_cast<rtlset *>(set)->lights;
-        for (i32 i = 0; i < 0x80 && light[i].type != 0; ++i) {
-            if (light[i].disabled != 0) {
-                continue;
-            }
-            const f32 strength =
-                light[i].type == 5 ? 2.0f : rtlDistanceStrength(reinterpret_cast<u8 *>(&light[i]), position);
-            if (strength == 0.0f) {
-                continue;
-            }
-            if (light[i].type == 7) {
-                InsertAntiLight(&light[i], lighting_data, strength);
-            } else {
-                InsertLight(&light[i], lighting_data, strength);
-            }
+        lights = static_cast<rtlset *>(set);
+        light = lights->lights;
+        grid = reinterpret_cast<rtlindex_s *>(lights + 1);
+        dbg_rtlindex = grid;
+        if (grid->enabled != 0 && position != NULL &&
+            (x = static_cast<i32>(grid->scale * (position->x + grid->offset_x))) < grid->width && x >= 0 &&
+            (z = static_cast<i32>(grid->scale * (position->z + grid->offset_z))) < grid->depth && z >= 0 &&
+            grid->cells != NULL) {
+            indices = grid->cells[x + grid->width * z];
+            index = 0;
+            light = GetNextRTL(set, light, indices, &index);
         }
-    } else if (rtl_dynamic_pool != NULL) {
-        for (NULNKHDR *entry = NuLstGetNext(rtl_dynamic_pool, NULL); entry != NULL;
-             entry = NuLstGetNext(rtl_dynamic_pool, entry)) {
-            rtl_s *light = reinterpret_cast<rtl_s *>(entry);
-            if (light->disabled != 0) {
-                continue;
-            }
-            const f32 strength = light->type == 5 ? 2.0f : rtlDistanceStrength(reinterpret_cast<u8 *>(light), position);
-            if (strength == 0.0f) {
-                continue;
-            }
-            if (light->type == 7) {
-                InsertAntiLight(light, lighting_data, strength);
-            } else {
-                InsertLight(light, lighting_data, strength);
-            }
-        }
+    } else {
+        light = reinterpret_cast<rtl_s *>(NuLstGetNext(rtl_dynamic_pool, NULL));
     }
+    if (identity < 0)
+        restricted = 0;
+    else {
+        restricted = (identity & 0x10) ? 1 : 0;
+        identity &= 15;
+    }
+    // These three fixed paths and their falloff expressions are distinct in the reference.
+#define RTL_DISTANCE_SQ                                                                                                \
+    ((position->x - light->position.x) * (position->x - light->position.x) +                                           \
+     (position->y - light->position.y) * (position->y - light->position.y) +                                           \
+     (position->z - light->position.z) * (position->z - light->position.z))
+#define RTL_RADIUS_FRACTION ((distance - light->inner_radius) / (light->outer_radius - light->inner_radius))
+#define RTL_FALLOFF                                                                                                    \
+    do {                                                                                                               \
+        if (light->inner_radius < light->outer_radius) {                                                               \
+            distance = NuFsqrt(distance_sq);                                                                           \
+            strength = 1.0f - ((RTL_RADIUS_FRACTION > 1.0f ? 1.0f : RTL_RADIUS_FRACTION) < 0.0f                        \
+                                   ? 0.0f                                                                              \
+                                   : (RTL_RADIUS_FRACTION > 1.0f ? 1.0f : RTL_RADIUS_FRACTION));                       \
+        } else                                                                                                         \
+            strength = 1.0f;                                                                                           \
+        if (light->field_79 == -1 && light->field_7a == -1 && light->field_7b >= 0 && light->field_7b < modifier_cnt)  \
+            strength *= modifiers[light->field_7b];                                                                    \
+    } while (0)
+    if (light != NULL) {
+        while (light != NULL) {
+            if (set != NULL &&
+                (light < static_cast<rtlset *>(set)->lights || light >= static_cast<rtlset *>(set)->lights + 128))
+                break;
+            if (light->type == 0)
+                break;
+            if (light->field_7a != -1) {
+                light = GetNextRTL(set, light, indices, &index);
+                continue;
+            }
+            if (identity >= 0 && light->type != 7) {
+                if ((static_cast<u16>(light->field_60) >> identity) & 1) {
+                    light = GetNextRTL(set, light, indices, &index);
+                    continue;
+                }
+                if (light->field_5e != 0 && light->type == 5 &&
+                    (identity == -1 || !((static_cast<u16>(light->field_5e) >> identity) & 1))) {
+                    light = GetNextRTL(set, light, indices, &index);
+                    continue;
+                }
+                if (restricted != 0 && light->field_5e == 0) {
+                    light = GetNextRTL(set, light, indices, &index);
+                    continue;
+                }
+            }
+            if (light == NULL || light->type == 0)
+                break;
+            if (!light->disabled) {
+                switch (light->type) {
+                    case 1:
+                        if (position != NULL)
+                            distance_sq = RTL_DISTANCE_SQ;
+                        else
+                            distance_sq = 0.0f;
+                        if (distance_sq < light->outer_radius * light->outer_radius) {
+                            RTL_FALLOFF;
+                            if (strength != 0.0f && lighting_data->ambient_strengths[2] <= strength)
+                                InsertLight(light, lighting_data, strength);
+                        }
+                        break;
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 6:
+                    case 8:
+                        if (position != NULL)
+                            distance_sq = RTL_DISTANCE_SQ;
+                        else
+                            distance_sq = 0.0f;
+                        if (light->outer_radius * light->outer_radius <= distance_sq) {
+                            if (lighting_data->cached_light == light)
+                                lighting_data->cached_value = 0.0000001f;
+                        } else {
+                            RTL_FALLOFF;
+                            if (strength != 0.0f && lighting_data->directional_strengths[2] <= strength &&
+                                (light->ambient.x != 0.0f || light->ambient.y != 0.0f || light->ambient.z != 0.0f))
+                                InsertLight(light, lighting_data, strength);
+                            if (position != NULL && light->has_specular) {
+                                lighting_data->field_134.x += light->direction.x * strength;
+                                lighting_data->field_134.y += light->direction.y * strength;
+                                lighting_data->field_134.z += light->direction.z * strength;
+                                lighting_data->specular_value += strength;
+                                if (light->intensity > 16.0f) {
+                                    lighting_data->field_134.x +=
+                                        static_cast<f32>(static_cast<i32>(light->intensity) & 15) *
+                                        NU_SIN_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength *
+                                        rtlwob;
+                                    lighting_data->field_134.y +=
+                                        static_cast<f32>(static_cast<i32>(light->intensity) & 15) *
+                                        NU_COS_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength *
+                                        rtlwob;
+                                    lighting_data->field_134.z +=
+                                        static_cast<f32>(static_cast<i32>(light->intensity) & 15) *
+                                        NU_COS_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength *
+                                        rtlwob;
+                                }
+                            }
+                            if (position != NULL && light->cast_shadow) {
+                                if (lighting_data->cached_light == light) {
+                                    lighting_data->cached_value = strength;
+                                    if (light->type == 4)
+                                        NuVecScale(&lighting_data->shadow_direction, &light->direction, -1.0f);
+                                    else
+                                        NuVecSub(&lighting_data->shadow_direction, position, &light->position);
+                                } else if (strength != 0.0f && lighting_data->cached_value < strength) {
+                                    lighting_data->cached_light = light;
+                                    lighting_data->cached_light_uid = light->uid;
+                                    lighting_data->cached_value = strength;
+                                    if (light->type == 4)
+                                        NuVecScale(&lighting_data->shadow_direction, &light->direction, -1.0f);
+                                    else
+                                        NuVecSub(&lighting_data->shadow_direction, position, &light->position);
+                                    lighting_data->shadow_blend = 1.0f;
+                                }
+                            }
+                        }
+                        break;
+                    case 5:
+                        InsertLight(light, lighting_data, 2.0f);
+                        break;
+                    case 7:
+                        if (position != NULL &&
+                            (distance_sq = RTL_DISTANCE_SQ) < light->outer_radius * light->outer_radius) {
+                            RTL_FALLOFF;
+                            if (strength != 0.0f)
+                                InsertAntiLight(light, lighting_data, strength);
+                        }
+                        break;
+                }
+            }
+            light = GetNextRTL(set, light, indices, &index);
+        }
+        if (lighting_data->specular_value != 0.0f)
+            NuVecNorm(&lighting_data->field_134, &lighting_data->field_134);
+    }
+#undef RTL_FALLOFF
+#undef RTL_RADIUS_FRACTION
+#undef RTL_DISTANCE_SQ
 }
 
 static __used__ void rtlCalcShadow(rtlidata_s *data) {
@@ -3411,48 +3553,59 @@ extern "C" void edrtlDrawLight(i32 index) {
 }
 
 extern "C" void edrtlDrawLightEx(i32 index, i32 style) {
-    rtl_s *light = &curr_set->lights[index];
-    i32 colour = 0x80000000 | ((static_cast<i32>(light->colour.z * 255.0f) & 0xff) << 16) |
-                 ((static_cast<i32>(light->colour.y * 255.0f) << 8) & 0xffff) |
-                 (static_cast<i32>(light->colour.x * 255.0f) & 0xff);
-    i32 inner_colour = style == 1 ? ~colour : colour;
-    i32 outer_colour = style == 2 ? ~colour : colour;
-    if (light->type == 1 || light->type == 2 || light->type == 4) {
-        if (light->type == 4) {
-            edrtl_line_vertex_s line[2] = {};
-            line[0].position = light->position;
+    u32 colour = (static_cast<i32>(curr_set->lights[index].colour.x * 255.0f) & 0xffu) |
+                 ((static_cast<i32>(curr_set->lights[index].colour.z * 255.0f) & 0xffu) << 16) | 0x80000000u |
+                 ((static_cast<i32>(curr_set->lights[index].colour.y * 255.0f) & 0xffu) << 8);
+    u32 inner_colour = colour, outer_colour = colour;
+    if (style == 1)
+        inner_colour = ~colour;
+    if (style == 2)
+        outer_colour = ~colour;
+    edrtl_line_vertex_s line[2] = {};
+    // Three distinct reference switch arms render the same radius pair.
+#define EDRTL_RADIUS_PAIR()                                                                                            \
+    RndrOSphere(&curr_set->lights[index].position, curr_set->lights[index].inner_radius, inner_colour, numsegs,        \
+                reinterpret_cast<usize>(mtls[rtl_zoff != 0]));                                                         \
+    if (curr_set->lights[index].inner_radius < curr_set->lights[index].outer_radius)                                   \
+        RndrOSphere(&curr_set->lights[index].position, curr_set->lights[index].outer_radius, outer_colour, numsegs,    \
+                    reinterpret_cast<usize>(mtls[rtl_zoff != 0]));                                                     \
+    if (&curr_set->lights[index] == curr_rtl)                                                                          \
+    RndrOSquare(&curr_set->lights[index].position, curr_set->lights[index].outer_radius, -1)
+    switch (curr_set->lights[index].type) {
+        case 1:
+            EDRTL_RADIUS_PAIR();
+            break;
+        case 2:
+        case 3:
+        case 6:
+        case 7:
+        case 8:
+            EDRTL_RADIUS_PAIR();
+            break;
+        case 4:
+            line[0].position = curr_set->lights[index].position;
             line[0].colour = colour;
-            line[1].position = light->position;
             line[1].colour = colour;
-            NUVEC scaled;
-            NuVecScale(&scaled, &light->direction, light->outer_radius);
-            NuVecSub(&line[1].position, &line[0].position, &scaled);
+            NuVecScale(&line[1].position, &curr_set->lights[index].direction, curr_set->lights[index].outer_radius);
+            NuVecSub(&line[1].position, &line[0].position, &line[1].position);
             edrtlRndrLine3d(reinterpret_cast<nuvtx_tc1_s *>(line), NULL, NULL);
-        }
-        RndrOSphere(&light->position, light->inner_radius, inner_colour, numsegs,
-                    reinterpret_cast<usize>(mtls[rtl_zoff != 0]));
-        if (light->outer_radius > light->inner_radius) {
-            RndrOSphere(&light->position, light->outer_radius, outer_colour, numsegs,
+            EDRTL_RADIUS_PAIR();
+            break;
+        case 5:
+            line[0].position = curr_set->lights[index].position;
+            line[0].colour = colour;
+            line[1].colour = colour;
+            NuVecScale(&line[1].position, &curr_set->lights[index].direction, 2.0f);
+            NuVecMtxRotate(&line[1].position, &line[1].position, &global_camera.mtx);
+            NuVecSub(&line[1].position, &line[0].position, &line[1].position);
+            edrtlRndrLine3d(reinterpret_cast<nuvtx_tc1_s *>(line), NULL, NULL);
+            RndrOSphere(&curr_set->lights[index].position, 2.0f, colour, numsegs,
                         reinterpret_cast<usize>(mtls[rtl_zoff != 0]));
-        }
-        if (light == curr_rtl) {
-            RndrOSquare(&light->position, light->outer_radius, -1);
-        }
-    } else if (light->type == 5) {
-        edrtl_line_vertex_s line[2] = {};
-        line[0].position = light->position;
-        line[0].colour = colour;
-        line[1].colour = colour;
-        NUVEC scaled;
-        NuVecScale(&scaled, &light->direction, 2.0f);
-        NuVecMtxRotate(&scaled, &scaled, &global_camera.mtx);
-        NuVecSub(&line[1].position, &line[0].position, &scaled);
-        edrtlRndrLine3d(reinterpret_cast<nuvtx_tc1_s *>(line), NULL, NULL);
-        RndrOSphere(&light->position, 2.0f, colour, numsegs, reinterpret_cast<usize>(mtls[rtl_zoff != 0]));
-        if (light == curr_rtl) {
-            RndrOSquare(&light->position, 2.0f, -1);
-        }
+            if (&curr_set->lights[index] == curr_rtl)
+                RndrOSquare(&curr_set->lights[index].position, 2.0f, -1);
+            break;
     }
+#undef EDRTL_RADIUS_PAIR
 }
 
 static void edrtlDrawLights() {

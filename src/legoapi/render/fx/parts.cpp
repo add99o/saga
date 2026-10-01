@@ -206,15 +206,6 @@ extern i16 temp_xrot;
 extern i16 temp_zrot;
 
 // Forward declarations for local (static) part/gizmo helper stubs.
-struct CUSTOMPIECEANIM {
-    f32 duration;
-    f32 elapsed;
-    f32 hold_time;
-    u16 start_angle;
-    u16 target_angle;
-    u16 current_angle;
-};
-DECOMP_ASSERT(offsetof(CUSTOMPIECEANIM, current_angle) == 0x10, "custom piece current angle offset");
 struct spacelevel_s;
 struct quickboltinfo;
 
@@ -298,19 +289,20 @@ static void PartCollide(PART_s *part, i32 three_dimensional) {
     const f32 maximum_z = part->position.z + radius;
     GameObject_s *object = Obj;
     for (i32 i = 0; i < HIGHGAMEOBJECT; ++i, ++object) {
+        const i8 force_player_mask = part->force_player_mask;
         APIOBJECT_s *api = &object->apiobj;
         if ((api->field_0x1f8 & 0x1001) != 0x1001 || api->field_0x287 != 0)
             continue;
         i8 context = static_cast<i8>(object->character_context);
         if ((CInfo[context].flags & 0x8000) != 0 || (object->field_0xe20 & 0x20) != 0)
             continue;
-        if (part->force_player_mask != 0) {
+        if (force_player_mask != 0) {
             if ((part->flags & 0x8000) == 0 && part->owner == object)
                 continue;
         } else if (part->owner == object) {
-            if (0.5f > part->scale_time)
+            if (!(part->scale_time >= 0.5f))
                 continue;
-        } else if (api->field_0x27c != -1 && 0.25f > part->scale_time)
+        } else if (api->field_0x27c != -1 && !(part->scale_time >= 0.25f))
             continue;
         if (context == 0x39 || context == 0x3b || context == 0x3c)
             continue;
@@ -318,8 +310,8 @@ static void PartCollide(PART_s *part, i32 three_dimensional) {
             continue;
         if ((part->flags & 4) != 0 && (api->flags_low & 0x80) == 0)
             continue;
-        if (minimum_x > api->collision_max.x || api->collision_min.x > maximum_x || minimum_z > api->collision_max.z ||
-            api->collision_min.z > maximum_z)
+        if (!(minimum_x <= api->collision_max.x && api->collision_min.x <= maximum_x &&
+              minimum_z <= api->collision_max.z && api->collision_min.z <= maximum_z))
             continue;
         if (three_dimensional != 0 &&
             !((api->character_data->model_flags & 0x2000) != 0 && (part->flags & 0x40) != 0)) {
@@ -347,7 +339,7 @@ static void PartCollide(PART_s *part, i32 three_dimensional) {
             } else if (part->pickup_type == 0xd0) {
                 CollectPowerUp(object, &part->position, part->rotation_y, 1);
                 KillPart(part, 2);
-            } else if (part->force_player_mask == 3) {
+            } else if (force_player_mask == 3) {
                 if ((api->character_data->model_flags & 0x2000) == 0 || object->torpedo == NULL)
                     continue;
                 if (object->torpedo->count < getMaxTorpedos(object)) {
@@ -390,7 +382,7 @@ static void PartCollide(PART_s *part, i32 three_dimensional) {
                 GameCam_Judder(GameCam, 0.2f, 0, NULL);
                 ReleaseBuildIt(object, 0);
                 ReleasePush(object);
-                if (!(object->field_0xd24 < 1.0f))
+                if (object->field_0xd24 >= 1.0f)
                     ObjHitShield(part->owner, object, object->field_0xe37, NULL);
                 else if (!CannotKill(object)) {
                     ObjHitObj((part->flags & 0x10000) != 0 ? NULL : part->owner, object, part->field_204,
@@ -929,30 +921,6 @@ static __used__ void PartMove_VehiclePickup(PART_s *part, f32) {
     part->position.x += part->velocity.x * gain * FRAMETIME;
     part->position.y += part->velocity.y * gain * FRAMETIME;
     part->position.z += part->velocity.z * gain * FRAMETIME;
-}
-
-static __used__ void UpdateCustomPieceAnim(CUSTOMPIECEANIM *anim, u16 minimum, u16 maximum) {
-    if (anim->duration > anim->elapsed) {
-        anim->elapsed += FRAMETIME;
-        if (anim->elapsed >= anim->duration) {
-            anim->elapsed = anim->duration;
-            anim->hold_time = static_cast<f32>(qrand()) / 65536.0f * 0.5f + 0.5f;
-        }
-        i32 difference = RotDiff(anim->start_angle, anim->target_angle);
-        f32 blend =
-            1.0f - (NU_SIN_LUT(static_cast<i32>(anim->elapsed / anim->duration * 32768.0f + 16384.0f)) + 1.0f) * 0.5f;
-        anim->current_angle = static_cast<i32>(anim->start_angle + static_cast<f32>(difference) * blend);
-    } else {
-        anim->hold_time -= FRAMETIME;
-        if (anim->hold_time <= 0.0f) {
-            anim->start_angle = anim->current_angle;
-            i32 difference = RotDiff(minimum, maximum);
-            anim->target_angle =
-                static_cast<i32>(minimum + static_cast<f32>(difference) * (static_cast<f32>(qrand()) / 65536.0f));
-            anim->elapsed = 0.0f;
-            anim->duration = static_cast<f32>(qrand()) / 65536.0f + 1.0f;
-        }
-    }
 }
 
 extern "C" {
@@ -1668,7 +1636,7 @@ extern "C" {
         DebrisEmitterOrientationMtx(effect->particle_keys[particle_key_slot], emitter_orientation);
         key->emission_epoch = elapsed_intervals * emission_interval;
 
-        for (i32 i = 0; i != 100 && emission_time <= end_time; ++i) {
+        for (i32 i = 0; i != 99 && emission_time <= end_time; ++i) {
             if (position_delta == NULL) {
                 key->emission_position = *position;
             } else {

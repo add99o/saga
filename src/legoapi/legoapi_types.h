@@ -569,9 +569,14 @@ struct BATARANG_TARGET_s {
     void *object;
     u8 type;
     u8 lost;
-    u8 reserved_06[0x14 - 0x06];
+    u16 reserved_06_word;
+    union {
+        u8 reserved_08[0x14 - 0x08];
+        NUVEC fallback_position;
+    };
 };
 DECOMP_ASSERT(sizeof(BATARANG_TARGET_s) == 0x14, "Batarang target size");
+DECOMP_ASSERT(offsetof(BATARANG_TARGET_s, fallback_position) == 8, "Batarang inline fallback position offset");
 struct BATARANG_s {
     BATARANG_TARGET_s targets[5]; // 0x00
     NUVEC position;               // 0x64
@@ -1948,7 +1953,10 @@ struct GIZSPINNER_s {
     i16 platform_id; // 0x0ae
     u8 field_0x0b0[4];
     GIZSPINNERARM_s arms[8]; // 0x0b4
-    u8 field_0x2d4[4];
+    union {
+        u8 field_0x2d4[4];
+        f32 output_pause_time;
+    };
     f32 field_0x2d8;
     f32 animation_points[9];   // 0x2dc
     GAMEANTINODE_s *anti_node; // 0x300
@@ -1961,6 +1969,7 @@ DECOMP_ASSERT(offsetof(GIZSPINNER_s, anim_set) == 0x68, "GIZSPINNER anim-set off
 DECOMP_ASSERT(offsetof(GIZSPINNER_s, flags) == 0xac, "GIZSPINNER flags offset");
 DECOMP_ASSERT(offsetof(GIZSPINNER_s, platform_id) == 0xae, "GIZSPINNER platform offset");
 DECOMP_ASSERT(offsetof(GIZSPINNER_s, arms) == 0xb4, "GIZSPINNER arms offset");
+DECOMP_ASSERT(offsetof(GIZSPINNER_s, output_pause_time) == 0x2d4, "GIZSPINNER output pause offset");
 DECOMP_ASSERT(offsetof(GIZSPINNER_s, animation_points) == 0x2dc, "GIZSPINNER animation-points offset");
 DECOMP_ASSERT(offsetof(GIZSPINNER_s, anti_node) == 0x300, "GIZSPINNER antinode offset");
 struct GIZTURRETSYS_s;
@@ -3786,7 +3795,6 @@ struct speedup_s {
     f32 distance;
     f32 speed;
 };
-struct starfighter_s {};
 struct terrsitu_s {};
 struct uv1deb {};
 struct uv1debdata;
@@ -5537,9 +5545,13 @@ struct PlaceableNameControl : EdStringControl {
 DECOMP_ASSERT(sizeof(void *) != 4 || sizeof(PlaceableNameControl) == 0x14, "PlaceableNameControl size");
 // Pod race net packet (podrace_netpacket).
 struct PODRACENETPACKET_s {
-    char pad_0x00[0xc];
-    float countdown; // 0x0c
+    float start_countdown; // 0x00
+    float remaining_time;  // 0x04
+    float available_time;  // 0x08
+    float countdown;       // 0x0c
+    i32 lap;               // 0x10
 };
+DECOMP_ASSERT(sizeof(PODRACENETPACKET_s) == 0x14, "pod race network packet size");
 
 // One AI spline slot inside the pod sprint state. Type name from the original
 // local symbol _ZL22PodSprint_InitAISplineP11WORLDINFO_sP20PODSPRINT_AISPLINE_sPc.
