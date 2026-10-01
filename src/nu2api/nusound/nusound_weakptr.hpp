@@ -95,6 +95,29 @@ template <typename T> class NuSoundWeakPtrObj {
         NuSoundWeakPtrListNode::sPtrListLock.Unlock();
     }
 
+    // Removes the first linked weak pointer; the retail list helper guards the
+    // successor's back link through a pointer-to-member that may be null.
+    NuSoundWeakPtrListNode *PopFront() {
+        NuSoundWeakPtrListNode *node = this->head->next;
+        NuSoundWeakPtrListNode *next = node->next;
+        NuSoundWeakPtrListNode *previous = node->prev;
+        NuSoundWeakPtrListNode **next_prev = next != NULL ? &next->prev : NULL;
+        if (previous != NULL) {
+            if (next_prev != NULL) {
+                previous->next = next;
+                *next_prev = previous;
+            } else {
+                previous->next = NULL;
+            }
+        } else if (next_prev != NULL) {
+            *next_prev = previous;
+        }
+        this->weak_count--;
+        node->next = NULL;
+        node->prev = NULL;
+        return node;
+    }
+
     virtual ~NuSoundWeakPtrObj();
 };
 

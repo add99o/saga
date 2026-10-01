@@ -177,7 +177,7 @@ void KillRumble(GameObject_s *object) {
 }
 
 void FloatRumble(GameObject_s *object) {
-    if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0) {
+    if (object != NULL && object->apiobj.player_controlled) {
         const f32 strength = MIN(1.0f, NuFabs(object->apiobj.velocity.y) /
                                                object->apiobj.character_data->game_character->movement_speed * 0.15f +
                                            0.25f);
@@ -210,24 +210,24 @@ void ObjHitShield(GameObject_s *attacker, GameObject_s *target, i32 damage, BOLT
     }
     if (target->field_0xd24 == 1.0f && target->timer_d28 > 0.0f) {
         if (attacker != NULL) {
-            if (static_cast<i8>(attacker->apiobj.flags_low) < 0) {
+            if (attacker->apiobj.player_controlled) {
                 AlertSurroundingCreatures(attacker, &attacker->apiobj.collision_position);
             } else if (attacker->character_context != 0x39) {
                 damage = 0;
             }
         }
-    } else if (attacker != NULL && static_cast<i8>(attacker->apiobj.flags_low) < 0) {
+    } else if (attacker != NULL && attacker->apiobj.player_controlled) {
         AlertSurroundingCreatures(attacker, &attacker->apiobj.collision_position);
     }
 
     GameAudio_PlaySfx(0x41, &target->apiobj.collision_position, GameAudio_GetPlrSfxBits(attacker), 0);
-    if (static_cast<i8>(target->apiobj.flags_low) < 0) {
+    if (target->apiobj.player_controlled) {
         TakeHitRumble(target, 0.6f);
     }
 
-    if (MiniCutCam == 0 || static_cast<i8>(target->apiobj.flags_low) >= 0) {
+    if (MiniCutCam == 0 || !target->apiobj.player_controlled) {
         if (target->field_0xe37 != 0 && damage > 0) {
-            if (static_cast<i8>(target->apiobj.flags_low) < 0 && Player_HasInvincibility(target)) {
+            if (target->apiobj.player_controlled && Player_HasInvincibility(target)) {
                 damage = 0;
             }
             i32 shield = target->field_0xe37 - damage;
@@ -316,7 +316,7 @@ i16 InsidePolLines(f32 point_x, f32 point_y, f32 point_z, f32 edge_a_x, f32 edge
 i32 ObjHitObj_Flags(GameObject_s *object) {
     if (object == NULL)
         return 0;
-    const bool player = (object->apiobj.flags_low & 0x80) != 0;
+    const bool player = object->apiobj.player_controlled;
     const u16 ordinary = player ? 0x80c : 0x00a;
     const u16 special = player ? 0x824 : 0x022;
     const u16 scripted = player ? 0x804 : 0x002;
@@ -546,13 +546,13 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
     objhitobj_killparts_yrot = NULL;
     BOLT_s *bolt = objhitobj_bolt;
     objhitobj_bolt = NULL;
-    if (Hub_InMenu() && (target->apiobj.flags_low & 0x80))
+    if (Hub_InMenu() && (target->apiobj.player_controlled))
         return 0;
     if (target->apiobj.character_data->game_character->flags_090 & 0x8000)
         return 0;
     if (target->character_context == 95 || target->character_context == 96)
         return 0;
-    if (target->character_context == 90 && (!target->field_0x7a3 || (attacker && !(attacker->apiobj.flags_low & 0x80))))
+    if (target->character_context == 90 && (!target->field_0x7a3 || (attacker && !attacker->apiobj.player_controlled)))
         return 0;
     if (!(damage == -1 && (flags & 0x200))) {
         if (target->character_context == 0 &&
@@ -573,7 +573,7 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
         hit = 0;
         instant = false;
     }
-    if (attacker && (attacker->apiobj.flags_low & 0x80))
+    if (attacker && (attacker->apiobj.player_controlled))
         AlertSurroundingCreatures(attacker, &target->apiobj.collision_position);
     if (hit > 0 || instant)
         target->field_0xef8 |= 1;
@@ -588,7 +588,7 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
                 angle = -angle;
             if (angle > 0x4000 && !(LEGOCONTEXT_COMBO != -1 && attacker->character_context == LEGOCONTEXT_COMBO &&
                                     attacker->combo_branch == 6)) {
-                if (target->apiobj.flags_low & 0x80)
+                if (target->apiobj.player_controlled)
                     NewRumble(target->pad_gamepad->pad, 0.75f, 0);
                 if (LEGOCONTEXT_HOLD != -1 && target->character_context == LEGOCONTEXT_HOLD) {
                     NewBlockAction(target);
@@ -621,11 +621,11 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
         hit = 0;
     } else {
         if (WORLD->current_level == SPEEDERCHASEA_LDATA) {
-            if (!disable_narrow_socks && (flags & 4) && (target->apiobj.flags_low & 0x80)) {
+            if (!disable_narrow_socks && (flags & 4) && (target->apiobj.player_controlled)) {
                 hit = 0;
                 goto attributed_hit;
             }
-            if (target->id == id_SPEEDERBIKE && !(target->apiobj.flags_low & 0x80)) {
+            if (target->id == id_SPEEDERBIKE && !target->apiobj.player_controlled) {
                 if (attacker && !(attacker->apiobj.character_data->model_flags & 0x2000))
                     hit = 0;
                 else if (target->ai.creature_set != 2)
@@ -634,10 +634,10 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
             }
         }
         if (WORLD->area == HOTHBATTLE_ADATA &&
-            ((target->id == id_ATAT && !(target->apiobj.flags_low & 0x80) &&
-              (!attacker || !(attacker->apiobj.flags_low & 0x80))) ||
-             (attacker && attacker->id == id_ATAT && !(target->apiobj.flags_low & 0x80) &&
-              !(attacker->apiobj.flags_low & 0x80)))) {
+            ((target->id == id_ATAT && !target->apiobj.player_controlled &&
+              (!attacker || !attacker->apiobj.player_controlled)) ||
+             (attacker && attacker->id == id_ATAT && !target->apiobj.player_controlled &&
+              !attacker->apiobj.player_controlled))) {
             if (hit == -1 && target->id == id_ATAT) {
                 if (target->character_context != 23)
                     hit = 0;
@@ -647,7 +647,7 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
         }
         if (flags & 1)
             goto attributed_hit;
-        if ((flags & 2) && !(target->apiobj.flags_low & 0x80) && WORLD->current_level != HUB_LDATA) {
+        if ((flags & 2) && !target->apiobj.player_controlled && WORLD->current_level != HUB_LDATA) {
             hit = 0;
             goto attributed_hit;
         }
@@ -655,19 +655,19 @@ i32 ObjHitObj(GameObject_s *attacker, GameObject_s *target, i32 damage, u16 flag
             hit = 0;
             goto attributed_hit;
         }
-        if ((flags & 12) == 8 && (target->apiobj.flags_low & 0x80) && WORLD->current_level != HUB_LDATA &&
+        if ((flags & 12) == 8 && (target->apiobj.player_controlled) && WORLD->current_level != HUB_LDATA &&
             WORLD->current_level != VADERC_LDATA) {
             hit = 0;
             goto attributed_hit;
         }
-        if ((MiniCutCam && (target->apiobj.flags_low & 0x80)) || target->pad_gamepad == ViewCamGetGamePad() ||
+        if ((MiniCutCam && (target->apiobj.player_controlled)) || target->pad_gamepad == ViewCamGetGamePad() ||
             ((target->apiobj.character_data->model_flags & 0x20000000) && target->field_0xcc0 == NULL))
             hit = 0;
     }
 attributed_hit:
     if (attacker) {
         target->last_attacker = attacker;
-        if (attacker->apiobj.flags_low & 0x80) {
+        if (attacker->apiobj.player_controlled) {
             if ((target->apiobj.character_data->game_character->flags_090 & 0x40) && !VehicleArea &&
                 (WORLD->current_level != SPEEDERCHASEA_LDATA || disable_narrow_socks))
                 hit = -1;
@@ -735,9 +735,9 @@ impact:
         result = 0;
         goto finish;
     }
-    if (hit != -1 && !(target->flicker_time <= 0.0f) && (!attacker || !(attacker->apiobj.flags_low & 0x80)))
+    if (hit != -1 && !(target->flicker_time <= 0.0f) && (!attacker || !attacker->apiobj.player_controlled))
         return 0;
-    if (!(hit > 0 && (target->apiobj.flags_low & 0x80))) {
+    if (!(hit > 0 && (target->apiobj.player_controlled))) {
         if (target->character_context == 45 && !Player_HasFastBuild(target))
             GizBuildIt_SetToStart(static_cast<GIZBUILDIT_s *>(target->field_0x788), 1, 1);
         Player_ClearContext(target, 0);
@@ -746,12 +746,12 @@ impact:
     if (target->field_0x108e && !TouchHacks::TouchControlsActive)
         LoseHelmet(target, 0, 0);
     if (hit != -1) {
-        if (!target->current_hp || ((target->apiobj.flags_low & 0x80) && Player_HasInvincibility(target))) {
+        if (!target->current_hp || ((target->apiobj.player_controlled) && Player_HasInvincibility(target))) {
             if (target->id == id_ROYALGUARD || target->id == id_WOOKIEE)
                 SetFlicker(target, 0.4f);
             PlayerTakeHit(target, attacker);
             result = 0;
-            if (target->apiobj.flags_low & 0x80)
+            if (target->apiobj.player_controlled)
                 TakeHitRumble(target, 0.666f);
             goto hurt;
         }
@@ -767,7 +767,7 @@ impact:
                 target->apiobj.field_0x27c != -1;
     if ((target->apiobj.character_data->model_flags & 0x20000000) && !ObjIsTargetSpeeder(target) && !no_impact) {
         coins = 0;
-        if ((target->apiobj.flags_low & 0x80) && target->coinpacket && target->coinpacket->coins && BonusWinner == -1)
+        if ((target->apiobj.player_controlled) && target->coinpacket && target->coinpacket->coins && BonusWinner == -1)
             coins = LoseCoins(target, 1);
         AddPickups(coins, 0, 0, 0, &target->apiobj.collision_position, NULL, 2.0f,
                    attacker ? attacker->apiobj.field_0x27c : -1, 1.0f, 2000000.0f, attacker, 1, 0, false);
@@ -795,12 +795,12 @@ impact:
     coins = 0;
     hearts = 0;
     if (target->apiobj.field_0x27c == -1) {
-        if (!(target->apiobj.flags_low & 0x80)) {
+        if (!target->apiobj.player_controlled) {
             coins = BonusArea ? static_cast<u16>(target->apiobj.character_data->game_character->field_0xee)
                               : (Cheat_IsOn(16) ? 350 : 0);
             hearts = ReleaseHearts();
         }
-    } else if (target->apiobj.flags_low & 0x80) {
+    } else if (target->apiobj.player_controlled) {
         if (target->coinpacket && target->coinpacket->coins && BonusWinner == -1)
             coins = LoseCoins(target, 1);
         if (!BuildUpDone)
@@ -824,7 +824,7 @@ impact:
     }
     if (WORLD->current_level == VADERC_LDATA && !netclient) {
         GIZAIMESSAGE_s *message = CheckGizAIMessage(gizaimessagesys, "FinalFight", NULL);
-        if (message && message->value == 1.0f && (!attacker || (attacker->apiobj.flags_low & 0x80))) {
+        if (message && message->value == 1.0f && (!attacker || (attacker->apiobj.player_controlled))) {
             grab_screen_image = 1;
             if (FreePlay)
                 CompleteLevel(WORLD);
@@ -853,12 +853,12 @@ impact:
     KillParts(target, -1, target->id == id_BODYGUARD ? 4 : -1, 1, throw_up ? 1.0f : 0.0f, 0,
               reinterpret_cast<u16 *>(parts_angle));
     KillGameObject(target, 2, 0);
-    if (target->apiobj.flags_low & 0x80)
+    if (target->apiobj.player_controlled)
         GameCam_Judder(GameCam, 0.2f, 0, NULL);
     result = 2;
     goto finish;
 surviving_hit:
-    if (target->apiobj.flags_low & 0x80)
+    if (target->apiobj.player_controlled)
         TakeHitRumble(target, 0.666f);
     target->current_hp = health;
     if (hit != 0) {
@@ -892,7 +892,7 @@ hurt:
         PlayHurtSfx(target);
     goto finish;
 finish:
-    if (attacker && (attacker->apiobj.flags_low & 0x80)) {
+    if (attacker && (attacker->apiobj.player_controlled)) {
         if (!no_rumble) {
             if (result == 2)
                 KillRumble(attacker);
@@ -905,7 +905,7 @@ finish:
     return result;
 refill:
     coins = 0;
-    if ((target->apiobj.flags_low & 0x80) && target->coinpacket && target->coinpacket->coins && BonusWinner == -1)
+    if ((target->apiobj.player_controlled) && target->coinpacket && target->coinpacket->coins && BonusWinner == -1)
         coins = LoseCoins(target, 1);
     AddPickups(coins, 0, 0, 0, &target->apiobj.collision_position, NULL, 2.0f,
                attacker ? attacker->apiobj.field_0x27c : -1, 1.0f, 2000000.0f, attacker, 1, 0, false);

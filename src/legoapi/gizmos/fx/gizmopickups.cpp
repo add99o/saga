@@ -131,9 +131,14 @@ i32 GizmoPickup_NumberOfType(WORLDINFO_s *world, i32 type_index, char type_code)
     }
 
     i32 count = 0;
-    for (i32 index = 0; index < runtime->pickup_count; ++index, ++pickup) {
-        if (type_code != 0 ? pickup->type_code == type_code : pickup->type_index == type_index) {
-            ++count;
+    const i32 pickup_count = runtime->pickup_count;
+    if (pickup_count > 0) {
+        if (type_code != 0) {
+            for (i32 index = 0; index != pickup_count; ++index, ++pickup)
+                count = pickup->type_code == type_code ? count + 1 : count;
+        } else {
+            for (i32 index = 0; index != pickup_count; ++index, ++pickup)
+                count = pickup->type_index == type_index ? count + 1 : count;
         }
     }
     return count;
@@ -453,9 +458,9 @@ static void GizmoPickups_Update(void *world_ptr, void *, float) {
     if (pickup_sys->pickups != NULL && Missions_PickupsOff(MissionSys) == 0) {
         UpdatePickupList(world, pickup_sys->pickups, pickup_sys->pickup_count, true);
     }
-    if (pickup_sys->temporary_pickups != NULL && Missions_PickupsOff(MissionSys) == 0) {
-        UpdatePickupList(world, pickup_sys->temporary_pickups, GIZMOPICKUP_TEMPORARY_CAPACITY, false);
-    }
+    if (!(pickup_sys->temporary_pickups != NULL && Missions_PickupsOff(MissionSys) == 0))
+        return;
+    UpdatePickupList(world, pickup_sys->temporary_pickups, GIZMOPICKUP_TEMPORARY_CAPACITY, false);
 }
 
 static void GizmoPickups_Draw(void *world_ptr, void *, float) {
@@ -816,7 +821,7 @@ static i32 GizmoPickups_Load(void *world_ptr, void *) {
         AreaPickupScale = 1.0f;
     }
 
-    if (pickup_sys->draw_distance < 10.0f) {
+    if (!(pickup_sys->draw_distance >= 10.0f)) {
         pickup_sys->draw_distance = 10.0f;
     }
     if (version == 6 && (ADataList[world->level_sub_id].flags & AREAFLAG_NOPICKUPGRAVITY) != 0 &&

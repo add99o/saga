@@ -137,63 +137,60 @@ f32 ForceTowardsMid(GameObject_s *object) {
 }
 
 void ResetPushProgress(WORLDINFO_s *world, void *progress_data) {
-    if (world == NULL || world->push_blocks == NULL || world->push_block_count <= 0) {
+    if (world->push_blocks == NULL || world->push_block_count <= 0) {
         return;
     }
 
     PUSHPROGRESS *progress = static_cast<PUSHPROGRESS *>(progress_data);
-    const i32 count = world->push_block_count < 16 ? world->push_block_count : 16;
-    for (i32 index = 0; index < count; ++index) {
-        pushblock_s *block = &world->push_blocks[index];
-        const u32 bit = 1u << index;
-        if (progress == NULL) {
-            continue;
-        }
-
-        block->flags_0cb = (block->flags_0cb & ~2u) | ((progress->state_mask & bit) != 0 ? 2u : 0u);
-        const bool visible = (progress->visible_mask & bit) != 0;
-        block->flags_0ca = (block->flags_0ca & ~4u) | (visible ? 4u : 0u);
-        if (!visible) {
-            NuSpecialSetVisibility(&block->special, 0);
-            for (i32 output = 0; output < block->end_position_count; ++output) {
-                NuSpecialSetVisibility(&block->end_position_specials[output], 0);
+    for (i32 index = 0; index < world->push_block_count; ++index) {
+        if (index < 16 && progress != NULL) {
+            pushblock_s *block = &world->push_blocks[index];
+            const u32 bit = 1u << index;
+            block->flags_0cb = (block->flags_0cb & ~2u) | (((progress->state_mask & bit) != 0) << 1);
+            block->flags_0ca = (block->flags_0ca & ~4u) | (((progress->visible_mask & bit) != 0) << 2);
+            if ((block->flags_0ca & 4) == 0) {
+                NuSpecialSetVisibility(&block->special, 0);
+                block->flags_0ca &= ~4u;
+                for (i32 output = 0; output < block->end_position_count; ++output) {
+                    NuSpecialSetVisibility(&block->end_position_specials[output], 0);
+                }
             }
-        }
 
-        if ((progress->position_mask & bit) == 0) {
-            continue;
-        }
-        nuinstanim_s *animation = NuSpecialGetInstAnim(&block->special);
-        if (!visible && animation != NULL) {
-            NUMTX evaluated;
-            EvalAnim(&block->special, 1.0f, &evaluated, 0);
-            NUMTX *matrix = NuSpecialGetInstanceMtx(&block->special);
-            matrix->m30 = evaluated.m30;
-            matrix->m31 = evaluated.m31;
-            matrix->m32 = evaluated.m32;
-            NuSpecialUpdate(&block->special);
-            for (i32 output = 0; output < block->end_position_count; ++output) {
-                nuhspecial_s *special = &block->end_position_specials[output];
-                EvalAnim(special, 1.0f, &evaluated, 0);
-                matrix = NuSpecialGetInstanceMtx(special);
+            if ((progress->position_mask & bit) == 0) {
+                continue;
+            }
+            nuinstanim_s *animation = NuSpecialGetInstAnim(&block->special);
+            if (!((block->flags_0ca & 4) == 0 && animation != NULL)) {
+                NUMTX *matrix = NuSpecialGetInstanceMtx(&block->special);
+                matrix->m30 = progress->positions[index].x;
+                matrix->m31 = progress->positions[index].y;
+                matrix->m32 = progress->positions[index].z;
+                NuSpecialUpdate(&block->special);
+                for (i32 output = 0; output < block->end_position_count; ++output) {
+                    matrix = NuSpecialGetInstanceMtx(&block->end_position_specials[output]);
+                    const NUVEC &position = progress->end_positions[output][index];
+                    matrix->m30 = position.x;
+                    matrix->m31 = position.y;
+                    matrix->m32 = position.z;
+                    NuSpecialUpdate(&block->end_position_specials[output]);
+                }
+            } else {
+                NUMTX evaluated;
+                NUMTX *matrix = NuSpecialGetInstanceMtx(&block->special);
+                EvalAnim(&block->special, 1.0f, &evaluated, 0);
                 matrix->m30 = evaluated.m30;
                 matrix->m31 = evaluated.m31;
                 matrix->m32 = evaluated.m32;
-                NuSpecialUpdate(special);
-            }
-        } else {
-            NUMTX *matrix = NuSpecialGetInstanceMtx(&block->special);
-            matrix->m30 = progress->positions[index].x;
-            matrix->m31 = progress->positions[index].y;
-            matrix->m32 = progress->positions[index].z;
-            NuSpecialUpdate(&block->special);
-            for (i32 output = 0; output < block->end_position_count; ++output) {
-                matrix = NuSpecialGetInstanceMtx(&block->end_position_specials[output]);
-                const NUVEC &position = progress->end_positions[output][index];
-                matrix->m30 = position.x;
-                matrix->m31 = position.y;
-                matrix->m32 = position.z;
-                NuSpecialUpdate(&block->end_position_specials[output]);
+                NuSpecialUpdate(&block->special);
+                for (i32 output = 0; output < block->end_position_count; ++output) {
+                    nuhspecial_s *special = &block->end_position_specials[output];
+                    matrix = NuSpecialGetInstanceMtx(special);
+                    EvalAnim(special, 1.0f, &evaluated, 0);
+                    matrix->m30 = evaluated.m30;
+                    matrix->m31 = evaluated.m31;
+                    matrix->m32 = evaluated.m32;
+                    NuSpecialUpdate(special);
+                }
             }
         }
     }
@@ -220,7 +217,7 @@ void FindForcePushTarget(GameObject_s *object, i32 activate, i32 target_filter) 
     const bool continuing_push = (object->pad_gamepad->allocated_5a & 0x10) != 0;
     if (continuing_push) {
         activate = 1;
-    } else if ((object->apiobj.flags_low & 0x80) == 0) {
+    } else if (!object->apiobj.player_controlled) {
         return;
     }
     if (object->apiobj.field_0x27d == 0) {
@@ -328,56 +325,55 @@ void FindForcePushTarget(GameObject_s *object, i32 activate, i32 target_filter) 
             }
 
             const bool candidate_is_player = candidate->apiobj.field_0x27c != -1;
-            if (WORLD->area == EMPERORFIGHT_ADATA && ((candidate->field_0xefb & 8) != 0 || candidate_is_player)) {
-                continue;
-            }
-            if (candidate->id == id_BODYGUARD) {
-                continue;
-            }
-
-            if (target_filter == 1) {
-                if (candidate_is_player) {
+            if (!(WORLD->area == EMPERORFIGHT_ADATA && ((candidate->field_0xefb & 8) != 0 || candidate_is_player))) {
+                if (candidate->id == id_BODYGUARD) {
                     continue;
                 }
-                if ((candidate->apiobj.field_0x1f4 & 5) != 0) {
-                    const u8 source_index = object->apiobj.field_0x289;
-                    const u8 target_index = candidate->apiobj.field_0x289;
-                    const u32 hostility = WORLD->api_object_sys->hostility_masks[source_index][target_index >> 5];
-                    if ((hostility & (1u << (target_index & 31))) == 0) {
+
+                if (target_filter == 1) {
+                    if (candidate_is_player) {
                         continue;
                     }
+                    if ((candidate->apiobj.field_0x1f4 & 5) != 0) {
+                        const u8 source_index = object->apiobj.field_0x289;
+                        const u8 target_index = candidate->apiobj.field_0x289;
+                        const u32 hostility = WORLD->api_object_sys->hostility_masks[source_index][target_index >> 5];
+                        if ((hostility & (1u << (target_index & 31))) == 0) {
+                            continue;
+                        }
+                    }
+                } else if (target_filter == 2 && !candidate_is_player) {
+                    continue;
                 }
-            } else if (target_filter == 2 && !candidate_is_player) {
-                continue;
-            }
-            if ((candidate->field_0xefb & 8) != 0) {
-                continue;
-            }
+                if ((candidate->field_0xefb & 8) != 0) {
+                    continue;
+                }
 
-            i32 candidate_choke;
-            i32 candidate_second;
-            i32 candidate_direct;
-            if (!target_animation_style(candidate, choke_style, second_style, super_weirdo, &candidate_choke,
-                                        &candidate_second, &candidate_direct)) {
-                continue;
-            }
+                i32 candidate_choke;
+                i32 candidate_second;
+                i32 candidate_direct;
+                if (!target_animation_style(candidate, choke_style, second_style, super_weirdo, &candidate_choke,
+                                            &candidate_second, &candidate_direct)) {
+                    continue;
+                }
 
-            NUVEC delta;
-            f32 distance =
-                NuVecDistSqr(&object->apiobj.collision_position, &candidate->apiobj.collision_position, &delta);
-            if (candidate->id == id_ATST) {
-                distance *= 1.0f / 3.0f;
-            }
-            if (distance >= best_distance ||
-                delta.x * object->facing_direction.x + delta.z * object->facing_direction.z >= 0.0f) {
-                continue;
-            }
+                NUVEC delta;
+                f32 distance =
+                    NuVecDistSqr(&object->apiobj.collision_position, &candidate->apiobj.collision_position, &delta);
+                if (candidate->id == id_ATST) {
+                    distance *= 1.0f / 3.0f;
+                }
+                if (distance >= best_distance ||
+                    delta.x * object->facing_direction.x + delta.z * object->facing_direction.z >= 0.0f) {
+                    continue;
+                }
 
-            best = candidate;
-            best_distance = distance;
-            selected_choke = candidate_choke;
-            selected_second = candidate_second;
-            selected_direct = candidate_direct;
+                best = candidate;
+                best_distance = distance;
+                selected_choke = candidate_choke;
+                selected_second = candidate_second;
+                selected_direct = candidate_direct;
+            }
         }
     }
     if (best == NULL || best->character_context == 0x0f) {
@@ -442,7 +438,7 @@ void FindForcePushTarget(GameObject_s *object, i32 activate, i32 target_filter) 
             } else {
                 best->context_animation = best->apiobj.character_model->model_data_b[5] != NULL ? 5 : 0x2b;
                 best->action_movement_state = 0;
-                if ((object->apiobj.flags_low & 0x80) != 0 && Cheat_IsOn(0x13)) {
+                if (object->apiobj.player_controlled && Cheat_IsOn(0x13)) {
                     best->action_movement_state = 4;
                 }
             }
@@ -474,7 +470,7 @@ i32 Pushing(GameObject_s *object, u16 *normal_angle, i32 *surface, i32 *angle_di
              object->action_movement_state == 9)
         pushing_obstacle = 1;
 
-    if ((static_cast<i8>(object->apiobj.flags_low) < 0 || (object->field_0xf02 & 3) != 0) &&
+    if ((object->apiobj.player_controlled || (object->field_0xf02 & 3) != 0) &&
         (object->pad_gamepad->input_magnitude > 0.0f || pushing_obstacle != 0) && object->field_0x1084 != 0 &&
         CanClimbSurface(object, static_cast<i8>(object->field_0x6b0)) == 0 &&
         fabsf(object->contact_normal.y) < NuTrigTable[0x3c71]) {
@@ -570,7 +566,7 @@ void StartEndOfJump(GameObject_s *object);
 void AlertSurroundingCreatures(GameObject_s *object, NUVEC *position);
 extern "C" i32 ParticlesPerSecond(f32 rate, f32 elapsed);
 
-__attribute__((optimize("O2", "no-omit-frame-pointer"))) void PushCode(GameObject_s *object, i32 allow_push) {
+void PushCode(GameObject_s *object, i32 allow_push) {
     if (VehicleArea != 0 || object->apiobj.field_0x27c == -1) {
         return;
     }
@@ -1019,7 +1015,7 @@ pushspinner_maintain: {
             }
             goto revalidate_context;
         }
-        if (static_cast<i8>(object->apiobj.flags_low) < 0) {
+        if (object->apiobj.player_controlled) {
             u32 strength = qrand();
             f32 scaled = static_cast<f32>(strength) * 1.5259021893143654e-05f;
             scaled *= 0.3f;

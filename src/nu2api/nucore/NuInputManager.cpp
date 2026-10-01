@@ -7,6 +7,7 @@
 #include "nu2api/nucore/common.h"
 #include "nu2api/nucore/numemory.h"
 #include "nu2api/nucore/nupad.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 NuInputManager::NuInputManager() {
     u32 i;

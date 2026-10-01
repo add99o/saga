@@ -247,7 +247,7 @@ void SuperCarry_Throw(GameObject_s *object, i32 mode) {
 i32 SuperCarry_Possible(GameObject_s *object, i32 require_grounded) {
     if (CanSuperCarryFn == NULL || CanSuperCarryFn(object) == 0)
         return 0;
-    if (static_cast<i8>(object->apiobj.flags_low) >= 0)
+    if (!object->apiobj.player_controlled)
         return 0;
     if (require_grounded != 0 && (object->apiobj.field_0x27d == 0 || ObjLandReady(object) == 0))
         return 0;
@@ -274,7 +274,7 @@ void SuperCarry_Start(GameObject_s *object, GIZMOBLOWUP_s *blowup, i32 immediate
             object->context_animation = LEGOACT_SUPERCARRY_PICKUP;
             object->field_0x7a3 = 0;
             f32 duration = AnimDuration(object->id, LEGOACT_SUPERCARRY_PICKUP, 0.0f, 0.0f, 1);
-            if (duration <= 0.0f)
+            if (!(duration > 0.0f))
                 duration = 0.5f;
             object->context_animation_timer = duration;
             object->apiobj.movement_facing_angle =
@@ -349,18 +349,19 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
         f32 best = 100000.0f;
         GIZMOBLOWUP_s *blowup = world->gizmo_blowups;
         for (i32 i = 0; i < world->gizmo_blowup_count; ++i, ++blowup) {
-            if ((blowup->status_flags & 0x80c001) != 0x80c000 || (blowup->secondary_flags & 1) == 0)
-                continue;
-            if ((blowup->draw_flags & 0x20) != 0 && ShadowMode == 0)
-                continue;
-            if (blowup->platform_id != -1 && blowup->platform_id == object->field_0x1078)
-                continue;
-            NUVEC delta;
-            f32 distance = NuVecDistSqr(&blowup->mid_position, &object->apiobj.collision_position, &delta);
-            f32 radius = object->apiobj.field_0x1dc + blowup->target_scale + 0.2f;
-            if (distance < best && distance < radius * radius && delta.x * forward.x + delta.z * forward.z > 0.0f) {
-                nearest = blowup;
-                best = distance;
+            if (!((blowup->status_flags & 0x80c001) != 0x80c000 || (blowup->secondary_flags & 1) == 0)) {
+                if ((blowup->draw_flags & 0x20) != 0 && ShadowMode == 0)
+                    continue;
+                if (blowup->platform_id != -1 && blowup->platform_id == object->field_0x1078)
+                    continue;
+                NUVEC delta;
+                f32 distance = NuVecDistSqr(&blowup->mid_position, &object->apiobj.collision_position, &delta);
+                f32 radius = object->apiobj.field_0x1dc + blowup->target_scale + 0.2f;
+                if (distance < best && distance < radius * radius &&
+                    delta.x * forward.x + delta.z * !(forward.z <= 0.0f)) {
+                    nearest = blowup;
+                    best = distance;
+                }
             }
         }
         if (nearest == NULL)
@@ -373,8 +374,8 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
             message.flags = 0x87;
             message.field_0x4f = 4;
             message.scale = 2.0f;
-            if (Player[0] != NULL && (Player[0]->apiobj.flags_low & 0x80) != 0 && Player[1] != NULL &&
-                (Player[1]->apiobj.flags_low & 0x80) != 0)
+            if (Player[0] != NULL && Player[0]->apiobj.player_controlled && Player[1] != NULL &&
+                Player[1]->apiobj.player_controlled)
                 message.field_0x4f = player == 0 ? 12 : 6;
             message.red = PlayerRGB[player][0];
             message.green = PlayerRGB[player][1];
@@ -407,7 +408,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                 }
             }
             object->context_animation_timer -= FRAMETIME;
-            if (object->context_animation_timer <= 0.0f) {
+            if (!(object->context_animation_timer > 0.0f)) {
                 object->field_0x7a3 = 2;
                 object->context_animation = LEGOACT_SUPERCARRY_IDLE;
                 if ((object->context_flags & 0x40) == 0)
@@ -492,7 +493,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                             object->context_flags &= static_cast<u8>(~0x40);
                             f32 duration = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 1);
                             object->context_animation_timer = duration;
-                            if (duration <= 0.0f)
+                            if (!(duration > 0.0f))
                                 object->context_animation_timer = 0.5f;
                             return;
                         }
@@ -524,7 +525,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                         object->context_flags &= static_cast<u8>(~0x40);
                         f32 duration = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 1);
                         object->context_animation_timer = duration;
-                        if (duration <= 0.0f)
+                        if (!(duration > 0.0f))
                             object->context_animation_timer = 0.5f;
                         object->carried_object_drop_position.x = object->apiobj.lower_position.x;
                         object->carried_object_drop_position.y = object->apiobj.field_0x218;
@@ -568,7 +569,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                 event = marker >= 1.0f && *frame >= marker;
             }
             object->context_animation_timer -= FRAMETIME;
-            if (object->context_animation_timer <= 0.0f) {
+            if (!(object->context_animation_timer > 0.0f)) {
                 if ((object->context_flags & 0x40) == 0)
                     event = true;
                 else
@@ -658,12 +659,12 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
             return;
     }
 idle_or_walk:
-    if (object->pad_gamepad->input_magnitude > 0.0f) {
-        object->field_0x7a3 = 3;
-        object->context_animation = LEGOACT_SUPERCARRY_WALK;
-    } else {
+    if (!(object->pad_gamepad->input_magnitude > 0.0f)) {
         object->field_0x7a3 = 2;
         object->context_animation = LEGOACT_SUPERCARRY_IDLE;
+    } else {
+        object->field_0x7a3 = 3;
+        object->context_animation = LEGOACT_SUPERCARRY_WALK;
     }
 }
 

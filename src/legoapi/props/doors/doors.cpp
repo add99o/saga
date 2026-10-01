@@ -266,52 +266,49 @@ void Doors_Configure(WORLDINFO_s *world, char *config) {
     i32 in_door = 0;
     DOOR_s *door = doors;
     while (NuFParGetLine(parser) != 0) {
-        if (NuFParGetWord(parser) == 0) {
-            continue;
-        }
+        if (NuFParGetWord(parser) != 0) {
+            if (in_door) {
+                if (NuStrICmp(parser->word_buf, const_cast<char *>("door_end")) != 0) {
+                    NuFParInterpretWord(parser);
+                    continue;
+                }
 
-        if (!in_door) {
-            if (NuStrICmp(parser->word_buf, const_cast<char *>("door_start")) != 0) {
-                continue;
+                if (door->spline != NULL && door->level != -1) {
+                    if (door->freeplay_level == -1) {
+                        door->freeplay_level = door->level;
+                    }
+                    world->door_count++;
+                    door++;
+                }
+                in_door = 0;
+            } else {
+                if (NuStrICmp(parser->word_buf, const_cast<char *>("door_start")) != 0) {
+                    continue;
+                }
+
+                D_worldinfo = world;
+                D_door = door;
+                door->name[0] = '\0';
+                door->camera_spline_name[0] = '\0';
+                door->spline = NULL;
+                door->pos = v000;
+                door->radius = 1.0f;
+                door->normal = v001;
+                door->level = -1;
+                door->freeplay_level = -1;
+                door->next_sock = 0xff;
+                door->flags = 0;
+                door->vehicle = 0xff;
+                door->active = 0;
+                door->camera_spline = NULL;
+                door->camera_wait = 0.0f;
+                door->camera_blend_time = 1.0f;
+                door->vehicle_mask = 0;
+                door->vehicle_mode = 0;
+                door->cutscene = NULL;
+                in_door = 1;
             }
-
-            D_worldinfo = world;
-            D_door = door;
-            door->name[0] = '\0';
-            door->camera_spline_name[0] = '\0';
-            door->spline = NULL;
-            door->pos = v000;
-            door->radius = 1.0f;
-            door->normal = v001;
-            door->level = -1;
-            door->freeplay_level = -1;
-            door->next_sock = 0xff;
-            door->flags = 0;
-            door->vehicle = 0xff;
-            door->active = 0;
-            door->camera_spline = NULL;
-            door->camera_wait = 0.0f;
-            door->camera_blend_time = 1.0f;
-            door->vehicle_mask = 0;
-            door->vehicle_mode = 0;
-            door->cutscene = NULL;
-            in_door = 1;
-            continue;
         }
-
-        if (NuStrICmp(parser->word_buf, const_cast<char *>("door_end")) != 0) {
-            NuFParInterpretWord(parser);
-            continue;
-        }
-
-        if (door->spline != NULL && door->level != -1) {
-            if (door->freeplay_level == -1) {
-                door->freeplay_level = door->level;
-            }
-            world->door_count++;
-            door++;
-        }
-        in_door = 0;
     }
 
     NuFParDestroy(parser);
@@ -654,109 +651,26 @@ void Doors_Check(WORLDINFO_s *world, GameObject_s *object) {
     }
 }
 
-DOOR_s *Door_FindByIndex(WORLDINFO_s *world, i32 a, i32 b, NUVEC *c) {
-    DOOR_s *d = world->doors;
-    DOOR_s *out;
-    out = NULL;
-    if (d != NULL) {
-        i32 count = world->door_count;
-        if (count > 0) {
-            if (a == -1) {
-                if (b != -1) {
-                    if (c != NULL) {
-                        f32 best = 1000000.0f;
-                        struct DOOR_s *bestDoor = NULL;
-                        i32 i = 0;
-                        do {
-                            if (((d->flags & 4) == 0) && d->level != -1 && d->level == b) {
-                                f32 dist = NuVecDistSqr((NUVEC *)c, &d->pos, NULL);
-                                count = world->door_count;
-                                if (dist < best) {
-                                    best = dist;
-                                    bestDoor = d;
-                                }
-                            }
-                            i++;
-                            d++;
-                        } while (i < count);
-                        return bestDoor;
-                    }
-                    i32 i = 0;
-                    do {
-                        if (((d->flags & 4) == 0) && d->level != -1 && d->level == b) {
-                            return d;
-                        }
-                        i++;
-                        d++;
-                    } while (i != count);
-                }
-            } else {
-                if (c != NULL) {
-                    if (b != -1) {
-                        f32 best = 1000000.0f;
-                        struct DOOR_s *bestDoor = NULL;
-                        i32 i = 0;
-                        do {
-                            i16 s = d->level;
-                            if (((d->flags & 4) == 0) && s != -1 && (s == b || LDataList[s].area_index == a)) {
-                                f32 dist = NuVecDistSqr((NUVEC *)c, &d->pos, NULL);
-                                count = world->door_count;
-                                if (dist < best) {
-                                    best = dist;
-                                    bestDoor = d;
-                                }
-                            }
-                            i++;
-                            d++;
-                        } while (i < count);
-                        return bestDoor;
-                    }
-                    f32 best = 1000000.0f;
-                    struct DOOR_s *bestDoor = NULL;
-                    i32 i = 0;
-                    do {
-                        if (((d->flags & 4) == 0) && d->level != -1 && LDataList[d->level].area_index == a) {
-                            f32 dist = NuVecDistSqr((NUVEC *)c, &d->pos, NULL);
-                            count = world->door_count;
-                            if (dist < best) {
-                                best = dist;
-                                bestDoor = d;
-                            }
-                        }
-                        i++;
-                        d++;
-                    } while (i < count);
-                    return bestDoor;
-                }
-                if (b == -1) {
-                    i32 i = 0;
-                    do {
-                        if (((d->flags & 4) == 0) && d->level != -1 && LDataList[d->level].area_index == a) {
-                            return d;
-                        }
-                        i++;
-                        d++;
-                    } while (i != count);
-                } else {
-                    i32 i = 0;
-                    do {
-                        i16 s = d->level;
-                        if ((d->flags & 4) == 0 && s != -1) {
-                            if (s == b) {
-                                return d;
-                            }
-                            if (LDataList[s].area_index == a) {
-                                return d;
-                            }
-                        }
-                        i++;
-                        d++;
-                    } while (i != count);
-                }
-            }
-        }
+DOOR_s *Door_FindByIndex(WORLDINFO_s *world, i32 area, i32 level, NUVEC *position) {
+    DOOR_s *door = world->doors;
+    if (door == NULL || world->door_count <= 0)
+        return NULL;
+    f32 best_distance = 1000000.0f;
+    DOOR_s *best = NULL;
+    for (i32 i = 0; i < world->door_count; ++i, ++door) {
+        if ((door->flags & 4) != 0 || door->level == -1)
+            continue;
+        if (!((level != -1 && door->level == level) || (area != -1 && LDataList[door->level].area_index == area)))
+            continue;
+        if (position == NULL)
+            return door;
+        f32 distance = NuVecDistSqr(position, &door->pos, NULL);
+        if (!(distance < best_distance))
+            continue;
+        best_distance = distance;
+        best = door;
     }
-    return out;
+    return best;
 }
 
 ADDGIZMOTYPE *Door_RegisterGizmo(i32 type_id) {

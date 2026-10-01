@@ -225,10 +225,10 @@ static void LoadPermData(BGPROCINFO *proc) {
 
     // Font path depends on language.  `Text_Language == 0` is Japanese in the
     // original; everything else uses the Latin font.
-    if (Text_Language == 0) {
-        Text_LoadFont((char *)"stuff\\text\\starwars_font_j", &permbuffer_ptr, &permbuffer_end);
-    } else {
+    if (Text_Language != 0) {
         Text_LoadFont((char *)"stuff\\text\\starwars_font", &permbuffer_ptr, &permbuffer_end);
+    } else {
+        Text_LoadFont((char *)"stuff\\text\\starwars_font_j", &permbuffer_ptr, &permbuffer_end);
     }
 
     // PAL builds show the language menu — the loader spins here until the menu
@@ -439,11 +439,11 @@ void LoadPerm(void) {
         while (language_index < LANGUAGECOUNT && Text_LanguageList[language_index].language != device_language) {
             language_index++;
         }
-        if (language_index < LANGUAGECOUNT) {
+        if (!(language_index < LANGUAGECOUNT)) {
+            LoadPerm_LanguageSelect = 0;
+        } else {
             NuLanguageSet(device_language);
             Text_Language = static_cast<u32>(device_language);
-        } else {
-            LoadPerm_LanguageSelect = 0;
         }
     }
 
@@ -490,26 +490,7 @@ void LoadPerm(void) {
         }
 
         if (legal_timer < 5.8f && LoadPerm_LanguageSelect == 3 && ready_timer >= 1.0f && loadlegal_done) {
-            if (legal_timer == 0.0f && legal_mtl == nullptr) {
-                if (legal_tid == 0) {
-                    legal_timer = 5.8f;
-                } else {
-                    NUMTL *mtl = NuMtlCreate(1);
-                    if (mtl == nullptr) {
-                        legal_timer = 5.8f;
-                    } else {
-                        mtl->diffuse_color = {1.0f, 1.0f, 1.0f};
-                        mtl->opacity = 1.0f;
-                        mtl->shader_desc.flags = 0x1000;
-                        mtl->tex_id = static_cast<i16>(legal_tid);
-                        u8 *attrib = reinterpret_cast<u8 *>(&mtl->attribs);
-                        attrib[1] = (attrib[1] & 0xcf) | 0xe0;
-                        attrib[0] = (attrib[0] & 0xc0) | 0x22;
-                        NuMtlUpdate(mtl);
-                        legal_mtl = mtl;
-                    }
-                }
-            } else {
+            if (!(legal_timer == 0.0f && legal_mtl == nullptr)) {
                 if (PermDataLoaded != 0 &&
                     ((GamePad[0].buttons_down_08 &
                       (GAMEPAD_JUMP | GAMEPAD_START | GAMEPAD_SPECIAL | GAMEPAD_ACTION | GAMEPAD_TAG)) != 0 ||
@@ -521,6 +502,25 @@ void LoadPerm(void) {
                 }
                 legal_timer += FRAMETIME;
                 if (legal_timer > 5.8f) {
+                    legal_timer = 5.8f;
+                }
+            } else {
+                if (legal_tid != 0) {
+                    NUMTL *mtl = NuMtlCreate(1);
+                    if (mtl != nullptr) {
+                        mtl->diffuse_color = {1.0f, 1.0f, 1.0f};
+                        mtl->opacity = 1.0f;
+                        mtl->shader_desc.flags = 0x1000;
+                        mtl->tex_id = static_cast<i16>(legal_tid);
+                        u8 *attrib = reinterpret_cast<u8 *>(&mtl->attribs);
+                        attrib[1] = (attrib[1] & 0xcf) | 0xe0;
+                        attrib[0] = (attrib[0] & 0xc0) | 0x22;
+                        NuMtlUpdate(mtl);
+                        legal_mtl = mtl;
+                    } else {
+                        legal_timer = 5.8f;
+                    }
+                } else {
                     legal_timer = 5.8f;
                 }
             }
@@ -551,7 +551,9 @@ void LoadPerm(void) {
         NuRndrBeginScene(-1);
         NuRndrGradClear(0xf00, 0x80000000, 0x80000000, 1.0f);
 
-        if (!sequence_done || tail_timer >= 0.0f) {
+        if (!(!sequence_done || tail_timer >= 0.0f)) {
+            tail_timer = 0.0f;
+        } else {
             if (tail_timer == 0.2f) {
                 DrawMenu(0);
 
@@ -575,7 +577,7 @@ void LoadPerm(void) {
                         const f32 aspect = NuIOS_GetAspectRatio();
                         f32 half_w;
                         f32 half_h;
-                        if (aspect > 1.7777778f) {
+                        if (!(!(aspect > 1.7777778f))) {
                             half_h = 0.5f;
                             half_w = aspect * 0.5f / 1.7777778f;
                         } else {
@@ -605,23 +607,23 @@ void LoadPerm(void) {
 
                         LegalVertex *vert = reinterpret_cast<LegalVertex *>(g_NuPrim_StreamBufferPtr->addr);
                         vert->colour = colour | (g_NuPrim_NeedsOverbrightening ? 0x808080u : 0x404040u);
-                        if (g_NuPrim_NeedsHalfUVs) {
-                            vert->half.u = F32ToF16(0.0f);
-                            vert->half.v = F32ToF16(0.0f);
-                        } else {
+                        if (!g_NuPrim_NeedsHalfUVs) {
                             vert->full.u = 0.0f;
                             vert->full.v = 0.0f;
+                        } else {
+                            vert->half.u = F32ToF16(0.0f);
+                            vert->half.v = F32ToF16(0.0f);
                         }
                         NuPrim2DAddXYZ(0.5f - half_w, 0.5f - half_h, 0.0f);
 
                         vert = reinterpret_cast<LegalVertex *>(g_NuPrim_StreamBufferPtr->addr);
                         vert->colour = colour | (g_NuPrim_NeedsOverbrightening ? 0x808080u : 0x404040u);
-                        if (g_NuPrim_NeedsHalfUVs) {
-                            vert->half.u = F32ToF16(1.0f);
-                            vert->half.v = F32ToF16(1.0f);
-                        } else {
+                        if (!g_NuPrim_NeedsHalfUVs) {
                             vert->full.u = 1.0f;
                             vert->full.v = 1.0f;
+                        } else {
+                            vert->half.u = F32ToF16(1.0f);
+                            vert->half.v = F32ToF16(1.0f);
                         }
                         NuPrim2DAddXYZ(0.5f + half_w, 0.5f + half_h, 0.0f);
                         NuPrim2DEnd();
@@ -646,8 +648,6 @@ void LoadPerm(void) {
                     }
                 }
             }
-        } else {
-            tail_timer = 0.0f;
         }
 
         NuRndrEndScene();

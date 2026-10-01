@@ -483,7 +483,7 @@ static void HatMachine_Draw(void *world_ptr, void *, float) {
         if (animated_instance_animation != NULL) {
             if (machine->animation_state > 0) {
                 machine->animation_time += FRAMETIME;
-                if (machine->animation_state <= 3 && machine->animation_time >= 3.0f) {
+                if (machine->animation_state <= 3 && !(machine->animation_time < 3.0f)) {
                     machine->animation_state = 4;
                     machine->state_elapsed = 0.0f;
                     machine->state_duration = 2.0f;
@@ -617,7 +617,16 @@ HATMACHINE *HatMachine_FindNearest(WORLDINFO_s *world, nuvec_s *position, GameOb
     f32 nearest_distance = 1.0e9f;
     HATMACHINE_s *nearest = NULL;
     if (world->hat_machine_sys->count > 0) {
-        if (object != NULL) {
+        if (object == NULL) {
+            for (i32 index = 0; index < world->hat_machine_sys->count; ++index) {
+                HATMACHINE_s *machine = &world->hat_machine_sys->machines[index];
+                const f32 candidate_distance = NuVecDistSqr(position, &machine->position, NULL);
+                if (candidate_distance < nearest_distance) {
+                    nearest_distance = candidate_distance;
+                    nearest = machine;
+                }
+            }
+        } else {
             for (i32 index = 0; index < world->hat_machine_sys->count; ++index) {
                 HATMACHINE_s *machine = &world->hat_machine_sys->machines[index];
                 if ((machine->flags & (HATMACHINE_FLAG_ANIMATING | HATMACHINE_FLAG_FINISHED | HATMACHINE_FLAG_VISIBLE |
@@ -630,15 +639,6 @@ HATMACHINE *HatMachine_FindNearest(WORLDINFO_s *world, nuvec_s *position, GameOb
                 NUVEC target_position;
                 Hat_GetAbsTargetPos(machine, &target_position);
                 const f32 candidate_distance = NuVecDistSqr(position, &target_position, NULL);
-                if (candidate_distance < nearest_distance) {
-                    nearest_distance = candidate_distance;
-                    nearest = machine;
-                }
-            }
-        } else {
-            for (i32 index = 0; index < world->hat_machine_sys->count; ++index) {
-                HATMACHINE_s *machine = &world->hat_machine_sys->machines[index];
-                const f32 candidate_distance = NuVecDistSqr(position, &machine->position, NULL);
                 if (candidate_distance < nearest_distance) {
                     nearest_distance = candidate_distance;
                     nearest = machine;
@@ -747,14 +747,14 @@ void HatMachine_MoveCode(WORLDINFO_s *world, GameObject_s *object, i32 special_p
             AlertSurroundingCreatures(object, &object->apiobj.collision_position);
             object->context_animation_timer = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 1);
             machine->animation_duration = object->context_animation_timer;
-            if (object->context_animation_timer <= 0.0f) {
+            if (!(object->context_animation_timer > 0.0f)) {
                 object->context_animation_timer = 2.0f;
             }
             object->field_0xdb0 = 0.0f;
             return;
         }
 
-        if (static_cast<i8>(object->apiobj.flags_low) < 0 && (object->apiobj.character_data->model_flags & 0x20) != 0 &&
+        if (object->apiobj.player_controlled && (object->apiobj.character_data->model_flags & 0x20) != 0 &&
             object->field_0xdb0 <= 0.0f) {
             PlaySfx(const_cast<char *>("TC14_VLN"), &object->apiobj.collision_position);
             object->field_0xdb0 = 0.5f;
@@ -778,7 +778,7 @@ void HatMachine_MoveCode(WORLDINFO_s *world, GameObject_s *object, i32 special_p
                 if (object->field_0x108e == 5) {
                     MakeBaddiesForgetAboutParty(1);
                 }
-                if (static_cast<i8>(object->apiobj.flags_low) < 0) {
+                if (object->apiobj.player_controlled) {
                     if (machine->current_hat == 5) {
                         Hint_SetComplete(0x627);
                     } else if (machine->current_hat == 6) {

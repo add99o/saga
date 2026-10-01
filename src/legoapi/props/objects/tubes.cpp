@@ -57,22 +57,21 @@ void TractorBeamCode(GameObject_s *object) {
             NewBuzz(object->pad_gamepad->pad, 0.1f, 0);
             continue;
         }
-        if (!(range_squared > distance))
-            continue;
+        if (range_squared > distance) {
+            u16 z_rotation;
+            u16 y_rotation;
+            GetRotationAngles(&direction, &z_rotation, &y_rotation);
+            AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[128].effect, &object->apiobj.position, 90,
+                                              FRAMETIME, z_rotation, y_rotation, NULL);
 
-        u16 z_rotation;
-        u16 y_rotation;
-        GetRotationAngles(&direction, &z_rotation, &y_rotation);
-        AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[128].effect, &object->apiobj.position, 90,
-                                          FRAMETIME, z_rotation, y_rotation, NULL);
+            const f32 seek_rate = (1.0f + NU_SIN_LUT((1.0f - distance / range_squared) * 16384.0f + 49152.0f)) * 25.0f;
+            NuVecNeg(&direction, &direction);
+            NuVecAdd(&direction, &direction, &object->apiobj.velocity);
+            SeekVec(&candidate->apiobj.velocity, &candidate->apiobj.velocity, &direction, seek_rate);
 
-        const f32 seek_rate = (1.0f + NU_SIN_LUT((1.0f - distance / range_squared) * 16384.0f + 49152.0f)) * 25.0f;
-        NuVecNeg(&direction, &direction);
-        NuVecAdd(&direction, &direction, &object->apiobj.velocity);
-        SeekVec(&candidate->apiobj.velocity, &candidate->apiobj.velocity, &direction, seek_rate);
-
-        NUVEC limit = {1.0e9f, 1.0e9f, 1.0e9f};
-        DisorientateCode(candidate, &limit, range);
+            NUVEC limit = {1.0e9f, 1.0e9f, 1.0e9f};
+            DisorientateCode(candidate, &limit, range);
+        }
     }
 
     PlaySfx(const_cast<char *>("env_tractorbeam_lp"), &object->apiobj.collision_position);

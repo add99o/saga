@@ -360,29 +360,28 @@ static __attribute__((used)) void edanimcbCancelLocalParticleTypeMenu(eduimenu_s
 
 static __attribute__((used)) void edanimcbBouncyMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     u32 colours[4] __attribute__((aligned(16))) = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};
-    if (edanim_nearest == -1) {
-        return;
+    if (edanim_nearest != -1) {
+        edanim_bouncy_menu =
+            eduiMenuCreate(70, 70, 250, 300, ed_fnt, edanimcbCancelBouncyMenu, const_cast<char *>("Bounciness"));
+        if (!edanim_bouncy_menu) {
+            return;
+        }
+
+        eduiMenuAddItem(edanim_bouncy_menu,
+                        eduiItemSliderCreate(0, colours, 0, edanimcbSetBouncyPlayerGrav, -0.1f, 0.2f,
+                                             AnimParams[edanim_nearest_param_id].bounce_impulse,
+                                             const_cast<char *>("Player Grav")));
+        eduiMenuAddItem(edanim_bouncy_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetBouncyTension, 0.0f, 1.0f,
+                                                                 AnimParams[edanim_nearest_param_id].bounce_spring,
+                                                                 const_cast<char *>("Tension")));
+        eduiMenuAddItem(edanim_bouncy_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetBouncyDamping, 0.0f, 1.0f,
+                                                                 AnimParams[edanim_nearest_param_id].bounce_damping,
+                                                                 const_cast<char *>("Damping")));
+
+        eduiMenuAttach(parent, edanim_bouncy_menu);
+        edanim_bouncy_menu->x = parent->x + 10;
+        edanim_bouncy_menu->y = parent->y + 40;
     }
-
-    edanim_bouncy_menu =
-        eduiMenuCreate(70, 70, 250, 300, ed_fnt, edanimcbCancelBouncyMenu, const_cast<char *>("Bounciness"));
-    if (!edanim_bouncy_menu) {
-        return;
-    }
-
-    eduiMenuAddItem(edanim_bouncy_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetBouncyPlayerGrav, -0.1f, 0.2f,
-                                                             AnimParams[edanim_nearest_param_id].bounce_impulse,
-                                                             const_cast<char *>("Player Grav")));
-    eduiMenuAddItem(edanim_bouncy_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetBouncyTension, 0.0f, 1.0f,
-                                                             AnimParams[edanim_nearest_param_id].bounce_spring,
-                                                             const_cast<char *>("Tension")));
-    eduiMenuAddItem(edanim_bouncy_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetBouncyDamping, 0.0f, 1.0f,
-                                                             AnimParams[edanim_nearest_param_id].bounce_damping,
-                                                             const_cast<char *>("Damping")));
-
-    eduiMenuAttach(parent, edanim_bouncy_menu);
-    edanim_bouncy_menu->x = parent->x + 10;
-    edanim_bouncy_menu->y = parent->y + 40;
 }
 
 static __attribute__((used)) void edanimcbSoundMenu(eduimenu_s *parent, eduiitem_s *, u32) {
@@ -437,60 +436,57 @@ static __attribute__((used)) void edanimcbParticleMenu(eduimenu_s *parent, eduii
 
 static __attribute__((used)) void edanimcbSwitchMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     u32 colours[4] __attribute__((aligned(16))) = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};
-    if (edanim_nearest == -1 || edanim_nearest_param_id == -1) {
-        return;
+    if (!(edanim_nearest == -1 || edanim_nearest_param_id == -1)) {
+        edanim_switch_menu =
+            eduiMenuCreate(70, 70, 180, 250, ed_fnt, edanimcbCancelSwitchMenu, const_cast<char *>("Switch Menu"));
+        if (!edanim_switch_menu) {
+            return;
+        }
+
+        eduiMenuAddItem(edanim_switch_menu, eduiItemSelCreate(1, colours, 0, 0, edanimcbSwitchTypeMenu,
+                                                              const_cast<char *>("Switch Type...")));
+        eduiMenuAddItem(edanim_switch_menu, eduiItemSliderCreateInt(0, colours, 0, edanimcbSetSwitchId, -1, 129,
+                                                                    AnimParams[edanim_nearest_param_id].field_010,
+                                                                    const_cast<char *>("Switch ID")));
+        eduiMenuAddItem(edanim_switch_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetSwitchDelay, 0.0f, 20.0f,
+                                                                 AnimParams[edanim_nearest_param_id].field_018,
+                                                                 const_cast<char *>("Switch Delay")));
+        eduiMenuAddItem(edanim_switch_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetSwitchVar, 0.0f, 20.0f,
+                                                                 AnimParams[edanim_nearest_param_id].field_014,
+                                                                 const_cast<char *>("Switch Var")));
+
+        eduiMenuAttach(parent, edanim_switch_menu);
+        edanim_switch_menu->x = parent->x + 10;
+        edanim_switch_menu->y = parent->y + 40;
     }
-
-    edanim_switch_menu =
-        eduiMenuCreate(70, 70, 180, 250, ed_fnt, edanimcbCancelSwitchMenu, const_cast<char *>("Switch Menu"));
-    if (!edanim_switch_menu) {
-        return;
-    }
-
-    eduiMenuAddItem(edanim_switch_menu,
-                    eduiItemSelCreate(1, colours, 0, 0, edanimcbSwitchTypeMenu, const_cast<char *>("Switch Type...")));
-    eduiMenuAddItem(edanim_switch_menu, eduiItemSliderCreateInt(0, colours, 0, edanimcbSetSwitchId, -1, 129,
-                                                                AnimParams[edanim_nearest_param_id].field_010,
-                                                                const_cast<char *>("Switch ID")));
-    eduiMenuAddItem(edanim_switch_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetSwitchDelay, 0.0f, 20.0f,
-                                                             AnimParams[edanim_nearest_param_id].field_018,
-                                                             const_cast<char *>("Switch Delay")));
-    eduiMenuAddItem(edanim_switch_menu, eduiItemSliderCreate(0, colours, 0, edanimcbSetSwitchVar, 0.0f, 20.0f,
-                                                             AnimParams[edanim_nearest_param_id].field_014,
-                                                             const_cast<char *>("Switch Var")));
-
-    eduiMenuAttach(parent, edanim_switch_menu);
-    edanim_switch_menu->x = parent->x + 10;
-    edanim_switch_menu->y = parent->y + 40;
 }
 
 static __attribute__((used)) void edanimcbLocalParticleMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     u32 colours[4] __attribute__((aligned(16))) = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};
-    if (edanim_nearest_particle == -1) {
-        return;
+    if (edanim_nearest_particle != -1) {
+        edanim_localparticle_menu = eduiMenuCreate(70, 70, 250, 300, ed_fnt, edanimcbCancelLocalParticleMenu,
+                                                   const_cast<char *>("Highlighted Particle Settings"));
+        if (!edanim_localparticle_menu) {
+            return;
+        }
+
+        eduiMenuAddItem(edanim_localparticle_menu,
+                        eduiItemSelCreate(1, colours, 0, 0, edanimcbLocalParticleTypeMenu,
+                                          const_cast<char *>("Highlighted Particle Type...")));
+        eduiMenuAddItem(
+            edanim_localparticle_menu,
+            eduiItemSliderCreateInt(0, colours, 0, edanimcbSetParticleRate, 0, 300,
+                                    AnimParams[edanim_nearest_param_id].effect_intervals[edanim_nearest_particle],
+                                    const_cast<char *>("Particles Per Sec")));
+        eduiMenuAddItem(edanim_localparticle_menu,
+                        eduiItemToggleCreate(0, colours,
+                                             AnimParams[edanim_nearest_param_id].effect_flags[edanim_nearest_particle],
+                                             1, edanimcbToggleParticleSwitch, const_cast<char *>("Only On Moving")));
+
+        eduiMenuAttach(parent, edanim_localparticle_menu);
+        edanim_localparticle_menu->x = parent->x + 10;
+        edanim_localparticle_menu->y = parent->y + 40;
     }
-
-    edanim_localparticle_menu = eduiMenuCreate(70, 70, 250, 300, ed_fnt, edanimcbCancelLocalParticleMenu,
-                                               const_cast<char *>("Highlighted Particle Settings"));
-    if (!edanim_localparticle_menu) {
-        return;
-    }
-
-    eduiMenuAddItem(edanim_localparticle_menu, eduiItemSelCreate(1, colours, 0, 0, edanimcbLocalParticleTypeMenu,
-                                                                 const_cast<char *>("Highlighted Particle Type...")));
-    eduiMenuAddItem(
-        edanim_localparticle_menu,
-        eduiItemSliderCreateInt(0, colours, 0, edanimcbSetParticleRate, 0, 300,
-                                AnimParams[edanim_nearest_param_id].effect_intervals[edanim_nearest_particle],
-                                const_cast<char *>("Particles Per Sec")));
-    eduiMenuAddItem(edanim_localparticle_menu,
-                    eduiItemToggleCreate(0, colours,
-                                         AnimParams[edanim_nearest_param_id].effect_flags[edanim_nearest_particle], 1,
-                                         edanimcbToggleParticleSwitch, const_cast<char *>("Only On Moving")));
-
-    eduiMenuAttach(parent, edanim_localparticle_menu);
-    edanim_localparticle_menu->x = parent->x + 10;
-    edanim_localparticle_menu->y = parent->y + 40;
 }
 
 static __attribute__((used)) void edanimcbSoundTypeMenu(eduimenu_s *parent, eduiitem_s *, u32) {
@@ -528,15 +524,15 @@ static __attribute__((used)) void edanimcbLocalSoundTypeMenu(eduimenu_s *parent,
     }
 
     for (i32 index = 0; index < edSfxAllCount; ++index) {
-        if (AnimParams[edanim_nearest_param_id].sound_ids[edanim_nearest_sound] == index) {
+        if (AnimParams[edanim_nearest_param_id].sound_ids[edanim_nearest_sound] != index) {
+            eduiMenuAddItem(
+                edanim_localsoundtype_menu,
+                eduiItemCheckCreate(index, colours, 0, 1, edanimcbSetLocalSoundType, edbitsGetSoundName(index)));
+        } else {
             eduiMenuAddItem(
                 edanim_localsoundtype_menu,
                 eduiItemCheckCreate(index, colours, 1, 1, edanimcbSetLocalSoundType, edbitsGetSoundName(index)));
             edanim_localsoundtype_menu->selected = edui_last_item;
-        } else {
-            eduiMenuAddItem(
-                edanim_localsoundtype_menu,
-                eduiItemCheckCreate(index, colours, 0, 1, edanimcbSetLocalSoundType, edbitsGetSoundName(index)));
         }
     }
 
@@ -588,13 +584,13 @@ static __attribute__((used)) void edanimcbParticleTypeMenu(eduimenu_s *parent, e
         if (!debtab[index]) {
             continue;
         }
-        if (edanim_particle_type == index) {
+        if (edanim_particle_type != index) {
+            eduiMenuAddItem(edanim_particletype_menu,
+                            eduiItemCheckCreate(index, colours, 0, 1, edanimcbSetParticleType, debtab[index]->name));
+        } else {
             eduiMenuAddItem(edanim_particletype_menu,
                             eduiItemCheckCreate(index, colours, 1, 1, edanimcbSetParticleType, debtab[index]->name));
             edanim_particletype_menu->selected = edui_last_item;
-        } else {
-            eduiMenuAddItem(edanim_particletype_menu,
-                            eduiItemCheckCreate(index, colours, 0, 1, edanimcbSetParticleType, debtab[index]->name));
         }
     }
 

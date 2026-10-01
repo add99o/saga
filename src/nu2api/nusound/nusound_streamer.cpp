@@ -221,7 +221,7 @@ i32 NuSoundStreamingSample::Open(f32 start_offset, bool loop, bool weak_flag) {
 
     NuSoundStreamDesc *desc = NULL;
     i32 error = 0;
-    i32 open_result = 0;
+    i32 status = 0;
 
     if (this->sound_buffer1 == NULL) {
         u32 stream_buffer_size = NuSoundSystem::GetStreamBufferSize();
@@ -257,9 +257,44 @@ i32 NuSoundStreamingSample::Open(f32 start_offset, bool loop, bool weak_flag) {
 
     this->SetStreamDesc(desc);
 
-    open_result = this->file_loader->OpenForStreaming(this->name, start_offset, desc, weak_flag);
-    if (open_result != 1) {
-        switch (open_result) {
+    status = this->file_loader->OpenForStreaming(this->name, start_offset, desc, weak_flag);
+    if (status == 1) {
+        NuSoundBuffer::Context context;
+        context.read_size = 0;
+        context.size2 = 0;
+        context.flags &= ~2;
+        context.flags |= 1;
+        context.field5_0x20 = 0;
+        context.size3 = 0;
+
+        context = this->file_loader->FillStreamBuffer(this->sound_buffer1, loop);
+        if (context.size2 != 0) {
+            this->some_count++;
+        } else if (this->some_count == 0) {
+            this->file_loader->CloseStream();
+            status = 4;
+        }
+        this->sound_buffer1->SetCurrentContext(context);
+
+        context.flags &= ~1u;
+        if (status == 1 && (context.flags & 2) == 0) {
+            context = this->file_loader->FillStreamBuffer(this->sound_buffer2, loop);
+            if (context.size2 != 0) {
+                this->some_count++;
+            } else if (this->some_count == 0) {
+                this->file_loader->CloseStream();
+                status = 4;
+            }
+            this->sound_buffer2->SetCurrentContext(context);
+        }
+    }
+
+    LoadState new_state;
+    if (status == 1) {
+        error = 0;
+        new_state = LoadState::STREAM_READY;
+    } else {
+        switch (status) {
             case 2:
                 error = 1;
                 break;
@@ -274,59 +309,14 @@ i32 NuSoundStreamingSample::Open(f32 start_offset, bool loop, bool weak_flag) {
                 error = 1;
                 break;
         }
-        goto open_error;
+
+        NuSoundSystem::ReleaseFileLoader(this->file_loader);
+        this->file_loader = NULL;
+        NuSoundSystem::FreeMemory(NuSoundSystem::MemoryDiscipline::SCRATCH, (usize)desc, 0);
+        this->SetStreamDesc(NULL);
+        new_state = LoadState::NOT_LOADED;
     }
-
-    {
-        NuSoundBuffer::Context context;
-        context.read_size = 0;
-        context.size2 = 0;
-        context.flags &= ~2;
-        context.flags |= 1;
-        context.field5_0x20 = 0;
-        context.size3 = 0;
-
-        context = this->file_loader->FillStreamBuffer(this->sound_buffer1, loop);
-
-        if (context.size2 != 0) {
-            this->some_count++;
-        }
-        this->sound_buffer1->SetCurrentContext(context);
-        u32 first_flags = context.flags;
-
-        if (context.size2 == 0 && this->some_count == 0) {
-            this->file_loader->CloseStream();
-            this->sound_buffer1->SetCurrentContext(context);
-            error = (first_flags & 2) != 0 ? 4 : 2;
-            goto open_error;
-        }
-
-        context.flags &= ~1u;
-        if ((first_flags & 2) == 0) {
-            context = this->file_loader->FillStreamBuffer(this->sound_buffer2, loop);
-
-            if (context.size2 != 0) {
-                this->some_count++;
-            } else if (this->some_count == 0) {
-                this->file_loader->CloseStream();
-                this->sound_buffer2->SetCurrentContext(context);
-                error = 4;
-                goto open_error;
-            }
-            this->sound_buffer2->SetCurrentContext(context);
-        }
-    }
-
-    this->SetLoadState(LoadState::STREAM_READY);
-    this->SetLastErrorState(ErrorState::NONE);
-    return 0;
-
-open_error:
-    NuSoundSystem::ReleaseFileLoader(this->file_loader);
-    this->file_loader = NULL;
-    NuSoundSystem::FreeMemory(NuSoundSystem::MemoryDiscipline::SCRATCH, (usize)desc, 0);
-    this->SetStreamDesc(NULL);
-    this->SetLoadState(LoadState::NOT_LOADED);
+    this->SetLoadState(new_state);
     this->SetLastErrorState(static_cast<ErrorState>(error));
     return error;
 

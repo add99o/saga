@@ -212,22 +212,21 @@ i32 NuFilePakCondense(void *hdr_ptr) {
     i32 removed_size = 0;
     for (u32 i = 0; i < hdr->item_count; ++i) {
         NUFILEPAKITEM &item = items[i];
-        if (item.attr.removed) {
-            continue;
-        }
-        if (item.attr.required) {
-            if (removed_size != 0 && item.alignment != 0) {
-                removed_size &= -item.alignment;
+        if (!item.attr.removed) {
+            if (item.attr.required) {
+                if (removed_size != 0 && item.alignment != 0) {
+                    removed_size &= -item.alignment;
+                }
+                if (removed_size != 0) {
+                    memmove(static_cast<char *>(hdr_ptr) + item.data_offset - removed_size,
+                            static_cast<char *>(hdr_ptr) + item.data_offset, item.size);
+                    item.data_offset -= removed_size;
+                }
+            } else {
+                item.attr.removed = 1;
+                removed_size += item.size;
+                removed_size = (removed_size + item.alignment - 1) & -item.alignment;
             }
-            if (removed_size != 0) {
-                memmove(static_cast<char *>(hdr_ptr) + item.data_offset - removed_size,
-                        static_cast<char *>(hdr_ptr) + item.data_offset, item.size);
-                item.data_offset -= removed_size;
-            }
-        } else {
-            item.attr.removed = 1;
-            removed_size += item.size;
-            removed_size = (removed_size + item.alignment - 1) & -item.alignment;
         }
     }
     hdr->file_size -= removed_size;

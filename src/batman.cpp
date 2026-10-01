@@ -125,11 +125,11 @@ extern "C" i32 NuMain(i32 argc, char **argv) {
         Areas_OpenAll(0);
     }
 
-    if (Level != -1) {
-        i = Level * sizeof(LEVELDATA_s);
-    } else {
+    if (Level == -1) {
         Level = 0;
         i = 0;
+    } else {
+        i = Level * sizeof(LEVELDATA_s);
     }
     last_area = -1;
     Area = reinterpret_cast<LEVELDATA_s *>(reinterpret_cast<char *>(LDataList) + i)->area_index;
@@ -154,13 +154,13 @@ check_gamedemo:
     }
 continue_init:
     makefreeplaymodellist = 0;
-    if ((HUB_ADATA == NULL) || (Area != (u32)(byte)HUB_ADATA->index)) {
+    if (!((HUB_ADATA == NULL) || (Area != (u32)(byte)HUB_ADATA->index))) {
+        Hub_MakeModelList();
+    } else {
         if (FreePlay != 0) {
             FreePlay = 0;
             NextArea_FreePlay = 0;
         }
-    } else {
-        Hub_MakeModelList();
     }
 
     NuFrameBegin();
@@ -191,9 +191,7 @@ restart_level:
         previousEpisodeIndex = static_cast<i8>(ADataList[last_area].episode_index);
     }
 
-    if (Area == -1) {
-        SuperStory = 0;
-    } else {
+    if (Area != -1) {
         if (currentEpisodeIndex == -1) {
             SuperStory = 0;
         } else if (currentEpisodeIndex != previousEpisodeIndex) {
@@ -209,6 +207,8 @@ restart_level:
             }
             goto giz_freeplay;
         }
+    } else {
+        SuperStory = 0;
     }
 
     messageSystem = gizaimessagesys;
@@ -372,10 +372,10 @@ giz_freeplay:
             _NuTimeBarSlotBegin(0, 0xf, "frmtmr");
             DebrisSetTimeIncrement(FRAMETIME);
 
-            if (GetMenuID() == 4) {
-                panelOpts = TempOptions.field11_0xb;
-            } else {
+            if (GetMenuID() != 4) {
                 panelOpts = Game.options_save.field11_0xb;
+            } else {
+                panelOpts = TempOptions.field11_0xb;
             }
             InitPanel((u32)panelOpts);
 
@@ -420,16 +420,7 @@ giz_freeplay:
                          ((GamePads_IgnoreInputFn == NULL) || (i = (*GamePads_IgnoreInputFn)(), i == 0))) &&
                         ((CUTSTOPGAME == 0) || ((i = CutScene_IsSkippable((CUTINFO *)CutStopInfo), i != 0)))) {
                         if ((MiniCutCam == 0) && (CutSceneWaiting == 0)) {
-                            if (GameMenu[GameMenuLevel].menu != -1) {
-                                i = MenuInMemoryCard();
-                                if (((i == 0) && (MenuInfo[GameMenu[GameMenuLevel].menu].id != 1)) &&
-                                    (MenuInfo[GameMenu[GameMenuLevel].menu].id != 4)) {
-                                    NewMenu(0x3f3, 0, -1);
-                                } else {
-                                    memcard_autosavedisabled = 0;
-                                    memcard_autosaveenabled = 0;
-                                }
-                            } else {
+                            if (GameMenu[GameMenuLevel].menu == -1) {
                                 if (Paused == 0) {
                                     if ((Player[0] != NULL) && Player[0]->apiobj.player_controlled) {
                                         pausePlayer = Player[0];
@@ -441,6 +432,15 @@ giz_freeplay:
                                     if (pausePlayer != NULL) {
                                         PauseGame(pausePlayer->pad_gamepad - GamePad);
                                     }
+                                }
+                            } else {
+                                i = MenuInMemoryCard();
+                                if (((i == 0) && (MenuInfo[GameMenu[GameMenuLevel].menu].id != 1)) &&
+                                    (MenuInfo[GameMenu[GameMenuLevel].menu].id != 4)) {
+                                    NewMenu(0x3f3, 0, -1);
+                                } else {
+                                    memcard_autosavedisabled = 0;
+                                    memcard_autosaveenabled = 0;
                                 }
                             }
                         }
@@ -456,10 +456,10 @@ giz_freeplay:
                 ((ThingManager *)theGameThings)->ProcessThings(&framePacket);
 
                 if (NOSOUND == 0) {
-                    if ((Paused == 0) || (GameMenu[GameMenuLevel].menu != 4)) {
-                        NuSound3SetDPL((i32)(byte)Game.options_save.field2_0x2, 0);
-                    } else {
+                    if (!((Paused == 0) || (GameMenu[GameMenuLevel].menu != 4))) {
                         NuSound3SetDPL(TempOptions.field2_0x2, 0);
+                    } else {
+                        NuSound3SetDPL((i32)(byte)Game.options_save.field2_0x2, 0);
                     }
                     UpdateLevelSfx(world, Paused);
 
@@ -488,7 +488,25 @@ giz_freeplay:
                 windObjs[6] = Player[6] != NULL ? (NUVEC *)&Player[6]->apiobj.field_0x19c : NULL;
                 windObjs[7] = Player[7] != NULL ? (NUVEC *)&Player[7]->apiobj.field_0x19c : NULL;
 
-                if (((Paused == 0) || (screendump != 0)) || ((c = IsGrabbingScreen(), c != 0))) {
+                if (!(((Paused == 0) || (screendump != 0)) || ((c = IsGrabbingScreen(), c != 0)))) {
+                    NuMtlAnimateSetSpeedScale(0.0f);
+                    NuTexAnimSetMask(2);
+                    NuRndrGlobalFrameCountPause(1);
+                    cam = pNuCam;
+                    gameCam = GameCam;
+                    cam->mtx = gameCam->render_mtx;
+                    NuCameraSet(cam);
+                    UpdateGameMenu(GamePad, 1);
+                    if (Player[0] != NULL) {
+                        UpdateCoinPacket(Player[0]->coinpacket, Player[0]->apiobj.player_controlled,
+                                         (i32)(char)Player[0]->apiobj.field_0x27c);
+                    }
+                    if (Player[1] != NULL) {
+                        UpdateCoinPacket(Player[1]->coinpacket, Player[1]->apiobj.player_controlled,
+                                         (i32)(char)Player[1]->apiobj.field_0x27c);
+                    }
+                    Debris(1);
+                } else {
                     NuRndrGlobalFrameCountPause(0);
                     rtlFrameUpdate(FRAMETIME);
                     DoubleScore = 0;
@@ -496,11 +514,11 @@ giz_freeplay:
                     NuTexAnimSetMask(0xffff);
                     CutScenes_Start(world);
 
-                    if (Paused == 0) {
-                        pauseFlag = 0;
-                    } else {
+                    if (Paused != 0) {
                         pauseFlag = IsGrabbingScreen();
                         pauseFlag ^= 1;
+                    } else {
+                        pauseFlag = 0;
                     }
                     CutScenes_Update(world, pauseFlag);
 
@@ -549,10 +567,7 @@ giz_freeplay:
                         TBOPENFN("GameObj", 2);
                     }
 
-                    if (CUTSTOPGAME == 0) {
-                        ManageGameObjects();
-                        UpdateGameObjects(world);
-                    } else {
+                    if (CUTSTOPGAME != 0) {
                         if ((Player[0] != NULL) && Player[0]->apiobj.player_controlled &&
                             (Player[0]->pad_gamepad->pad != NULL)) {
                             UpdateRumble(&Player[0]->pad_gamepad->rumble_packet);
@@ -585,6 +600,9 @@ giz_freeplay:
                             (Player[7]->pad_gamepad->pad != NULL)) {
                             UpdateRumble(&Player[7]->pad_gamepad->rumble_packet);
                         }
+                    } else {
+                        ManageGameObjects();
+                        UpdateGameObjects(world);
                     }
 
                     if (TimingBarSet == 2) {
@@ -639,13 +657,13 @@ giz_freeplay:
                             MechInputTouchMenuController::PackButtonPressed = false;
                             Hint_CancelCurrent();
                             i = NuIOS_AreInAppPurchasesAvailable();
-                            if ((i == 0) || ((i = NuIOS_CanMakeInAppPurchases(), i == 0))) {
-                                GameAudio_PlaySfx(0x32, NULL, 0, 0);
-                                GameCam_HitRoll();
-                            } else {
+                            if (!((i == 0) || ((i = NuIOS_CanMakeInAppPurchases(), i == 0)))) {
                                 GameAudio_PlaySfx(0x30, NULL, 0, 0);
                                 menu_i_pack = MechInputTouchMenuController::PackButtonID;
                                 NewMenu(0x14, -1, -1);
+                            } else {
+                                GameAudio_PlaySfx(0x32, NULL, 0, 0);
+                                GameCam_HitRoll();
                             }
                         }
 
@@ -701,24 +719,6 @@ giz_freeplay:
                         (world->current_level == CREDITS_LDATA)) {
                         BackDrop_Update(FRAMETIME);
                     }
-                } else {
-                    NuMtlAnimateSetSpeedScale(0.0f);
-                    NuTexAnimSetMask(2);
-                    NuRndrGlobalFrameCountPause(1);
-                    cam = pNuCam;
-                    gameCam = GameCam;
-                    cam->mtx = gameCam->render_mtx;
-                    NuCameraSet(cam);
-                    UpdateGameMenu(GamePad, 1);
-                    if (Player[0] != NULL) {
-                        UpdateCoinPacket(Player[0]->coinpacket, Player[0]->apiobj.player_controlled,
-                                         (i32)(char)Player[0]->apiobj.field_0x27c);
-                    }
-                    if (Player[1] != NULL) {
-                        UpdateCoinPacket(Player[1]->coinpacket, Player[1]->apiobj.player_controlled,
-                                         (i32)(char)Player[1]->apiobj.field_0x27c);
-                    }
-                    Debris(1);
                 }
 
                 if (world->current_level->always_update_fn != NULL) {
@@ -728,10 +728,10 @@ giz_freeplay:
                 LevelStreaming_Update(world);
                 UpdateCutBorders();
 
-                if ((Paused == 0) || (editor_active != 0)) {
-                    NuWaterSpeed(FRAMETIME / 0.016666668f);
-                } else {
+                if (!((Paused == 0) || (editor_active != 0))) {
                     NuWaterSpeed(0);
+                } else {
+                    NuWaterSpeed(FRAMETIME / 0.016666668f);
                 }
                 NuWaterReset();
                 GameTiming(world, &Game.field30_0x7c2c);
@@ -749,11 +749,7 @@ giz_freeplay:
                         if ((FadeSys.pending_type == FADE_TYPE_NONE) ||
                             ((NewLData != NULL) && (WORLD->current_level != NewLData) && (NewLData == HUB_LDATA))) {
                             level = WORLD->current_level;
-                            if (level == NULL) {
-                                if (NewLData == NULL) {
-                                    goto level_fade_still;
-                                }
-                            } else {
+                            if (level != NULL) {
                                 if (NewLData == NULL) {
                                     goto level_fade_still;
                                 }
@@ -770,6 +766,10 @@ giz_freeplay:
                                         }
                                         goto level_fade_area;
                                     }
+                                }
+                            } else {
+                                if (NewLData == NULL) {
+                                    goto level_fade_still;
                                 }
                             }
                             i = NewLData->area_index;
@@ -801,10 +801,10 @@ giz_freeplay:
             }
 
             FRAMETIME = savedFrametime;
-            if (GetMenuID() == 4) {
-                panelOpts = TempOptions.field11_0xb;
-            } else {
+            if (GetMenuID() != 4) {
                 panelOpts = Game.options_save.field11_0xb;
+            } else {
+                panelOpts = TempOptions.field11_0xb;
             }
             WidescreenCode((u32)panelOpts);
             UpdateBackgroundMusic();
@@ -816,9 +816,7 @@ giz_freeplay:
 
             world = WORLD;
             if ((pause_rndr_on == 0) || (FadeSys.pending_type == FADE_TYPE_WIPE)) {
-                if (MainRenderTime <= 0.0f) {
-                    NoRender();
-                } else {
+                if (MainRenderTime > 0.0f) {
                     GameFog_Update(WORLD);
                     GameFog_Set();
                     SetLevelLights(world->rtl_set, 1.0f);
@@ -839,10 +837,10 @@ giz_freeplay:
                     }
                     SpeedBlur_Update();
 
-                    if ((i32)back_rgba[0] == back_rgba[1]) {
-                        NuRndrClear(0x1f00, (i32)back_rgba[0], 1.0f);
-                    } else {
+                    if ((i32)back_rgba[0] != back_rgba[1]) {
                         NuRndrGradClear(0xf00, (i32)back_rgba[0], (i32)back_rgba[1], 1.0f);
+                    } else {
+                        NuRndrClear(0x1f00, (i32)back_rgba[0], 1.0f);
                     }
 
                     if (CUTSTOPGAME == 0) {
@@ -871,10 +869,10 @@ giz_freeplay:
                     if (CUTSTOPGAME == 0) {
                         CharShadows_Draw();
                     }
-                    if (screendump != 0) {
-                        pauseFlag = save_paused;
-                    } else {
+                    if (screendump == 0) {
                         pauseFlag = Paused;
+                    } else {
+                        pauseFlag = save_paused;
                     }
                     c = IsGrabbingScreen();
                     pauseFlag = (c == 0) ? pauseFlag : 0;
@@ -978,6 +976,8 @@ giz_freeplay:
                     if (screendump == 0) {
                         ViewCamDraw();
                     }
+                } else {
+                    NoRender();
                 }
             }
 
@@ -1218,7 +1218,10 @@ giz_freeplay:
     i = NewLData->idx;
     Level = i;
 
-    if (Area == last_area) {
+    if (Area != last_area) {
+        LevelChange = (u32)(NewLData->idx != LastLData->idx);
+        LevelChangesInArea = 0;
+    } else {
         i = 0;
         if (last_area != -1) {
             i = LevelChangesInArea + 1;
@@ -1228,12 +1231,19 @@ giz_freeplay:
         if (new_level_from_menu == 0) {
             goto after_sound;
         }
-    } else {
-        LevelChange = (u32)(NewLData->idx != LastLData->idx);
-        LevelChangesInArea = 0;
     }
 
-    if (NOSOUND == 0) {
+    if (NOSOUND != 0) {
+        if ((HUB_ADATA == NULL) || (Arcade == 0)) {
+            goto after_sound;
+        }
+        if ((u32)(byte)HUB_ADATA->index == (u32)last_area) {
+            goto after_sound;
+        }
+        if ((u32)(byte)HUB_ADATA->index == (u32)Area) {
+            hub_from_arcade = last_area;
+        }
+    } else {
         music_man.StopAll(0);
         MusicClearAll();
         SoundKillAll();
@@ -1245,16 +1255,6 @@ giz_freeplay:
             }
         } else if (Arcade != 0) {
             // falls through to Arcade = 0
-        }
-    } else {
-        if ((HUB_ADATA == NULL) || (Arcade == 0)) {
-            goto after_sound;
-        }
-        if ((u32)(byte)HUB_ADATA->index == (u32)last_area) {
-            goto after_sound;
-        }
-        if ((u32)(byte)HUB_ADATA->index == (u32)Area) {
-            hub_from_arcade = last_area;
         }
     }
     Arcade = 0;
@@ -1294,17 +1294,17 @@ after_sound:
     afterArea = HUB_ADATA;
     i = Area;
 
-    if (Area == -1) {
-        NextArea_FreePlay = 0;
-        FreePlay = 0;
-    } else {
+    if (Area != -1) {
         if ((ADataList[Area].flags & AREAFLAG_BONUS_AREA) != 0) {
             NextArea_FreePlay = 1;
             FreePlay = 1;
         }
 
         if ((new_level_from_menu != 0) && (Area != last_area)) {
-            if ((HUB_ADATA == NULL) || (Area != (u32)(byte)HUB_ADATA->index)) {
+            if (!((HUB_ADATA == NULL) || (Area != (u32)(byte)HUB_ADATA->index))) {
+                NextArea_FreePlay = 0;
+                FreePlay = 0;
+            } else {
                 FreePlay = NextArea_FreePlay;
                 if (NextArea_FreePlay != 0) {
                     if (Player[0] != NULL) {
@@ -1315,11 +1315,11 @@ after_sound:
                     }
                     makefreeplaymodellist = 1;
                 }
-            } else {
-                NextArea_FreePlay = 0;
-                FreePlay = 0;
             }
         }
+    } else {
+        NextArea_FreePlay = 0;
+        FreePlay = 0;
     }
 
     if ((StatusPacket.status_flags == 0) ||

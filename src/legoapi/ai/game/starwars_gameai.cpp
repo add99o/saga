@@ -551,7 +551,10 @@ i32 StarWars_PrepareJump(AIPACKET_s *packet, APIOBJECT_s *object, i32 checks) {
                 if (((destination->runtime_flags | source->runtime_flags) & 2) == 0 ||
                     distance - destination->radius > jump_distance) {
                     packet->path_connection_state = 3;
-                    owner->jump_destination_distance = (destination->runtime_flags & 2) != 0 ? 0.0f : distance;
+                    if ((destination->runtime_flags & 2) != 0)
+                        owner->jump_destination_distance = 0.0f;
+                    else
+                        owner->jump_destination_distance = distance;
                 }
             }
             break;
@@ -565,11 +568,11 @@ i32 StarWars_PrepareJump(AIPACKET_s *packet, APIOBJECT_s *object, i32 checks) {
                 } else if (!(jump_distance > distance - destination->radius)) {
                     break;
                 }
-                if (distance > owner->jump_destination_distance) {
+                if (!(distance > owner->jump_destination_distance)) {
+                    owner->jump_destination_distance = distance;
+                } else {
                     packet->path_connection_state = 4;
                     owner->jump_destination_distance = 0.0f;
-                } else {
-                    owner->jump_destination_distance = distance;
                 }
             }
             break;
@@ -624,11 +627,11 @@ i32 StarWars_PrepareJump(AIPACKET_s *packet, APIOBJECT_s *object, i32 checks) {
                         !(height + owner->apiobj.scaled_height >= other->apiobj.collision_min.y)) {
                         continue;
                     }
-                    if (clearance * clearance > offset.x * offset.x + offset.z * offset.z) {
-                        packet->path_connection_state = 1;
-                        object->collision_priority |= 0x2000;
-                        return 1;
-                    }
+                    if (!(clearance * clearance > offset.x * offset.x + offset.z * offset.z))
+                        continue;
+                    packet->path_connection_state = 1;
+                    object->collision_priority |= 0x2000;
+                    return 1;
                 }
             }
             SetSpecialMove(owner, destination, NULL, 1);

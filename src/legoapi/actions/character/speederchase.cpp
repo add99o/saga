@@ -241,7 +241,7 @@ f32 FindPodHoverHeight(GameObject_s *object) {
     };
 
     f32 height = 0.15f;
-    if (object == Player[1] && (Player[0]->apiobj.flags_low & 0x80) != 0) {
+    if (object == Player[1] && Player[0]->apiobj.player_controlled) {
         f32 distance_squared = NuVecDistSqr(&Player[0]->apiobj.position, &object->apiobj.position, NULL);
         if (distance_squared < 4.0f) {
             f32 distance = NuFsqrt(distance_squared);
@@ -250,7 +250,7 @@ f32 FindPodHoverHeight(GameObject_s *object) {
         }
     }
 
-    if (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA && (object->apiobj.flags_low & 0x80) != 0) {
+    if (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA && object->apiobj.player_controlled) {
         for (i32 i = 0; i < 3; ++i) {
             if (NuVecXZDistSqr(&object->apiobj.position, &podsprintlifthackpos[i], NULL) < 2.0f) {
                 height += 1.5f;
@@ -665,7 +665,7 @@ void SpeederChaseA_Update(WORLDINFO_s *world) {
         for (i32 i = 0; i < 2; ++i) {
             GameObject_s *object = Player[i];
             if (object != NULL && WORLD->current_level == SPEEDERCHASEA_LDATA && object->id == id_SPEEDERBIKE &&
-                object->field_0xcc0 != NULL && static_cast<i8>(object->field_0xcc0->apiobj.flags_low) < 0) {
+                object->field_0xcc0 != NULL && object->field_0xcc0->apiobj.player_controlled) {
                 object->field_0xf03 |= 1;
             } else if (object != NULL) {
                 object->field_0xf03 &= ~1;
@@ -801,62 +801,62 @@ void PodDust(WORLDINFO_s *world, GameObject_s *object) {
     NUVEC previous[2];
     i32 count = 0;
     for (i32 locator = 1; locator <= 2; ++locator) {
-        if (object->apiobj.field_0x288 == 0 || object->apiobj.character_model->points_of_interest[locator] == NULL)
-            continue;
-        NUMTX *joint = &object->joint_matrices[locator];
-        positions[count].x = joint->m30;
-        positions[count].y = object->apiobj.field_0x218 + 0.1f;
-        positions[count].z = joint->m32;
-        ++count;
-        if ((object->apiobj.flags_low & 0x80) == 0)
-            continue;
-        i32 key;
-        if (object == Player[0])
-            key = locator - 1;
-        else if (object == Player[1])
-            key = locator + 3;
-        else
-            continue;
-        NUMTX matrix;
-        matrix.m00 = joint->m00;
-        matrix.m01 = joint->m01;
-        matrix.m02 = joint->m02;
-        matrix.m03 = joint->m03;
-        matrix.m10 = joint->m20;
-        matrix.m11 = joint->m21;
-        matrix.m12 = joint->m22;
-        matrix.m13 = joint->m23;
-        matrix.m20 = -joint->m10;
-        matrix.m21 = -joint->m11;
-        matrix.m22 = -joint->m12;
-        matrix.m23 = -joint->m13;
-        matrix.m30 = joint->m30;
-        matrix.m31 = joint->m31;
-        matrix.m32 = joint->m32;
-        matrix.m33 = joint->m33;
-        if (PodRaceKey[key] == -1) {
-            AddDebrisEffect(&PodRaceKey[key], world->debris_sys->entries[53].effect, 0.0f, 0.0f, 0.0f);
-        } else {
-            DebrisPosOrientationMtx(PodRaceKey[key], &matrix);
-        }
-        key += 2;
-        if (PodRaceKey[key] == -1) {
-            AddDebrisEffect(&PodRaceKey[key], world->debris_sys->entries[54].effect, 0.0f, 0.0f, 0.0f);
-        } else {
-            u16 angle = object->apiobj.field_0x276;
-            f32 sine = NuTrigTable[angle >> 1];
-            f32 cosine = NuTrigTable[((angle + 0x4000) >> 1) & 0x7fff];
-            matrix.m00 = -cosine;
-            matrix.m01 = 0.0f;
-            matrix.m02 = sine;
-            matrix.m10 = -sine;
-            matrix.m11 = 0.0f;
-            matrix.m12 = -cosine;
-            matrix.m20 = 0.0f;
-            matrix.m21 = 1.0f;
-            matrix.m22 = 0.0f;
-            matrix.m31 = object->apiobj.field_0x218 + 0.1f;
-            DebrisPosOrientationMtx(PodRaceKey[key], &matrix);
+        if (!(object->apiobj.field_0x288 == 0 || object->apiobj.character_model->points_of_interest[locator] == NULL)) {
+            NUMTX *joint = &object->joint_matrices[locator];
+            positions[count].x = joint->m30;
+            positions[count].y = object->apiobj.field_0x218 + 0.1f;
+            positions[count].z = joint->m32;
+            ++count;
+            if ((object->apiobj.flags_low & 0x80) == 0)
+                continue;
+            i32 key;
+            if (object == Player[0])
+                key = locator - 1;
+            else if (object == Player[1])
+                key = locator + 3;
+            else
+                continue;
+            NUMTX matrix;
+            matrix.m00 = joint->m00;
+            matrix.m01 = joint->m01;
+            matrix.m02 = joint->m02;
+            matrix.m03 = joint->m03;
+            matrix.m10 = joint->m20;
+            matrix.m11 = joint->m21;
+            matrix.m12 = joint->m22;
+            matrix.m13 = joint->m23;
+            matrix.m20 = -joint->m10;
+            matrix.m21 = -joint->m11;
+            matrix.m22 = -joint->m12;
+            matrix.m23 = -joint->m13;
+            matrix.m30 = joint->m30;
+            matrix.m31 = joint->m31;
+            matrix.m32 = joint->m32;
+            matrix.m33 = joint->m33;
+            if (PodRaceKey[key] == -1) {
+                AddDebrisEffect(&PodRaceKey[key], world->debris_sys->entries[53].effect, 0.0f, 0.0f, 0.0f);
+            } else {
+                DebrisPosOrientationMtx(PodRaceKey[key], &matrix);
+            }
+            key += 2;
+            if (PodRaceKey[key] == -1) {
+                AddDebrisEffect(&PodRaceKey[key], world->debris_sys->entries[54].effect, 0.0f, 0.0f, 0.0f);
+            } else {
+                u16 angle = object->apiobj.field_0x276;
+                f32 sine = NuTrigTable[angle >> 1];
+                f32 cosine = NuTrigTable[((angle + 0x4000) >> 1) & 0x7fff];
+                matrix.m00 = -cosine;
+                matrix.m01 = 0.0f;
+                matrix.m02 = sine;
+                matrix.m10 = -sine;
+                matrix.m11 = 0.0f;
+                matrix.m12 = -cosine;
+                matrix.m20 = 0.0f;
+                matrix.m21 = 1.0f;
+                matrix.m22 = 0.0f;
+                matrix.m31 = object->apiobj.field_0x218 + 0.1f;
+                DebrisPosOrientationMtx(PodRaceKey[key], &matrix);
+            }
         }
     }
     if (count == 0) {

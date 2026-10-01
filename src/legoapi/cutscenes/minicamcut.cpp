@@ -71,11 +71,20 @@ execute_command:
             Minicam_ClearDeltas();
             GameCam->mode = -1;
         } else {
-            MiniCam.target_pitch = pitch_rate != 0 ? (i32)(pitch_rate * command_duration) : pitch;
+            if (pitch_rate != 0)
+                MiniCam.target_pitch = (i32)(pitch_rate * command_duration);
+            else
+                MiniCam.target_pitch = pitch;
             MiniCam.start_pitch = MiniCam.pitch;
-            MiniCam.target_yaw = yaw_rate != 0 ? (i32)(yaw_rate * command_duration) : yaw;
+            if (yaw_rate != 0)
+                MiniCam.target_yaw = (i32)(yaw_rate * command_duration);
+            else
+                MiniCam.target_yaw = yaw;
             MiniCam.start_yaw = MiniCam.yaw;
-            MiniCam.target_roll = roll_rate != 0 ? (i32)(roll_rate * command_duration) : roll;
+            if (roll_rate != 0)
+                MiniCam.target_roll = (i32)(roll_rate * command_duration);
+            else
+                MiniCam.target_roll = roll;
             MiniCam.target_distance = distance;
             MiniCam.start_roll = MiniCam.roll;
             MiniCam.start_distance = MiniCam.distance;

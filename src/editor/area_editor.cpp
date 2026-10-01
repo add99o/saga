@@ -424,10 +424,10 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
         for (EDAIAREA_s *area = area_head(); area != NULL; area = area_next(area)) {
             NUVEC difference;
             f32 current = NuVecXZDistSqr(&aieditor->camera_position, &area->position, &difference);
-            if (current < distance) {
-                nearest = area;
-                distance = current;
-            }
+            if (!(current < distance))
+                continue;
+            nearest = area;
+            distance = current;
         }
         area_selected() = nearest;
         if (nearest != NULL) {
@@ -442,18 +442,18 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
         if (selected != NULL && selected == area_hovered()) {
             aieditorsettings.area_rotation = selected->rotation;
         }
-        if (buttons & 0x2000) {
-            area_rotation_step() = pressed & 0x8000 ? 20 : area_rotation_step() + 20;
-            if (area_rotation_step() > 600) {
-                area_rotation_step() = 600;
-            }
-            aieditorsettings.area_rotation = NuAngAdd(aieditorsettings.area_rotation, area_rotation_step());
-        } else {
+        if (!(buttons & 0x2000)) {
             area_rotation_step() = pressed & 0x2000 ? 20 : area_rotation_step() + 20;
             if (area_rotation_step() > 600) {
                 area_rotation_step() = 600;
             }
             aieditorsettings.area_rotation = NuAngSub(aieditorsettings.area_rotation, area_rotation_step());
+        } else {
+            area_rotation_step() = pressed & 0x8000 ? 20 : area_rotation_step() + 20;
+            if (area_rotation_step() > 600) {
+                area_rotation_step() = 600;
+            }
+            aieditorsettings.area_rotation = NuAngAdd(aieditorsettings.area_rotation, area_rotation_step());
         }
         if (selected != NULL && selected == area_hovered()) {
             selected->rotation = static_cast<i16>(aieditorsettings.area_rotation);

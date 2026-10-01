@@ -42,80 +42,80 @@ i32 GetRandomCoinType() {
 
 void AddCoinsToPanel(i32 coins, nuvec_s *position, i32 player, float, GameObject_s *, i32 random_types) {
     WORLDINFO_s *world = WorldInfo_CurrentlyActive();
-    if (coins == 0)
-        return;
-    if (ChallengeMode || Mission_Active(NULL) != NULL)
-        coins = 0;
-    u8 counts[10] = {};
-    i32 remainder = coins % 10;
-    if (remainder > 0)
-        coins -= remainder;
-    if (coins > 512000)
-        coins = 512000;
-    if (coins > 0)
-        PlaySfx("CoinsLand", position);
-    if (random_types) {
-        while (coins > 0) {
-            i32 type = GetRandomCoinType();
-            i32 remaining = coins - GizmoPickupType[type].score;
-            if (remaining >= 0) {
+    if (coins != 0) {
+        if (ChallengeMode || Mission_Active(NULL) != NULL)
+            coins = 0;
+        u8 counts[10] = {};
+        i32 remainder = coins % 10;
+        if (remainder > 0)
+            coins -= remainder;
+        if (coins > 512000)
+            coins = 512000;
+        if (coins > 0)
+            PlaySfx("CoinsLand", position);
+        if (random_types) {
+            while (coins > 0) {
+                i32 type = GetRandomCoinType();
+                i32 remaining = coins - GizmoPickupType[type].score;
+                if (!(remaining >= 0))
+                    continue;
                 ++counts[type];
                 coins = remaining;
             }
-        }
-    } else if (coins > 0) {
-        for (i32 i = 3; coins > 0; --i) {
-            i32 type = CoinTab[i];
-            while (coins - GizmoPickupType[type].score >= 0) {
-                coins -= GizmoPickupType[type].score;
-                ++counts[type];
+        } else if (coins > 0) {
+            for (i32 i = 3; coins > 0; --i) {
+                i32 type = CoinTab[i];
+                while (coins - GizmoPickupType[type].score >= 0) {
+                    coins -= GizmoPickupType[type].score;
+                    ++counts[type];
+                }
             }
         }
-    }
-    if (static_cast<u32>(player) > 1)
-        player = -1;
-    NUVEC target;
-    target.x = player == 1 ? PANEL_COINX : -PANEL_COINX;
-    bool main_total = CoinsGoToMainTotal() != 0;
-    f32 target_scale;
-    if (main_total) {
-        target.y = STATSPOSY;
-        target_scale = COINTOTAL_COINSIZE;
-    } else {
-        target.y = STATSPOSY + PANEL_COINY;
-        target_scale = PANEL_COINSCALE_END;
-    }
-    target.z = 1.0f;
-    DrawBuildUpTime = COINMSGTIME + 1.0f;
-    for (i32 i = 0; i < 4; ++i) {
-        GIZMO_PICKUP_TYPE *type = &GizmoPickupType[CoinTab[i]];
-        i32 base_model = static_cast<i16>(type->first_model_id);
-        for (i32 j = 0; j < counts[CoinTab[i]]; ++j) {
-            i32 model = base_model;
-            if (type->random_model_count != 0)
-                model += qrand() / (65535 / type->random_model_count + 1);
-            if (world->lev_objs[model].active == 0 || player == -1)
-                continue;
-            ADDGAMEMSG_ALIGNED16 message = AddGameMsg_Default;
-            message.position = position;
-            message.target_position = &target;
-            message.target_scale = target_scale;
-            message.icon = model;
-            message.extra_position = reinterpret_cast<NUVEC *>(&world->lev_objs[message.icon]);
-            message.score = type->score;
-            message.end_fn = EndScoreMessage;
-            message.player_index = player;
-            message.field_0x4d = 1;
-            message.field_0x20 = AddCoinDelay[player];
-            message.flags = 0x12d;
-            message.scale = 1.0f;
-            message.duration = COINMSGTIME;
-            if (main_total) {
-                message.update_fn = GameMsg_DrawAdjustNewPos_CoinToTotal;
-                message.field_0x4e = 1;
+        if (static_cast<u32>(player) > 1)
+            player = -1;
+        NUVEC target;
+        target.x = player == 1 ? PANEL_COINX : -PANEL_COINX;
+        bool main_total = CoinsGoToMainTotal() != 0;
+        f32 target_scale;
+        if (main_total) {
+            target.y = STATSPOSY;
+            target_scale = COINTOTAL_COINSIZE;
+        } else {
+            target.y = STATSPOSY + PANEL_COINY;
+            target_scale = PANEL_COINSCALE_END;
+        }
+        target.z = 1.0f;
+        DrawBuildUpTime = COINMSGTIME + 1.0f;
+        for (i32 i = 0; i < 4; ++i) {
+            GIZMO_PICKUP_TYPE *type = &GizmoPickupType[CoinTab[i]];
+            i32 base_model = static_cast<i16>(type->first_model_id);
+            for (i32 j = 0; j < counts[CoinTab[i]]; ++j) {
+                i32 model = base_model;
+                if (type->random_model_count != 0)
+                    model += qrand() / (65535 / type->random_model_count + 1);
+                if (world->lev_objs[model].active == 0 || player == -1)
+                    continue;
+                ADDGAMEMSG_ALIGNED16 message = AddGameMsg_Default;
+                message.position = position;
+                message.target_position = &target;
+                message.target_scale = target_scale;
+                message.icon = model;
+                message.extra_position = reinterpret_cast<NUVEC *>(&world->lev_objs[message.icon]);
+                message.score = type->score;
+                message.end_fn = EndScoreMessage;
+                message.player_index = player;
+                message.field_0x4d = 1;
+                message.field_0x20 = AddCoinDelay[player];
+                message.flags = 0x12d;
+                message.scale = 1.0f;
+                message.duration = COINMSGTIME;
+                if (main_total) {
+                    message.update_fn = GameMsg_DrawAdjustNewPos_CoinToTotal;
+                    message.field_0x4e = 1;
+                }
+                AddGameMsg(&message);
+                AddCoinDelay[player] += 0.1f;
             }
-            AddGameMsg(&message);
-            AddCoinDelay[player] += 0.1f;
         }
     }
 }
@@ -134,8 +134,10 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
         if (player_id == -1) {
             if (player2 != NULL)
                 player_id = qrand() / 32768;
+            else if (Player[0] != NULL && Player[0]->apiobj.player_controlled)
+                player_id = 0;
             else
-                player_id = Player[0] != NULL && (Player[0]->apiobj.flags_low & 0x80) != 0 ? 0 : 1;
+                player_id = 1;
         }
     } else if (world->area != NULL && (world->area->flags & 0x100) != 0) {
         player_id = qrand() / 32768;
@@ -202,11 +204,7 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
     if (static_cast<u32>(player_id) >= 2)
         player_id = -1;
     NUVEC velocity;
-    if (to_panel != 0) {
-        if (has_coins)
-            DrawBuildUpTime = COINMSGTIME + 1.0f;
-        AddCoinsToPanel(coins, position, player_id, speed, owner, 0);
-    } else {
+    if (to_panel == 0) {
         for (i32 i = 0; i < 4; ++i) {
             i32 type = CoinTab[i];
             for (i32 j = 0; j < counts[type]; ++j) {
@@ -214,11 +212,15 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
                 AddCoinsAsParts(type, position, &velocity, lifetime, scale);
             }
         }
+    } else {
+        if (has_coins)
+            DrawBuildUpTime = COINMSGTIME + 1.0f;
+        AddCoinsToPanel(coins, position, player_id, speed, owner, 0);
     }
     if (hearts > 0) {
         bool both_players = false;
-        if (VehicleArea != 0 && Player[0] != NULL && (Player[0]->apiobj.flags_low & 0x80) != 0 && Player[1] != NULL &&
-            (Player[1]->apiobj.flags_low & 0x80) != 0) {
+        if (VehicleArea != 0 && Player[0] != NULL && Player[0]->apiobj.player_controlled && Player[1] != NULL &&
+            Player[1]->apiobj.player_controlled) {
             both_players = true;
             hearts = 2;
         }
@@ -243,9 +245,9 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
             else if (recipient == NULL) {
                 GameObject_s *eligible[2];
                 i32 count = 0;
-                if (Player[0] != NULL && (Player[0]->apiobj.flags_low & 0x80) != 0)
+                if (Player[0] != NULL && Player[0]->apiobj.player_controlled)
                     eligible[count++] = Player[0];
-                if (Player[1] != NULL && (Player[1]->apiobj.flags_low & 0x80) != 0)
+                if (Player[1] != NULL && Player[1]->apiobj.player_controlled)
                     eligible[count++] = Player[1];
                 if (count != 0)
                     recipient = eligible[count == 1 ? 0 : qrand() / 32768];
@@ -266,10 +268,10 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
 }
 
 void AddMiscPickups(nuvec_s *position, i32 player_id, i32 coins, i32 torpedoes) {
-    if (torpedoes == 0) {
-        AddPickups(coins, ReleaseHearts(), 0, 0, position, &v010, 5.0f, player_id, 1.0f, 2000000.0f, NULL, 1, 0, true);
-    } else {
+    if (torpedoes != 0) {
         AddPickups(coins, 0, torpedoes, 0, position, &v010, 5.0f, player_id, 1.0f, 2000000.0f, NULL, 1, 0, true);
+    } else {
+        AddPickups(coins, ReleaseHearts(), 0, 0, position, &v010, 5.0f, player_id, 1.0f, 2000000.0f, NULL, 1, 0, true);
     }
 }
 

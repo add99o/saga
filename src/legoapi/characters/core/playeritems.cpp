@@ -76,28 +76,33 @@ void SetWeaponIn(GameObject_s *object) {
     object->weapon_scale_state = WEAPON_SCALE_IDLE;
 }
 
+static inline void FastWeaponInSfx(GameObject_s *object) {
+    if (object->weapon_scale_state == WEAPON_SCALE_RETRACTING)
+        return;
+    const i32 current_animation = CurrentAnim(&object->apiobj.anim_packet);
+    if (current_animation != -1) {
+        CHARACTERANIM_s *animation =
+            static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[current_animation]);
+        if (animation != NULL && (animation->flags & CHARACTER_ANIMATION_FLAG_GUN_ON) != 0)
+            return;
+    }
+    const u32 model_flags = object->apiobj.character_data->model_flags;
+    if ((model_flags & CHARACTER_MODEL_FLAG_JEDI) != 0) {
+        if (object->apiobj.field_0x27c != -1 || WeaponInOut_NoAIJediSfx == 0) {
+            GameAudio_PlaySfx(0x3d, &object->apiobj.collision_position, GameAudio_GetPlrSfxBits(object), 1);
+        }
+    } else if ((model_flags & CHARACTER_MODEL_FLAG_ALTERNATE_WEAPON) != 0) {
+        GameAudio_PlaySfx(0x42, &object->apiobj.collision_position, 0, 1);
+    }
+}
+
 void FastWeaponIn(GameObject_s *object, i32 force_sound) {
     const i8 context = object->character_context;
     if (context != -1 && (context == LEGOCONTEXT_WEAPONIN || context == LEGOCONTEXT_WEAPONOUT)) {
         object->character_context = -1;
     }
-    if (force_sound != 0 && object->weapon_scale == 1.0f && object->weapon_scale_state != WEAPON_SCALE_RETRACTING) {
-        const i32 current_animation = CurrentAnim(&object->apiobj.anim_packet);
-        CHARACTERANIM_s *animation = NULL;
-        if (current_animation != -1) {
-            animation = static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[current_animation]);
-        }
-        if (animation == NULL || (animation->flags & CHARACTER_ANIMATION_FLAG_GUN_ON) == 0) {
-            const u32 model_flags = object->apiobj.character_data->model_flags;
-            if ((model_flags & CHARACTER_MODEL_FLAG_JEDI) != 0) {
-                if (object->apiobj.field_0x27c != -1 || WeaponInOut_NoAIJediSfx == 0) {
-                    GameAudio_PlaySfx(0x3d, &object->apiobj.collision_position, GameAudio_GetPlrSfxBits(object), 1);
-                }
-            } else if ((model_flags & CHARACTER_MODEL_FLAG_ALTERNATE_WEAPON) != 0) {
-                GameAudio_PlaySfx(0x42, &object->apiobj.collision_position, 0, 1);
-            }
-        }
-    }
+    if (force_sound != 0 && object->weapon_scale == 1.0f)
+        FastWeaponInSfx(object);
     object->weapon_scale_rate = 5.0f;
     object->weapon_scale_state = WEAPON_SCALE_RETRACTING;
 }
@@ -126,7 +131,7 @@ void SlowWeaponIn(GameObject_s *object) {
         if (action != -1 && object->apiobj.character_model->model_data_b[action] != NULL) {
             const f32 end = NuAnimEndFrame(object->apiobj.character_model->model_data_b[action]);
             f32 start = AnimListFrame(object->apiobj.character_model, action, 0);
-            if (start < 1.0f)
+            if (!(start >= 1.0f))
                 start = 1.0f;
             if (start >= 1.0f && start < end) {
                 const f32 finish = AnimListFrame(object->apiobj.character_model, action, 1);
@@ -187,31 +192,33 @@ void WeaponInCode(GameObject_s *object) {
     ResetCharacterIdle(object, 1, GetDefaultIdle(object));
 }
 
+static inline void FastWeaponOutSfx(GameObject_s *object) {
+    if (object->weapon_scale_state == WEAPON_SCALE_EXTENDING)
+        return;
+    const i32 current_animation = CurrentAnim(&object->apiobj.anim_packet);
+    if (current_animation != -1) {
+        CHARACTERANIM_s *animation =
+            static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[current_animation]);
+        if (animation != NULL && (animation->flags & CHARACTER_ANIMATION_FLAG_GUN_OFF) != 0)
+            return;
+    }
+    const u32 model_flags = object->apiobj.character_data->model_flags;
+    if ((model_flags & CHARACTER_MODEL_FLAG_JEDI) != 0) {
+        if (object->apiobj.field_0x27c != -1 || WeaponInOut_NoAIJediSfx == 0) {
+            GameAudio_PlaySfx(0x3e, &object->apiobj.collision_position, GameAudio_GetPlrSfxBits(object), 1);
+        }
+    } else if ((model_flags & CHARACTER_MODEL_FLAG_ALTERNATE_WEAPON) != 0) {
+        GameAudio_PlaySfx(0x43, &object->apiobj.collision_position, 0, 1);
+    }
+}
+
 void FastWeaponOut(GameObject_s *object, i32 force_sound) {
     const i8 context = object->character_context;
     if (context != -1 && (context == LEGOCONTEXT_WEAPONIN || context == LEGOCONTEXT_WEAPONOUT)) {
         object->character_context = -1;
     }
-
-    if (force_sound != 0 && object->weapon_scale == 0.0f && object->weapon_scale_state != WEAPON_SCALE_EXTENDING) {
-        const i32 current_animation = CurrentAnim(&object->apiobj.anim_packet);
-        CHARACTERANIM_s *animation = NULL;
-        if (current_animation != -1) {
-            animation = static_cast<CHARACTERANIM_s *>(object->apiobj.character_model->model_data_a[current_animation]);
-        }
-
-        if (animation == NULL || (animation->flags & CHARACTER_ANIMATION_FLAG_GUN_OFF) == 0) {
-            const u32 model_flags = object->apiobj.character_data->model_flags;
-            if ((model_flags & CHARACTER_MODEL_FLAG_JEDI) != 0) {
-                if (object->apiobj.field_0x27c != -1 || WeaponInOut_NoAIJediSfx == 0) {
-                    GameAudio_PlaySfx(0x3e, &object->apiobj.collision_position, GameAudio_GetPlrSfxBits(object), 1);
-                }
-            } else if ((model_flags & CHARACTER_MODEL_FLAG_ALTERNATE_WEAPON) != 0) {
-                GameAudio_PlaySfx(0x43, &object->apiobj.collision_position, 0, 1);
-            }
-        }
-    }
-
+    if (force_sound != 0 && object->weapon_scale == 0.0f)
+        FastWeaponOutSfx(object);
     object->weapon_scale_rate = 5.0f;
     object->weapon_out_timer = 0.0f;
     object->weapon_scale_state = WEAPON_SCALE_EXTENDING;
@@ -435,7 +442,7 @@ void FindPlayerAndSetWeapon(i32 id, i32 weapon_out) {
                           (weapon_out & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION);
     if (weapon_out != 0) {
         object->weapon_scale = 1.0f;
-        if (static_cast<i8>(object->apiobj.flags_low) >= 0)
+        if (!object->apiobj.player_controlled)
             object->field_0xed8 = DEFENDTIME;
     } else {
         object->weapon_scale = 0.0f;

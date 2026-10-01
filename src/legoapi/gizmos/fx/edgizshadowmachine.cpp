@@ -95,25 +95,13 @@ static i32 edGizShadow_Load(void *world_ptr, void *) {
         EdFileReadNuVec(&shadow->direction);
         shadow->field_0x0c = EdFileReadFloat();
 
-        if (version <= 1) {
-            shadow->field_0x10 = 2.0f;
-            shadow->field_0x14 = 0.5f;
-            shadow->field_0x18 = 0.0005f;
-            shadow->field_0x1c = 0.01f;
-            shadow->field_0x20 = 22.0f;
-        } else {
+        if (!(version <= 1)) {
             shadow->field_0x10 = EdFileReadFloat();
             shadow->field_0x14 = EdFileReadFloat();
-            if (version == 2) {
-                shadow->field_0x18 = 0.0005f;
-                shadow->field_0x1c = 0.01f;
-                shadow->field_0x20 = 22.0f;
-            } else {
+            if (version != 2) {
                 shadow->field_0x18 = EdFileReadFloat();
                 shadow->field_0x1c = EdFileReadFloat();
-                if (version == 3) {
-                    shadow->field_0x20 = 22.0f;
-                } else {
+                if (version != 3) {
                     shadow->field_0x20 = EdFileReadFloat();
                     (void)EdFileReadFloat();
                     (void)EdFileReadFloat();
@@ -128,15 +116,27 @@ static i32 edGizShadow_Load(void *world_ptr, void *) {
                             }
                         }
                     }
+                } else {
+                    shadow->field_0x20 = 22.0f;
                 }
+            } else {
+                shadow->field_0x18 = 0.0005f;
+                shadow->field_0x1c = 0.01f;
+                shadow->field_0x20 = 22.0f;
             }
+        } else {
+            shadow->field_0x10 = 2.0f;
+            shadow->field_0x14 = 0.5f;
+            shadow->field_0x18 = 0.0005f;
+            shadow->field_0x1c = 0.01f;
+            shadow->field_0x20 = 22.0f;
         }
 
         if (world->area != NULL) {
-            if ((world->area->flags & 1) != 0) {
-                edGizShadow_SetPreset2(shadow);
-            } else {
+            if ((world->area->flags & 1) == 0) {
                 edGizShadow_SetPreset1(shadow);
+            } else {
+                edGizShadow_SetPreset2(shadow);
             }
         } else if (shadow->preset == EDGIZSHADOW_PRESET_1) {
             edGizShadow_SetPreset1(shadow);

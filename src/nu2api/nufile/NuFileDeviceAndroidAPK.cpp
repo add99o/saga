@@ -1,4 +1,5 @@
 #include "nu2api_nufile_types.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 NuFileBase *NuFileDeviceAndroidAPK::CreateNuFile(char const *path, NuFile::OpenMode::T mode) const {
     return NuFileAndroidAPK::Open(path, mode);

@@ -109,49 +109,47 @@ void Teleports_Configure(WORLDINFO_s *world, char *config) {
 
     i32 active = 0;
     while (NuFParGetLine(parser) != 0) {
-        if (NuFParGetWord(parser) == 0) {
-            continue;
-        }
+        if (NuFParGetWord(parser) != 0) {
+            if (active) {
+                if (NuStrICmp(parser->word_buf, "teleport_end") != 0) {
+                    NuFParInterpretWord(parser);
+                    active = 1;
+                    continue;
+                }
 
-        if (active) {
-            if (NuStrICmp(parser->word_buf, "teleport_end") != 0) {
-                NuFParInterpretWord(parser);
-                active = 1;
+                if (NuStrLen(Tel_teleport->name) == 0) {
+                    NuStrCpy(Tel_teleport->name, "TLT_");
+                    NuStrCat(Tel_teleport->name, "TeleportNoSpline!");
+                    GizmoGetUniqueName(WORLD->gizmo_sys, "TLT_", Tel_teleport->name, Tel_teleport->name,
+                                       sizeof(Tel_teleport->name));
+                }
+
+                active = 0;
+                if (teleport->path != NULL) {
+                    ++world->teleport_count;
+                    ++teleport;
+                }
                 continue;
             }
 
-            if (NuStrLen(Tel_teleport->name) == 0) {
-                NuStrCpy(Tel_teleport->name, "TLT_");
-                NuStrCat(Tel_teleport->name, "TeleportNoSpline!");
-                GizmoGetUniqueName(WORLD->gizmo_sys, "TLT_", Tel_teleport->name, Tel_teleport->name,
-                                   sizeof(Tel_teleport->name));
+            if (NuStrICmp(parser->word_buf, "teleport_start") != 0) {
+                continue;
             }
 
-            active = 0;
-            if (teleport->path != NULL) {
-                ++world->teleport_count;
-                ++teleport;
-            }
-            continue;
+            Tel_worldinfo = world;
+            Tel_teleport = teleport;
+            NuStrCpy(teleport->name, "");
+            teleport->enabled = 1;
+            teleport->path = NULL;
+            teleport->duration = 5.0f;
+            teleport->range_squared = 0.0f;
+            teleport->flags = 0;
+            teleport->active = 0;
+            teleport->blocking_special = {};
+            teleport->flap1_special = {};
+            teleport->flap2_special = {};
+            active = 1;
         }
-
-        if (NuStrICmp(parser->word_buf, "teleport_start") != 0) {
-            continue;
-        }
-
-        Tel_worldinfo = world;
-        Tel_teleport = teleport;
-        NuStrCpy(teleport->name, "");
-        teleport->enabled = 1;
-        teleport->path = NULL;
-        teleport->duration = 5.0f;
-        teleport->range_squared = 0.0f;
-        teleport->flags = 0;
-        teleport->active = 0;
-        teleport->blocking_special = {};
-        teleport->flap1_special = {};
-        teleport->flap2_special = {};
-        active = 1;
     }
 
     NuFParDestroy(parser);

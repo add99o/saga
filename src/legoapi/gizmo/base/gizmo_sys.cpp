@@ -139,16 +139,16 @@ void MiniKit_Load(MINIKIT *minikit, i32 id, VARIPTR *buf, VARIPTR *buf_end, void
     minikit->field_0x8 = 0;
     minikit->field_0x9 = -1;
     minikit->id = static_cast<i16>(id);
-    if (id != -1) {
-        char path[256];
-        NuStrCpy(path, const_cast<char *>("chars\\minikits\\"));
-        NuStrCat(path, CDataList[id].file);
-        NuStrCat(path, const_cast<char *>("\\"));
-        NuStrCat(path, CDataList[id].file);
-        NuStrCat(path, const_cast<char *>(".gsc"));
-        buf->addr = ALIGN(buf->addr, 4);
-        minikit->gscn = NuGScnRead(buf, *buf_end, path);
-    }
+    if (id == -1)
+        return;
+    char path[256];
+    NuStrCpy(path, const_cast<char *>("chars\\minikits\\"));
+    NuStrCat(path, CDataList[id].file);
+    NuStrCat(path, const_cast<char *>("\\"));
+    NuStrCat(path, CDataList[id].file);
+    NuStrCat(path, const_cast<char *>(".gsc"));
+    buf->addr = ALIGN(buf->addr, 4);
+    minikit->gscn = NuGScnRead(buf, *buf_end, path);
 }
 void MiniKit_InitPieces(MINIKIT *minikit, i32 count, VARIPTR *buf, VARIPTR *buf_end) {
     (void)buf_end;

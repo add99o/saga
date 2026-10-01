@@ -310,7 +310,7 @@ static void DrawHitPoints(GameObject_s *object, float x, float y, float scale, f
         current_hp = static_cast<i8>(object->current_hp);
     }
 
-    if (PLAYERHITPOINTS_2HEARTSIN1 != 0 && static_cast<i8>(object->apiobj.flags_low) < 0) {
+    if (PLAYERHITPOINTS_2HEARTSIN1 != 0 && object->apiobj.player_controlled) {
         hitpoints = (hitpoints + 1) / 2;
         current_hp = (current_hp + 1) / 2;
     }
@@ -350,8 +350,8 @@ static void DrawHitPoints(GameObject_s *object, float x, float y, float scale, f
         float z = 1.001f;
         if (i < current_hp) {
             draw_alpha = 1.0f;
-            if (PLAYERHITPOINTS_2HEARTSIN1 != 0 && static_cast<i8>(object->apiobj.flags_low) < 0 &&
-                i == current_hp - 1 && static_cast<i8>(object->current_hp) < (i + 1) * 2) {
+            if (PLAYERHITPOINTS_2HEARTSIN1 != 0 && object->apiobj.player_controlled && i == current_hp - 1 &&
+                static_cast<i8>(object->current_hp) < (i + 1) * 2) {
                 draw_alpha = 0.75f;
             }
 
@@ -563,14 +563,14 @@ void DrawSuperStoryTime(f32 y, f32 timer, f32 target, i32 target_above, i32 show
     Text_MakeTime(timer, show_hours, 1, 1, time);
 
     i32 green = 191;
-    if (target > 0.0f) {
+    if (!(target <= 0.0f)) {
         if (target <= timer) {
             green = 31;
         }
     }
     Text3DEx(time, 0.0f, y, 1.0f, 0.5f, 0.5f, 0.5f, 0, 255, green, 0, 128);
 
-    if (target > 0.0f) {
+    if (!(target <= 0.0f)) {
         char target_time[256];
         Text_MakeTime(target, show_hours, 1, 1, time);
         NuStrCpy(target_time, const_cast<char *>("("));
@@ -585,11 +585,11 @@ void DrawBuildUpBar(float x, float y, i32 amount, i32 maximum, float scale, floa
     const f32 progress = static_cast<f32>(amount * 10) / maximum;
     const i32 full = progress;
     const f32 fraction = NuFmod(progress, 1.0f);
-    const f32 phase = GlobalTimer.time_elapsed_mod_seconds * 10.0f;
+    const i32 phase = static_cast<i32>(GlobalTimer.time_elapsed_mod_seconds * 10.0f);
     const f32 size = scale * 0.085f * width;
     const f32 step = width * 0.02975f * NuTrigTable[((angle + 0x4000) >> 1) & 0x7fff];
     f32 px = x - step * 9.0f * 0.5f;
-    i32 shimmer = 0xb3 - static_cast<i32>(phase);
+    i32 shimmer = 0xb3 - phase;
     for (i32 i = 0; i < 10; ++i) {
         i32 object;
         if (amount == maximum) {
@@ -602,7 +602,7 @@ void DrawBuildUpBar(float x, float y, i32 amount, i32 maximum, float scale, floa
             object = fraction * 9.0f + 169.0f;
         else
             object = 0xa9;
-        const f32 depth[10] = {1.009f, 1.008f, 1.007f, 1.006f, 1.005f, 1.004f, 1.003f, 1.002f, 1.001f, 1.0f};
+        static const f32 depth[10] = {1.009f, 1.008f, 1.007f, 1.006f, 1.005f, 1.004f, 1.003f, 1.002f, 1.001f, 1.0f};
         DrawPanel3DObject(px, y, depth[i], size, size, size, 0, 0, 0,
                           reinterpret_cast<nuhspecial_s *>(&WORLD->lev_objs[object]), 0, alpha);
         px += step;
@@ -912,7 +912,7 @@ void DrawPanel() {
         f32 pulse = 0.25f * NU_SIN_LUT(static_cast<i32>(GlobalTimer.time_elapsed_mod_seconds * 65536.0f));
         {
             const i32 i = 0;
-            if (Player[i] != NULL && static_cast<i8>(Player[i]->apiobj.flags_low) < 0 && NoPad(i, 1) &&
+            if (Player[i] != NULL && Player[i]->apiobj.player_controlled && NoPad(i, 1) &&
                 (WORLD->current_level == NULL || !(WORLD->current_level->flags & 0xe0)) &&
                 !MenuInCriticalMemoryCard()) {
                 removed_controller = GamePad[i].pad->port;
@@ -924,7 +924,7 @@ void DrawPanel() {
         }
         {
             const i32 i = 1;
-            if (Player[i] != NULL && static_cast<i8>(Player[i]->apiobj.flags_low) < 0 && NoPad(i, 1) &&
+            if (Player[i] != NULL && Player[i]->apiobj.player_controlled && NoPad(i, 1) &&
                 (WORLD->current_level == NULL || !(WORLD->current_level->flags & 0xe0)) &&
                 !MenuInCriticalMemoryCard()) {
                 removed_controller = GamePad[i].pad->port;
@@ -966,9 +966,9 @@ void DrawPanel() {
                     if (!paused || pause_i_pad == 0) {
                         icon_x = -ICONX;
                         base_alpha = 1.0f;
-                        if (static_cast<i8>(object->apiobj.flags_low) >= 0)
+                        if (!object->apiobj.player_controlled)
                             dropin_alpha = DROPINALPHA;
-                    } else if (static_cast<i8>(object->apiobj.flags_low) < 0) {
+                    } else if (object->apiobj.player_controlled) {
                         base_alpha = 0.5f;
                         icon_x = -ICONX;
                     } else {
@@ -995,9 +995,9 @@ void DrawPanel() {
                         DrawCharIcon(id, icon_x, status_y, 0.0f, icon_size, 0xa6, alpha, alpha, visible, NULL);
                     }
                     f32 name_x = -(ICONX + 0.075f);
-                    if (static_cast<i8>(object->apiobj.flags_low) < 0 && object->apiobj.character_data->name_id != -1) {
+                    if (object->apiobj.player_controlled && object->apiobj.character_data->name_id != -1) {
                         bool draw_name = paused != 0;
-                        if (!draw_name && object->hud_icon_timer > 0.0f && object->hud_icon_timer < 2.0f)
+                        if (!draw_name && !(object->hud_icon_timer <= 0.0f) && !(object->hud_icon_timer >= 2.0f))
                             draw_name = NuFmod(object->hud_icon_timer, 0.4f) < 0.2f;
                         if (draw_name) {
                             f32 width = Game.options_save.widescreen ? 0.7f : 0.5f;
@@ -1007,11 +1007,11 @@ void DrawPanel() {
                                         0, static_cast<i32>(base_alpha * 128.0f));
                         }
                     }
-                    if (!paused && FadeSys.fade == 0.0f && static_cast<i8>(object->apiobj.flags_low) < 0 &&
+                    if (!paused && FadeSys.fade == 0.0f && object->apiobj.player_controlled &&
                         MechSystems::Get()->PlayerButton().panel_state == NULL) {
-                        if (ONEPLAYERPOWERUPS && object->field_0xdec > 0.0f) {
+                        if (ONEPLAYERPOWERUPS && !(object->field_0xdec <= 0.0f)) {
                             if (!FindGameMsgsWithID(7, 0, object->apiobj.field_0x27c, NULL) &&
-                                (object->field_0xdec >= 3.0f ||
+                                (!(object->field_0xdec < 3.0f) ||
                                  PickupFlickerFrame % PickUpFlickerFrames < PickUpFlickerTest)) {
                                 nuhspecial_s *special = &WORLD->lev_objs[0xd0].special;
                                 u16 angle = PowerUp_PanelYRot[0];
@@ -1038,7 +1038,7 @@ void DrawPanel() {
                             }
                         }
                     }
-                    if (static_cast<i8>(object->apiobj.flags_low) < 0) {
+                    if (object->apiobj.player_controlled) {
                         DrawHitPoints(object, -PANEL_HITPOINTSX, status_y + (raised_hearts ? 0.0f : PANEL_HEARTY),
                                       0.195f, alpha, 2, 0.0f, 0);
                     } else if (!paused && !CUTSTOPGAME) {
@@ -1151,16 +1151,16 @@ void DrawPanel() {
                                                      &WORLD->lev_objs[0xd2].special, 2);
                         }
                     }
-                    if (DoubleScoreTime > 0.0f)
+                    if (!(DoubleScoreTime <= 0.0f))
                         DrawInDoubleScoreZone(DoubleScoreTime);
                 }
                 if (BonusArea && WORLD->area != NULL && (WORLD->area->flags & 0x104) == 4) {
                     i32 *scores = Arcade ? Arcade_Points : BonusScore;
-                    i32 active2 = Player[1] != NULL && static_cast<i8>(Player[1]->apiobj.flags_low) < 0;
-                    i32 active1 = Player[0] != NULL && static_cast<i8>(Player[0]->apiobj.flags_low) < 0;
+                    i32 active2 = Player[1] != NULL && Player[1]->apiobj.player_controlled;
+                    i32 active1 = Player[0] != NULL && Player[0]->apiobj.player_controlled;
                     DrawBonusScore(status_y, active1, active2, 1.0f, scores);
                 }
-                if (HUB_ADATA != NULL && WORLD->area == HUB_ADATA && goldbricktime > 0.0f) {
+                if (HUB_ADATA != NULL && WORLD->area == HUB_ADATA && !(goldbricktime <= 0.0f)) {
                     f32 y =
                         (STATSPOS2Y - STATSPOSY) * NU_SIN_LUT(static_cast<i32>(goldbricktime * 16384.0f)) - STATSPOS2Y;
                     Hub_DrawImportantBrick(0xd3, 0.0f, y, 1.0f, Game.gold_bricks, GOLDBRICKPOINTS);
@@ -1168,7 +1168,7 @@ void DrawPanel() {
             }
             i32 hide_target = 0;
             GameObject_s *boss = drawbosshitpoints;
-            if (boss != NULL && boss->apiobj.field_0x287 == 0 && static_cast<i8>(boss->apiobj.flags_low) >= 0) {
+            if (boss != NULL && boss->apiobj.field_0x287 == 0 && !boss->apiobj.player_controlled) {
                 if (FadeSys.fade == 0.0f) {
                     DrawCharIcon(boss->id, 0.0f, BOSSICONY, 0.0f, 0.16f, 0xa7, statstime, statstime, 1, NULL);
                     DrawHitPoints(boss, 0.0f, 0.47f, 0.2f, statstime, 0, 0.0f, 0);
@@ -1206,7 +1206,7 @@ void DrawPanel() {
             } else if (ChallengeMode) {
                 f32 remaining =
                     static_cast<f32>(ADataList[WORLD->level_sub_id].challenge_trial_time) - ChallengeTimer.time_elapsed;
-                if (remaining < 0.0f)
+                if (!(remaining >= 0.0f))
                     remaining = 0.0f;
                 Text_MakeTime(remaining, 0, 1, 1, text);
                 f32 y = NU_SIN_LUT(static_cast<i32>(statstime * 16384.0f)) * (STATSPOSY - STATSPOS2Y) + STATSPOS2Y;
@@ -1216,7 +1216,7 @@ void DrawPanel() {
                 i32 mission_index = static_cast<i8>(MissionSys->mission->count);
                 f32 remaining = static_cast<f32>(static_cast<u16>(MissionSys->missions[mission_index].time)) -
                                 MissionSys->timer.time_elapsed;
-                if (remaining < 0.0f)
+                if (!(remaining >= 0.0f))
                     remaining = 0.0f;
                 Text_MakeTime(remaining, 0, 1, 1, text);
                 Text3D(text, 0.0f, status_y, 1.0f, 0.6f, 0.6f, 0.6f, 0, 255, 191, 0);
@@ -1252,7 +1252,7 @@ void DrawPanel() {
                                     distance = distance2;
                             }
                             distance = NuFsqrt(distance);
-                            if (distance > 10.0f)
+                            if (!(distance <= 10.0f))
                                 distance = 10.0f;
                             alpha *= 1.0f - distance / 10.0f;
                         } else
@@ -1275,7 +1275,7 @@ void DrawPanel() {
     if (WORLD->current_level->draw_status_fn == NULL && !(WORLD->current_level->flags & LEVEL_GAMEPLAY))
         goto draw_panel_menu;
     for (i32 i = 0; i < 8; ++i) {
-        if (Player[i] != NULL && static_cast<i8>(Player[i]->apiobj.flags_low) < 0 && ShowPlayerCoordinate) {
+        if (Player[i] != NULL && Player[i]->apiobj.player_controlled && ShowPlayerCoordinate) {
             sprintf(text, "X:%.2f Y:%.2f Z:%.2f", Player[i]->apiobj.position.x, Player[i]->apiobj.position.y,
                     Player[i]->apiobj.position.z);
             Text3DEx(text, coordinate_positions[i].x, coordinate_positions[i].y, 1.0f, 0.4f, 0.5f, 0.5f, 0, 255, 191, 0,

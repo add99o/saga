@@ -109,18 +109,18 @@ static LEDGE *Ledge_AttachPoint(WORLDINFO_s *world, NUVEC *position, NUVEC *boun
                 endpoint_angle = ledge->y_rotation;
             }
         }
-        if (check_end) {
-            f32 distance = NuVecDistSqr(&local, &piece->end, NULL);
-            if (distance < endpoint_distance) {
-                NuVecRotateY(&local, &piece->end, ledge->y_rotation);
-                NuVecAdd(&endpoint_position, &local, &ledge->position);
-                nearest_endpoint = ledge;
-                endpoint_distance = distance;
-                endpoint_angle = ledge->y_rotation;
-                if (piece->field_0x3 == 0)
-                    endpoint_angle += piece->field_0x1c;
-            }
-        }
+        if (!check_end)
+            continue;
+        f32 distance = NuVecDistSqr(&local, &piece->end, NULL);
+        if (!(distance < endpoint_distance))
+            continue;
+        NuVecRotateY(&local, &piece->end, ledge->y_rotation);
+        NuVecAdd(&endpoint_position, &local, &ledge->position);
+        nearest_endpoint = ledge;
+        endpoint_distance = distance;
+        endpoint_angle = ledge->y_rotation;
+        if (piece->field_0x3 == 0)
+            endpoint_angle += piece->field_0x1c;
     }
     if (nearest_segment != NULL) {
         *position = segment_position;
@@ -158,15 +158,15 @@ static void Ledges_Draw(void *world_info, void *, float) {
     LEDGE *ledge = static_cast<LEDGE *>(world->ledges);
     // Retail realigns the stack and places this matrix at the aligned ESP+0x20.
     NUMTX matrix __attribute__((aligned(16)));
-    if (ledge != NULL) {
-        i32 count = world->ledge_count;
-        for (i32 i = 0; i < count; ++i, ++ledge) {
-            if ((ledge->state_flags & 2) != 0 && world->lev_objs[LedgePiece[ledge->type_index].field_0x0].active != 0) {
-                NuMtxSetRotationY(&matrix, ledge->y_rotation);
-                NuMtxTranslate(&matrix, &ledge->position);
-                NuSpecialDrawAt(&world->lev_objs[LedgePiece[ledge->type_index].field_0x0].special, &matrix);
-                count = world->ledge_count;
-            }
+    if (ledge == NULL)
+        return;
+    i32 count = world->ledge_count;
+    for (i32 i = 0; i < count; ++i, ++ledge) {
+        if ((ledge->state_flags & 2) != 0 && world->lev_objs[LedgePiece[ledge->type_index].field_0x0].active != 0) {
+            NuMtxSetRotationY(&matrix, ledge->y_rotation);
+            NuMtxTranslate(&matrix, &ledge->position);
+            NuSpecialDrawAt(&world->lev_objs[LedgePiece[ledge->type_index].field_0x0].special, &matrix);
+            count = world->ledge_count;
         }
     }
 }
@@ -326,7 +326,10 @@ static i32 Ledges_Load(void *world_info, void *) {
         if (version > 1) {
             ledge->field_0x1c = EdFileReadShort();
             ledge->field_0x1e = EdFileReadShort();
-            ledge->flags = version == 2 ? 0 : EdFileReadUnsignedChar();
+            if (version == 2)
+                ledge->flags = 0;
+            else
+                ledge->flags = EdFileReadUnsignedChar();
         } else {
             ledge->field_0x1c = -1;
             ledge->field_0x1e = -1;
@@ -374,43 +377,49 @@ ADDGIZMOTYPE *Ledges_RegisterGizmo(i32 type_id) {
     return &addtype;
 }
 
+static inline void Ledge_TryAttach(WORLDINFO_s *world, GameObject_s *object) {
+    if (object->character_context != 0x43 && object->character_context != -1) {
+        if (object->character_context != 0 || !(object->context_animation_timer >= 0.1f))
+            return;
+    }
+    if (!object->apiobj.player_controlled && !(object->field_0xf01 & 0x80))
+        return;
+    f32 radius = 3.0f * object->apiobj.field_0x1dc;
+    NUVEC minimum = {object->apiobj.collision_position.x - radius, object->apiobj.collision_position.y,
+                     object->apiobj.collision_position.z - radius};
+    NUVEC maximum = {object->apiobj.collision_position.x + radius, object->apiobj.upper_position.y,
+                     object->apiobj.collision_position.z + radius};
+    NUVEC position = {(maximum.x + minimum.x) * 0.5f, (maximum.y + minimum.y) * 0.5f, (maximum.z + minimum.z) * 0.5f};
+    u16 angle;
+    if (Ledge_AttachPoint(world, &position, &minimum, &maximum, &angle) == NULL)
+        return;
+    object->character_context = 0x5b;
+    object->context_animation = 0x9d;
+    object->apiobj.velocity = v000;
+    object->external_force = position;
+    object->apiobj.movement_facing_angle = angle + 0x8000;
+    object->launch_origin.x =
+        object->external_force.x - NU_SIN_LUT(object->apiobj.movement_facing_angle) * object->apiobj.field_0x1dc;
+    object->launch_origin.y = object->external_force.y;
+    object->launch_origin.z =
+        object->external_force.z - NU_COS_LUT(object->apiobj.movement_facing_angle) * object->apiobj.field_0x1dc;
+}
+
+static inline void Ledge_UpdateUnattached(WORLDINFO_s *world, GameObject_s *object) {
+    if (object->apiobj.field_0x27d == 0 && object->apiobj.velocity.y <= 0.0f)
+        Ledge_TryAttach(world, object);
+}
+
 void Ledge_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
     if (object->character_context != 0x5b) {
-        if (object->apiobj.field_0x27d != 0 || !(object->apiobj.velocity.y <= 0.0f))
-            return;
-        if (object->character_context != 0x43 && object->character_context != -1) {
-            if (object->character_context != 0 || !(object->context_animation_timer >= 0.1f))
-                return;
-        }
-        if (!object->apiobj.player_controlled && !(object->field_0xf01 & 0x80))
-            return;
-        f32 radius = 3.0f * object->apiobj.field_0x1dc;
-        NUVEC minimum = {object->apiobj.collision_position.x - radius, object->apiobj.collision_position.y,
-                         object->apiobj.collision_position.z - radius};
-        NUVEC maximum = {object->apiobj.collision_position.x + radius, object->apiobj.upper_position.y,
-                         object->apiobj.collision_position.z + radius};
-        NUVEC position = {(maximum.x + minimum.x) * 0.5f, (maximum.y + minimum.y) * 0.5f,
-                          (maximum.z + minimum.z) * 0.5f};
-        u16 angle;
-        if (Ledge_AttachPoint(world, &position, &minimum, &maximum, &angle) == NULL)
-            return;
-        object->character_context = 0x5b;
-        object->context_animation = 0x9d;
-        object->apiobj.velocity = v000;
-        object->external_force = position;
-        object->apiobj.movement_facing_angle = angle + 0x8000;
-        object->launch_origin.x =
-            object->external_force.x - NU_SIN_LUT(object->apiobj.movement_facing_angle) * object->apiobj.field_0x1dc;
-        object->launch_origin.y = object->external_force.y;
-        object->launch_origin.z =
-            object->external_force.z - NU_COS_LUT(object->apiobj.movement_facing_angle) * object->apiobj.field_0x1dc;
+        Ledge_UpdateUnattached(world, object);
         return;
     }
     if (object->pad_gamepad->buttons_pressed & GAMEPAD_JUMP) {
         StartJump(object, 0);
         object->movement_runtime_flags |= 0x10;
         f32 height = 0.2f + object->external_force.y - object->jump_start_height;
-        if (height > 0.0f) {
+        if (!(height <= 0.0f)) {
             object->apiobj.velocity.y =
                 NuFsqrt(-2.0f * object->apiobj.character_data->game_character->gravity * height);
         }

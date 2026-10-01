@@ -384,15 +384,7 @@ eduimenu_s *antinodeEditor_Process(nupad_s *pad) {
             aieditor->mode_selection_42e9c = nearest;
             edcamSetPos(&nearest->position);
         } else if (selected != nullptr && selected == nearest) {
-            if ((pressed & 0x100) && NuSpecialExistsFn(&selected->special)) {
-                NUVEC *platform_position = NuSpecialGetDrawPos(&aieditor->cursor_platform);
-                if (platform_position != nullptr) {
-                    selected->position.x = platform_position->x;
-                    selected->position.z = platform_position->z;
-                    antinodeEditor_AntinodeMoved(selected);
-                    edcamSetPos(&selected->position);
-                }
-            } else {
+            if (!((pressed & 0x100) && NuSpecialExistsFn(&selected->special))) {
                 selected->position = aieditor->camera_position;
                 antinodeEditor_AntinodeMoved(selected);
                 if (selected->type != 0) {
@@ -406,6 +398,14 @@ eduimenu_s *antinodeEditor_Process(nupad_s *pad) {
                     else if (held & 0x4000)
                         selected->base_height =
                             selected->base_height * 0.99f < 0.05f ? 0.05f : selected->base_height * 0.99f;
+                }
+            } else {
+                NUVEC *platform_position = NuSpecialGetDrawPos(&aieditor->cursor_platform);
+                if (platform_position != nullptr) {
+                    selected->position.x = platform_position->x;
+                    selected->position.z = platform_position->z;
+                    antinodeEditor_AntinodeMoved(selected);
+                    edcamSetPos(&selected->position);
                 }
             }
         }
@@ -487,15 +487,7 @@ eduimenu_s *antinodeEditor_Process(nupad_s *pad) {
         } else if (aieditorsettings.solid_antinode_display && (held & (0x1000 | 0x4000))) {
             aieditor->flags |= 4;
             f32 step = (selected->upper_height - selected->lower_height) * 0.05f;
-            if (held & 0x1000) {
-                if (held & 4)
-                    selected->upper_height += step;
-                else if (held & 1)
-                    selected->upper_height -= step;
-                selected->upper_height = selected->upper_height < selected->lower_height + 0.01f
-                                             ? selected->lower_height + 0.01f
-                                             : selected->upper_height;
-            } else {
+            if (!(held & 0x1000)) {
                 if (held & 4)
                     selected->lower_height += step;
                 else if (held & 1)
@@ -503,6 +495,14 @@ eduimenu_s *antinodeEditor_Process(nupad_s *pad) {
                 selected->lower_height = selected->lower_height > selected->upper_height - 0.01f
                                              ? selected->upper_height - 0.01f
                                              : selected->lower_height;
+            } else {
+                if (held & 4)
+                    selected->upper_height += step;
+                else if (held & 1)
+                    selected->upper_height -= step;
+                selected->upper_height = selected->upper_height < selected->lower_height + 0.01f
+                                             ? selected->lower_height + 0.01f
+                                             : selected->upper_height;
             }
         }
     }

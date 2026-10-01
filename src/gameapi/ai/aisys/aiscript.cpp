@@ -1131,22 +1131,20 @@ void AIScriptLoadAllPakFile(void *pak, char *path, VARIPTR *buf, VARIPTR *buf_en
         }
     }
 
-    if (sys == NULL) {
-        return;
-    }
+    if (sys != NULL) {
+        do {
+            is_done = 1;
+            script = (AISCRIPT *)NuLinkedListGetHead(&sys->scripts);
 
-    do {
-        is_done = 1;
-        script = (AISCRIPT *)NuLinkedListGetHead(&sys->scripts);
+            while (script != NULL) {
+                if (AIScriptBuildDerivedScript(script, buf, buf_end, sys) == 0) {
+                    is_done = 0;
+                }
 
-        while (script != NULL) {
-            if (AIScriptBuildDerivedScript(script, buf, buf_end, sys) == 0) {
-                is_done = 0;
+                script = (AISCRIPT *)NuLinkedListGetNext(&sys->scripts, &script->list_node);
             }
-
-            script = (AISCRIPT *)NuLinkedListGetNext(&sys->scripts, &script->list_node);
-        }
-    } while (!is_done);
+        } while (!is_done);
+    }
 }
 
 void AIScriptOpenPakFileParse(AISCRIPT **script_ref, void *pak, char *filename, char *path, VARIPTR *buf,

@@ -295,21 +295,21 @@ static void edptlcbSetGroup(eduimenu_s *, eduiitem_s *item, u32) {
     debkeydata[edpp_ptls[edpp_nearest].instance_id].render_group = render_group;
 }
 static void edptlcbStarMenu(eduimenu_s *parent, eduiitem_s *, u32) {
-    if (edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)
-        return;
-    debinftype *effect = debtab[debkeydata[edpp_ptls[edpp_nearest].instance_id].effect_index];
-    u32 colours[4] = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
-    edptl_star_menu = eduiMenuCreate(70, 70, 200, 300, ed_fnt, edptlcbCancelStarMenu, "Star Settings");
-    if (edptl_star_menu == NULL)
-        return;
-    eduiMenuAddItem(edptl_star_menu,
-                    eduiItemSliderCreateInt(0, colours, 0, edptlcbApplyStarPoints, 3, 17,
-                                            static_cast<i8>(effect->radial_segments), "Number of Points"));
-    eduiMenuAddItem(edptl_star_menu, eduiItemSliderCreate(0, colours, 0, edptlcbApplyStarRatio, 0.1f, 0.8f,
-                                                          effect->radial_floor, "Radius Ratio"));
-    eduiMenuAttach(parent, edptl_star_menu);
-    edptl_star_menu->x = parent->x + 10;
-    edptl_star_menu->y = parent->y + 40;
+    if (!(edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)) {
+        debinftype *effect = debtab[debkeydata[edpp_ptls[edpp_nearest].instance_id].effect_index];
+        u32 colours[4] = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
+        edptl_star_menu = eduiMenuCreate(70, 70, 200, 300, ed_fnt, edptlcbCancelStarMenu, "Star Settings");
+        if (edptl_star_menu == NULL)
+            return;
+        eduiMenuAddItem(edptl_star_menu,
+                        eduiItemSliderCreateInt(0, colours, 0, edptlcbApplyStarPoints, 3, 17,
+                                                static_cast<i8>(effect->radial_segments), "Number of Points"));
+        eduiMenuAddItem(edptl_star_menu, eduiItemSliderCreate(0, colours, 0, edptlcbApplyStarRatio, 0.1f, 0.8f,
+                                                              effect->radial_floor, "Radius Ratio"));
+        eduiMenuAttach(parent, edptl_star_menu);
+        edptl_star_menu->x = parent->x + 10;
+        edptl_star_menu->y = parent->y + 40;
+    }
 }
 static void edptlcbStopPage(eduimenu_s *, eduiitem_s *item, u32) {
     edppStopPage(static_cast<i8>(item->data));
@@ -318,22 +318,22 @@ static void edptlcbClearPage(eduimenu_s *, eduiitem_s *item, u32) {
     edppClearPage(static_cast<i8>(item->data));
 }
 static void edptlcbGhostMenu(eduimenu_s *parent, eduiitem_s *, u32) {
-    if (edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)
-        return;
-    debinftype *effect = debtab[debkeydata[edpp_ptls[edpp_nearest].instance_id].effect_index];
-    u32 colours[4] = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
-    edptl_ghost_menu = eduiMenuCreate(70, 70, 200, 300, ed_fnt, edptlcbCancelGhostMenu, "Particle Ghosts");
-    if (edptl_ghost_menu == NULL)
-        return;
-    eduiMenuAddItem(edptl_ghost_menu,
-                    eduiItemSliderCreateInt(0, colours, 0, edptlcbApplyNumGhosts, 0, 10,
-                                            static_cast<i8>(effect->trail_count), "Number of Ghosts"));
-    eduiMenuAddItem(edptl_ghost_menu,
-                    eduiItemSliderCreate(0, colours, 0, edptlcbApplyGhostTime, 0.0f, 1.0f,
-                                         static_cast<f32>(static_cast<i32>(effect->trail_time)), "Ghost Separation"));
-    eduiMenuAttach(parent, edptl_ghost_menu);
-    edptl_ghost_menu->x = parent->x + 10;
-    edptl_ghost_menu->y = parent->y + 40;
+    if (!(edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)) {
+        debinftype *effect = debtab[debkeydata[edpp_ptls[edpp_nearest].instance_id].effect_index];
+        u32 colours[4] = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
+        edptl_ghost_menu = eduiMenuCreate(70, 70, 200, 300, ed_fnt, edptlcbCancelGhostMenu, "Particle Ghosts");
+        if (edptl_ghost_menu == NULL)
+            return;
+        eduiMenuAddItem(edptl_ghost_menu,
+                        eduiItemSliderCreateInt(0, colours, 0, edptlcbApplyNumGhosts, 0, 10,
+                                                static_cast<i8>(effect->trail_count), "Number of Ghosts"));
+        eduiMenuAddItem(edptl_ghost_menu, eduiItemSliderCreate(0, colours, 0, edptlcbApplyGhostTime, 0.0f, 1.0f,
+                                                               static_cast<f32>(static_cast<i32>(effect->trail_time)),
+                                                               "Ghost Separation"));
+        eduiMenuAttach(parent, edptl_ghost_menu);
+        edptl_ghost_menu->x = parent->x + 10;
+        edptl_ghost_menu->y = parent->y + 40;
+    }
 }
 static void edptlcbGroupMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     edptl_group_menu = eduiMenuCreate(70, 70, 250, 250, ed_fnt, edptlcbCancelGroupMenu, "Render Settings");
@@ -408,20 +408,20 @@ static void edptlcbStartPage(eduimenu_s *, eduiitem_s *item, u32) {
 }
 static void edptlcbBounceMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     u32 colours[4] __attribute__((aligned(16))) = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
-    if (edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)
-        return;
-    debkeydatatype_s *key = &debkeydata[edpp_ptls[edpp_nearest].instance_id];
-    edptl_bounce_menu = eduiMenuCreate(70, 70, 200, 300, ed_fnt, edptlcbCancelBounceMenu, "Particle Bounce");
-    if (edptl_bounce_menu == NULL)
-        return;
-    eduiMenuAddItem(edptl_bounce_menu,
-                    eduiItemSliderCreate(0, colours, 0, edptlcbApplyBounceOffset, -10.0f * edptl_superscale,
-                                         10.0f * edptl_superscale, key->collision_plane, "Plane Offset"));
-    eduiMenuAddItem(edptl_bounce_menu, eduiItemSliderCreate(0, colours, 0, edptlcbApplyBounceFactor, 0.0f, 2.0f,
-                                                            key->reflection_scale, "Bounce Factor"));
-    eduiMenuAttach(parent, edptl_bounce_menu);
-    edptl_bounce_menu->x = parent->x + 10;
-    edptl_bounce_menu->y = parent->y + 40;
+    if (!(edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)) {
+        debkeydatatype_s *key = &debkeydata[edpp_ptls[edpp_nearest].instance_id];
+        edptl_bounce_menu = eduiMenuCreate(70, 70, 200, 300, ed_fnt, edptlcbCancelBounceMenu, "Particle Bounce");
+        if (edptl_bounce_menu != NULL) {
+            eduiMenuAddItem(edptl_bounce_menu,
+                            eduiItemSliderCreate(0, colours, 0, edptlcbApplyBounceOffset, -10.0f * edptl_superscale,
+                                                 10.0f * edptl_superscale, key->collision_plane, "Plane Offset"));
+            eduiMenuAddItem(edptl_bounce_menu, eduiItemSliderCreate(0, colours, 0, edptlcbApplyBounceFactor, 0.0f, 2.0f,
+                                                                    key->reflection_scale, "Bounce Factor"));
+            eduiMenuAttach(parent, edptl_bounce_menu);
+            edptl_bounce_menu->x = parent->x + 10;
+            edptl_bounce_menu->y = parent->y + 40;
+        }
+    }
 }
 static void edptlcbDetailMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     edptl_detail_menu = eduiMenuCreate(70, 70, 250, 250, ed_fnt, edptlcbCancelDetailMenu, "Detail Level Settings");
@@ -503,41 +503,41 @@ static void edptlcbSetSoundID(eduimenu_s *menu, eduiitem_s *item, u32) {
     eduiMenuDestroy(menu);
 }
 static void edptlcbSoundXMenu(eduimenu_s *parent, eduiitem_s *item, u32) {
-    if (edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)
-        return;
-
-    const u32 colours[4] = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};
-    char title[16];
-    sprintf(title, "Sound %d Menu", static_cast<i32>(item->data) + 1);
-    edptl_soundx_menu = eduiMenuCreate(70, 70, 250, 300, ed_fnt, edptlcbCancelSoundXMenu, title);
-    if (edptl_soundx_menu == NULL)
-        return;
-    eduiMenuAddItem(edptl_soundx_menu, eduiItemSelCreate(item->data, colours, 0, 0, edptlcbSoundIDMenu, "Sound ID..."));
-    eduiMenuAddItem(edptl_soundx_menu,
-                    eduiItemSelCreate(item->data, colours, 0, 0, edptlcbSoundControlMenu, "Sound Control..."));
-    eduiMenuAttach(parent, edptl_soundx_menu);
-    edptl_soundx_menu->x = parent->x + 10;
-    edptl_soundx_menu->y = parent->y + 40;
+    if (!(edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)) {
+        const u32 colours[4] = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};
+        char title[16];
+        sprintf(title, "Sound %d Menu", static_cast<i32>(item->data) + 1);
+        edptl_soundx_menu = eduiMenuCreate(70, 70, 250, 300, ed_fnt, edptlcbCancelSoundXMenu, title);
+        if (edptl_soundx_menu == NULL)
+            return;
+        eduiMenuAddItem(edptl_soundx_menu,
+                        eduiItemSelCreate(item->data, colours, 0, 0, edptlcbSoundIDMenu, "Sound ID..."));
+        eduiMenuAddItem(edptl_soundx_menu,
+                        eduiItemSelCreate(item->data, colours, 0, 0, edptlcbSoundControlMenu, "Sound Control..."));
+        eduiMenuAttach(parent, edptl_soundx_menu);
+        edptl_soundx_menu->x = parent->x + 10;
+        edptl_soundx_menu->y = parent->y + 40;
+    }
 }
 static void edptlcbSoundsMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     const u32 colours[4] = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
-    if (edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)
-        return;
-    edptl_sounds_menu = eduiMenuCreate(70, 70, 250, 300, ed_fnt, edptlcbCancelSoundsMenu, "Attached Sounds");
-    if (edptl_sounds_menu == NULL)
-        return;
-    char title[12];
-    sprintf(title, "Sound %d...", 1);
-    eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(0, colours, 0, 0, edptlcbSoundXMenu, title));
-    sprintf(title, "Sound %d...", 2);
-    eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(1, colours, 0, 0, edptlcbSoundXMenu, title));
-    sprintf(title, "Sound %d...", 3);
-    eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(2, colours, 0, 0, edptlcbSoundXMenu, title));
-    sprintf(title, "Sound %d...", 4);
-    eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(3, colours, 0, 0, edptlcbSoundXMenu, title));
-    eduiMenuAttach(parent, edptl_sounds_menu);
-    edptl_sounds_menu->x = parent->x + 10;
-    edptl_sounds_menu->y = parent->y + 40;
+    if (!(edpp_nearest == -1 || edpp_ptls[edpp_nearest].instance_id == -1)) {
+        edptl_sounds_menu = eduiMenuCreate(70, 70, 250, 300, ed_fnt, edptlcbCancelSoundsMenu, "Attached Sounds");
+        if (edptl_sounds_menu == NULL)
+            return;
+        char title[12];
+        sprintf(title, "Sound %d...", 1);
+        eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(0, colours, 0, 0, edptlcbSoundXMenu, title));
+        sprintf(title, "Sound %d...", 2);
+        eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(1, colours, 0, 0, edptlcbSoundXMenu, title));
+        sprintf(title, "Sound %d...", 3);
+        eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(2, colours, 0, 0, edptlcbSoundXMenu, title));
+        sprintf(title, "Sound %d...", 4);
+        eduiMenuAddItem(edptl_sounds_menu, eduiItemSelCreate(3, colours, 0, 0, edptlcbSoundXMenu, title));
+        eduiMenuAttach(parent, edptl_sounds_menu);
+        edptl_sounds_menu->x = parent->x + 10;
+        edptl_sounds_menu->y = parent->y + 40;
+    }
 }
 static void edptlcbSwitchMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     u32 colours[4] = {0xc479c000, 0xc479c000, 0xc479c000, 0xc479c000};
@@ -602,15 +602,15 @@ static void edptlcbSoundIDMenu(eduimenu_s *parent, eduiitem_s *item, u32) {
     for (i32 sound = 0; sound < 1600; ++sound) {
         if (g_soundInfo[sound].sfx_name == NULL)
             continue;
-        if (effect->sound_data[item->data * 3] == sound) {
+        if (effect->sound_data[item->data * 3] != sound) {
+            eduiMenuAddItem(edptl_soundid_menu,
+                            eduiItemCheckCreate((item->data << 16) + sound, colours, 0, 1, edptlcbSetSoundID,
+                                                const_cast<char *>(g_soundInfo[sound].sfx_name)));
+        } else {
             eduiMenuAddItem(edptl_soundid_menu,
                             eduiItemCheckCreate((item->data << 16) + sound, colours, 1, 1, edptlcbSetSoundID,
                                                 const_cast<char *>(g_soundInfo[sound].sfx_name)));
             edptl_soundid_menu->selected = edui_last_item;
-        } else {
-            eduiMenuAddItem(edptl_soundid_menu,
-                            eduiItemCheckCreate((item->data << 16) + sound, colours, 0, 1, edptlcbSetSoundID,
-                                                const_cast<char *>(g_soundInfo[sound].sfx_name)));
         }
     }
     eduiMenuAttach(parent, edptl_soundid_menu);

@@ -459,7 +459,7 @@ NUVEC *Technos_TgtPos(TECHNO_s *techno) {
 void Technos_MoveTarget(TECHNO_s *techno, GameObject_s *object) {
     f32 speed = 0.0f;
     if (object != NULL) {
-        if (static_cast<i8>(object->apiobj.flags_low) >= 0 && object->use_action == 2) {
+        if (!object->apiobj.player_controlled && object->use_action == 2) {
             speed = 1.0f;
         } else if ((techno->enabled & 1) != 0) {
             if ((object->pad_gamepad->allocated_5a & GAMEPAD_RUNTIME_WAGGLED) != 0) {
@@ -598,8 +598,28 @@ i32 Techno_isReady(TECHNO_s *techno) {
 }
 
 void Techno_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
-    if (object->character_context != 0x51) {
-        if ((static_cast<i8>(object->apiobj.flags_low) < 0 || object->use_action == 2) && object->suit != NULL &&
+    if (object->character_context == 0x51) {
+        TECHNO *techno = static_cast<TECHNO *>(object->field_0x788);
+        techno->flags |= TECHNO_FLAG_USED_THIS_FRAME;
+
+        if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL &&
+            AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0) == NULL) {
+            return;
+        }
+
+        object->context_animation_timer += FRAMETIME;
+        if ((object->pad_gamepad->buttons_pressed & GAMEPAD_TAG) != 0 ||
+            (!object->apiobj.player_controlled && object->use_action != 2)) {
+            GameCam_Blend(GameCam, 0.5f, 0.0f, 1);
+            object->character_context = -1;
+            object->tag_flags |= 1;
+            object->apiobj.movement_facing_angle += 0x8000;
+            Technos_MoveTarget(techno, NULL);
+        } else {
+            Technos_MoveTarget(techno, object);
+        }
+    } else {
+        if ((object->apiobj.player_controlled || object->use_action == 2) && object->suit != NULL &&
             (static_cast<SUIT_s *>(object->suit)->flags & 0x20) != 0) {
             f32 distance;
             TECHNO *techno = Techno_FindNearest(world, &object->apiobj.lower_position, object, &distance);
@@ -631,26 +651,6 @@ void Techno_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
             } else {
                 GameAudio_PlaySfx(0x32, &techno->position, 0, 0);
             }
-        }
-    } else {
-        TECHNO *techno = static_cast<TECHNO *>(object->field_0x788);
-        techno->flags |= TECHNO_FLAG_USED_THIS_FRAME;
-
-        if (object->apiobj.character_model->model_data_b[object->context_animation] != NULL &&
-            AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0) == NULL) {
-            return;
-        }
-
-        object->context_animation_timer += FRAMETIME;
-        if ((object->pad_gamepad->buttons_pressed & GAMEPAD_TAG) != 0 ||
-            (static_cast<i8>(object->apiobj.flags_low) >= 0 && object->use_action != 2)) {
-            GameCam_Blend(GameCam, 0.5f, 0.0f, 1);
-            object->character_context = -1;
-            object->tag_flags |= 1;
-            object->apiobj.movement_facing_angle += 0x8000;
-            Technos_MoveTarget(techno, NULL);
-        } else {
-            Technos_MoveTarget(techno, object);
         }
     }
 }

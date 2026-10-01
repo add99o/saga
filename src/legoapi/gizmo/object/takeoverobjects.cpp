@@ -126,7 +126,9 @@ void ReStoreStatusTakeOverObjectSys(i32 restore_progress) {
         if (object != NULL) {
             object->current_hp = record->hitpoints;
             GameObject_s *controller;
-            if (record->contact_index != 0xff && (controller = Player[record->contact_index]) != NULL) {
+            if (!(!(!(record->contact_index != 0xff && (controller = Player[record->contact_index]) != NULL)))) {
+                SnapCreaturePos(record->object, &record->last_safe_position, record->heading, NULL, 1);
+            } else {
                 object->apiobj.flags_high |= 0x10;
                 object->apiobj.flags_low |= 1;
                 object->apiobj.field_0x287 = 0;
@@ -135,8 +137,6 @@ void ReStoreStatusTakeOverObjectSys(i32 restore_progress) {
                                 &controller->ai.path_info, 1);
                 InitPlayerAI(controller);
                 TakeOverGameObject(controller, record->object, 0, 1);
-            } else {
-                SnapCreaturePos(record->object, &record->last_safe_position, record->heading, NULL, 1);
             }
         }
     }

@@ -174,19 +174,7 @@ static void Signals_Update(void *world_info, void *, float) {
         }
 
         f32 target_scale = 0.0f;
-        if ((signal->flags & SIGNAL::FLAG_IN_USE) == 0) {
-            ADDGAMEMSG message = AddGameMsg_Default;
-            message.text = TTab[*signal->suit->text_id];
-            message.position = &signal->target_position;
-            message.scale = 1.0f;
-            message.red = 0xff;
-            message.green = 0xff;
-            message.blue = 0;
-            message.alpha = 0x30;
-            message.flags = 0x87;
-            AddGameMsg(&message);
-            target_scale = 1.0f;
-        } else {
+        if ((signal->flags & SIGNAL::FLAG_IN_USE) != 0) {
             i32 player_index;
             for (player_index = 0; player_index < 8; ++player_index) {
                 GameObject_s *player = Player[player_index];
@@ -207,6 +195,18 @@ static void Signals_Update(void *world_info, void *, float) {
             if (player_index == 8) {
                 signal->flags &= ~SIGNAL::FLAG_IN_USE;
             }
+        } else {
+            ADDGAMEMSG message = AddGameMsg_Default;
+            message.text = TTab[*signal->suit->text_id];
+            message.position = &signal->target_position;
+            message.scale = 1.0f;
+            message.red = 0xff;
+            message.green = 0xff;
+            message.blue = 0;
+            message.alpha = 0x30;
+            message.flags = 0x87;
+            AddGameMsg(&message);
+            target_scale = 1.0f;
         }
         signal->scale = SeekLinearF(signal->scale, target_scale, 3.0f * FRAMETIME);
     }
@@ -411,7 +411,7 @@ void Signal_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
     if (object->character_context != CHARACTER_CONTEXT_SIGNAL) {
         if (object->apiobj.field_0x27d != 0 || object->character_context == 0x1f ||
             object->character_context == CHARACTER_CONTEXT_DOOMED || object->character_context == 0x4b ||
-            static_cast<i8>(object->apiobj.flags_low) >= 0 || (CInfo[object->character_context].flags & 0x800) != 0) {
+            !object->apiobj.player_controlled || (CInfo[object->character_context].flags & 0x800) != 0) {
             return;
         }
         f32 distance;
@@ -443,9 +443,14 @@ void Signal_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
             object->character_context = CHARACTER_CONTEXT_NONE;
             StartEndOfJump(object);
             exchange = exchanged == 0;
-        } else if ((object->context_flags & 0x40) == 0 && animation_time != NULL) {
-            f32 frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 0);
-            exchange = frame >= 1.0f && *animation_time >= frame;
+        } else {
+            if ((object->context_flags & 0x40) != 0) {
+                return;
+            }
+            if (animation_time != NULL) {
+                f32 frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 0);
+                exchange = frame >= 1.0f && *animation_time >= frame;
+            }
         }
 
         if (exchange) {
@@ -455,9 +460,9 @@ void Signal_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
             object->context_flags |= 0x40;
             SUIT_s *new_suit = signal->suit;
             object->suit = new_suit;
-            object->ai.capabilities &= ~old_suit->character_flags;
             signal->suit = old_suit;
-            object->ai.capabilities |= new_suit->character_flags;
+            object->ai.capabilities =
+                (object->ai.capabilities & ~old_suit->character_flags) | new_suit->character_flags;
             for (i32 i = 0; i < 10; ++i) {
                 if (new_suit == &Suit[i]) {
                     areaSuitBits |= 1 << i;

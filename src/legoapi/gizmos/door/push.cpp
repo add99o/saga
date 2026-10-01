@@ -154,12 +154,12 @@ void UpdatePushBlocks(void *world_ptr, void *, float) {
                 if (!(p->runtime_flags_0c8 & 0x40))
                     p->target_velocity.z = p->target_velocity.x = 0;
                 f32 x = p->pushing_object->target_velocity.x, z = p->pushing_object->target_velocity.z;
-                if (fabsf(x) > fabsf(z)) {
-                    p->velocity.z = p->target_velocity.z = 0;
-                    p->target_velocity.x = x * FRAMETIME;
-                } else {
+                if (!(fabsf(x) > fabsf(z))) {
                     p->velocity.x = p->target_velocity.x = 0;
                     p->target_velocity.z = z * FRAMETIME;
+                } else {
+                    p->velocity.z = p->target_velocity.z = 0;
+                    p->target_velocity.x = x * FRAMETIME;
                 }
             } else if (same) {
                 p->target_velocity.x *= TerSurface[surface].movement_scale;
@@ -247,7 +247,7 @@ void UpdatePushBlocks(void *world_ptr, void *, float) {
             p->ground_height = p->position->y + p->supporting_block->bounds_max.y;
             p->ground_offset = (p->position->y + p->bounds_min.y) - p->ground_height;
         }
-        if (p->ground_offset > 0.01f)
+        if (!(p->ground_offset <= 0.01f))
             p->runtime_flags_0c8 |= 8;
         else if (p->runtime_flags_0c8 & 8) {
             p->runtime_flags_0c9 |= 8;
@@ -260,7 +260,8 @@ void UpdatePushBlocks(void *world_ptr, void *, float) {
                 ++safe;
         bool reset = safe != 4;
         if (world->current_level == HOTHESCAPEB_LDATA && NuVecXZDistSqr(p->position, &hothbtestpos, NULL) < 1.0f) {
-            if (!(corners[0].z < 13.2f && corners[1].z < 13.2f && corners[2].z < 13.2f && corners[3].z < 13.2f))
+            if (!(corners[0].z < 13.2f && !(corners[1].z >= 13.2f) && !(corners[2].z >= 13.2f) &&
+                  !(corners[3].z >= 13.2f)))
                 reset = true;
         }
         if (reset)
@@ -550,30 +551,29 @@ static i32 Pushblocks_BoltHitPlat(void *world_ptr, void *push_blocks_ptr, BOLT *
                 continue;
             }
             const i32 platform = FindPlatInst(NuSpecialGetInstanceix(&push_block->special));
-            if (platform == -1 || platform != bolt->hit_platform) {
-                continue;
-            }
-            if (bolt->owner != NULL) {
-                NUVEC direction;
-                NuVecSub(&direction, &bolt->owner->apiobj.collision_position, push_block->position);
-                if (direction.x == direction.z) {
-                    if (direction.x < 0.0f) {
-                        direction.x = -QRAND_FLOAT();
-                        direction.z = -QRAND_FLOAT();
-                    } else {
-                        direction.x = QRAND_FLOAT();
-                        direction.z = QRAND_FLOAT();
+            if (!(platform == -1 || platform != bolt->hit_platform)) {
+                if (bolt->owner != NULL) {
+                    NUVEC direction;
+                    NuVecSub(&direction, &bolt->owner->apiobj.collision_position, push_block->position);
+                    if (direction.x == direction.z) {
+                        if (direction.x < 0.0f) {
+                            direction.x = -QRAND_FLOAT();
+                            direction.z = -QRAND_FLOAT();
+                        } else {
+                            direction.x = QRAND_FLOAT();
+                            direction.z = QRAND_FLOAT();
+                        }
                     }
+                    if (NuFabs(direction.x) > NuFabs(direction.z)) {
+                        direction.z = 0.0f;
+                    } else {
+                        direction.x = 0.0f;
+                    }
+                    NuVecNorm(&direction, &direction);
+                    KnockPushBlock(push_block, &direction);
                 }
-                if (NuFabs(direction.x) > NuFabs(direction.z)) {
-                    direction.z = 0.0f;
-                } else {
-                    direction.x = 0.0f;
-                }
-                NuVecNorm(&direction, &direction);
-                KnockPushBlock(push_block, &direction);
+                return 1;
             }
-            return 1;
         }
     }
     return 0;

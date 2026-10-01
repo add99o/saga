@@ -22,13 +22,13 @@ PLUG *Plug_FindNearest(PLUGSYS *system, NUVEC *position, f32 *distance_squared, 
     if (system != NULL) {
         PLUG *plug = system->plugs;
         for (i32 index = 0; index < system->count; ++index, ++plug) {
-            if (only_unplugged == 0 || (plug->flags & PLUG_FLAG_PLUGGED) == 0) {
-                const f32 distance = NuVecDistSqr(position, &plug->position, NULL);
-                if (distance < nearest_distance) {
-                    nearest_distance = distance;
-                    nearest = plug;
-                }
-            }
+            if (!(only_unplugged == 0 || (plug->flags & PLUG_FLAG_PLUGGED) == 0))
+                continue;
+            const f32 distance = NuVecDistSqr(position, &plug->position, NULL);
+            if (!(distance < nearest_distance))
+                continue;
+            nearest_distance = distance;
+            nearest = plug;
         }
     }
     if (distance_squared != NULL) {

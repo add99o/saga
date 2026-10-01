@@ -8,6 +8,7 @@
 
 #include "java/asset_manager.h"
 #include "java/android.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 char AndroidOBBUtils::ms_packageName[3][512];
 bool AndroidOBBUtils::ms_initializedPackage[3];

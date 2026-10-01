@@ -78,6 +78,7 @@ i32 NuStrICmpWC(char *pattern, char *text, char *wildcard) {
 #include "nu2api/nufile/nufpar.h"
 #include "nu2api/nuplatform/nuplatform.h"
 #include <stdarg.h>
+#include "nu2api/nucore/nuvuvec.hpp"
 
 i32 NuIsAl(char c) {
     switch (c) {

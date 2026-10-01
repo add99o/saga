@@ -11,10 +11,10 @@ i32 Area_CharIDInCurrentList(i32 character_id) {
     i32 result = -1;
     if (CurrentCList != NULL) {
         for (i32 index = 0; CurrentStoryCList[index].model_id != -1 && index != 64; ++index) {
-            if (CurrentStoryCList[index].model_id == character_id) {
-                result = index;
-                break;
-            }
+            if (CurrentStoryCList[index].model_id != character_id)
+                continue;
+            result = index;
+            break;
         }
     }
     return result;
@@ -412,21 +412,21 @@ void LoadAreaCharacters() {
         Area_Configure(Area, Level, ExtraModelList, id_DEFAULTCHARACTER);
     }
 
-    if (Area != -1) {
-        const u16 area_flags = ADataList[Area].flags;
-        if ((area_flags & AREAFLAG_VEHICLE_AREA) != 0) {
-            VehicleArea = 1;
-        } else {
-            VehicleArea = 0;
-        }
-        if ((area_flags & AREAFLAG_BONUS_AREA) != 0) {
-            BonusArea = 1;
-        } else {
-            BonusArea = 0;
-        }
-    } else {
+    if (Area == -1) {
         VehicleArea = 0;
         BonusArea = 0;
+    } else {
+        const u16 area_flags = ADataList[Area].flags;
+        if ((area_flags & AREAFLAG_VEHICLE_AREA) == 0) {
+            VehicleArea = 0;
+        } else {
+            VehicleArea = 1;
+        }
+        if ((area_flags & AREAFLAG_BONUS_AREA) == 0) {
+            BonusArea = 0;
+        } else {
+            BonusArea = 1;
+        }
     }
     AreaGlobals.values.field_0x04 = VehicleArea != 0 && BonusArea == 0;
     loadareacharacters_loadedlevel = 0;
@@ -496,14 +496,14 @@ load_type_done:
             "Ep1_TextCrawl", "Ep2_TextCrawl", "Ep3_TextCrawl", "Ep4_TextCrawl", "Ep5_TextCrawl", "Ep6_TextCrawl",
         };
         const i32 episode = Area == -1 ? -1 : static_cast<i8>(ADataList[Area].episode_index);
-        if (Arcade == 0 && episode != -1) {
+        if (!(Arcade == 0 && episode != -1)) {
+            GamePlayMusic(TITLES_LDATA, 0, &Game.options_save);
+        } else {
             const i32 handle = music_man.GetTrackHandle(TRACK_CLASS_QUIET, crawl_music[episode]);
             music_man.SelectTrackByHandle(TRACK_CLASS_QUIET, handle);
             if (music_man.GetTrackHandle(TRACK_CLASS_QUIET, NULL) != -1) {
                 music_man.PlayTrack(TRACK_CLASS_QUIET);
             }
-        } else {
-            GamePlayMusic(TITLES_LDATA, 0, &Game.options_save);
         }
     }
     bgPostRequest(LoadAreaData, NULL, NULL, 0);
@@ -517,7 +517,7 @@ load_type_done:
     f32 touch_prompt_time = 0.0f;
 
     while (true) {
-        if (AreaDataLoaded != 0 && LoadWait <= 0.0f && !character_load_active) {
+        if (AreaDataLoaded != 0 && !(LoadWait > 0.0f) && !character_load_active) {
             CutBorderScale = 0.0f;
             MainRenderTime = 1.0f;
             music_man.StopAll(0);
@@ -555,7 +555,7 @@ load_type_done:
         ReadPads();
 
         if (load_type == 2) {
-            if (AreaDataLoaded != 0 && !character_load_active && LoadWait == LOADWAITTIME && LoadTime < 45.0f &&
+            if (AreaDataLoaded != 0 && !character_load_active && LoadWait == LOADWAITTIME && !(LoadTime >= 45.0f) &&
                 !skip_text_scroll && (NuSound3LoadingSfx() == 0 || LoadTime >= 20.0f)) {
                 const u32 skip_buttons = GAMEPAD_JUMP | GAMEPAD_START | GAMEPAD_SPECIAL | GAMEPAD_ACTION | GAMEPAD_TAG;
                 if (VEHICLES_ADATA != NULL && VEHICLES_ADATA->index == Area) {
@@ -589,10 +589,10 @@ load_type_done:
 
         if (icon_stage == 1) {
             icon_time += FRAMETIME;
-            if (icon_time > 0.6f && CharacterDataLoad != 2) {
+            if (!(icon_time <= 0.6f) && CharacterDataLoad != 2) {
                 icon_time = 0.6f;
             }
-            if (icon_time >= 3.95f) {
+            if (!(icon_time < 3.95f)) {
                 icon_time = 3.95f;
                 icon_stage = 2;
             }
@@ -601,9 +601,9 @@ load_type_done:
             icon_stage = 2;
             f32 backdrop_dt_scale = 1.0f;
             if (AreaDataLoaded != 0 && !character_load_active) {
-                if (LoadWait > 0.0f && (LoadTime >= 45.0f || skip_text_scroll)) {
+                if (!(LoadWait <= 0.0f) && (!(LoadTime < 45.0f) || skip_text_scroll)) {
                     LoadWait -= FRAMETIME;
-                    if (LoadWait < 0.0f) {
+                    if (!(LoadWait >= 0.0f)) {
                         LoadWait = 0.0f;
                     }
                 }
@@ -612,9 +612,9 @@ load_type_done:
             legoSetMusicVolume((LoadWait / LOADWAITTIME) * music_volume);
             BackDrop_Update(backdrop_dt_scale * FRAMETIME);
             BackDrop_UpdateColours(1);
-        } else if (AreaDataLoaded != 0 && !character_load_active && icon_stage == 2 && LoadWait > 0.0f) {
+        } else if (AreaDataLoaded != 0 && !character_load_active && icon_stage == 2 && !(LoadWait <= 0.0f)) {
             LoadWait -= FRAMETIME;
-            if (LoadWait < 0.0f) {
+            if (!(LoadWait >= 0.0f)) {
                 LoadWait = 0.0f;
             }
         }
@@ -626,7 +626,9 @@ load_type_done:
         music_man.Process(FRAMETIME);
 
         NuRndrBeginScene(-1);
-        if (load_type == 2) {
+        if (load_type != 2) {
+            NuRndrGradClear(0xf00, static_cast<i32>(0x80000000u), static_cast<i32>(0x80000000u), 1.0f);
+        } else {
             const u32 top_colour = 0x80000000u | (static_cast<u32>(backdrop_top_b) & 0xff) << 16 |
                                    (static_cast<u32>(backdrop_top_g) & 0xff) << 8 |
                                    (static_cast<u32>(backdrop_top_r) & 0xff);
@@ -634,8 +636,6 @@ load_type_done:
                                       (static_cast<u32>(backdrop_bot_g) & 0xff) << 8 |
                                       (static_cast<u32>(backdrop_bot_r) & 0xff);
             NuRndrGradClear(0xf00, static_cast<i32>(top_colour), static_cast<i32>(bottom_colour), 1.0f);
-        } else {
-            NuRndrGradClear(0xf00, static_cast<i32>(0x80000000u), static_cast<i32>(0x80000000u), 1.0f);
         }
         if (load_type == 2) {
             const f32 backdrop_alpha =
@@ -671,27 +671,27 @@ load_type_done:
 
             f32 alpha = 1.0f;
             f32 x = -icon_x;
-            if (icon_time < 0.6f) {
+            if (!(icon_time >= 0.6f)) {
                 const f32 progress = icon_time / 0.6f;
                 const i32 angle = static_cast<i32>(progress * 16384.0f);
                 x = -(NuTrigTable[(angle >> 1) & 0x7fff] * -0.3f + icon_travel);
                 alpha = progress;
-            } else if (icon_time >= 3.1f) {
+            } else if (!(icon_time < 3.1f)) {
                 alpha = 1.0f - (icon_time - 3.1f) / 0.6f;
             }
             drawcharicon_find = 1;
             DrawCharIcon(PlayerID[0], x, 0.16625f, 0.0f, icon_scale, 0xa6, alpha, (0.85f + wobble) * alpha, 1, NULL);
 
             const f32 second_time = icon_time - 0.25f;
-            if (second_time > 0.0f && second_time < 3.7f) {
+            if (!(second_time <= 0.0f) && !(second_time >= 3.7f)) {
                 f32 alpha = 1.0f;
                 f32 x = icon_x;
-                if (second_time < 0.6f) {
+                if (!(second_time >= 0.6f)) {
                     const f32 progress = second_time / 0.6f;
                     const i32 angle = static_cast<i32>(progress * 16384.0f);
                     x = NuTrigTable[(angle >> 1) & 0x7fff] * -0.3f + icon_travel;
                     alpha = progress;
-                } else if (second_time >= 3.1f) {
+                } else if (!(second_time < 3.1f)) {
                     alpha = 1.0f - (second_time - 3.1f) / 0.6f;
                 }
                 drawcharicon_find = 1;
@@ -711,7 +711,7 @@ load_type_done:
         static_cast<ThingManager *>(theGameThings)->RenderThings(NULL);
         NuRndrEndScene();
 
-        if (AreaDataLoaded != 0 && !character_load_active && LoadWait < 0.1f &&
+        if (AreaDataLoaded != 0 && !character_load_active && !(LoadWait >= 0.1f) &&
             (FadeSys.pending_type == FADE_TYPE_NONE || FadeSys.pending_type == FADE_TYPE_STILL)) {
             FADETYPE wipe = {FADE_TYPE_STILL_WIPE};
             FadeSys.SetFade(wipe, 0);

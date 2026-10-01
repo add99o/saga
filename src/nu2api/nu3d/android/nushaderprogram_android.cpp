@@ -170,12 +170,12 @@ extern "C" NUSHADERPROGRAM *NuShaderProgramCreateIOS(const char *vertex_source, 
     for (i32 pass = 0; pass < 2 && result == NULL; ++pass) {
         const i32 end = pass == 0 ? 64 : start;
         for (i32 slot = pass == 0 ? start : 0; slot < end; ++slot) {
-            if ((programPool.occupied[slot / 8] & (1 << (slot & 7))) == 0) {
-                programPool.occupied[slot / 8] |= 1 << (slot & 7);
-                programPool.next = (slot + 1) % 64;
-                result = &programPool.programs[slot];
-                break;
-            }
+            if ((programPool.occupied[slot / 8] & (1 << (slot & 7))) != 0)
+                continue;
+            programPool.occupied[slot / 8] |= 1 << (slot & 7);
+            programPool.next = (slot + 1) % 64;
+            result = &programPool.programs[slot];
+            break;
         }
     }
     result->vertex_shader = vertex_shader;

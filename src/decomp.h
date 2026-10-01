@@ -67,6 +67,15 @@ enum AREA_FLAGS {
 #define SAGA_HOST_PACKED_ALIGN4
 #endif
 
+// Port hooks that do not exist in the Android target: the host harness can
+// override them, while the target build keeps them local so call sites inline
+// the original code.
+#ifdef HOST_BUILD
+#define SAGA_HOST_HOOK extern "C" __attribute__((weak))
+#else
+#define SAGA_HOST_HOOK static inline
+#endif
+
 #ifdef HOST_BUILD
 #define SAGA_HOST_STATIC static
 #define SAGA_HOST_SAFE_MEMSET(dest, value, size)                                                                       \

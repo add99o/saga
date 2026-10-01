@@ -12,6 +12,7 @@
 #include "nu2api/nu3d/NuRenderDevice.h"
 #include "nu2api/nu3d/android/nurndr_android.h"
 #include "nu2api/nu3d/android/nutex_ios_ex.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 // ---------------------------------------------------------------------------
 // ios_graphics — iOS/Android GLES2 platform glue

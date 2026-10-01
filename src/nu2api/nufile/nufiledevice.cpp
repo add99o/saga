@@ -172,14 +172,14 @@ NuFileDevice *NuFileDevice::GetDeviceFromPath(char const *path) {
         return sm_HostDevice;
 
     for (i32 i = 0; i < 8; ++i) {
-        if (path[i] == ':') {
-            for (i32 j = 0; j < sm_NumDevices; ++j) {
-                NuFileDevice *device = sm_Devices[j];
-                if (device && *device->label && NuStrNICmp(path, device->label, NuStrLen(device->label)) == 0)
-                    return device;
-            }
-            return NULL;
+        if (path[i] != ':')
+            continue;
+        for (i32 j = 0; j < sm_NumDevices; ++j) {
+            NuFileDevice *device = sm_Devices[j];
+            if (device && *device->label && NuStrNICmp(path, device->label, NuStrLen(device->label)) == 0)
+                return device;
         }
+        return NULL;
     }
 
     NuFileDevice *device = sm_DefaultDevice;

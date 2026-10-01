@@ -381,10 +381,10 @@ void Attracto_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                         continue;
                     NUVEC delta;
                     f32 distance = NuVecDistSqr(&shard->position, &object->apiobj.collision_position, &delta);
-                    if (distance < best) {
-                        best = distance;
-                        nearest = shard;
-                    }
+                    if (!(distance < best))
+                        continue;
+                    best = distance;
+                    nearest = shard;
                 }
             }
             if (nearest != NULL) {

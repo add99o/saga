@@ -560,9 +560,9 @@ void AIMoveToDestination(AISYS_s *system, AIPACKET_s *packet, APIOBJECT_s *objec
                     attempted_routes |= 1u << packet->current_route;
                 }
                 AISysFindRoute(packet);
-                if (((attempted_routes >> packet->current_route) & 1) != 0) {
-                    return;
-                }
+                if (((attempted_routes >> packet->current_route) & 1) == 0)
+                    continue;
+                return;
             }
             packet->goal_path_node = &path->nodes[goal_index];
             AISysCharacterSetPathCnx(packet, &object->position, connection, direction);
@@ -679,12 +679,12 @@ void AIMoveToDestination(AISYS_s *system, AIPACKET_s *packet, APIOBJECT_s *objec
                 packet->frame_state = flags;
                 return;
             }
-            if ((packet->capabilities & flags) != 0) {
-                packet->navigation_flags |= 1;
-            } else {
+            if ((packet->capabilities & flags) == 0) {
                 packet->runtime_flags |= 0x60;
                 packet->frame_state = next->traversal_flags[direction];
                 next = NULL;
+            } else {
+                packet->navigation_flags |= 1;
             }
         }
         if (next != NULL) {
@@ -772,9 +772,9 @@ void AIRetreatFromDestination(AISYS_s *system, AIPACKET_s *packet, APIOBJECT_s *
                                  packet->fallback_path_info.dist > packet->path_info.dist);
     } else {
         f32 parameter = packet->path_info.dist;
-        if (parameter > 1.0f) {
+        if (!(parameter <= 1.0f)) {
             parameter = 1.0f;
-        } else if (parameter < 0.0f) {
+        } else if (!(parameter >= 0.0f)) {
             parameter = 0.0f;
         }
         f32 remaining_parameter = 1.0f - parameter;

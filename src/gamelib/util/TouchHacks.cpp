@@ -155,7 +155,7 @@ bool TouchHacks::CanLunge(GameObject_s &object) {
 
 bool TouchHacks::CanPoo(GameObject_s &object) {
     return (object.apiobj.character_data->game_character->flags_094[3] & 0x80) != 0 && object.character_context == -1 &&
-           object.apiobj.field_0x27d != 0 && (object.apiobj.flags_low & 0x80) != 0 &&
+           object.apiobj.field_0x27d != 0 && object.apiobj.player_controlled &&
            (Cheat[1].enabled != 0 || Cheat[9].enabled != 0);
 }
 
@@ -238,7 +238,7 @@ bool TouchHacks::CanTagVehicle(GameObject_s &object, GameObject_s &vehicle) {
 }
 
 bool TouchHacks::CanThrowBountyBomb(GameObject_s &object) {
-    if (WORLD->lev_objs[0xe9].active == 0 || static_cast<i8>(object.apiobj.flags_low) >= 0) {
+    if (WORLD->lev_objs[0xe9].active == 0 || !object.apiobj.player_controlled) {
         return false;
     }
     if ((object.apiobj.character_data->model_flags & 0x01000000) == 0 && object.field_0x108e != 6 &&
@@ -290,7 +290,7 @@ bool TouchHacks::CanUseGizForce(GameObject_s &object, GIZFORCE_s &force) {
 
     i32 can_use_restricted_force;
     if (SuperWeirdo(&object) == 0) {
-        if (static_cast<i8>(object.apiobj.flags_low) < 0 && Cheat_IsOn(25) != 0) {
+        if (object.apiobj.player_controlled && Cheat_IsOn(25) != 0) {
             can_use_restricted_force = 1;
         } else {
             can_use_restricted_force = 0;
@@ -338,7 +338,7 @@ bool TouchHacks::CanUseTeleport(GameObject_s &object) {
 }
 
 bool TouchHacks::CanUseVehicleSmartBomb(GameObject_s &object) {
-    return Cheat_IsOn(20) && (object.apiobj.flags_low & 0x80) != 0 &&
+    return Cheat_IsOn(20) && object.apiobj.player_controlled &&
            (object.apiobj.character_data->model_flags & 0x2000) != 0 && InCollectList_Index(object.id, NULL, 0) != -1;
 }
 
@@ -410,7 +410,7 @@ bool TouchHacks::CheckJumpForLandingSpot(GameObject_s &object, float maximum_dro
         if (GameRayCast(&position.xyz, &displacement.xyz, 0.0f, 0) != 0) {
             VuVec normal = VuVec_Zero;
             NewRayCastGetImpactNormal(&normal.xyz);
-            if (normal.y > 0.8f && GameShadow(&object, &position.xyz, 5.0f, -1) != 2000000.0f) {
+            if (!(normal.y <= 0.8f) && GameShadow(&object, &position.xyz, 5.0f, -1) != 2000000.0f) {
                 const u32 layer = EShadowInfo();
                 if (layer <= 16 && (TerLayer[layer].flags & 1) == 0) {
                     return true;
@@ -549,7 +549,7 @@ i32 TouchHacks::ShouldDeflectBolt(GameObject_s &object, BOLT_s &bolt) {
         return 0;
     if (object.id != id_ATST && object.id != id_ATST_LOWRES)
         return 0;
-    if (bolt.owner == NULL || (bolt.owner->apiobj.flags_low & 0x80) == 0)
+    if (bolt.owner == NULL || !bolt.owner->apiobj.player_controlled)
         return 0;
     CABLE_s *cable = GameObjIsCableTied(&object);
     if (cable == NULL)
@@ -562,13 +562,13 @@ bool TouchHacks::ShouldFlash(float timer) {
 }
 
 bool TouchHacks::ShouldKeepWeaponOut(GameObject_s &object) {
-    return TouchControlsActive && object.id != id_GRABCONTROL && (object.apiobj.flags_low & 0x80) != 0 &&
+    return TouchControlsActive && object.id != id_GRABCONTROL && object.apiobj.player_controlled &&
            object.ai.opponent != NULL && object.character_context == -1;
 }
 
 bool TouchHacks::ShouldPutWeaponAway(GameObject_s &object) {
     return TouchControlsActive && object.id != id_GRABCONTROL && object.id != id_WICKET && object.id != id_EWOK &&
-           (object.apiobj.flags_low & 0x80) != 0 && object.ai.opponent == NULL && object.weapon_out_timer > 5.0f &&
+           object.apiobj.player_controlled && object.ai.opponent == NULL && object.weapon_out_timer > 5.0f &&
            object.character_context == -1 && object.field_0xe31 != 1;
 }
 

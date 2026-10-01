@@ -112,14 +112,14 @@ static void GizBombGens_Update(void *world_ptr, void *system_ptr, float) {
             }
             bomb_generator->generated_bomb = NULL;
 
-            if (index < 96 && has_progress) {
-                const i32 word_index = index >> 5;
-                const u32 mask = 1u << (index & 31);
-                bomb_generator->flags = static_cast<u8>((bomb_generator->flags & ~GIZBOMBGEN_FLAG_VISIBLE) |
-                                                        (((progress->visible_masks[word_index] & mask) != 0) << 1));
-                bomb_generator->flags = static_cast<u8>((bomb_generator->flags & ~GIZBOMBGEN_FLAG_ACTIVE) |
-                                                        ((progress->active_masks[word_index] & mask) != 0));
-            }
+            if (!(index < 96 && has_progress))
+                continue;
+            const i32 word_index = index >> 5;
+            const u32 mask = 1u << (index & 31);
+            bomb_generator->flags = static_cast<u8>((bomb_generator->flags & ~GIZBOMBGEN_FLAG_VISIBLE) |
+                                                    (((progress->visible_masks[word_index] & mask) != 0) << 1));
+            bomb_generator->flags = static_cast<u8>((bomb_generator->flags & ~GIZBOMBGEN_FLAG_ACTIVE) |
+                                                    ((progress->active_masks[word_index] & mask) != 0));
         }
 
         const bool players_share_bomb = player_bombs[0] != NULL && player_bombs[0] == player_bombs[1];
@@ -132,7 +132,7 @@ static void GizBombGens_Update(void *world_ptr, void *system_ptr, float) {
                     player->cable = NULL;
                 }
 
-                if (static_cast<i8>(player->apiobj.flags_low) < 0 && player_bombs[0] != NULL && player->cable == NULL) {
+                if (player->apiobj.player_controlled && player_bombs[0] != NULL && player->cable == NULL) {
                     NUVEC bomb_position = {0.0f, 0.0f, -2.0f};
                     NuVecRotateY(&bomb_position, &bomb_position, player->apiobj.field_0x276);
                     NuVecAdd(&bomb_position, &bomb_position, &player->apiobj.collision_position);
@@ -155,7 +155,7 @@ static void GizBombGens_Update(void *world_ptr, void *system_ptr, float) {
                     player->cable = NULL;
                 }
 
-                if (static_cast<i8>(player->apiobj.flags_low) < 0 && player_bombs[1] != NULL && player->cable == NULL) {
+                if (player->apiobj.player_controlled && player_bombs[1] != NULL && player->cable == NULL) {
                     GameObject_s *bomb = NULL;
                     if (players_share_bomb && players[0]->cable != NULL && players[0]->cable->target != NULL &&
                         players[0]->cable->target->id == *bomb_model_id) {

@@ -551,10 +551,16 @@ void nugraph_compute_catmull_point(i32 segment_count, f32 parameter, nuvec_s *co
     fraction = parameter - start;
     fraction *= (f32)segment_count;
 
-    p0 = segment == 1 ? &first : &control_points[segment - 2];
+    if (segment == 1)
+        p0 = &first;
+    else
+        p0 = &control_points[segment - 2];
     p1 = &control_points[segment - 1];
     p2 = &control_points[segment];
-    p3 = segment >= segment_count ? &last : &control_points[segment + 1];
+    if (segment >= segment_count)
+        p3 = &last;
+    else
+        p3 = &control_points[segment + 1];
 
     point->x = 0.5f * (2.0f * p1->x + (p2->x - p0->x) * fraction +
                        (2.0f * p0->x - 5.0f * p1->x + 4.0f * p2->x - p3->x) * (fraction * fraction) +

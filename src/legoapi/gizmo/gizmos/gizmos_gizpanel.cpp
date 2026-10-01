@@ -51,7 +51,7 @@ void GizPanel_Use(GameObject_s &object, GIZPANEL_s &panel) {
     GIZPANEL_s *active_panel = static_cast<GIZPANEL_s *>(object.field_0x788);
     if (active_panel->model_variant == 2) {
         object.context_animation = object.apiobj.character_model->model_data_b[0x46] != NULL ? 0x46 : 0x45;
-        if (static_cast<i8>(object.apiobj.object_flags) < 0) {
+        if (object.apiobj.player_controlled) {
             Hint_SetComplete(0x261);
             Hint_SetComplete(0x26a);
         }
@@ -60,7 +60,7 @@ void GizPanel_Use(GameObject_s &object, GIZPANEL_s &panel) {
                                        ? 0x45
                                        : (object.apiobj.character_model->model_data_b[0x46] != NULL ? 0x46 : 0x45);
         MakeBaddiesForgetAboutParty(1);
-        if (static_cast<i8>(object.apiobj.object_flags) < 0) {
+        if (object.apiobj.player_controlled) {
             Hint_SetComplete(0x260);
             Hint_SetComplete(0x269);
         }
@@ -75,7 +75,7 @@ void GizPanel_Use(GameObject_s &object, GIZPANEL_s &panel) {
             if (!InStory() || (static_cast<GIZPANEL_s *>(object.field_0x788)->draw_flags & 4) == 0)
                 GizPanel_PlaySfx("R2D2_VLA", &object.apiobj.collision_position, 1 << object.apiobj.field_0x27c);
         }
-        if (static_cast<i8>(object.apiobj.object_flags) < 0) {
+        if (object.apiobj.player_controlled) {
             Hint_SetComplete(0x25f);
             if (static_cast<GIZPANEL_s *>(object.field_0x788)->model_variant == 0)
                 Hint_SetComplete(0x625);
@@ -141,7 +141,7 @@ void GizPanel_PlaySfx(char *name, nuvec_s *position, i32 player_bits) {
 }
 
 void GizPanel_MoveCode(WORLDINFO_s *world, GameObject_s *object, i32 use) {
-    if (use != 0 && static_cast<i8>(object->apiobj.object_flags) >= 0 && world->current_level == MOSEISLEYA_LDATA)
+    if (use != 0 && !object->apiobj.player_controlled && world->current_level == MOSEISLEYA_LDATA)
         use = 0;
     if (object->field_0xdb0 > 0.0f)
         object->field_0xdb0 -= FRAMETIME;
@@ -177,7 +177,7 @@ void GizPanel_MoveCode(WORLDINFO_s *world, GameObject_s *object, i32 use) {
                 } else {
                     NewRumble(object->pad_gamepad->pad, 0.5f, 0);
                 }
-                if (static_cast<i8>(object->apiobj.object_flags) < 0) {
+                if (object->apiobj.player_controlled) {
                     const u8 variant = static_cast<GIZPANEL_s *>(object->field_0x788)->model_variant;
                     if (variant <= 1) {
                         if (Mission_Active(NULL) != NULL) {
@@ -218,7 +218,7 @@ void GizPanel_MoveCode(WORLDINFO_s *world, GameObject_s *object, i32 use) {
         if (distance < radius * radius &&
             (use != 0 || (object->panel_use_request == 1 && object->big_jump_data != NULL)))
             GizPanel_Use(*object, *panel);
-    } else if (use != 0 && static_cast<i8>(object->apiobj.object_flags) < 0 &&
+    } else if (use != 0 && object->apiobj.player_controlled &&
                (object->apiobj.character_data->model_flags & 0x20) != 0 && object->field_0xdb0 <= 0.0f) {
         GizPanel_PlaySfx("TC14_VLN", &object->apiobj.collision_position, 1 << object->apiobj.field_0x27c);
         object->field_0xdb0 = 0.5f;

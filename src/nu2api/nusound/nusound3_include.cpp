@@ -258,49 +258,43 @@ void NuSound3SampleLoadThread(void *arg) {
         g_NuSoundLoadTrigger.a = g_NuSoundLoadTrigger.b;
         pthread_mutex_unlock(&g_NuSoundLoadTrigger.mutex);
 
-        if (g_NuSoundLoadBits == NULL) {
-            continue;
+        if (g_NuSoundLoadBits != NULL) {
+            pthread_mutex_lock(&g_NuSoundLoadCriticalSection);
+
+            for (u32 i = 0; i < g_NuSoundSamples.length; i++) {
+                nusound_filename_info_s &info = g_NuSoundSamples.data[i];
+                if (!(info.index <= 0xfff)) {
+                    u16 request = g_NuSoundLoadBits[i >> 4] & static_cast<u16>(1 << (i & 0xf));
+                    NuSoundSample *sample = reinterpret_cast<NuSoundSample *>(info.sample);
+                    NuSoundSample::LoadState load_state = sample->GetLoadState();
+                    sample->GetLastErrorState();
+
+                    if (request == 0 && load_state != NuSoundSample::LoadState::NOT_LOADED && sample != NULL &&
+                        sample->field_0x18 == 0) {
+                        sample->Release();
+                        sample->Unload();
+                    }
+                }
+            }
+
+            for (u32 i = 0; i < g_NuSoundSamples.length; i++) {
+                nusound_filename_info_s &info = g_NuSoundSamples.data[i];
+                if (!(info.index <= 0xfff)) {
+                    u16 request = g_NuSoundLoadBits[i >> 4] & static_cast<u16>(1 << (i & 0xf));
+                    NuSoundSample *sample = reinterpret_cast<NuSoundSample *>(info.sample);
+                    NuSoundSample::LoadState load_state = sample->GetLoadState();
+                    NuSoundSample::ErrorState error = sample->GetLastErrorState();
+
+                    if (request != 0 && error != NuSoundSample::ErrorState::FILE_NOT_FOUND &&
+                        load_state == NuSoundSample::LoadState::NOT_LOADED && sample != NULL) {
+                        sample->Reference();
+                        sample->Load(NULL, 0, NULL);
+                    }
+                }
+            }
+
+            pthread_mutex_unlock(&g_NuSoundLoadCriticalSection);
         }
-
-        pthread_mutex_lock(&g_NuSoundLoadCriticalSection);
-
-        for (u32 i = 0; i < g_NuSoundSamples.length; i++) {
-            nusound_filename_info_s &info = g_NuSoundSamples.data[i];
-            if (info.index <= 0xfff) {
-                continue;
-            }
-
-            u16 request = g_NuSoundLoadBits[i >> 4] & static_cast<u16>(1 << (i & 0xf));
-            NuSoundSample *sample = reinterpret_cast<NuSoundSample *>(info.sample);
-            NuSoundSample::LoadState load_state = sample->GetLoadState();
-            sample->GetLastErrorState();
-
-            if (request == 0 && load_state != NuSoundSample::LoadState::NOT_LOADED && sample != NULL &&
-                sample->field_0x18 == 0) {
-                sample->Release();
-                sample->Unload();
-            }
-        }
-
-        for (u32 i = 0; i < g_NuSoundSamples.length; i++) {
-            nusound_filename_info_s &info = g_NuSoundSamples.data[i];
-            if (info.index <= 0xfff) {
-                continue;
-            }
-
-            u16 request = g_NuSoundLoadBits[i >> 4] & static_cast<u16>(1 << (i & 0xf));
-            NuSoundSample *sample = reinterpret_cast<NuSoundSample *>(info.sample);
-            NuSoundSample::LoadState load_state = sample->GetLoadState();
-            NuSoundSample::ErrorState error = sample->GetLastErrorState();
-
-            if (request != 0 && error != NuSoundSample::ErrorState::FILE_NOT_FOUND &&
-                load_state == NuSoundSample::LoadState::NOT_LOADED && sample != NULL) {
-                sample->Reference();
-                sample->Load(NULL, 0, NULL);
-            }
-        }
-
-        pthread_mutex_unlock(&g_NuSoundLoadCriticalSection);
     }
 }
 
@@ -569,51 +563,50 @@ void NuSound3ResumeStereoStream(i32 stream_index) {
 void NuSound3CreateVoice(nuvec_s *pos, i32 index, f32 falloff_a, f32 falloff_b, i32 volume_left, i32 volume_right,
                          f32 pitch, bool loop) {
     (void)volume_right;
-    if (NuSound.GetNumAvailableOutputDevices() < 1 || index < 0 || index >= static_cast<i32>(g_NuSoundSamples.length)) {
-        return;
-    }
-
-    NuSoundSource *source = g_NuSoundSamples.data[index].sample;
-    NuSoundSample *sample = (NuSoundSample *)source;
-    if (sample == NULL || sample->GetLoadState() != NuSoundSample::LoadState::LOADED ||
-        sample->GetResourceCount() < 1) {
-        return;
-    }
-
-    i32 in_flight = g_NuSoundVoicesPendingPlayback.length + g_NuSoundVoicesActive.length;
-    i32 source_voice_count = sample->field_0x18;
-    for (NuSound3Voice *entry = g_NuSoundVoicesPendingPlayback.Front(); entry != g_NuSoundVoicesPendingPlayback.End();
-         entry = entry->intrusive_next) {
-        if (entry->source == source) {
-            source_voice_count++;
-        }
-    }
-    if (source_voice_count > 2 || in_flight > 15) {
-        if (loop || g_NuSoundSamples.data[index].field7_0x1c == 0 || source_voice_count <= 2) {
+    if (!(NuSound.GetNumAvailableOutputDevices() < 1 || index < 0 ||
+          index >= static_cast<i32>(g_NuSoundSamples.length))) {
+        NuSoundSource *source = g_NuSoundSamples.data[index].sample;
+        NuSoundSample *sample = (NuSoundSample *)source;
+        if (sample == NULL || sample->GetLoadState() != NuSoundSample::LoadState::LOADED ||
+            sample->GetResourceCount() < 1) {
             return;
         }
 
-        f32 oldest_time;
-        NuSoundVoice *oldest_voice = NuSound.GetOldestVoice(sample, oldest_time);
-        if (oldest_voice != NULL) {
-            NuSound3StopVoice(oldest_voice);
+        i32 in_flight = g_NuSoundVoicesPendingPlayback.length + g_NuSoundVoicesActive.length;
+        i32 source_voice_count = sample->field_0x18;
+        for (NuSound3Voice *entry = g_NuSoundVoicesPendingPlayback.Front();
+             entry != g_NuSoundVoicesPendingPlayback.End(); entry = entry->intrusive_next) {
+            if (entry->source == source) {
+                source_voice_count++;
+            }
         }
-    }
+        if (source_voice_count > 2 || in_flight > 15) {
+            if (loop || g_NuSoundSamples.data[index].field7_0x1c == 0 || source_voice_count <= 2) {
+                return;
+            }
 
-    NuSound3Voice *voice = new NuSound3Voice();
-    voice->source = source;
-    voice->pitch = pitch;
-    voice->volume = volume_left;
-    voice->falloff_a = falloff_a;
-    voice->falloff_b = falloff_b;
-    voice->loop = loop;
-    voice->source_position = pos;
-    if (pos != NULL) {
-        voice->position = *pos;
-    }
-    voice->pause_counter = 0;
+            f32 oldest_time;
+            NuSoundVoice *oldest_voice = NuSound.GetOldestVoice(sample, oldest_time);
+            if (oldest_voice != NULL) {
+                NuSound3StopVoice(oldest_voice);
+            }
+        }
 
-    StreamListPushBack(&g_NuSoundVoicesPendingPlayback, voice);
+        NuSound3Voice *voice = new NuSound3Voice();
+        voice->source = source;
+        voice->pitch = pitch;
+        voice->volume = volume_left;
+        voice->falloff_a = falloff_a;
+        voice->falloff_b = falloff_b;
+        voice->loop = loop;
+        voice->source_position = pos;
+        if (pos != NULL) {
+            voice->position = *pos;
+        }
+        voice->pause_counter = 0;
+
+        StreamListPushBack(&g_NuSoundVoicesPendingPlayback, voice);
+    }
 }
 
 extern "C" void NuSound3Play3dLoopSfx(nuvec_s *position, i32 sample_index, f32 falloff_near, f32 falloff_far,
@@ -669,12 +662,12 @@ void NuSound3Update(void) {
     }
 
     // The listener focus follows the player (NULL on the title screen).
-    if (player == NULL) {
-        g_NuSoundListener.DisableFocusPosition();
-    } else {
+    if (player != NULL) {
         g_NuSoundFocusPosition = player->apiobj.position;
         g_NuSoundListener.SetFocusPosition((const VuVec *)&g_NuSoundFocusPosition);
         g_NuSoundListener.EnableFocusPosition();
+    } else {
+        g_NuSoundListener.DisableFocusPosition();
     }
 
     NuSound.mutex.Lock();
@@ -777,14 +770,14 @@ void NuSound3Update(void) {
                 }
             }
         } else if (stream->field_0xd != 0) {
-            if (NuSound3Stream::mVoice.obj != NULL) {
+            if (NuSound3Stream::mVoice.obj == NULL) {
+                // The voice was released elsewhere; retire the stream.
+                NuSound3StopStereoStream(i);
+            } else {
                 ((NuSoundVoice *)NuSound3Stream::mVoice.obj)->SetVolume(PS2VolumeToScalar(stream->ps2volume));
                 if (((NuSoundVoice *)NuSound3Stream::mVoice.obj)->GetState() == NuSoundVoice::PLAYSTATE_STOPPED) {
                     NuSound3StopStereoStream(i);
                 }
-            } else {
-                // The voice was released elsewhere; retire the stream.
-                NuSound3StopStereoStream(i);
             }
         }
 
@@ -873,12 +866,12 @@ void NuSound3SetSampleTable(nusound_filename_info_s *info, variptr_u *buffer_sta
 
     for (; info->index != -1; info++) {
         // TODO: dont cast classes
-        if (info->index < 0x1000) {
-            info->sample = (NuSoundStreamingSample *)NuSound.AddSample(info->filename, NuSoundSystem::FileType::OGG,
-                                                                       NuSoundSource::FeedType::STREAMING);
-        } else {
+        if (!(info->index < 0x1000)) {
             info->sample = (NuSoundStreamingSample *)NuSound.AddSample(info->filename, NuSoundSystem::FileType::WAV,
                                                                        NuSoundSource::FeedType::ZERO);
+        } else {
+            info->sample = (NuSoundStreamingSample *)NuSound.AddSample(info->filename, NuSoundSystem::FileType::OGG,
+                                                                       NuSoundSource::FeedType::STREAMING);
         }
 
         g_NuSoundSamples.PushBack(*info);

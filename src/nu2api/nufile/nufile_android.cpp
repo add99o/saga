@@ -3,6 +3,7 @@
 #include <string.h>
 #include "java/asset_manager.h"
 #include "java/android.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 NuFileAndroidAPK *NuFileAndroidAPK::ms_fileId[0x400];
 

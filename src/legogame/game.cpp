@@ -321,7 +321,7 @@ static i32 FindSlamOrigin_UseCPos(GameObject_s *object) {
 static i32 LastSafePosExtra(GameObject_s *object) {
     LEVELDATA *level = WORLD->current_level;
     if ((level == TATOOINED_LDATA && object->apiobj.field_0x281 == 0x0e) ||
-        (level == DAGOBAHD_LDATA && object->apiobj.field_0x281 == 0x18 && (object->apiobj.flags_low & 0x80) != 0 &&
+        (level == DAGOBAHD_LDATA && object->apiobj.field_0x281 == 0x18 && object->apiobj.player_controlled &&
          object->apiobj.field_0x27f == 0xff) ||
         (level == DEATHSTARESCAPEC_LDATA && object->id == id_SERVICECAR))
         return 1;
@@ -661,7 +661,7 @@ static i32 CheckMusicOther() {
     return 0;
 }
 
-static GAMEAUDIO GameAudio_LSW = {
+GAMEAUDIO GameAudio_LSW = {
     GameAudio_OverrideFootStep_LSW,
     GameAudio_CheckReverb_LSW,
     {
@@ -902,13 +902,7 @@ void InitGameAfterConfig(void) {
                         GOLDBRICKPOINTS = GOLDBRICKPOINTS + 1;
                     }
 
-                    if ((areaFlags & 0x10) == 0) {
-                        if ((areaFlags & 0x4000) != 0) {
-                            COMPLETIONPOINTS = COMPLETIONPOINTS + POINTS_PER_TRUEJEDI;
-                            CompletionPointInfo[1] = POINTS_PER_TRUEJEDI + CompletionPointInfo[1];
-                            GOLDBRICKPOINTS = GOLDBRICKPOINTS + 1;
-                        }
-                    } else {
+                    if ((areaFlags & 0x10) != 0) {
                         i32 local_24 = COMPLETIONPOINTS + POINTS_PER_MINIKIT + POINTS_PER_TRUEJEDI;
                         i32 local_28 = POINTS_PER_MINIKIT + POINTS_PER_TRUEJEDI + CompletionPointInfo[1];
                         i32 iVar4 = GOLDBRICKPOINTS + 2;
@@ -921,6 +915,12 @@ void InitGameAfterConfig(void) {
                         COMPLETIONPOINTS = POINTS_PER_REDBRICK + local_24 + POINTS_PER_CHALLENGE;
                         CompletionPointInfo[1] = POINTS_PER_REDBRICK + POINTS_PER_CHALLENGE + local_28;
                         if (GOLDBRICKFORCHALLENGE != 0) {
+                            GOLDBRICKPOINTS = GOLDBRICKPOINTS + 1;
+                        }
+                    } else {
+                        if ((areaFlags & 0x4000) != 0) {
+                            COMPLETIONPOINTS = COMPLETIONPOINTS + POINTS_PER_TRUEJEDI;
+                            CompletionPointInfo[1] = POINTS_PER_TRUEJEDI + CompletionPointInfo[1];
                             GOLDBRICKPOINTS = GOLDBRICKPOINTS + 1;
                         }
                     }

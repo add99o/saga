@@ -568,14 +568,14 @@ extern "C" void PlaySfxByIdEx(i32 sfx_id, nuvec_s *position, f32 volume, f32 pit
     f32 falloff_far = g_soundInfo[sfx_id].falloff_far;
     f32 saved_fade_start = 0.0f;
     f32 saved_fade_end = 0.0f;
-    if (g_soundInfo[sfx_id].falloff_near != 0.0f || g_soundInfo[sfx_id].falloff_far != 0.0f) {
+    if (!(g_soundInfo[sfx_id].falloff_near != 0.0f || g_soundInfo[sfx_id].falloff_far != 0.0f)) {
+        falloff_near = 2.0f;
+        falloff_far = 15.0f;
+    } else {
         saved_fade_start = nusound_fade_start;
         saved_fade_end = nusound_fade_end;
         nusound_fade_start = falloff_near * saved_fade_start * 0.5f;
         nusound_fade_end = falloff_far * saved_fade_end / 15.0f;
-    } else {
-        falloff_near = 2.0f;
-        falloff_far = 15.0f;
     }
 
     const NUMTX *listener = reinterpret_cast<const NUMTX *>(NuSound3GetListener());
@@ -602,13 +602,13 @@ extern "C" void PlaySfxByIdEx(i32 sfx_id, nuvec_s *position, f32 volume, f32 pit
     }
 
     f32 volume_scale;
-    if (volume == 1.0f) {
-        volume_scale = static_cast<f32>(g_soundInfo[sfx_id].volume);
-    } else {
+    if (volume != 1.0f) {
         if (volume > 1.0f) {
             volume = 1.0f;
         }
         volume_scale = static_cast<f32>(g_soundInfo[sfx_id].volume) * volume;
+    } else {
+        volume_scale = static_cast<f32>(g_soundInfo[sfx_id].volume);
     }
 
     if (g_soundInfo[sfx_id].nofade == 0) {
@@ -619,11 +619,11 @@ extern "C" void PlaySfxByIdEx(i32 sfx_id, nuvec_s *position, f32 volume, f32 pit
 
     if (g_soundInfo[sfx_id].pitch_rnd != 0.0f) {
         f32 pitch_variation = NuRandFloatSeeded(&seed) * g_soundInfo[sfx_id].pitch_rnd;
-        if ((NuRandIntSeeded(&seed) & 1) == 0) {
+        if ((NuRandIntSeeded(&seed) & 1) != 0) {
+            pitch *= 1.0f + pitch_variation;
+        } else {
             pitch_variation *= 0.5f;
             pitch *= 1.0f - pitch_variation;
-        } else {
-            pitch *= 1.0f + pitch_variation;
         }
     }
 
@@ -633,18 +633,7 @@ extern "C" void PlaySfxByIdEx(i32 sfx_id, nuvec_s *position, f32 volume, f32 pit
     }
 
     if (static_cast<u32>(sample_index) <= 1599) {
-        if (position != NULL) {
-            if (loop) {
-                NuSound3Play3dLoopSfx(position, sample_index, falloff_near, falloff_far, voice_volume, voice_volume,
-                                      pitch, buzz_timer, rumble_strength, rumble_sustain, rumble_release);
-            } else if (priority == 0) {
-                NuSound3Play3d(position, sample_index, falloff_near, falloff_far, voice_volume, voice_volume, pitch,
-                               buzz_timer, rumble_strength, rumble_sustain, rumble_release);
-            } else {
-                NuSound3Play3dPri(position, sample_index, falloff_near, falloff_far, voice_volume, voice_volume, pitch,
-                                  buzz_timer, rumble_strength, rumble_sustain, rumble_release, priority);
-            }
-        } else {
+        if (position == NULL) {
             i32 volume_left =
                 pan < 0.0f ? voice_volume : static_cast<i32>((1.0f - pan) * static_cast<f32>(voice_volume));
             i32 volume_right =
@@ -665,6 +654,17 @@ extern "C" void PlaySfxByIdEx(i32 sfx_id, nuvec_s *position, f32 volume, f32 pit
             } else {
                 NuSound3PlayPri(sample_index, volume_left, volume_right, pitch, buzz_timer, rumble_strength,
                                 rumble_sustain, rumble_release, priority);
+            }
+        } else {
+            if (loop) {
+                NuSound3Play3dLoopSfx(position, sample_index, falloff_near, falloff_far, voice_volume, voice_volume,
+                                      pitch, buzz_timer, rumble_strength, rumble_sustain, rumble_release);
+            } else if (priority == 0) {
+                NuSound3Play3d(position, sample_index, falloff_near, falloff_far, voice_volume, voice_volume, pitch,
+                               buzz_timer, rumble_strength, rumble_sustain, rumble_release);
+            } else {
+                NuSound3Play3dPri(position, sample_index, falloff_near, falloff_far, voice_volume, voice_volume, pitch,
+                                  buzz_timer, rumble_strength, rumble_sustain, rumble_release, priority);
             }
         }
     }

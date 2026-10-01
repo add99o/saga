@@ -62,14 +62,13 @@ i32 ObjInNarrowSock(GameObject_s *object, SOCKSYS *system, i32 level_index) {
         return 0;
     if (disable_narrow_socks || object->apiobj.field_0x27c == -1)
         return 0;
-    if ((object->apiobj.flags_low & 0x80) != 0) {
+    if (object->apiobj.player_controlled) {
         GameObject_s *other = NULL;
         if (object == Player[0])
             other = Player[1];
         else if (object == Player[1])
             other = Player[0];
-        if (other != NULL && (other->apiobj.flags_low & 0x80) != 0 &&
-            !NarrowSockPositionAllowed(other, system, level_index))
+        if (other != NULL && other->apiobj.player_controlled && !NarrowSockPositionAllowed(other, system, level_index))
             return 0;
     }
     return NarrowSockPositionAllowed(object, system, level_index);

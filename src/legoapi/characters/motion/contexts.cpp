@@ -1,4 +1,5 @@
 #include "legoapi/characters/motion/contexts.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 i32 LEGOCONTEXT_TUBE = -1;
 i32 LEGOCONTEXT_GLIDE = -1;

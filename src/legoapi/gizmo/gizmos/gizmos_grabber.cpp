@@ -50,7 +50,7 @@ void Grabber_StoreProgress(WORLDINFO_s *world, LEVEL_PROGRESS_s *progress) {
 
 // Static grabber victim-pos helper. Moved from gizmisc_stubs.cpp.
 
-static __used__ void Grabber_SetVictimPos(GRABBER_s *grabber) {
+static void Grabber_SetVictimPos(GRABBER_s *grabber) {
     if (grabber->victim != NULL) {
         NUVEC position = *Grabber_GetGrabPos(grabber, NULL);
         GameObject_s *victim = grabber->victim;
@@ -87,7 +87,7 @@ static __used__ void Grabber_SetVictimPos(GRABBER_s *grabber) {
 extern ADDPART_s Default_ADDPART;
 extern "C" PART_s *AddPart(ADDPART_s *);
 void PartKill_Grabber(PART_s *, i32);
-static __used__ void Grabber_Drop(GRABBER_s *grabber, NUVEC *previous_position) {
+static void Grabber_Drop(GRABBER_s *grabber, NUVEC *previous_position) {
     grabber->flags_559 |= 2;
     if (grabber->victim != NULL) {
         if (grabber->character_id == id_GRABMAGNET && grabber->victim->field_0x7a3 != 0)
@@ -158,7 +158,7 @@ void NewRumbleAllPlayers(f32, f32, i32, i32);
 void Hint_SetComplete(i32);
 i32 GameAnimSet_IsAnimationReset(GAMEANIMSET_s *);
 GIZMOBLOWUP_s *FindNearestGizmoBlowUp(WORLDINFO_s *, NUVEC *, f32);
-static __used__ i32 IsGrabbable(GameObject_s *object) {
+static i32 IsGrabbable(GameObject_s *object) {
     return (object->apiobj.character_data->game_character->flags_090 & GAMECHARACTER_FLAG_GRAB_DISABLED) == 0;
 }
 void Grabber_Update(WORLDINFO_s *world) {
@@ -179,19 +179,19 @@ void Grabber_Update(WORLDINFO_s *world) {
             FindGameObject(id_GRABR2CONTROL, 0, 0, 1, 0);
     } else
         pad = control->pad_gamepad;
-    if (control != NULL && control->field_0xcc0 != NULL && (control->apiobj.object_flags & 0x80)) {
-        if (pad->input_magnitude > 0.0f) {
-            if (Grab_grabber->move_xy) {
-                g->target_velocity.y = pad->input_direction_x * g->speed;
-                g->target_velocity.x = 0.0f;
-                g->target_velocity.z =
-                    Grab_grabber->invert_x ? -(g->speed * pad->input_direction_z) : g->speed * pad->input_direction_z;
-            } else {
+    if (control != NULL && control->field_0xcc0 != NULL && (control->apiobj.player_controlled)) {
+        if (!(pad->input_magnitude <= 0.0f)) {
+            if (!Grab_grabber->move_xy) {
                 u16 angle = GamePad_InputAngle(control, pad);
                 g->target_velocity.x = NU_SIN_LUT(angle) * g->speed;
                 if (Grab_grabber->invert_x)
                     g->target_velocity.x = -g->target_velocity.x;
                 g->target_velocity.z = g->speed * NU_SIN_LUT(angle + 0x4000);
+            } else {
+                g->target_velocity.y = pad->input_direction_x * g->speed;
+                g->target_velocity.x = 0.0f;
+                g->target_velocity.z =
+                    Grab_grabber->invert_x ? -(g->speed * pad->input_direction_z) : g->speed * pad->input_direction_z;
             }
         }
     } else {
@@ -226,11 +226,11 @@ void Grabber_Update(WORLDINFO_s *world) {
         if (next.z >= 11.84f) {
             next.z = 11.84f;
             g->target_velocity.z = g->velocity.z = 0.0f;
-        } else if (next.z < 10.125f) {
+        } else if (!(next.z >= 10.125f)) {
             next.z = 10.125f;
             g->target_velocity.z = g->velocity.z = 0.0f;
         }
-        if (next.y < -4.85f) {
+        if (!(next.y >= -4.85f)) {
             next.y = -4.85f;
             g->target_velocity.y = g->velocity.y = 0.0f;
         } else if (next.y > -3.9f) {
@@ -299,10 +299,7 @@ void Grabber_Update(WORLDINFO_s *world) {
     NuSpecialUpdate(&g->special);
     switch (g->state) {
         case 0:
-            if (pad != NULL) {
-                if (!(pad->buttons_pressed & (GAMEPAD_SPECIAL | GAMEPAD_ACTION)))
-                    break;
-            } else {
+            if (pad == NULL) {
                 if ((g->flags_559 & 4) && g->action_switch && (g->action_switch->progress_flags & 2) &&
                     GameAnimSet_IsAnimationReset(g->action_switch->anim_set))
                     g->flags_559 &= ~4;
@@ -310,6 +307,9 @@ void Grabber_Update(WORLDINFO_s *world) {
                     break;
                 if (!g->action_switch || !(g->action_switch->progress_flags & 2) ||
                     (g->action_switch->anim_set->flags & 1))
+                    break;
+            } else {
+                if (!(pad->buttons_pressed & (GAMEPAD_SPECIAL | GAMEPAD_ACTION)))
                     break;
             }
             if (g->character_model && g->character_model->model_data_b[102]) {
@@ -401,7 +401,7 @@ void Grabber_Update(WORLDINFO_s *world) {
             break;
         }
         case 2:
-            if (!moved && g->victim && (g->victim->apiobj.object_flags & 0x80)) {
+            if (!moved && g->victim && (g->victim->apiobj.player_controlled)) {
                 g->stuck_timer += FRAMETIME;
                 if (g->stuck_timer >= 3.0f)
                     goto opening;
@@ -501,7 +501,10 @@ void Grabber_Reset(WORLDINFO_s *world) {
         return;
     GIZMO *handle;
     handle = GizmoFindByName(world->gizmo_sys, obstacle_gizmotype_id, (char *)"pad_drop");
-    Grab_grabber->action_switch = handle ? (GIZOBSTACLE_s *)handle->object : NULL;
+    if (handle)
+        Grab_grabber->action_switch = (GIZOBSTACLE_s *)handle->object;
+    else
+        Grab_grabber->action_switch = NULL;
     if (Grab_grabber->action_switch && !Grab_grabber->action_switch->anim_set)
         Grab_grabber->action_switch = NULL;
     handle = GizmoFindByName(world->gizmo_sys, obstacle_gizmotype_id, (char *)"pad_n");
@@ -509,7 +512,10 @@ void Grabber_Reset(WORLDINFO_s *world) {
     if (Grab_grabber->direction_switches[0] && !Grab_grabber->direction_switches[0]->anim_set)
         Grab_grabber->direction_switches[0] = NULL;
     handle = GizmoFindByName(world->gizmo_sys, obstacle_gizmotype_id, (char *)"pad_s");
-    Grab_grabber->direction_switches[1] = handle ? (GIZOBSTACLE_s *)handle->object : NULL;
+    if (handle)
+        Grab_grabber->direction_switches[1] = (GIZOBSTACLE_s *)handle->object;
+    else
+        Grab_grabber->direction_switches[1] = NULL;
     if (Grab_grabber->direction_switches[1] && !Grab_grabber->direction_switches[1]->anim_set)
         Grab_grabber->direction_switches[1] = NULL;
     handle = GizmoFindByName(world->gizmo_sys, obstacle_gizmotype_id, (char *)"pad_e");

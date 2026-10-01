@@ -58,10 +58,10 @@ void GizRandom_Activate(GIZMO *gizmo, i32 active) {
     i32 cumulative_weight = 0;
     for (i32 index = 0; index < random->output_count; ++index) {
         cumulative_weight += random->output_weights[index];
-        if (roll <= cumulative_weight) {
-            random->selected_output = index;
-            break;
-        }
+        if (!(roll <= cumulative_weight))
+            continue;
+        random->selected_output = index;
+        break;
     }
 }
 

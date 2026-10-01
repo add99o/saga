@@ -1,4 +1,5 @@
 #include "legoapi/characters/motion/animation_ids.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 i16 LEGOACT_IDLE = -1;
 i16 LEGOACT_WALK = -1;

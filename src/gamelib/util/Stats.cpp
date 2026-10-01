@@ -6,6 +6,7 @@
 #include "nu2api/nu3d/nuqfnt.h"
 
 #include <stdio.h>
+#include "nu2api/nucore/nuvuvec.hpp"
 
 void NetSmallStats::Draw(float x, float y, float width, float height, NetSmallStats::eInfo) const {
     width *= 0.5f;
@@ -87,18 +88,18 @@ void NetStats::Draw(float x, float y, float width, float height, volatile NetSma
     const float graph_width = width * 0.5f;
     const float x_step = graph_width / 30.0f;
     float byte_maximum;
-    if (visible_maximum.values[0] <= visible_maximum.values[1]) {
-        byte_maximum = static_cast<float>(visible_maximum.values[1]);
-    } else {
+    if (!(visible_maximum.values[0] <= visible_maximum.values[1])) {
         byte_maximum = static_cast<float>(visible_maximum.values[0]);
+    } else {
+        byte_maximum = static_cast<float>(visible_maximum.values[1]);
     }
     byte_maximum = 4352.0f < byte_maximum ? byte_maximum : 4352.0f;
     const float byte_scale = height / byte_maximum;
     float packet_maximum;
-    if (visible_maximum.values[2] <= visible_maximum.values[3]) {
-        packet_maximum = static_cast<float>(visible_maximum.values[3]);
-    } else {
+    if (!(visible_maximum.values[2] <= visible_maximum.values[3])) {
         packet_maximum = static_cast<float>(visible_maximum.values[2]);
+    } else {
+        packet_maximum = static_cast<float>(visible_maximum.values[3]);
     }
     const float packet_scale = height / packet_maximum;
     const float graph_end = x + graph_width;

@@ -5,15 +5,15 @@
 void NuGCutLocatorCalcMtx_3(NUGCUTLOCATOR_s *locator, numtx_s *mtx, float frame) {
     ani3_animheader_s *animation = reinterpret_cast<ani3_animheader_s *>(locator->animation);
     f32 *values = NuAnimCurveExtractAllNodeCurves_3(animation, 0, frame, NULL);
-    if ((*animation->node_flags & 1) == 0) {
-        NuMtxSetIdentity(mtx);
-    } else {
+    if ((*animation->node_flags & 1) != 0) {
         NUANGVEC angles = {
             static_cast<NUANG>(values[3] * 10430.378f),
             static_cast<NUANG>(values[4] * 10430.378f),
             static_cast<NUANG>(values[5] * 10430.378f),
         };
         NuMtxSetRotateXYZ(mtx, &angles);
+    } else {
+        NuMtxSetIdentity(mtx);
     }
     NUVEC translation = {values[0], values[1], values[2]};
     NuMtxTranslate(mtx, &translation);

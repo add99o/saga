@@ -98,41 +98,42 @@ void ClearGizAIMessageSys(GIZAIMESSAGESYS_s *sys) {
 }
 
 GIZAIMESSAGE_s *CheckGizAIMessage(GIZAIMESSAGESYS_s *sys, char const *name, GIZAIMESSAGE_s *out) {
-    if (sys == NULL) {
-        return NULL;
-    }
-    if (out != NULL) {
-        return out;
-    }
-    if (name == NULL) {
-        return NULL;
-    }
+    GIZAIMESSAGE_s *msg = NULL;
+    if (sys != NULL) {
+        msg = out;
+        if (out == NULL) {
+            if (name == NULL) {
+                return NULL;
+            }
 
-    char local[0x20];
-    if (NuStrIStr((char *)name, gizaimessage_prefix) != NULL) {
-        strcpy(local, name);
-    } else {
-        if (NuStrLen(name) + NuStrLen(gizaimessage_prefix) > 0x1e) {
-            return NULL;
+            char local[0x20];
+            if (NuStrIStr((char *)name, gizaimessage_prefix) != NULL) {
+                strcpy(local, name);
+            } else {
+                if (NuStrLen(name) + NuStrLen(gizaimessage_prefix) > 0x1e) {
+                    return NULL;
+                }
+                sprintf(local, "%s%s", gizaimessage_prefix, name);
+            }
+
+            for (NULISTLNK *node = NuLinkedListGetHead(&sys->active_list); node != NULL;
+                 node = NuLinkedListGetNext(&sys->active_list, node)) {
+                if (NuStrNICmp(local, ((const GIZAIMESSAGE_s *)node)->name, 0x20) == 0) {
+                    return (GIZAIMESSAGE_s *)node;
+                }
+            }
+
+            NULISTLNK *node = NuLinkedListGetHead(&sys->free_list);
+            if (node == NULL) {
+                return NULL;
+            }
+            NuLinkedListRemove(&sys->free_list, node);
+            NuLinkedListAppend(&sys->active_list, node);
+            NuStrNCpy(((GIZAIMESSAGE_s *)node)->name, local, 0x20);
+            msg = (GIZAIMESSAGE_s *)node;
         }
-        sprintf(local, "%s%s", gizaimessage_prefix, name);
     }
-
-    for (NULISTLNK *node = NuLinkedListGetHead(&sys->active_list); node != NULL;
-         node = NuLinkedListGetNext(&sys->active_list, node)) {
-        if (NuStrNICmp(local, ((const GIZAIMESSAGE_s *)node)->name, 0x20) == 0) {
-            return (GIZAIMESSAGE_s *)node;
-        }
-    }
-
-    NULISTLNK *node = NuLinkedListGetHead(&sys->free_list);
-    if (node == NULL) {
-        return NULL;
-    }
-    NuLinkedListRemove(&sys->free_list, node);
-    NuLinkedListAppend(&sys->active_list, node);
-    NuStrNCpy(((GIZAIMESSAGE_s *)node)->name, local, 0x20);
-    return (GIZAIMESSAGE_s *)node;
+    return msg;
 }
 
 GIZAIMESSAGE_s *SetGizAIMessage(GIZAIMESSAGESYS_s *sys, char const *name, float value, GIZAIMESSAGE_s *out) {

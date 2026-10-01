@@ -57,8 +57,7 @@ void SecurityDoor_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
         return;
     }
     if ((object->apiobj.character_data->game_character->flags_090 & 0x02000000) == 0 ||
-        static_cast<i8>(object->apiobj.flags_low) >= 0 || object->apiobj.field_0x27d == 0 ||
-        ObjLandReady(object) == 0) {
+        !object->apiobj.player_controlled || object->apiobj.field_0x27d == 0 || ObjLandReady(object) == 0) {
         return;
     }
     f32 range = object->apiobj.field_0x1dc + 0.25f;

@@ -37,7 +37,7 @@ static NUFRUSTRUM *allocateFrustrum(i16 plane_count, i16 room_id) {
     return frustum;
 }
 
-static __used__ void transposeClipPlanes(NUFRUSTRUM *frustum) {
+static void transposeClipPlanes(NUFRUSTRUM *frustum) {
     f32 cam_a = cam_plane.a;
     frustum->transposed_planes[3] = cam_a;
     f32 cam_d = cam_plane.d;

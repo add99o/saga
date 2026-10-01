@@ -519,12 +519,12 @@ NUQFNT *NuQFntRead(char *filepath, VARIPTR *buf, VARIPTR buf_end) {
     i32 bytes_read;
     char fixed_path[1204];
 
-    if (NuPlatform::Get()->GetCurrentPlatform() == ANDROID_PVRTC_PLATFORM) {
-        // ORIG_BUG: While `fixed_path` is 1204 bytes, its size is passed as 1024.
-        NuStrFixExtPlatform(fixed_path, filepath, "fnt", 1024, "IOS");
-    } else {
+    if (NuPlatform::Get()->GetCurrentPlatform() != ANDROID_PVRTC_PLATFORM) {
         // ORIG_BUG: While `fixed_path` is 1204 bytes, its size is passed as 1024.
         NuStrFixExtPlatform(fixed_path, filepath, g_fontExtension, 1024, "MOB");
+    } else {
+        // ORIG_BUG: While `fixed_path` is 1204 bytes, its size is passed as 1024.
+        NuStrFixExtPlatform(fixed_path, filepath, "fnt", 1024, "IOS");
     }
 
     aligned.addr = ALIGN(buf->addr, 0x20);
@@ -578,12 +578,12 @@ NUQFNT *NuQFntReadBuffer(VARIPTR *font, VARIPTR *buf, VARIPTR buf_end) {
         for (i = 0; i < relocation_count; i++, relocation_entry.addr += 4) {
             pointer.addr = relocation_entry.addr + *(i32 *)relocation_entry.void_ptr;
             relocations[i].pointer = pointer.addr - font->addr;
-            if (*(i32 *)pointer.void_ptr != 0) {
+            if (*(i32 *)pointer.void_ptr == 0) {
+                relocations[i].target = 0;
+            } else {
                 target.addr = pointer.addr + *(i32 *)pointer.void_ptr;
                 relocations[i].target = target.addr - font->addr;
                 *(usize *)pointer.void_ptr = target.addr;
-            } else {
-                relocations[i].target = 0;
             }
         }
     }
@@ -800,12 +800,7 @@ f32 NuQFntPrintJustifiedRSW(RNDRSTREAM *stream, void *font_ptr, u16 *text, f32 x
             u16 *word_start = next;
             i32 length = 0, extra_spaces = 0;
             while (*next != 0 && *next != hyphen) {
-                if (*next == 0x20) {
-                    const u16 following = next[1];
-                    if (following != '?' && following != '!' && following != '.' && following != ',')
-                        break;
-                    ++extra_spaces;
-                } else {
+                if (*next != 0x20) {
                     line[length] = *next;
                     line[length + 1] = 0;
                     if (NuQFntPrintLenW(font, line) > width) {
@@ -813,6 +808,11 @@ f32 NuQFntPrintJustifiedRSW(RNDRSTREAM *stream, void *font_ptr, u16 *text, f32 x
                         break;
                     }
                     ++length;
+                } else {
+                    const u16 following = next[1];
+                    if (following != '?' && following != '!' && following != '.' && following != ',')
+                        break;
+                    ++extra_spaces;
                 }
                 ++next;
             }
@@ -838,13 +838,13 @@ f32 NuQFntPrintJustifiedRSW(RNDRSTREAM *stream, void *font_ptr, u16 *text, f32 x
 
         i32 length = 0;
         while (text < next) {
-            if (*text == 0x20) {
+            if (*text != 0x20) {
+                line[length++] = *text++;
+            } else {
                 line[length++] = 0x20;
                 do {
                     ++text;
                 } while (*text == 0x20);
-            } else {
-                line[length++] = *text++;
             }
         }
         line[length] = 0;
@@ -860,14 +860,14 @@ f32 NuQFntPrintJustifiedRSW(RNDRSTREAM *stream, void *font_ptr, u16 *text, f32 x
             scale = ratio <= justify_stretch ? ratio : justify_stretch;
         }
         NuQFntSetScaleRS(stream, font, sx * scale, sy);
-        if (*next != 0) {
+        if (*next == 0) {
+            NuQFntSetSpaceWidth(font, space_width * scale);
+        } else {
             if (words == 1)
                 NuQFntSetSpaceWidth(font, space_width);
             else
                 NuQFntSetSpaceWidth(font, (space_width * (width - words_width * scale)) /
                                               (scale * printed_space_width * spaces));
-        } else {
-            NuQFntSetSpaceWidth(font, space_width * scale);
         }
         NuQFntMoveRS(stream, font, x, y + line_number * line_height * line_spacing, z);
         NuQFntPrintRSW(stream, font, line, mtx == NULL ? 0 : 4);

@@ -359,14 +359,7 @@ void WorldInfo_Init(WORLDINFO *world) {
     // This original flag occupies one byte despite the shared legacy i32 declaration.
     reinterpret_cast<u8 *>(&Reflections_On)[0] = NuDeviceSpecs::ms_instance->specs > 1;
     g_lowEndLevelBehaviour = g_isLowEndDevice;
-    if (g_isLowEndDevice) {
-        if (world->current_level != NULL) {
-            DebrisSetThinningLevel(world->current_level->data_display.particle_thin);
-            DebrisSetForcedThinning(world->current_level->data_display.particle_thin > 1.0f);
-            character_farclip = world->current_level->unknown_11c;
-            SetCameraZoom(world->current_level->unknown_120);
-        }
-    } else {
+    if (!g_isLowEndDevice) {
         if (world->current_level != NULL && NuStrIStr(world->current_level->name, "JabbasPalace_Intro1") != NULL) {
             DebrisSetThinningLevel(6.0f);
             DebrisSetForcedThinning(1);
@@ -390,6 +383,13 @@ void WorldInfo_Init(WORLDINFO *world) {
         if (NuDeviceSpecs::ms_instance->specs <= 2 && world->current_level != NULL &&
             NuStrIStr(world->current_level->name, "Negotiations_") != NULL) {
             reinterpret_cast<u8 *>(&Reflections_On)[0] = 0;
+        }
+    } else {
+        if (world->current_level != NULL) {
+            DebrisSetThinningLevel(world->current_level->data_display.particle_thin);
+            DebrisSetForcedThinning(world->current_level->data_display.particle_thin > 1.0f);
+            character_farclip = world->current_level->unknown_11c;
+            SetCameraZoom(world->current_level->unknown_120);
         }
     }
 
@@ -482,14 +482,14 @@ void WorldInfo_Init(WORLDINFO *world) {
 
     // FreePlay check
     if (world->area != NULL) {
-        if ((world->area->flags & AREAFLAG_BONUS_AREA) == 0) {
+        if ((world->area->flags & AREAFLAG_BONUS_AREA) != 0) {
+            NextArea_FreePlay = 1;
+            FreePlay = 1;
+        } else {
             if (world->area == HUB_ADATA) {
                 NextArea_FreePlay = 0;
                 FreePlay = 0;
             }
-        } else {
-            NextArea_FreePlay = 1;
-            FreePlay = 1;
         }
     }
 
@@ -579,10 +579,10 @@ void WorldInfo_Load(WORLDINFO *world) {
                     NuStrCpy(titles, "titles_danish");
                     break;
                 default:
-                    if (Text_Language == 0x12) {
-                        NuStrCpy(titles, "titles_us");
-                    } else {
+                    if (Text_Language != 0x12) {
                         NuStrCpy(titles, "titles_uk");
+                    } else {
+                        NuStrCpy(titles, "titles_us");
                     }
                     break;
             }
@@ -795,19 +795,19 @@ after_area:
         goto abort;
 
     // Lights
-    if ((world->current_level->flags & LEVEL_UNKNOWN_FLAG_4) == 0) {
-        world->rtl_id = -1;
-        world->light_dir = 0;
-    } else {
+    if ((world->current_level->flags & LEVEL_UNKNOWN_FLAG_4) != 0) {
         light_path = world->current_level == TITLES_LDATA ? title_light_path : world->config_file;
         LoadLights(world, light_path);
         rtl_id = rtlFindByUserId(reinterpret_cast<usize>(world->rtl_set), 1);
         world->rtl_id = rtl_id;
-        if (rtl_id != -1) {
-            rtlGetDirection(reinterpret_cast<usize>(world->rtl_set), rtl_id, (void **)&world->light_dir);
-        } else {
+        if (rtl_id == -1) {
             world->light_dir = 0;
+        } else {
+            rtlGetDirection(reinterpret_cast<usize>(world->rtl_set), rtl_id, (void **)&world->light_dir);
         }
+    } else {
+        world->rtl_id = -1;
+        world->light_dir = 0;
     }
 
     if (abort_load != 0)

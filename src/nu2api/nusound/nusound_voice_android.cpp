@@ -455,7 +455,7 @@ void NuVoiceAndroid::ApplyHardwareVoiceMix() {
 
     f32 gain = this->field67_0xa8;
     i16 level = -0x8000;
-    if (gain >= 0.01f) {
+    if (!(gain < 0.01f)) {
         level = (i16)(i32)(log10((f64)gain) * 2000.0);
     }
 

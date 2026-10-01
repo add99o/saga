@@ -101,22 +101,20 @@ static void Traffic_animobj(NUFPAR *parser) {
     }
 
     nuinstanim_s *instance_animation = NuSpecialGetInstAnim(&special);
-    if (instance_animation == NULL || parse_trafficanimsys->animation_count > 63) {
-        return;
-    }
+    if (!(instance_animation == NULL || parse_trafficanimsys->animation_count > 63)) {
+        TRAFFICANIM_s *animation = &parse_trafficanimsys->animations[parse_trafficanimsys->animation_count++];
+        parse_trafficanim = animation;
+        *animation = reference_trafficanim;
+        animation->special = special;
+        animation->tfactor = instance_animation->tfactor;
+        animation->animation = special.scene->instance_animation_data[instance_animation->anim_ix];
 
-    TRAFFICANIM_s *animation = &parse_trafficanimsys->animations[parse_trafficanimsys->animation_count++];
-    parse_trafficanim = animation;
-    *animation = reference_trafficanim;
-    animation->special = special;
-    animation->tfactor = instance_animation->tfactor;
-    animation->animation = special.scene->instance_animation_data[instance_animation->anim_ix];
-
-    NuFParPushCom(parser, TrafficAnim_ConfigKeywords);
-    while (NuFParGetWord(parser) != 0) {
-        NuFParInterpretWord(parser);
+        NuFParPushCom(parser, TrafficAnim_ConfigKeywords);
+        while (NuFParGetWord(parser) != 0) {
+            NuFParInterpretWord(parser);
+        }
+        NuFParPopCom(parser);
     }
-    NuFParPopCom(parser);
 }
 
 static NUFPCOMJMP Traffic_ConfigKeywords[] = {

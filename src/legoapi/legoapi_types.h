@@ -3117,7 +3117,8 @@ struct debinftype {
     f32 min_rotation;
     f32 max_rotation;
     debris_float_key_s rotation_keys[8]; // 0x1d8
-    u8 fields_218[0x80];
+    debris_float_key_s field_218_keys[8];
+    debris_float_key_s field_258_keys[8];
     f32 texture_u0;          // 0x298
     f32 texture_v0;          // 0x29c
     f32 texture_u1;          // 0x2a0

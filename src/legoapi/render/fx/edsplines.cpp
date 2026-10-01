@@ -8,6 +8,9 @@
 #include "legoapi/render/fx/spline_position.h"
 #include "legoapi/menus/screens/shop.h"
 #include "legoapi/world/world.h"
+#include "legoapi/cutscenes/cutscenes.h"
+#include "legoapi/world/mission.h"
+#include "legoapi/world/area.h"
 #include "legoapi/world/levels/podrace.h"
 #include "legoapi/world/levels/levels.h"
 #include "nu2api/nu3d/nuspline.h"
@@ -54,9 +57,9 @@ i32 BezierLinePos(VuVec &result, VuVec &start, VuVec &first_control, VuVec &end,
                     middle_last.z * complement + first_middle.z * t, 1.0f};
         f32 length = BezierLineLength(start, first, point, first_middle);
         f32 difference = distance - length;
-        if (difference < 0.0f)
+        if (!(difference >= 0.0f))
             difference = -difference;
-        if (difference <= 0.01f) {
+        if (!(difference > 0.01f)) {
             result = point;
             return 1;
         }
@@ -100,7 +103,13 @@ void CalcSplinePoint(flightspline_s *spline, _vuv_s *result, float along) {
     _vuv_s last __attribute__((aligned(16)));
     NUVEC_ALIGNED16 direction;
     _vuv_s *previous;
-    if (index <= 0) {
+    if (!(index <= 0)) {
+        // Retail retains the pre-clamp fraction and permits index == count;
+        // callers must supply the corresponding neighboring point storage.
+        if (index > spline->point_count)
+            index = spline->point_count;
+        previous = &spline->points[index - 1];
+    } else {
         direction.x = spline->points[0].x - spline->points[1].x;
         direction.y = spline->points[0].y - spline->points[1].y;
         direction.z = spline->points[0].z - spline->points[1].z;
@@ -114,20 +123,12 @@ void CalcSplinePoint(flightspline_s *spline, _vuv_s *result, float along) {
         first.w = spline->points[0].w;
         previous = &first;
         index = 0;
-    } else {
-        // Retail retains the pre-clamp fraction and permits index == count;
-        // callers must supply the corresponding neighboring point storage.
-        if (index > spline->point_count)
-            index = spline->point_count;
-        previous = &spline->points[index - 1];
     }
 
     _vuv_s *current = &spline->points[index];
     _vuv_s *next = &spline->points[index + 1];
     _vuv_s *following;
-    if (index < spline->point_count - 2) {
-        following = &spline->points[index + 2];
-    } else {
+    if (!(index < spline->point_count - 2)) {
         const i32 end = spline->point_count - 1;
         direction.x = spline->points[end].x - spline->points[end - 1].x;
         direction.y = spline->points[end].y - spline->points[end - 1].y;
@@ -142,6 +143,8 @@ void CalcSplinePoint(flightspline_s *spline, _vuv_s *result, float along) {
         last.z = end_point->z + direction.z;
         last.w = end_point->w;
         following = &last;
+    } else {
+        following = &spline->points[index + 2];
     }
 
     const _vuv_s after = *following;
@@ -454,40 +457,40 @@ void GetNearestSplinePos(NUVEC *origin, SPLINEPOS_s *result, NUGSPLINE *spline, 
     if (result == NULL)
         return;
     memset(result, 0, sizeof(*result));
-    if (spline == NULL || origin == NULL || spline->length <= 1)
-        return;
-    result->spline = spline;
-    result->looping = (i8)looping;
-    i32 point_count = spline->length;
-    i32 logical_count = result->looping != 0 ? point_count + 1 : point_count;
-    i32 index = first_point;
-    if (index < 0)
-        index = 0;
-    else if (index >= logical_count)
-        return;
-    i32 end = point_count;
-    if (last_point >= 0 && last_point < end)
-        end = last_point;
-    NUVEC *point = (NUVEC *)((u8 *)spline->pts + index * (i16)spline->pt_size);
-    f32 nearest = 1000000000.0f;
-    NUVEC offset;
-    do {
-        f32 distance = NuVecDistSqr(origin, point, &offset);
-        if (distance < nearest) {
-            nearest = distance;
-            result->segment = index;
-        }
-        point = (NUVEC *)((u8 *)point + (i16)result->spline->pt_size);
-        index++;
-    } while (index < end);
-    spline = result->spline;
-    i32 stride = (i16)spline->pt_size;
-    NUVEC *current = (NUVEC *)((u8 *)spline->pts + result->segment * stride);
-    NUVEC *next = (NUVEC *)((u8 *)spline->pts + ((result->segment + 1) % spline->length) * stride);
-    result->segment_distance = 0.0f;
-    result->segment_length = NuVecDist(next, current, &offset);
-    result->position = *current;
-    result->along = (result->segment_distance / result->segment_length + result->segment) / (logical_count - 1);
+    if (!(spline == NULL || origin == NULL || spline->length <= 1)) {
+        result->spline = spline;
+        result->looping = (i8)looping;
+        i32 point_count = spline->length;
+        i32 logical_count = result->looping != 0 ? point_count + 1 : point_count;
+        i32 index = first_point;
+        if (index < 0)
+            index = 0;
+        else if (index >= logical_count)
+            return;
+        i32 end = point_count;
+        if (last_point >= 0 && last_point < end)
+            end = last_point;
+        NUVEC *point = (NUVEC *)((u8 *)spline->pts + index * (i16)spline->pt_size);
+        f32 nearest = 1000000000.0f;
+        NUVEC offset;
+        do {
+            f32 distance = NuVecDistSqr(origin, point, &offset);
+            if (distance < nearest) {
+                nearest = distance;
+                result->segment = index;
+            }
+            point = (NUVEC *)((u8 *)point + (i16)result->spline->pt_size);
+            index++;
+        } while (index < end);
+        spline = result->spline;
+        i32 stride = (i16)spline->pt_size;
+        NUVEC *current = (NUVEC *)((u8 *)spline->pts + result->segment * stride);
+        NUVEC *next = (NUVEC *)((u8 *)spline->pts + ((result->segment + 1) % spline->length) * stride);
+        result->segment_distance = 0.0f;
+        result->segment_length = NuVecDist(next, current, &offset);
+        result->position = *current;
+        result->along = (result->segment_distance / result->segment_length + result->segment) / (logical_count - 1);
+    }
 }
 
 void CalcSplinePointFromDist(flightspline_s *spline, _vuv_s *result, float distance) {
@@ -506,7 +509,7 @@ void CalcSplinePointFromDist(flightspline_s *spline, _vuv_s *result, float dista
     CalcSplinePoint(spline, result, distance);
 }
 
-static LEVELSPLINE *LevSplList;
+LEVELSPLINE *LevSplList;
 static i32 levspl_i_start = -1;
 static i32 levspl_i_startcam = -1;
 
@@ -539,45 +542,44 @@ void EvaluateSplineXZIntersection(nugspline_s *first, i32 first_looping, SPLINEP
     first_position->looping = static_cast<i8>(first_looping);
     second_position->spline = second;
     second_position->looping = static_cast<i8>(second_looping);
-    if (second == NULL || first == NULL || first->length == 0 || second->length == 0)
-        return;
-
-    const i32 first_count = first_looping != 0 ? first->length + 1 : first->length;
-    const i32 second_count = second_looping != 0 ? second->length + 1 : second->length;
-    f32 closest = 1000000000.0f;
-    f32 first_fraction, second_fraction;
-    for (i32 i = 0; i < first_count - 1; ++i) {
-        const i32 first_segment = i % first->length;
-        NUVEC *first_start = &first->pts[first_segment];
-        NUVEC *first_end = &first->pts[(i + 1) % first->length];
-        // Retail includes the wraparound segment of the second spline even
-        // without looping, and only stops this inner scan at an intersection.
-        for (i32 j = 0; j < second_count; ++j) {
-            const i32 second_segment = j % second->length;
-            const f32 distance =
-                XZLinesClosest(first_start, first_end, &second->pts[second_segment],
-                               &second->pts[(j + 1) % second->length], &first_fraction, &second_fraction);
-            if (distance < closest) {
-                first_position->segment_distance = first_fraction;
-                first_position->segment = static_cast<i16>(first_segment);
-                second_position->segment_distance = second_fraction;
-                second_position->segment = static_cast<i16>(second_segment);
-                closest = distance;
-                if (distance == 0.0f)
-                    break;
+    if (!(second == NULL || first == NULL || first->length == 0 || second->length == 0)) {
+        const i32 first_count = first_looping != 0 ? first->length + 1 : first->length;
+        const i32 second_count = second_looping != 0 ? second->length + 1 : second->length;
+        f32 closest = 1000000000.0f;
+        f32 first_fraction, second_fraction;
+        for (i32 i = 0; i < first_count - 1; ++i) {
+            const i32 first_segment = i % first->length;
+            NUVEC *first_start = &first->pts[first_segment];
+            NUVEC *first_end = &first->pts[(i + 1) % first->length];
+            // Retail includes the wraparound segment of the second spline even
+            // without looping, and only stops this inner scan at an intersection.
+            for (i32 j = 0; j < second_count; ++j) {
+                const i32 second_segment = j % second->length;
+                const f32 distance =
+                    XZLinesClosest(first_start, first_end, &second->pts[second_segment],
+                                   &second->pts[(j + 1) % second->length], &first_fraction, &second_fraction);
+                if (distance < closest) {
+                    first_position->segment_distance = first_fraction;
+                    first_position->segment = static_cast<i16>(first_segment);
+                    second_position->segment_distance = second_fraction;
+                    second_position->segment = static_cast<i16>(second_segment);
+                    closest = distance;
+                    if (distance == 0.0f)
+                        break;
+                }
             }
         }
-    }
 
-    NUVEC direction;
-    first_position->segment_length = NuVecDist(&first->pts[(first_position->segment + 1) % first->length],
-                                               &first->pts[first_position->segment], &direction);
-    first_position->segment_distance *= first_position->segment_length;
-    MoveSplinePosition(first_position, 0.00001f);
-    second_position->segment_length = NuVecDist(&second->pts[(second_position->segment + 1) % second->length],
-                                                &second->pts[second_position->segment], &direction);
-    second_position->segment_distance *= second_position->segment_length;
-    MoveSplinePosition(second_position, 0.00001f);
+        NUVEC direction;
+        first_position->segment_length = NuVecDist(&first->pts[(first_position->segment + 1) % first->length],
+                                                   &first->pts[first_position->segment], &direction);
+        first_position->segment_distance *= first_position->segment_length;
+        MoveSplinePosition(first_position, 0.00001f);
+        second_position->segment_length = NuVecDist(&second->pts[(second_position->segment + 1) % second->length],
+                                                    &second->pts[second_position->segment], &direction);
+        second_position->segment_distance *= second_position->segment_length;
+        MoveSplinePosition(second_position, 0.00001f);
+    }
 }
 
 void LevelSplines_InitForLevel(WORLDINFO_s *world) {
@@ -597,21 +599,41 @@ void LevelSplines_InitForLevel(WORLDINFO_s *world) {
             continue;
         }
 
-        NUGSCN *scene = entry->scene != NULL ? *entry->scene : world->current_gscn;
-        if (scene == NULL) {
-            continue;
+        NUGSCN *scene = *(entry->scene != NULL ? entry->scene : &world->current_gscn);
+        if (scene != NULL) {
+            NUGSPLINE *spline = NuSplineFind(scene, const_cast<char *>(entry->name));
+            world->portal_places[i] = reinterpret_cast<PORTALPOS *>(spline);
+            if (spline != NULL) {
+                const i32 point_count = spline->length;
+                if ((entry->min_points != 0 && point_count < entry->min_points) ||
+                    (entry->max_points != 0 && entry->min_points <= entry->max_points &&
+                     point_count > entry->max_points)) {
+                    world->portal_places[i] = NULL;
+                }
+            }
         }
 
-        NUGSPLINE *spline = NuSplineFind(scene, const_cast<char *>(entry->name));
-        world->portal_places[i] = reinterpret_cast<PORTALPOS *>(spline);
-        if (spline == NULL) {
-            continue;
-        }
-
-        const i32 point_count = spline->length;
-        if ((entry->min_points != 0 && point_count < entry->min_points) ||
-            (entry->max_points != 0 && entry->min_points <= entry->max_points && point_count > entry->max_points)) {
-            world->portal_places[i] = NULL;
+        if (levspl_i_start != -1) {
+            char name[64];
+            name[0] = '\0';
+            if (Mission_Active(NULL) != NULL) {
+                NuStrCpy(name, "bounty_start");
+            } else if (world->level_sub_id != -1 && (ADataList[world->level_sub_id].flags & 0x40) != 0 &&
+                       hub_from_cutsceneplayer != 0) {
+                NuStrCpy(name, "shop_start");
+                if (CutScenePlayer_Available() != NULL && static_cast<i16 *>(CutScenePlayer_Available())[5] != -1) {
+                    name[0] = '\0';
+                }
+            }
+            if (name[0] != '\0') {
+                NUGSPLINE *start = NuSplineFind(scene, name);
+                if (start != NULL && start->length > 1) {
+                    world->portal_places[levspl_i_start] = reinterpret_cast<PORTALPOS *>(start);
+                    if (levspl_i_startcam != -1) {
+                        world->portal_places[levspl_i_startcam] = NULL;
+                    }
+                }
+            }
         }
     }
 }

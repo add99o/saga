@@ -332,33 +332,31 @@ static void Tubes_Update(void *world_ptr, void *, float frame_time) {
                     }
 
                     f32 horizontal_distance_squared;
-                    if (Tube_InCylinder(object, tube, &horizontal_distance_squared, 0) != 0) {
-                        const f32 delta_x = tube->position.x - object->apiobj.pos_x;
-                        const f32 delta_z = tube->position.z - object->apiobj.pos_z;
-                        const i32 target_angle = NuAtan2D(delta_x, delta_z);
-                        object->apiobj.movement_direction.x = NuTrigTable[static_cast<u16>(target_angle) >> 1];
-                        object->apiobj.movement_direction.z =
-                            NuTrigTable[(static_cast<u16>(target_angle) + 0x4000) >> 1 & 0x7fff];
-                        object->context_target_position = &tube->position;
+                    if (Tube_InCylinder(object, tube, &horizontal_distance_squared, 0) == 0)
+                        continue;
+                    const f32 delta_x = tube->position.x - object->apiobj.pos_x;
+                    const f32 delta_z = tube->position.z - object->apiobj.pos_z;
+                    const i32 target_angle = NuAtan2D(delta_x, delta_z);
+                    object->apiobj.movement_direction.x = NuTrigTable[static_cast<u16>(target_angle) >> 1];
+                    object->apiobj.movement_direction.z =
+                        NuTrigTable[(static_cast<u16>(target_angle) + 0x4000) >> 1 & 0x7fff];
+                    object->context_target_position = &tube->position;
 
-                        if (Tube_IsObjBitSet(tube, object->apiobj.field_0x289) == 0) {
-                            if (object->field_0x1084 != 0) {
-                                if (DIRECTIONAL_TUBE_ENTRY_RADIUS_SQUARED > horizontal_distance_squared) {
-                                    if (NuTrigTable[DIRECTIONAL_TUBE_MAX_NORMAL_Y_ANGLE] >
-                                        NuFabs(object->contact_normal.y)) {
-                                        const f32 inverse_distance = 1.0f / NuFsqrt(horizontal_distance_squared);
-                                        const f32 entry_alignment =
-                                            delta_x * inverse_distance * object->contact_normal.x +
-                                            delta_z * inverse_distance * object->contact_normal.z;
+                    if (Tube_IsObjBitSet(tube, object->apiobj.field_0x289) != 0)
+                        continue;
+                    if (object->field_0x1084 == 0)
+                        continue;
+                    if (!(DIRECTIONAL_TUBE_ENTRY_RADIUS_SQUARED > horizontal_distance_squared))
+                        continue;
+                    if (NuTrigTable[DIRECTIONAL_TUBE_MAX_NORMAL_Y_ANGLE] > NuFabs(object->contact_normal.y)) {
+                        const f32 inverse_distance = 1.0f / NuFsqrt(horizontal_distance_squared);
+                        const f32 entry_alignment = delta_x * inverse_distance * object->contact_normal.x +
+                                                    delta_z * inverse_distance * object->contact_normal.z;
 
-                                        if (-NuTrigTable[DIRECTIONAL_TUBE_MIN_ALIGNMENT_ANGLE] > entry_alignment) {
-                                            GameAudio_PlaySfx(TUBE_AUDIO_EVENT, &object->apiobj.collision_position,
-                                                              GameAudio_GetPlrSfxBits(object), 0);
-                                            Tube_SetObjBit(tube, object->apiobj.field_0x289);
-                                        }
-                                    }
-                                }
-                            }
+                        if (-NuTrigTable[DIRECTIONAL_TUBE_MIN_ALIGNMENT_ANGLE] > entry_alignment) {
+                            GameAudio_PlaySfx(TUBE_AUDIO_EVENT, &object->apiobj.collision_position,
+                                              GameAudio_GetPlrSfxBits(object), 0);
+                            Tube_SetObjBit(tube, object->apiobj.field_0x289);
                         }
                     }
                 }

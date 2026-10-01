@@ -186,8 +186,7 @@ void BigJumpCode(GameObject_s *object) {
                 GameCam_Judder(GameCam, -0.3f, 0, &object->apiobj.collision_position);
                 PlayLandSfx(object, 3, 0);
                 NewRumbleAllPlayers(0.6f, 0.0f, 0, 0);
-            } else if ((object->apiobj.flags_low & 0x80) != 0 &&
-                       (TestForController() || SuperOptions.touch_controls == 0)) {
+            } else if (object->apiobj.player_controlled && (TestForController() || SuperOptions.touch_controls == 0)) {
                 GameCam_Judder(GameCam, -0.2f, 0, &object->apiobj.collision_position);
                 PlayLandSfx(object, 3, 0);
             } else {
@@ -281,9 +280,13 @@ i32 StartBigJump(GameObject_s *object, NUVEC *destination, i32 mode, f32 height,
     if (object->field_0x7aa != 0) {
         f32 distance = NuVecXZDist(&object->external_force, &object->launch_origin, NULL);
         f32 speed = object->apiobj.character_data->game_character->run_speed;
-        f32 duration = distance == 0.0f || speed == 0.0f ? 0.0f : distance / speed;
-        if (!(object->airborne_action_duration > duration))
-            object->airborne_action_duration = duration;
+        f32 duration;
+        if (distance == 0.0f || speed == 0.0f)
+            duration = 0.0f;
+        else
+            duration = distance / speed;
+        object->airborne_action_duration =
+            object->airborne_action_duration > duration ? object->airborne_action_duration : duration;
         if (object->field_0x7aa == 2) {
             if (LEGOACT_JUMP2 != -1 && object->apiobj.character_model->model_data_b[LEGOACT_JUMP2] != NULL)
                 height *= 1.5f;
@@ -312,7 +315,9 @@ i32 StartBigJump(GameObject_s *object, NUVEC *destination, i32 mode, f32 height,
     object->ai.movement_event_flags |= 2;
     object->ai.field_0x180 = NULL;
     object->context_variant_flags &= ~1;
-    object->big_jump_height = height < 0.0f ? 0.0f : height;
+    if (!(height >= 0.0f))
+        height = 0.0f;
+    object->big_jump_height = height;
     return 1;
 }
 
@@ -323,7 +328,13 @@ i32 StartFallLand(GameObject_s *object, i32 action) {
         return 0;
     }
     void **animations = object->apiobj.character_model->model_data_b;
-    if (action == -1 || animations[action] == NULL) {
+    if (!(action == -1 || animations[action] == NULL)) {
+        object->context_animation = action;
+        if (animations[object->context_animation] == NULL) {
+            object->movement_runtime_flags &= ~4;
+            return 0;
+        }
+    } else {
         if (IsWearingBackPackFn != NULL && IsWearingBackPackFn(object) && LEGOACT_BACKPACKFALLLAND != -1 &&
             animations[LEGOACT_BACKPACKFALLLAND] != NULL) {
             object->context_animation = LEGOACT_BACKPACKFALLLAND;
@@ -340,12 +351,6 @@ i32 StartFallLand(GameObject_s *object, i32 action) {
                 object->movement_runtime_flags &= ~4;
                 return 0;
             }
-        }
-    } else {
-        object->context_animation = action;
-        if (animations[object->context_animation] == NULL) {
-            object->movement_runtime_flags &= ~4;
-            return 0;
         }
     }
     object->character_context = LEGOCONTEXT_LAND_JUMP;

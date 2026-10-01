@@ -35,22 +35,40 @@ static char *AI_GetGizmoName(GIZMO *gizmo) {
     }
 
     AISCRIPTPROCESS *process = &level_process->processor;
-    const char *script_name = process->script != NULL && process->script->name != NULL ? process->script->name : "";
-    NuStrNCpy(name, script_name, sizeof(name));
-
-    const char *context_name = NULL;
-    if (process->unknown_a8 != NULL) {
-        context_name = process->unknown_a8->name;
-    } else if (process->unknown_a4 != NULL) {
-        context_name = process->unknown_a4->name;
-    } else if (process->unknown_a0 != NULL) {
-        context_name = process->unknown_a0->name;
+    if (process->script != NULL && process->script->name != NULL) {
+        NuStrNCpy(name, process->script->name, sizeof(name));
+    } else {
+        NuStrCpy(name, "");
     }
 
-    if (context_name != NULL && NuStrLen(name) + NuStrLen("()") + NuStrLen(context_name) <= 15) {
-        NuStrCat(name, "(");
-        NuStrCat(name, context_name);
-        NuStrCat(name, ")");
+    const i8 length = NuStrLen(name);
+    if (process->unknown_a8 != NULL) {
+        i8 total = length;
+        total += NuStrLen("()");
+        total += NuStrLen(process->unknown_a8->name);
+        if (total <= 15) {
+            NuStrCat(name, "(");
+            NuStrCat(name, process->unknown_a8->name);
+            NuStrCat(name, ")");
+        }
+    } else if (process->unknown_a4 != NULL) {
+        i8 total = length;
+        total += NuStrLen("()");
+        total += NuStrLen(process->unknown_a4->name);
+        if (total <= 15) {
+            NuStrCat(name, "(");
+            NuStrCat(name, process->unknown_a4->name);
+            NuStrCat(name, ")");
+        }
+    } else if (process->unknown_a0 != NULL) {
+        i8 total = length;
+        total += NuStrLen("()");
+        total += NuStrLen(process->unknown_a0->name);
+        if (total <= 15) {
+            NuStrCat(name, "(");
+            NuStrCat(name, process->unknown_a0->name);
+            NuStrCat(name, ")");
+        }
     }
     return name;
 }

@@ -3,6 +3,7 @@
 
 #include "nu2api/nu3d/android/NuGLES2Extensions.h"
 #include "decomp.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 // Android stores these entry points as exported data symbols. Host GL libraries
 // can export functions with the same names, so this table is target-only.

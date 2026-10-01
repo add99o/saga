@@ -48,7 +48,7 @@ void ReleaseForce(GameObject_s *object, i32 mode) {
         }
         object->character_context = -1;
     } else if (object->character_context == 8) {
-        if ((object->apiobj.flags_low & 0x80) != 0)
+        if (object->apiobj.player_controlled)
             GameCam_Blend(GameCam, 1.0f, 0.0f, 1);
     } else
         return;

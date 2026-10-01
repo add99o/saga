@@ -356,24 +356,24 @@ static void edgracbClumpDistMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     edgraAttachMenu(parent, edgra_clumpdist_menu);
 }
 static void edgracbClumpFadeMenu(eduimenu_s *parent, eduiitem_s *, u32) {
-    if (edgra_nearest == -1 || !GrassClumps[edgra_nearest].element_count)
-        return;
-    edgra_clumpfade_menu = eduiMenuCreate(70, 70, 180, 250, ed_fnt, edgracbCancelClumpFadeMenu, "Clump Fading");
-    if (!edgra_clumpfade_menu)
-        return;
-    eduiMenuAddItem(edgra_clumpfade_menu,
-                    eduiItemSliderCreate(0, edblack, 0, edgracbSetClumpFadeIn, 0.0f, edgra_superscale * 2.0f,
-                                         GrassClumps[edgra_nearest].near_distance, "Start of Fade"));
-    fadeinitem = static_cast<edui_slider_s *>(edui_last_item);
-    eduiItemSliderSetFmt(static_cast<edui_slider_s *>(edui_last_item), "(%1.01f)");
-    eduiItemSliderSetGranularity(static_cast<edui_slider_s *>(edui_last_item), 0.1f);
-    eduiMenuAddItem(edgra_clumpfade_menu,
-                    eduiItemSliderCreate(0, edblack, 0, edgracbSetClumpFadeOut, 0.0f, edgra_superscale * 2.0f,
-                                         GrassClumps[edgra_nearest].far_distance, "End of Fade"));
-    fadeoutitem = static_cast<edui_slider_s *>(edui_last_item);
-    eduiItemSliderSetFmt(static_cast<edui_slider_s *>(edui_last_item), "(%1.01f)");
-    eduiItemSliderSetGranularity(static_cast<edui_slider_s *>(edui_last_item), 0.1f);
-    edgraAttachMenu(parent, edgra_clumpfade_menu);
+    if (!(edgra_nearest == -1 || !GrassClumps[edgra_nearest].element_count)) {
+        edgra_clumpfade_menu = eduiMenuCreate(70, 70, 180, 250, ed_fnt, edgracbCancelClumpFadeMenu, "Clump Fading");
+        if (edgra_clumpfade_menu) {
+            eduiMenuAddItem(edgra_clumpfade_menu,
+                            eduiItemSliderCreate(0, edblack, 0, edgracbSetClumpFadeIn, 0.0f, edgra_superscale * 2.0f,
+                                                 GrassClumps[edgra_nearest].near_distance, "Start of Fade"));
+            fadeinitem = static_cast<edui_slider_s *>(edui_last_item);
+            eduiItemSliderSetFmt(static_cast<edui_slider_s *>(edui_last_item), "(%1.01f)");
+            eduiItemSliderSetGranularity(static_cast<edui_slider_s *>(edui_last_item), 0.1f);
+            eduiMenuAddItem(edgra_clumpfade_menu,
+                            eduiItemSliderCreate(0, edblack, 0, edgracbSetClumpFadeOut, 0.0f, edgra_superscale * 2.0f,
+                                                 GrassClumps[edgra_nearest].far_distance, "End of Fade"));
+            fadeoutitem = static_cast<edui_slider_s *>(edui_last_item);
+            eduiItemSliderSetFmt(static_cast<edui_slider_s *>(edui_last_item), "(%1.01f)");
+            eduiItemSliderSetGranularity(static_cast<edui_slider_s *>(edui_last_item), 0.1f);
+            edgraAttachMenu(parent, edgra_clumpfade_menu);
+        }
+    }
 }
 static void edgracbClumpModeMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     edgra_clumpmode_menu = eduiMenuCreate(70, 70, 200, 250, ed_fnt, edgracbCancelClumpModeMenu, "Clump Mode");
@@ -622,35 +622,36 @@ static void edgracbCancelClumpModeMenu(eduimenu_s *, eduimenu_s *) {
 
 static void edgracbClumpPropertiesMenu(eduimenu_s *parent, eduiitem_s *, u32) {
     u32 colours[4] = {0x80000000, 0x80ff0000, 0x80808080, 0x80404040};
-    if (edgra_nearest == -1 || !GrassClumps[edgra_nearest].element_count)
-        return;
-    edgra_clumpproperties_menu =
-        eduiMenuCreate(70, 70, 220, 250, ed_fnt, edgracbCancelClumpPropertiesMenu, "Clump Properties");
-    if (!edgra_clumpproperties_menu)
-        return;
-    eduiMenuAddItem(edgra_clumpproperties_menu,
-                    eduiItemSelCreate(1, colours, 0, 0, edgracbClumpSizesMenu, "Clump Sizes..."));
-    if (GrassClumps[edgra_nearest].kind == 3) {
-        eduiMenuAddItem(edgra_clumpproperties_menu, eduiItemSelCreate(1, edgrey, 0, 0, NULL, "Clump Area Type..."));
-        eduiMenuAddItem(edgra_clumpproperties_menu, eduiItemSelCreate(1, edgrey, 0, 0, NULL, "Clump Distribution..."));
-    } else {
+    if (!(edgra_nearest == -1 || !GrassClumps[edgra_nearest].element_count)) {
+        edgra_clumpproperties_menu =
+            eduiMenuCreate(70, 70, 220, 250, ed_fnt, edgracbCancelClumpPropertiesMenu, "Clump Properties");
+        if (!edgra_clumpproperties_menu)
+            return;
         eduiMenuAddItem(edgra_clumpproperties_menu,
-                        eduiItemSelCreate(1, colours, 0, 0, edgracbClumpAreaMenu, "Clump Area Type..."));
+                        eduiItemSelCreate(1, colours, 0, 0, edgracbClumpSizesMenu, "Clump Sizes..."));
+        if (GrassClumps[edgra_nearest].kind == 3) {
+            eduiMenuAddItem(edgra_clumpproperties_menu, eduiItemSelCreate(1, edgrey, 0, 0, NULL, "Clump Area Type..."));
+            eduiMenuAddItem(edgra_clumpproperties_menu,
+                            eduiItemSelCreate(1, edgrey, 0, 0, NULL, "Clump Distribution..."));
+        } else {
+            eduiMenuAddItem(edgra_clumpproperties_menu,
+                            eduiItemSelCreate(1, colours, 0, 0, edgracbClumpAreaMenu, "Clump Area Type..."));
+            eduiMenuAddItem(edgra_clumpproperties_menu,
+                            eduiItemSelCreate(1, colours, 0, 0, edgracbClumpDistMenu, "Clump Distribution..."));
+        }
         eduiMenuAddItem(edgra_clumpproperties_menu,
-                        eduiItemSelCreate(1, colours, 0, 0, edgracbClumpDistMenu, "Clump Distribution..."));
+                        eduiItemSelCreate(1, colours, 0, 0, edgracbClumpFadeMenu, "Clump Fading..."));
+        eduiMenuAddItem(edgra_clumpproperties_menu,
+                        eduiItemSelCreate(1, colours, 0, 0, edgracbClumpTerrainMenu, "Clump Terraining..."));
+        if (GrassClumps[edgra_nearest].kind == 1)
+            eduiMenuAddItem(edgra_clumpproperties_menu,
+                            eduiItemSliderCreate(0, colours, 0, edgracbSetClumpWind, 0.01f, 1.99f,
+                                                 GrassClumps[edgra_nearest].field_18, "Wind"));
+        eduiMenuAddItem(edgra_clumpproperties_menu,
+                        eduiItemToggleCreate(0, colours, GrassClumps[edgra_nearest].flags, 1,
+                                             edgracbToggleClumpReactive, "Collide with Player"));
+        edgraAttachMenu(parent, edgra_clumpproperties_menu);
     }
-    eduiMenuAddItem(edgra_clumpproperties_menu,
-                    eduiItemSelCreate(1, colours, 0, 0, edgracbClumpFadeMenu, "Clump Fading..."));
-    eduiMenuAddItem(edgra_clumpproperties_menu,
-                    eduiItemSelCreate(1, colours, 0, 0, edgracbClumpTerrainMenu, "Clump Terraining..."));
-    if (GrassClumps[edgra_nearest].kind == 1)
-        eduiMenuAddItem(edgra_clumpproperties_menu,
-                        eduiItemSliderCreate(0, colours, 0, edgracbSetClumpWind, 0.01f, 1.99f,
-                                             GrassClumps[edgra_nearest].field_18, "Wind"));
-    eduiMenuAddItem(edgra_clumpproperties_menu,
-                    eduiItemToggleCreate(0, colours, GrassClumps[edgra_nearest].flags, 1, edgracbToggleClumpReactive,
-                                         "Collide with Player"));
-    edgraAttachMenu(parent, edgra_clumpproperties_menu);
 }
 
 static void edgracbToggleClumpReactive(eduimenu_s *, eduiitem_s *item, u32) {
@@ -702,26 +703,8 @@ void edgraDoInput(nupad_s *pad) {
             }
         }
 
-        if (edgra_editormode == 1) {
-            if (edgra_nearest_instance == -1) {
-                edgraDetermineNearestInstance(-1.0f);
-            } else if (edgra_nearest != -1) {
-                const i32 count = GrassClumps[edgra_nearest].element_count;
-                if (pressed & 8) {
-                    ++edgra_nearest_instance;
-                    if (edgra_nearest_instance == count)
-                        edgra_nearest_instance = 0;
-                }
-                if (pressed & 2) {
-                    --edgra_nearest_instance;
-                    if (edgra_nearest_instance == -1)
-                        edgra_nearest_instance = count - 1;
-                }
-            }
-        } else {
-            if (edgra_nearest == -1) {
-                edgraDetermineNearestClump(-1.0f);
-            } else {
+        if (edgra_editormode != 1) {
+            if (edgra_nearest != -1) {
                 if (pressed & 8) {
                     do {
                         ++edgra_nearest;
@@ -737,6 +720,24 @@ void edgraDoInput(nupad_s *pad) {
                             edgra_nearest = EDGRA_MAX_CLUMPS - 1;
                     } while (!GrassClumps[edgra_nearest].element_count);
                     edgraSortVectorBuffer(edgra_nearest);
+                }
+            } else {
+                edgraDetermineNearestClump(-1.0f);
+            }
+        } else {
+            if (edgra_nearest_instance == -1) {
+                edgraDetermineNearestInstance(-1.0f);
+            } else if (edgra_nearest != -1) {
+                const i32 count = GrassClumps[edgra_nearest].element_count;
+                if (pressed & 8) {
+                    ++edgra_nearest_instance;
+                    if (edgra_nearest_instance == count)
+                        edgra_nearest_instance = 0;
+                }
+                if (pressed & 2) {
+                    --edgra_nearest_instance;
+                    if (edgra_nearest_instance == -1)
+                        edgra_nearest_instance = count - 1;
                 }
             }
         }
@@ -822,34 +823,20 @@ void edgraDoInput(nupad_s *pad) {
             }
         }
         if (pressed & 0x10) {
-            if (edgra_editormode == 1) {
-                if (edgra_nearest_instance != -1)
-                    edgraInstanceDestroy(edgra_nearest_instance);
-                edgra_nearest_instance = -1;
-            } else {
+            if (edgra_editormode != 1) {
                 if (edgra_nearest != -1)
                     edgraClumpDestroy(edgra_nearest);
                 edgra_nearest = -1;
+            } else {
+                if (edgra_nearest_instance != -1)
+                    edgraInstanceDestroy(edgra_nearest_instance);
+                edgra_nearest_instance = -1;
             }
         }
     }
 
     if (edgra_dpadmode == 0) {
-        if (edgra_mode == 3) {
-            if (edgra_nearest != -1 && edgra_nearest_instance != -1) {
-                edgra_clump_s &clump = GrassClumps[edgra_nearest];
-                GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c +=
-                    static_cast<f32>(pad->analog_left_pad_up) / 5000.0f;
-                GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c -=
-                    static_cast<f32>(pad->analog_left_pad_down) / 5000.0f;
-                if (GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c > 1.0f)
-                    GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c = 1.0f;
-                if (GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c < 0.1f)
-                    GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c = 0.1f;
-            }
-            if (pad->analog_left_pad_up || pad->analog_left_pad_down)
-                edgraInitAllClumps();
-        } else {
+        if (edgra_mode != 3) {
             edgra_size += static_cast<f32>(pad->analog_left_pad_up) / 5000.0f;
             edgra_size -= static_cast<f32>(pad->analog_left_pad_down) / 5000.0f;
             if (edgra_size < 0.1f)
@@ -864,6 +851,20 @@ void edgraDoInput(nupad_s *pad) {
                 edgra_clump_size = 4;
             if (edgra_clump_size > 256)
                 edgra_clump_size = 256;
+        } else {
+            if (edgra_nearest != -1 && edgra_nearest_instance != -1) {
+                edgra_clump_s &clump = GrassClumps[edgra_nearest];
+                GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c +=
+                    static_cast<f32>(pad->analog_left_pad_up) / 5000.0f;
+                GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c -=
+                    static_cast<f32>(pad->analog_left_pad_down) / 5000.0f;
+                if (GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c > 1.0f)
+                    GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c = 1.0f;
+                if (GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c < 0.1f)
+                    GetIndGrassClump(clump.individual_index, edgra_nearest_instance)->field_0c = 0.1f;
+            }
+            if (pad->analog_left_pad_up || pad->analog_left_pad_down)
+                edgraInitAllClumps();
         }
     } else if (edgra_dpadmode == 1) {
         edgra_roty += pad->analog_left_pad_right - pad->analog_left_pad_left;

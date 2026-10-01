@@ -360,23 +360,22 @@ TIGHTROPE *TightRope_InRange(GameObject_s *object, WORLDINFO_s *world, NUVEC *po
         }
         offset.x = 0.0f;
         offset.y = (rope->end.y - rope->start.y) * (offset.z / rope->horizontal_length) + rope->start.y;
-        if (!(object->apiobj.field_0x1e0 > fabsf(offset.y - origin.y))) {
-            continue;
-        }
-        if (position != NULL) {
-            f32 margin = (object->apiobj.character_data->game_character->flags_090 & 0x10000000) != 0
-                             ? object->apiobj.field_0x1e0
-                             : object->apiobj.field_0x1dc;
-            if (offset.z > rope->horizontal_length - margin) {
-                offset.z = rope->horizontal_length - margin;
-            } else if (margin > offset.z) {
-                offset.z = margin;
+        if (object->apiobj.field_0x1e0 > fabsf(offset.y - origin.y)) {
+            if (position != NULL) {
+                f32 margin = (object->apiobj.character_data->game_character->flags_090 & 0x10000000) != 0
+                                 ? object->apiobj.field_0x1e0
+                                 : object->apiobj.field_0x1dc;
+                if (offset.z > rope->horizontal_length - margin) {
+                    offset.z = rope->horizontal_length - margin;
+                } else if (margin > offset.z) {
+                    offset.z = margin;
+                }
+                NuVecRotateY(position, &offset, rope->rotation);
+                position->x += rope->start.x;
+                position->z += rope->start.z;
             }
-            NuVecRotateY(position, &offset, rope->rotation);
-            position->x += rope->start.x;
-            position->z += rope->start.z;
+            return rope;
         }
-        return rope;
     }
     return NULL;
 }
@@ -495,6 +494,22 @@ i32 TightRope_SnapTo(GameObject_s *object, NUVEC *position) {
     return 1;
 }
 
+static inline void TightRope_Jump(GameObject_s *object) {
+    if (object->apiobj.player_controlled) {
+        object->apiobj.velocity.y = 2.0f;
+        object->context_animation = 6;
+        object->context_animation_timer = 0.0f;
+        f32 duration = AnimDuration(object->id, 6, 0.0f, 0.0f, 0);
+        object->airborne_action_duration = duration;
+        if (duration <= 0.0f)
+            object->airborne_action_duration = 1.0f;
+        ResetAnimPacket(&object->apiobj.anim_packet, -1);
+    } else {
+        StartJump(object, 0);
+        object->movement_runtime_flags |= 0x10;
+    }
+}
+
 void TightRope_MoveCode(GameObject_s *object, i32 jump_pressed) {
     if (object->character_context != 0x44) {
         if (object->apiobj.field_0x27d != 0 || !(0.0f >= object->apiobj.velocity.y) ||
@@ -508,7 +523,7 @@ void TightRope_MoveCode(GameObject_s *object, i32 jump_pressed) {
                 return;
             }
         }
-        if ((object->apiobj.object_flags & 0x80) == 0 && (object->field_0xf01 & 0x40) == 0) {
+        if (!object->apiobj.player_controlled && (object->field_0xf01 & 0x40) == 0) {
             return;
         }
         TightRope_Attach(object, WORLD);
@@ -551,20 +566,21 @@ void TightRope_MoveCode(GameObject_s *object, i32 jump_pressed) {
                 return;
             }
             TightRope_MoveUpdate(object, 1);
-        } else if (jump_pressed == 0) {
-            if (TightRope_MoveUpdate(object, 0) == 0 && object->context_animation != 0x8f &&
-                object->external_force.y >= 0.5f) {
-                StartJump(object, 0);
-                object->apiobj.velocity.y =
-                    (object->apiobj.character_data->game_character->flags_090 & 0x80000) != 0 ? 1.2f : 1.8f;
-            }
-        } else {
-            goto jump;
+            goto done;
+        }
+    }
+    if (jump_pressed != 0) {
+        TightRope_Jump(object);
+        return;
+    }
+    if (object->context_animation != 0x8f) {
+        if (TightRope_MoveUpdate(object, 0) == 0 && object->context_animation != 0x8f &&
+            object->external_force.y >= 0.5f) {
+            StartJump(object, 0);
+            object->apiobj.velocity.y =
+                (object->apiobj.character_data->game_character->flags_090 & 0x80000) != 0 ? 1.2f : 1.8f;
         }
     } else {
-        if (jump_pressed != 0) {
-            goto jump;
-        }
         f32 *playing = AnimPlaying(&object->apiobj.anim_packet, 0x8f, 1, 0);
         if (playing != NULL) {
             f32 frame = AnimListFrame(object->apiobj.character_model, object->context_animation, 0);
@@ -581,24 +597,9 @@ void TightRope_MoveCode(GameObject_s *object, i32 jump_pressed) {
             }
         }
     }
+done:
     object->field_0x768 =
         NuVecXZDist(&object->apiobj.collision_position, &static_cast<TIGHTROPE *>(object->field_0x788)->start, NULL);
-    return;
-
-jump:
-    if ((object->apiobj.object_flags & 0x80) != 0) {
-        object->apiobj.velocity.y = 2.0f;
-        object->context_animation = 6;
-        object->context_animation_timer = 0.0f;
-        f32 duration = AnimDuration(object->id, 6, 0.0f, 0.0f, 0);
-        object->airborne_action_duration = duration;
-        if (duration <= 0.0f)
-            object->airborne_action_duration = 1.0f;
-        ResetAnimPacket(&object->apiobj.anim_packet, -1);
-    } else {
-        StartJump(object, 0);
-        object->movement_runtime_flags |= 0x10;
-    }
 }
 
 i32 TightRope_SetTargetMom(GameObject_s *object) {

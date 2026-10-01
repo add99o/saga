@@ -398,29 +398,29 @@ static i32 ZipUps_Load(void *world_ptr, void *) {
         world->zipups[index].flags =
             static_cast<u8>((world->zipups[index].flags & ~ZIPUP_FLAG_CONFIG_3) | (config_3 << 3));
 
-        if (version <= 1) {
-            world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_4;
-            world->zipups[index].flags &= ~ZIPUP_FLAG_CONFIG_5;
-            world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_2;
-        } else {
+        if (!(version <= 1)) {
             const u8 config_4 = EdFileReadUnsignedChar() != 0;
             world->zipups[index].flags =
                 static_cast<u8>((world->zipups[index].flags & ~ZIPUP_FLAG_CONFIG_4) | (config_4 << 4));
-            if (version == 2) {
-                world->zipups[index].flags &= ~ZIPUP_FLAG_CONFIG_5;
-                world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_2;
-            } else {
+            if (version != 2) {
                 const u8 config_5 = EdFileReadUnsignedChar() != 0;
                 world->zipups[index].flags =
                     static_cast<u8>((world->zipups[index].flags & ~ZIPUP_FLAG_CONFIG_5) | (config_5 << 5));
-                if (version == 3) {
-                    world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_2;
-                } else {
+                if (version != 3) {
                     const u8 config_2 = EdFileReadUnsignedChar() != 0;
                     world->zipups[index].flags =
                         static_cast<u8>((world->zipups[index].flags & ~ZIPUP_FLAG_CONFIG_2) | (config_2 << 2));
+                } else {
+                    world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_2;
                 }
+            } else {
+                world->zipups[index].flags &= ~ZIPUP_FLAG_CONFIG_5;
+                world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_2;
             }
+        } else {
+            world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_4;
+            world->zipups[index].flags &= ~ZIPUP_FLAG_CONFIG_5;
+            world->zipups[index].flags |= ZIPUP_FLAG_CONFIG_2;
         }
     }
     return 1;
@@ -501,7 +501,7 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
                 bool animation_fraction = false;
                 if (playing != NULL && *playing > 0.0f) {
                     f32 frame = AnimListFrame(api.character_model, object->context_animation, 0);
-                    if (frame > 1.0f && AnimEndFrame(api.character_model, object->context_animation) > frame) {
+                    if (!(frame <= 1.0f) && AnimEndFrame(api.character_model, object->context_animation) > frame) {
                         f32 progress = (*playing - 1.0f) / (frame - 1.0f);
                         fraction = progress < 1.0f ? progress : 1.0f;
                         animation_fraction = true;
@@ -518,7 +518,7 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
                     object->context_animation = LEGOACT_WHIP_SWING_SWING;
                     f32 duration = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 0);
                     object->airborne_action_duration = duration;
-                    if (duration <= 0.0f)
+                    if (!(duration > 0.0f))
                         object->airborne_action_duration = 1.0f;
                     GameAudio_PlaySfx(0x4d, &api.collision_position, GameAudio_GetPlrSfxBits(object), 0);
                 }
@@ -533,7 +533,7 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
                     object->context_animation = LEGOACT_WHIP_SWING_JUMP;
                     f32 duration = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 0);
                     object->airborne_action_duration = duration;
-                    if (duration <= 0.0f)
+                    if (!(duration > 0.0f))
                         object->airborne_action_duration = 1.0f;
                     PlayJumpSfx(object, 0);
                 }
@@ -625,7 +625,7 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
         NuVecAdd(&zipup->rider_target_position, hook, &zipup->rider_target_position);
         f32 old_time = object->context_animation_timer;
         object->context_animation_timer += FRAMETIME;
-        if (old_time < 0.55f && object->context_animation_timer >= 0.55f)
+        if (!(old_time >= 0.55f) && !(object->context_animation_timer < 0.55f))
             PlaySfx("GrapSwing", &api.collision_position);
         return;
     }
@@ -644,7 +644,7 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
     ZIPUP *zipup = ZipUp_FindNearest(WORLD, &api.lower_position, api.collision_radius, NULL, &endpoint, object, false);
     if (objInNetWaitContext(object, 0x47)) {
         object->context_animation_timer -= FRAMETIME;
-        if (object->context_animation_timer <= 0.0f)
+        if (!(object->context_animation_timer > 0.0f))
             object->character_context = -1;
     }
     if (zipup == NULL)
@@ -676,7 +676,7 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
         object->context_animation = LEGOACT_WHIP_SWING_START;
         f32 duration = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 0);
         object->airborne_action_duration = duration;
-        if (duration <= 0.0f)
+        if (!(duration > 0.0f))
             object->airborne_action_duration = 0.5f;
         object->zipup_entry_position = api.position;
         ZIPUP *current = static_cast<ZIPUP *>(object->field_0x788);
@@ -716,28 +716,28 @@ void ZipUp_MoveCode(GameObject_s *object, i32 special_pressed) {
     i32 pitch = 0x4000 - (angle < 0 ? -angle : angle);
     object->magnet_surface_angle = angle < 0 ? -pitch : pitch;
     zipup = static_cast<ZIPUP *>(object->field_0x788);
-    if ((zipup->flags & 1) != 0) {
-        NuVecSub(&zipup->rider_start_offset, start, hook);
-        NUVEC end_offset;
-        NuVecSub(&end_offset, destination, hook);
-        end_offset.y += 0.5f;
-        f32 rider_height = 0.5f * api.scaled_height;
-        zipup->rider_start_offset.x *= 0.9f;
-        zipup->rider_start_offset.y *= 0.9f;
-        zipup->rider_start_offset.y = rider_height + zipup->rider_start_offset.y;
-        zipup->rider_start_offset.z *= 0.9f;
-        i32 yaw = -static_cast<u16>(NuAtan2D(zipup->rider_start_offset.x, zipup->rider_start_offset.z));
-        NUVEC start_offset = zipup->rider_start_offset;
-        NuVecRotateY(&start_offset, &start_offset, yaw);
-        NuVecRotateY(&end_offset, &end_offset, yaw);
-        NuVecNorm(&start_offset, &start_offset);
-        NuVecNorm(&end_offset, &end_offset);
-        static_cast<ZIPUP *>(object->field_0x788)->pitch_adjustment =
-            NuACos(start_offset.y * end_offset.y + start_offset.z * end_offset.z);
-        zipup = static_cast<ZIPUP *>(object->field_0x788);
-        zipup->rider_target_position = zipup->rider_start_offset;
-        NuVecAdd(&zipup->rider_target_position, hook, &zipup->rider_target_position);
-    }
+    if ((zipup->flags & 1) == 0)
+        return;
+    NuVecSub(&zipup->rider_start_offset, start, hook);
+    NUVEC end_offset;
+    NuVecSub(&end_offset, destination, hook);
+    end_offset.y += 0.5f;
+    f32 rider_height = 0.5f * api.scaled_height;
+    zipup->rider_start_offset.x *= 0.9f;
+    zipup->rider_start_offset.y *= 0.9f;
+    zipup->rider_start_offset.y = rider_height + zipup->rider_start_offset.y;
+    zipup->rider_start_offset.z *= 0.9f;
+    i32 yaw = -static_cast<u16>(NuAtan2D(zipup->rider_start_offset.x, zipup->rider_start_offset.z));
+    NUVEC start_offset = zipup->rider_start_offset;
+    NuVecRotateY(&start_offset, &start_offset, yaw);
+    NuVecRotateY(&end_offset, &end_offset, yaw);
+    NuVecNorm(&start_offset, &start_offset);
+    NuVecNorm(&end_offset, &end_offset);
+    static_cast<ZIPUP *>(object->field_0x788)->pitch_adjustment =
+        NuACos(start_offset.y * end_offset.y + start_offset.z * end_offset.z);
+    zipup = static_cast<ZIPUP *>(object->field_0x788);
+    zipup->rider_target_position = zipup->rider_start_offset;
+    NuVecAdd(&zipup->rider_target_position, hook, &zipup->rider_target_position);
 }
 
 static void ZipUp_GetStartPoint(GameObject_s *object, NUVEC *position) {
@@ -792,6 +792,84 @@ void InitRopeMtl(char *name, variptr_u *buffer, variptr_u *buffer_end) {
     }
 }
 
+// The retail rope draw inlines these numtx rotations (other units call the
+// exported versions), so this unit carries local copies of their bodies.
+static void RopeMtxSetRotationZ(NUMTX *m, NUANG a) {
+    m->m00 = m->m11 = NU_COS_LUT(a);
+    m->m01 = NU_SIN_LUT(a);
+    m->m10 = -m->m01;
+    m->m22 = 1.0;
+    m->m02 = m->m12 = m->m03 = m->m23 = m->m20 = m->m21 = m->m13 = m->m30 = m->m31 = m->m32 = 0.0f;
+    m->m33 = 1.0;
+}
+
+static void RopeMtxRotateX(NUMTX *m, NUANG a) {
+    f32 cosx = NU_COS_LUT(a);
+    f32 sinx = NU_SIN_LUT(a);
+    f32 m01 = m->m01;
+    f32 m11 = m->m11;
+    f32 m21 = m->m21;
+    f32 m31 = m->m31;
+
+    m->m01 = m01 * cosx - m->m02 * sinx;
+    m->m02 = m01 * sinx + m->m02 * cosx;
+    m->m11 = m11 * cosx - m->m12 * sinx;
+    m->m12 = m11 * sinx + m->m12 * cosx;
+    m->m21 = m21 * cosx - m->m22 * sinx;
+    m->m22 = m21 * sinx + m->m22 * cosx;
+    m->m31 = m31 * cosx - m->m32 * sinx;
+    m->m32 = m31 * sinx + m->m32 * cosx;
+}
+
+static void RopeMtxRotateY(NUMTX *m, NUANG a) {
+    f32 cosx = NU_COS_LUT(a);
+    f32 sinx = NU_SIN_LUT(a);
+    f32 m00 = m->m00;
+    f32 m10 = m->m10;
+    f32 m20 = m->m20;
+    f32 m30 = m->m30;
+
+    m->m00 = m00 * cosx + m->m02 * sinx;
+    m->m02 = m->m02 * cosx - m00 * sinx;
+    m->m10 = m10 * cosx + m->m12 * sinx;
+    m->m12 = m->m12 * cosx - m10 * sinx;
+    m->m20 = m20 * cosx + m->m22 * sinx;
+    m->m22 = m->m22 * cosx - m20 * sinx;
+    m->m30 = m30 * cosx + m->m32 * sinx;
+    m->m32 = m->m32 * cosx - m30 * sinx;
+}
+
+static void RopeMtxRotateZ(NUMTX *m, NUANG a) {
+    f32 cosx = NU_COS_LUT(a);
+    f32 sinx = NU_SIN_LUT(a);
+    f32 m00 = m->m00;
+    f32 m10 = m->m10;
+    f32 m20 = m->m20;
+    f32 m30 = m->m30;
+
+    m->m00 = m00 * cosx - m->m01 * sinx;
+    m->m01 = m00 * sinx + m->m01 * cosx;
+    m->m10 = m10 * cosx - m->m11 * sinx;
+    m->m11 = m10 * sinx + m->m11 * cosx;
+    m->m20 = m20 * cosx - m->m21 * sinx;
+    m->m21 = m20 * sinx + m->m21 * cosx;
+    m->m30 = m30 * cosx - m->m31 * sinx;
+    m->m31 = m30 * sinx + m->m31 * cosx;
+}
+
+static inline void SetRopeVertex(NURND_VERTEX3D *vertex, f32 x, f32 y, f32 z, f32 normal_x, f32 normal_z, u32 colour,
+                                 f32 u, f32 v) {
+    vertex->position.x = x;
+    vertex->position.y = y;
+    vertex->position.z = z;
+    vertex->normal.x = normal_x;
+    vertex->normal.y = 0.0f;
+    vertex->normal.z = normal_z;
+    vertex->colour = colour;
+    vertex->u = u;
+    vertex->v = v;
+}
+
 void DrawRopeSingle(nuvec_s *start, nuvec_s *end, float amount, numtl_s *material, float time, float grow_time,
                     float spacing, float scale) {
     static f32 ROPELEN;
@@ -806,22 +884,26 @@ void DrawRopeSingle(nuvec_s *start, nuvec_s *end, float amount, numtl_s *materia
     NUVEC direction = {end->x - start->x, end->y - start->y, end->z - start->z};
     f32 length = NuVecMag(&direction) * amount;
     f32 repeats = length / ROPELEN;
-    NURND_VERTEX3D vertices[10] = {
-        {{-0.01f, 0.0f, 0.01f}, {-0.7071068286895752f, 0.0f, 0.7071068286895752f}, ropedif, 0.0f, 0.0f},
-        {{-0.01f, length, 0.01f}, {-0.7071068286895752f, 0.0f, 0.7071068286895752f}, ropedif, repeats, 0.0f},
-        {{0.01f, 0.0f, 0.01f}, {0.7071068286895752f, 0.0f, 0.7071068286895752f}, ropedif, 0.0f, 1.0f},
-        {{0.01f, length, 0.01f}, {0.7071068286895752f, 0.0f, 0.7071068286895752f}, ropedif, repeats, 1.0f},
-        {{0.01f, 0.0f, -0.01f}, {0.7071068286895752f, 0.0f, -0.7071068286895752f}, ropedif, 0.0f, 2.0f},
-        {{0.01f, length, -0.01f}, {0.7071068286895752f, 0.0f, -0.7071068286895752f}, ropedif, repeats, 2.0f},
-        {{-0.01f, 0.0f, -0.01f}, {-0.7071068286895752f, 0.0f, -0.7071068286895752f}, ropedif, 0.0f, 3.0f},
-        {{-0.01f, length, -0.01f}, {-0.7071068286895752f, 0.0f, -0.7071068286895752f}, ropedif, repeats, 3.0f},
-        {{-0.01f, 0.0f, 0.01f}, {-0.7071068286895752f, 0.0f, 0.7071068286895752f}, ropedif, 0.0f, 4.0f},
-        {{-0.01f, length, 0.01f}, {-0.7071068286895752f, 0.0f, 0.7071068286895752f}, ropedif, repeats, 4.0f}};
+    NURND_VERTEX3D vertices[10];
+    SetRopeVertex(&vertices[0], -0.01f, 0.0f, 0.01f, -0.7071068286895752f, 0.7071068286895752f, ropedif, 0.0f, 0.0f);
+    SetRopeVertex(&vertices[1], -0.01f, length, 0.01f, -0.7071068286895752f, 0.7071068286895752f, ropedif, repeats,
+                  0.0f);
+    SetRopeVertex(&vertices[2], 0.01f, 0.0f, 0.01f, 0.7071068286895752f, 0.7071068286895752f, ropedif, 0.0f, 1.0f);
+    SetRopeVertex(&vertices[3], 0.01f, length, 0.01f, 0.7071068286895752f, 0.7071068286895752f, ropedif, repeats, 1.0f);
+    SetRopeVertex(&vertices[4], 0.01f, 0.0f, -0.01f, 0.7071068286895752f, -0.7071068286895752f, ropedif, 0.0f, 2.0f);
+    SetRopeVertex(&vertices[5], 0.01f, length, -0.01f, 0.7071068286895752f, -0.7071068286895752f, ropedif, repeats,
+                  2.0f);
+    SetRopeVertex(&vertices[6], -0.01f, 0.0f, -0.01f, -0.7071068286895752f, -0.7071068286895752f, ropedif, 0.0f, 3.0f);
+    SetRopeVertex(&vertices[7], -0.01f, length, -0.01f, -0.7071068286895752f, -0.7071068286895752f, ropedif, repeats,
+                  3.0f);
+    SetRopeVertex(&vertices[8], -0.01f, 0.0f, 0.01f, -0.7071068286895752f, 0.7071068286895752f, ropedif, 0.0f, 4.0f);
+    SetRopeVertex(&vertices[9], -0.01f, length, 0.01f, -0.7071068286895752f, 0.7071068286895752f, ropedif, repeats,
+                  4.0f);
     u16 x_rotation, z_rotation;
     FindAnglesZX(&direction, &x_rotation, &z_rotation);
     NUMTX matrix;
-    NuMtxSetRotationZ(&matrix, z_rotation);
-    NuMtxRotateX(&matrix, x_rotation);
+    RopeMtxSetRotationZ(&matrix, z_rotation);
+    RopeMtxRotateX(&matrix, x_rotation);
     NuMtxTranslate(&matrix, start);
     NuRndrTriStrip3dClip(vertices, 10, &matrix, material);
     if (Cheat_IsOn(3) == 0 || VehicleArea != 0)
@@ -841,9 +923,9 @@ void DrawRopeSingle(nuvec_s *start, nuvec_s *end, float amount, numtl_s *materia
         rotation = (u16)(rotation + 0x5555);
         NuMtxSetScale(&matrix, &size);
         NuMtxTranslate(&matrix, &position);
-        NuMtxRotateY(&matrix, rotation);
-        NuMtxRotateZ(&matrix, z_rotation);
-        NuMtxRotateX(&matrix, x_rotation);
+        RopeMtxRotateY(&matrix, rotation);
+        RopeMtxRotateZ(&matrix, z_rotation);
+        RopeMtxRotateX(&matrix, x_rotation);
         NuMtxTranslate(&matrix, start);
         NuSpecialDrawAt(&WORLD->lev_objs[0x124].special, &matrix);
         NuSpecialDrawAt(&WORLD->lev_objs[0x125].special, &matrix);
@@ -857,20 +939,20 @@ void ZipUps_DrawLines() {
     for (i32 i = 0; i < HIGHGAMEOBJECT; ++i, ++object) {
         NURND_VERTEX3D start, end;
         if (object->character_context == 0x47) {
-            if (object->action_movement_state != 0)
-                continue;
-            ZipUp_GetStartPoint(object, &start.position);
-            f32 time = object->context_animation_timer;
-            start.colour = 0xffffffff;
-            end.position = static_cast<ZIPUP *>(object->field_0x788)->hook_position;
-            if (time < 0.2f) {
-                f32 fraction = time / 0.2f;
-                end.position.x = (end.position.x - start.position.x) * fraction + start.position.x;
-                end.position.y = (end.position.y - start.position.y) * fraction + start.position.y;
-                end.position.z = (end.position.z - start.position.z) * fraction + start.position.z;
+            if (object->action_movement_state == 0) {
+                ZipUp_GetStartPoint(object, &start.position);
+                f32 time = object->context_animation_timer;
+                start.colour = 0xffffffff;
+                end.position = static_cast<ZIPUP *>(object->field_0x788)->hook_position;
+                if (time < 0.2f) {
+                    f32 fraction = time / 0.2f;
+                    end.position.x = (end.position.x - start.position.x) * fraction + start.position.x;
+                    end.position.y = (end.position.y - start.position.y) * fraction + start.position.y;
+                    end.position.z = (end.position.z - start.position.z) * fraction + start.position.z;
+                }
+                end.colour = 0xff808080;
+                DrawRopeSingle(&start.position, &end.position, 1.0f, ropemtl, time, 0.2f, 3.5f, 1.0f);
             }
-            end.colour = 0xff808080;
-            DrawRopeSingle(&start.position, &end.position, 1.0f, ropemtl, time, 0.2f, 3.5f, 1.0f);
         } else if (object->character_context == 0x35) {
             end.position = object->external_force;
             start.colour = 0xffffffff;

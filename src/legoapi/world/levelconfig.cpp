@@ -397,7 +397,7 @@ NUFPCOMJMP LevelConfigKeywords_BeforeLoad[] = {
 
 static u8 load_conditionParam;
 
-static __used__ void loadSumBox(nufpar_s *fp) {
+static void loadSumBox(nufpar_s *fp) {
     load_conditionParam = (u8)NuFParGetInt(fp);
 }
 static __used__ void LC_AL_metal(nufpar_s *fp) {

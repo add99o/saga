@@ -74,12 +74,7 @@ void SurfaceMaskOn(u32 *surface_mask) {
 void GetSurfaceInfo(GameObject_s *object, i32 update_surface, f32 shadow_height) {
     APIOBJECT &api = object->apiobj;
     i32 surface;
-    if (shadow_height == 2000000.0f) {
-        object->field_0x1020 = 2000000.0f;
-        object->field_0x1087 = 0;
-        object->field_0x1078 = -1;
-        surface = 0;
-    } else {
+    if (shadow_height != 2000000.0f) {
         surface = ShadowInfo();
         const i32 terrain_surface = static_cast<u32>(surface) <= 31 ? surface : 0;
         object->field_0x1087 = 2;
@@ -90,6 +85,11 @@ void GetSurfaceInfo(GameObject_s *object, i32 update_surface, f32 shadow_height)
             object->field_0x1020 = 2000000.0f;
         }
         object->field_0x1078 = static_cast<i16>(NewShadowOnPlatform());
+    } else {
+        object->field_0x1020 = 2000000.0f;
+        object->field_0x1087 = 0;
+        object->field_0x1078 = -1;
+        surface = 0;
     }
 
     if (update_surface != 0) {
@@ -99,34 +99,34 @@ void GetSurfaceInfo(GameObject_s *object, i32 update_surface, f32 shadow_height)
     }
 
     api.water_height = EShadY;
-    if (EShadY == 2000000.0f) {
-        api.field_0x27f = 0xff;
-        object->field_0x1068 = 0;
-        object->field_0x106a = 0;
-    } else {
+    if (EShadY != 2000000.0f) {
         i32 layer = EShadowInfo();
         api.field_0x27f = static_cast<u8>(layer);
-        if (VehicleArea != 0 && BonusArea != 0 && (static_cast<u8>(layer) == 0x10 || static_cast<u8>(layer) == 7)) {
-            api.water_height = 2000000.0f;
-            api.field_0x27f = 0xff;
-            object->field_0x1068 = 0;
-            object->field_0x106a = 0;
-        } else {
+        if (!(VehicleArea != 0 && BonusArea != 0 && (static_cast<u8>(layer) == 0x10 || static_cast<u8>(layer) == 7))) {
             layer = static_cast<u8>(layer) <= 0x10 ? static_cast<u8>(layer) : 0;
             layer &= ~(TERRAINMASK_NONWEAPON | TERRAINMASK_NONDROID | 0x40);
             api.field_0x27f = static_cast<u8>(layer);
             FindAnglesZX(&EShadNorm, NULL, NULL);
             object->field_0x1068 = static_cast<u16>(temp_xrot);
             object->field_0x106a = static_cast<u16>(temp_zrot);
+        } else {
+            api.water_height = 2000000.0f;
+            api.field_0x27f = 0xff;
+            object->field_0x1068 = 0;
+            object->field_0x106a = 0;
         }
+    } else {
+        api.field_0x27f = 0xff;
+        object->field_0x1068 = 0;
+        object->field_0x106a = 0;
     }
 
     api.field_0x220 = ShadRoofY;
-    if (ShadRoofY == 2000000.0f) {
-        api.field_0x280 = 0xff;
-    } else {
+    if (ShadRoofY != 2000000.0f) {
         const i32 roof_surface = ShadowRoofInfo();
         api.field_0x280 = static_cast<u8>(roof_surface) <= 31 ? static_cast<u8>(roof_surface) : 0;
+    } else {
+        api.field_0x280 = 0xff;
     }
 
     if (SurfaceInfo_ExtraReflectFn != NULL) {
@@ -176,13 +176,7 @@ void InitSurfaceInfo(GameObject_s *object) {
     const f32 shadow_height = GameShadow(object, &api.position, 5.0f, -1);
     api.field_0x218 = shadow_height;
 
-    if (shadow_height == 2000000.0f) {
-        GetSurfaceInfo(object, 0, 2000000.0f);
-        object->field_0xd6c = 0.0f;
-        api.field_0x281 = 0;
-        object->field_0xe41 = 0;
-        object->surface_normal = v010;
-    } else {
+    if (shadow_height != 2000000.0f) {
         GetSurfaceInfo(object, 1, shadow_height);
         object->field_0xd6c = (TerSurface[static_cast<i8>(api.field_0x281)].flags & 8) != 0 ? 1.0f : 0.0f;
         FindAnglesZX(&object->surface_normal, NULL, NULL);
@@ -190,6 +184,12 @@ void InitSurfaceInfo(GameObject_s *object) {
         object->field_0x105e = static_cast<u16>(temp_xrot);
         object->field_0x1064 = static_cast<u16>(temp_zrot);
         object->field_0x1060 = static_cast<u16>(temp_zrot);
+    } else {
+        GetSurfaceInfo(object, 0, 2000000.0f);
+        object->field_0xd6c = 0.0f;
+        api.field_0x281 = 0;
+        object->field_0xe41 = 0;
+        object->surface_normal = v010;
     }
 
     api.is_underwater = static_cast<u8>(UnderWater(object));

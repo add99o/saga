@@ -22,11 +22,11 @@ void NuPhoneOSRegisterEventCallback(i32 type, PHONEEVENTCALLBACK *callback_fn) {
 }
 
 extern "C" void NuPhoneOSMessagePost(const NuPhoneOSMessage *message, i32 nonblocking, i32 wait_until_processed) {
-    if (nonblocking != 0) {
+    if (nonblocking == 0) {
+        s_phoneOSMessageQueue.Post(*message);
+    } else {
         if (!s_phoneOSMessageQueue.TryPost(*message))
             return;
-    } else {
-        s_phoneOSMessageQueue.Post(*message);
     }
     if (wait_until_processed != 0)
         s_phoneOSMessageQueue.WaitUntilEmpty();

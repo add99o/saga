@@ -34,8 +34,8 @@ void CharShadows_Draw() {
             continue;
         }
         if ((object->apiobj.character_data->model_flags & CHARACTER_MODEL_FLAG_DISABLE_BLOB_SHADOW) != 0 ||
-            object->shadow_opacity <= 0.0f || object->apiobj.model_draw_result == 0 || object->shadow_joint_mask == 0 ||
-            (object->field_0xeff & 4) != 0 ||
+            !(object->shadow_opacity > 0.0f) || object->apiobj.model_draw_result == 0 ||
+            object->shadow_joint_mask == 0 || (object->field_0xeff & 4) != 0 ||
             (CInfo[object->character_context].flags & CHARACTER_CONTEXT_INFO_FLAG_DISABLE_BLOB_SHADOW) != 0) {
             continue;
         }
@@ -45,7 +45,7 @@ void CharShadows_Draw() {
         if (alpha == 0xff) {
             alpha = WORLD->current_level->blob_shadow_alpha;
         }
-        if (alpha <= 0 || object->shadow_radius <= 0.0f) {
+        if (alpha <= 0 || !(object->shadow_radius > 0.0f)) {
             continue;
         }
 
@@ -61,7 +61,7 @@ void CharShadows_Draw() {
             }
 
             CHARACTER_SHADOW_s &shadow = object->character_shadows[shadow_index];
-            if (shadow.position.y != kInvalidShadowHeight && shadow.opacity > 0.0f &&
+            if (shadow.position.y != kInvalidShadowHeight && !(shadow.opacity <= 0.0f) &&
                 shadow.position.y <= joint_matrix->m31 + 0.025f) {
                 NUVEC position = shadow.position;
                 position.y += 0.005f;
