@@ -3855,14 +3855,6 @@ struct CantPickupBombTimerAddon : MechAddon {
 DECOMP_ASSERT(sizeof(CantPickupBombTimerAddon) == 0x1c, "CantPickupBombTimerAddon ABI");
 DECOMP_ASSERT(offsetof(CantPickupBombTimerAddon, remaining_time) == 0x18, "Bomb pickup timer offset");
 
-struct ClassObject {
-    EdClass *ed_class;
-    void *object;
-    EdRef *reference;
-
-    void GetName(char *, i32);
-    void Set(char *);
-};
 struct ClassObjectListEntry {
     ClassObjectListEntry *next;
     ClassObjectListEntry *previous;
@@ -4379,6 +4371,13 @@ struct GIZFORCE_s {
             union {
                 u8 field_0xaa;
                 u8 state_flags; // GIZFORCE_STATE_FLAGS
+                struct {
+                    u8 state_destroyed_or_thrown : 1;
+                    u8 state_debris_active : 1;
+                    u8 : 3;
+                    u8 state_being_used : 1;
+                    u8 : 2;
+                };
             };
             u8 field_0xab;
         };
@@ -4877,8 +4876,27 @@ struct GIZTURRET_s {
     i16 field_0x134;
     u8 field_0x136[2];
     i16 field_0x138;
-    u8 flags;                                   // 0x13a
-    u8 runtime_flags;                           // 0x13b
+    union {
+        u8 flags; // 0x13a
+        struct {
+            u8 : 1;
+            u8 active : 1;
+            u8 visible : 1;
+            u8 aim_locked : 1;
+            u8 aim_at_fixed_angles : 1;
+            u8 update_disabled : 1;
+            u8 rapid_fire_pending : 1;
+            u8 fired_this_frame : 1;
+        };
+    };
+    union {
+        u8 runtime_flags; // 0x13b
+        struct {
+            u8 : 3;
+            u8 rotation_sound_playing : 1;
+            u8 : 4;
+        };
+    };
     MechObjectInterface *mech_object_interface; // 0x13c
     f32 field_0x140;
     void ClearMechObjectInterface();

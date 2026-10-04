@@ -1171,15 +1171,14 @@ void MakeFreePlayModelList(i32 model1, i32 model2, i32 area, i32 level, i32 para
                 if (InModelListDataFlags(FreePlayModelList, CharCategory[i].model_flags, CharCategory[i].game_flags, 0,
                                          1) != 0)
                     continue;
-                i32 model;
+                i32 model = -1;
                 if (hats == 0 || (CharCategory[i].model_flags & 0x80) != 0) {
                     model = RandomIDFromFlags(CharCategory[i].model_flags, CharCategory[i].game_flags, 1, NULL, 1);
                     if (model != -1) {
                         hats = 1;
-                    } else {
-                        model = RandomIDFromFlags(CharCategory[i].model_flags, CharCategory[i].game_flags, 0, NULL, 1);
                     }
-                } else {
+                }
+                if (model == -1) {
                     model = RandomIDFromFlags(CharCategory[i].model_flags, CharCategory[i].game_flags, 0, NULL, 1);
                 }
                 if (World_AddFreePlayModel(model) != 0)
@@ -1229,7 +1228,16 @@ void MakeFreePlayModelList(i32 model1, i32 model2, i32 area, i32 level, i32 para
     }
     for (EXTRAMODEL *extra = ExtraModelList; extra->model_list != NULL; ++extra) {
         const i32 source = *extra->model_list;
-        if (source != -1 && InModelList(FreePlayModelList, source, NULL) != 0 && extra->field_04 != NULL)
+        bool found = false;
+        if (source != -1) {
+            for (i32 i = 0; i < FreePlayModelCount; ++i) {
+                if (FreePlayModelList[i].model_id == source) {
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (found && extra->field_04 != NULL)
             World_AddFreePlayModel(*static_cast<i16 *>(extra->field_04));
     }
 }

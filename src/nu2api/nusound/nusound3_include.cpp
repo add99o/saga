@@ -172,11 +172,19 @@ namespace {
     }
 
     void StreamListRemove(NuEList<NuSound3Voice> *list, NuSound3Voice *voice) {
-        voice->intrusive_prev->intrusive_next = voice->intrusive_next;
-        voice->intrusive_next->intrusive_prev = voice->intrusive_prev;
-        list->length--;
-        voice->intrusive_prev = NULL;
-        voice->intrusive_next = NULL;
+        NuSound3Voice *previous = voice->intrusive_prev;
+        NuSound3Voice *next = voice->intrusive_next;
+        if (next != NULL || previous != NULL) {
+            list->length--;
+            if (previous != NULL) {
+                previous->intrusive_next = next;
+            }
+            if (next != NULL) {
+                next->intrusive_prev = previous;
+            }
+            voice->intrusive_next = NULL;
+            voice->intrusive_prev = NULL;
+        }
     }
 
 } // namespace
@@ -663,7 +671,9 @@ void NuSound3Update(void) {
 
     // The listener focus follows the player (NULL on the title screen).
     if (player != NULL) {
-        g_NuSoundFocusPosition = player->apiobj.position;
+        g_NuSoundFocusPosition.x = player->apiobj.position.x;
+        g_NuSoundFocusPosition.y = player->apiobj.position.y;
+        g_NuSoundFocusPosition.z = player->apiobj.position.z;
         g_NuSoundListener.SetFocusPosition((const VuVec *)&g_NuSoundFocusPosition);
         g_NuSoundListener.EnableFocusPosition();
     } else {
@@ -673,49 +683,46 @@ void NuSound3Update(void) {
     NuSound.mutex.Lock();
 
     // (a) Voices queued for destruction: release and unlink.
-    for (NuSound3Voice *entry = g_NuSoundVoicesPendingDestruction.End()->intrusive_prev;
-         entry != g_NuSoundVoicesPendingDestruction.begin;) {
-        NuSound3Voice *previous = entry->intrusive_prev;
-        if (entry->weak_ptr.obj != NULL) {
-            NuSound.ReleaseVoice((NuSoundVoice *)entry->weak_ptr.obj);
-            entry->weak_ptr.Set(NULL);
-        }
+    NuSound3Voice *destruction_end = g_NuSoundVoicesPendingDestruction.End();
+    for (NuSound3Voice *entry = g_NuSoundVoicesPendingDestruction.Front(); entry != destruction_end;) {
+        NuSound3Voice *next = entry->intrusive_next;
+        NuSound.ReleaseVoice((NuSoundVoice *)entry->weak_ptr.obj);
         StreamListRemove(&g_NuSoundVoicesPendingDestruction, entry);
         delete entry;
-        entry = previous;
+        entry = next;
     }
 
     // (b) Active sweep: release stopped voices and long-paused ones.
     g_NuSoundNumReplaceableVoices = 0;
-    for (NuSound3Voice *entry = g_NuSoundVoicesActive.End()->intrusive_prev; entry != g_NuSoundVoicesActive.begin;) {
-        NuSound3Voice *previous = entry->intrusive_prev;
+    NuSound3Voice *active_end = g_NuSoundVoicesActive.End();
+    for (NuSound3Voice *entry = g_NuSoundVoicesActive.Front(); entry != active_end;) {
+        NuSound3Voice *next = entry->intrusive_next;
         NuSoundVoice *voice = (NuSoundVoice *)entry->weak_ptr.obj;
 
         if (voice != NULL) {
             NuSoundVoice::PlayState state = voice->GetState();
             if (state != NuSoundVoice::PLAYSTATE_STOPPED && entry->pause_counter < 16) {
-                if ((voice->flags2 & 8) != 0) {
+                if ((((NuSoundVoice *)entry->weak_ptr.obj)->flags2 & 8) != 0) {
                     entry->pause_counter++;
                 }
-                entry = previous;
+                entry = next;
                 continue;
             }
-            voice->Stop(true);
-            NuSound.ReleaseVoice(voice);
-            entry->weak_ptr.Set(NULL);
+            ((NuSoundVoice *)entry->weak_ptr.obj)->Stop(true);
+            NuSound.ReleaseVoice((NuSoundVoice *)entry->weak_ptr.obj);
         }
 
         StreamListRemove(&g_NuSoundVoicesActive, entry);
         delete entry;
-        entry = previous;
+        entry = next;
     }
 
     // (c) Pending playback. The target drains this list every update: entries
     // over the hardware-voice budget, and entries whose CreateVoice fails,
     // are discarded instead of remaining queued for a later frame.
-    for (NuSound3Voice *entry = g_NuSoundVoicesPendingPlayback.End()->intrusive_prev;
-         entry != g_NuSoundVoicesPendingPlayback.begin;) {
-        NuSound3Voice *previous = entry->intrusive_prev;
+    NuSound3Voice *playback_end = g_NuSoundVoicesPendingPlayback.End();
+    for (NuSound3Voice *entry = g_NuSoundVoicesPendingPlayback.Front(); entry != playback_end;) {
+        NuSound3Voice *next = entry->intrusive_next;
         StreamListRemove(&g_NuSoundVoicesPendingPlayback, entry);
 
         NuSoundVoice *voice = NULL;
@@ -724,7 +731,7 @@ void NuSound3Update(void) {
         }
         if (voice == NULL) {
             delete entry;
-            entry = previous;
+            entry = next;
             continue;
         }
 
@@ -740,7 +747,7 @@ void NuSound3Update(void) {
         }
         voice->Play();
         StreamListPushBack(&g_NuSoundVoicesActive, entry);
-        entry = previous;
+        entry = next;
     }
 
     NuSound.mutex.Unlock();
@@ -755,25 +762,21 @@ void NuSound3Update(void) {
 
         if (stream->pending_start != 0) {
             if (NuSound3Stream::mVoice.obj == NULL) {
-                NuSoundStreamingSample *sample = stream->stream;
-                if (sample != NULL && sample->GetLoadState() == NuSoundSample::LoadState::STREAM_READY &&
-                    sample->GetResourceCount() >= 1 && sample->GetThreadQueueCount() == 0) {
-                    NuSoundVoice *voice = NuSound.CreateVoice(sample, stream->field_0xc != 0);
-                    if (voice != NULL) {
-                        NuSound3Stream::mVoice.Set(voice);
-                        voice->SetAutoDelete(false);
-                        voice->SetVolume(PS2VolumeToScalar(stream->ps2volume));
-                        voice->Play();
+                if (stream->stream != NULL &&
+                    stream->stream->GetLoadState() == NuSoundSample::LoadState::STREAM_READY &&
+                    stream->stream->GetResourceCount() > 0 && stream->stream->GetThreadQueueCount() == 0) {
+                    NuSound3Stream::mVoice.Set(NuSound.CreateVoice(stream->stream, stream->field_0xc != 0));
+                    if (NuSound3Stream::mVoice.obj != NULL) {
+                        ((NuSoundVoice *)NuSound3Stream::mVoice.obj)->SetAutoDelete(false);
+                        ((NuSoundVoice *)NuSound3Stream::mVoice.obj)->SetVolume(PS2VolumeToScalar(stream->ps2volume));
+                        ((NuSoundVoice *)NuSound3Stream::mVoice.obj)->Play();
                         stream->pending_start = 0;
                         stream->field_0xd = 1;
                     }
                 }
             }
-        } else if (stream->field_0xd != 0) {
-            if (NuSound3Stream::mVoice.obj == NULL) {
-                // The voice was released elsewhere; retire the stream.
-                NuSound3StopStereoStream(i);
-            } else {
+        } else if (NuSound3Stream::mVoice.obj != NULL) {
+            if (stream->field_0xd != 0) {
                 ((NuSoundVoice *)NuSound3Stream::mVoice.obj)->SetVolume(PS2VolumeToScalar(stream->ps2volume));
                 if (((NuSoundVoice *)NuSound3Stream::mVoice.obj)->GetState() == NuSoundVoice::PLAYSTATE_STOPPED) {
                     NuSound3StopStereoStream(i);
@@ -781,12 +784,13 @@ void NuSound3Update(void) {
             }
         }
 
+        if (stream->field_0xd != 0 && NuSound3Stream::mVoice.obj == NULL) {
+            NuSound3StopStereoStream(i);
+        }
+
         // Slot cleanup: fully unloaded streams free their node.
-        if (stream->stream == NULL) {
-            delete stream;
-            g_NuSoundStreams[i] = NULL;
-        } else if (stream->stream->GetLoadState() == NuSoundSample::LoadState::NOT_LOADED &&
-                   stream->stream->GetResourceCount() == 0 && stream->stream->GetThreadQueueCount() == 0) {
+        if (stream->stream->GetLoadState() == NuSoundSample::LoadState::NOT_LOADED &&
+            stream->stream->GetResourceCount() == 0 && stream->stream->GetThreadQueueCount() == 0) {
             delete stream;
             g_NuSoundStreams[i] = NULL;
         }

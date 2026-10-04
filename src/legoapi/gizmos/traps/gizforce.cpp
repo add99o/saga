@@ -259,29 +259,26 @@ static f32 GizForce_GetAnimatedHeight(GIZFORCE_s *force) {
 }
 
 static void GizForce_AddToGroup(GIZFORCE_s *force) {
-    GIZFORCEGROUP_s *group = force->group;
-    if (group == NULL || (force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) != 0 || group->count >= 8) {
-        return;
+    if (force->group != NULL && !force->progress_group_member && force->group->count < 8) {
+        if (force->group->count != 0) {
+            f32 height = GizForce_GetAnimatedHeight(force->group->forces[force->group->count - 1]);
+            force->group->combined_height += height;
+        }
+        force->group->forces[force->group->count++] = force;
+        force->progress_group_member = 1;
     }
-    if (group->count != 0) {
-        group->combined_height += GizForce_GetAnimatedHeight(group->forces[group->count - 1]);
-    }
-    group->forces[group->count++] = force;
-    force->progress_flags |= GIZFORCE_PROGRESS_GROUP_MEMBER;
 }
 
 static void GizForce_RemoveFromGroup(GIZFORCE_s *force) {
-    GIZFORCEGROUP_s *group = force->group;
-    if (group == NULL || (force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) == 0) {
-        return;
-    }
-    if (group->count != 0 && group->forces[group->count - 1] == force) {
-        group->forces[group->count] = NULL;
-        --group->count;
-        if (group->count != 0) {
-            group->combined_height -= GizForce_GetAnimatedHeight(group->forces[group->count - 1]);
+    if (force->group != NULL && force->progress_group_member && force->group->count != 0 &&
+        force->group->forces[force->group->count - 1] == force) {
+        force->group->forces[force->group->count] = NULL;
+        --force->group->count;
+        if (force->group->count != 0) {
+            f32 height = GizForce_GetAnimatedHeight(force->group->forces[force->group->count - 1]);
+            force->group->combined_height -= height;
         }
-        force->progress_flags &= static_cast<u8>(~GIZFORCE_PROGRESS_GROUP_MEMBER);
+        force->progress_group_member = 0;
         GameAnimSet_SetOffset(force->anim_set, &v000);
     }
 }
@@ -289,284 +286,299 @@ static void GizForce_RemoveFromGroup(GIZFORCE_s *force) {
 static void GizForces_Update(void *world_ptr, void *data, float) {
     WORLDINFO *world = static_cast<WORLDINFO *>(world_ptr);
     GIZFORCESYS_s *force_sys = static_cast<GIZFORCESYS_s *>(data);
-    if (force_sys == NULL || world == NULL || world->gizmo_sys == NULL || world->gizmo_sys->sets == NULL) {
-        return;
-    }
-    for (i32 i = 0; i < 8; ++i) {
-        force_sys->groups[i].field_0x24 &= static_cast<u8>(~GIZFORCE_GROUP_ACTIVE);
-    }
-    force_sys->visible_force_count = 0;
-    force_sys->hit_test_gizmo_count = 0;
-    GIZMOSET *set = &world->gizmo_sys->sets[force_gizmotype_id];
-    GIZMO *gizmo = set->gizmos;
-    for (i32 index = 0; index < set->count; ++index, ++gizmo) {
-        GIZFORCE_s *force = static_cast<GIZFORCE_s *>(gizmo->object);
-        GameObject_s *user = force->using_object;
-        if (user != NULL && force->group != NULL && (force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) == 0 &&
-            (force->group->field_0x24 & GIZFORCE_GROUP_ACTIVE) != 0 && user->character_context == 8) {
-            user->character_context = -1;
-            user->gizforce_target = NULL;
-            user = NULL;
-        }
-        const bool being_used = user != NULL;
-        force->field_0xaa = static_cast<u8>((force->field_0xaa & ~GIZFORCE_STATE_BEING_USED) |
-                                            (being_used ? GIZFORCE_STATE_BEING_USED : 0));
-        force->using_object = NULL;
-        force->progress_flags &= static_cast<u8>(~GIZFORCE_PROGRESS_DRAW_ACTIVE);
-        const bool was_moving = (force->anim_set->flags & 2) != 0;
-        if ((force->runtime_flags & GIZFORCE_RUNTIME_OFFSET_APPLIED) != 0 && force->field_0x50 == 0.0f) {
-            NUVEC offset = {0.0f, 0.0f, 0.0f};
-            if ((force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) != 0) {
-                offset.y = GameAnimSet_GetCompletionRatio(force->anim_set) * force->group->combined_height;
+    if (force_sys != NULL && world != NULL) {
+        GIZMOSYS *gizmo_sys = world->gizmo_sys;
+        if (gizmo_sys != NULL && gizmo_sys->sets != NULL) {
+            for (i32 i = 0; i < 8; ++i) {
+                force_sys->groups[i].field_0x24 &= static_cast<u8>(~GIZFORCE_GROUP_ACTIVE);
             }
-            GameAnimSet_SetOffset(force->anim_set, &offset);
-            force->runtime_flags &= static_cast<u8>(~GIZFORCE_RUNTIME_OFFSET_APPLIED);
-        }
-        if ((force->progress_flags & (GIZFORCE_PROGRESS_VISIBLE | GIZFORCE_PROGRESS_ENABLED)) !=
-                (GIZFORCE_PROGRESS_VISIBLE | GIZFORCE_PROGRESS_ENABLED) ||
-            force->anim_set == NULL || (force->progress_flags & GIZFORCE_PROGRESS_REVERSE_ACTIVE) != 0 ||
-            (force->field_0xaa & GIZFORCE_STATE_DESTROYED_OR_THROWN) != 0) {
-            continue;
-        }
-        if (NuCameraClipTestSphere(&force->position, force->radius, &numtx_identity) == 0) {
-            force_sys->visible_forces[force_sys->visible_force_count++] = force;
-            force->progress_flags |= GIZFORCE_PROGRESS_DRAW_ACTIVE;
-        }
-
-        bool playing_forwards = false;
-        bool started_shaking = false;
-        f32 target_speed = 1.0f;
-        if (user == NULL && force->effect_scale > 1.0f &&
-            (force->config_flags & GIZFORCE_CONFIG_WAIT_FOR_FORCE_RANGE) == 0 && force->group == NULL &&
-            GameAnimSet_GetCurrentFrame(force->anim_set) > force->effect_scale && !GizForce_AnimComplete(force)) {
-            goto seek_and_play;
-        }
-        if (being_used && (Cheats_CheckFlags(0x400000) != 0 || user->field_0xdec > 0.0f)) {
-            target_speed = 3.0f;
-        seek_and_play:
-            force->animation_speed = SeekValF(force->animation_speed, target_speed, 5.0f);
-            playing_forwards = true;
-        } else {
-            force->animation_speed = SeekValF(force->animation_speed, 1.0f, 5.0f);
-            playing_forwards = being_used || (force->runtime_flags & GIZFORCE_RUNTIME_PENDING_COMPLETION) != 0;
-        }
-        if (playing_forwards) {
-            force->runtime_flags &= static_cast<u8>(~GIZFORCE_RUNTIME_COMPLETION_RELEASED);
-            GizForce_PlayForwards(force);
-            if ((force->progress_flags & GIZFORCE_PROGRESS_ANIMATION_REVERSED) != 0) {
-                force->field_0x48 = 0.0f;
-                force->field_0x50 = 0.0f;
-            } else {
-                force->field_0x48 = force->force_strength;
-                if (force->force_range > 0.0f && (force->runtime_flags & GIZFORCE_RUNTIME_FORCE_RANGE_COMPLETE) == 0 &&
-                    force->anim_set->state == GAMEANIMSET_STATE_AT_END) {
-                    started_shaking = force->field_0x50 == 0.0f;
-                    force->field_0x50 += FRAMETIME;
-                    if (force->field_0x50 >= force->force_range) {
-                        force->field_0x50 = 0.0f;
-                        force->runtime_flags |= GIZFORCE_RUNTIME_FORCE_RANGE_COMPLETE;
+            force_sys->visible_force_count = 0;
+            force_sys->hit_test_gizmo_count = 0;
+            GIZMOSET *set = &gizmo_sys->sets[force_gizmotype_id];
+            GIZMO *gizmo = set->gizmos;
+            i32 index = 0;
+            if (set->count > 0) {
+                do {
+                    GIZFORCE_s *force = static_cast<GIZFORCE_s *>(gizmo->object);
+                    GameObject_s *user = force->using_object;
+                    if (user != NULL && force->group != NULL && !force->progress_group_member &&
+                        (force->group->field_0x24 & GIZFORCE_GROUP_ACTIVE) != 0 && user->character_context == 8) {
+                        user->character_context = -1;
+                        user->gizforce_target = NULL;
+                        user = NULL;
                     }
-                } else {
-                    force->field_0x50 = 0.0f;
-                }
-                if ((force->config_flags & 0x40) != 0 && (force->runtime_flags & 8) == 0 &&
-                    GizForce_AnimComplete(force) &&
-                    (force->force_range == 0.0f ||
-                     (force->runtime_flags & GIZFORCE_RUNTIME_FORCE_RANGE_COMPLETE) != 0)) {
-                    GameAnimSet_SetVisibility(force->anim_set, 0);
-                    force->runtime_flags |= 8;
-                }
-            }
-        } else {
-            force->field_0x50 = 0.0f;
-            if (!GizForce_AnimComplete(force)) {
-                GizForce_PlayBackwards(force);
-            } else if ((force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) == 0 &&
-                       ((force->config_flags & GIZFORCE_CONFIG_WAIT_FOR_FORCE_RANGE) != 0 ||
-                        force->field_0x48 > 0.0f)) {
-                force->field_0x48 -= FRAMETIME;
-                if (force->field_0x48 <= 0.0f) {
-                    force->field_0x48 = 0.0f;
-                    if ((force->config_flags & 0x40) != 0 && (force->runtime_flags & 8) != 0) {
-                        GameAnimSet_SetVisibility(force->anim_set, 1);
-                        force->runtime_flags &= static_cast<u8>(~8);
-                    }
-                    GizForce_PlayBackwards(force);
-                    force->runtime_flags &= static_cast<u8>(~GIZFORCE_RUNTIME_FORCE_RANGE_COMPLETE);
-                }
-            }
-        }
-        if (force->field_0x50 > 0.0f) {
-            NUVEC offset;
-            offset.x = qrand() * (1.0f / 65535.0f) * 0.05f - 0.025f;
-            offset.y = (force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) != 0
-                           ? GameAnimSet_GetCompletionRatio(force->anim_set) * force->group->combined_height
-                           : 0.0f;
-            offset.y += qrand() * (1.0f / 65535.0f) * 0.05f - 0.025f;
-            offset.z = qrand() * (1.0f / 65535.0f) * 0.05f - 0.025f;
-            GameAnimSet_SetOffset(force->anim_set, &offset);
-            force->runtime_flags |= GIZFORCE_RUNTIME_OFFSET_APPLIED;
-            if (force->start_sfx_id == -1) {
-                PlaySfx("LegShakeL", &force->position);
-            } else if (started_shaking || IsSfxLooping(force->start_sfx_id)) {
-                GameAudio_PlaySfxById(force->start_sfx_id, &force->position, 0, 0);
-            }
-        }
-
-        if ((force->anim_set->flags & 5) != 0 || was_moving) {
-            if (force->group != NULL &&
-                ((force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) != 0 || force->group->count < 8)) {
-                GizForce_AddToGroup(force);
-                force->group->field_0x24 |= GIZFORCE_GROUP_ACTIVE;
-                NUVEC offset = {0.0f, GameAnimSet_GetCompletionRatio(force->anim_set) * force->group->combined_height,
-                                0.0f};
-                GameAnimSet_SetOffset(force->anim_set, &offset);
-            }
-            force->radius = 1.0f;
-            force->position = force->file_position;
-            GameAnimSet_GetCentreAndRadius(force->anim_set, &force->position, &force->radius, 2, 1, 1);
-            if (was_moving) {
-                if (GizForce_AnimComplete(force)) {
-                    if (force->loop_sfx_id != -1)
-                        GameAudio_PlaySfxById(force->loop_sfx_id, &force->position, 0, 0);
-                } else if (force->anim_set->state != 4 && force->stop_sfx_id != -1) {
-                    GameAudio_PlaySfxById(force->stop_sfx_id, &force->position, 0, 0);
-                }
-            } else if ((force->anim_set->flags & 5) != 0 && force->field_0x50 == 0.0f && playing_forwards) {
-                if (force->start_sfx_id == -1) {
-                    PlaySfx("LegoForm", &force->position);
-                } else if (force->anim_set->state == GAMEANIMSET_STATE_AT_START || IsSfxLooping(force->start_sfx_id)) {
-                    GameAudio_PlaySfxById(force->start_sfx_id, &force->position, 0, 0);
-                }
-            }
-            if ((force->config_flags & 0x2000) == 0) {
-                for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL; object = object->next) {
-                    GIZFORCEANIMDATA_s *object_data = static_cast<GIZFORCEANIMDATA_s *>(object->object_data);
-                    if ((object_data->flags & 2) == 0 && object_data->platform_id != -1) {
-                        AddShoveObject(&object->special, object_data->platform_id);
-                    }
-                }
-            }
-        } else if (force->anim_set->state == GAMEANIMSET_STATE_AT_START &&
-                   (force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) != 0) {
-            GizForce_RemoveFromGroup(force);
-            force->progress_flags &= static_cast<u8>(~GIZFORCE_PROGRESS_ANIMATION_REVERSED);
-        }
-
-        if (force->anim_set->state == GAMEANIMSET_STATE_AT_END) {
-            if ((force->progress_flags & GIZFORCE_PROGRESS_GROUP_MEMBER) != 0) {
-                if (GizForce_Complete(force) && user == NULL) {
-                    force->progress_flags |= GIZFORCE_PROGRESS_ANIMATION_REVERSED;
-                }
-            } else if (!(force->force_range > 0.0f &&
-                         (force->runtime_flags & GIZFORCE_RUNTIME_FORCE_RANGE_COMPLETE) == 0) &&
-                       !((force->config_flags & 0x40) != 0 && (force->runtime_flags & 8) == 0) &&
-                       (force->anim_set->animated_object_count != 0 || force->force_range > 0.0f ||
-                        (force->config_flags & 0x40) != 0) &&
-                       (force->runtime_flags & GIZFORCE_RUNTIME_COMPLETION_RELEASED) == 0) {
-                if (force->blowup_type != -1) {
-                    if ((force->config_flags & 0x20) != 0) {
-                        for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL; object = object->next) {
-                            NUVEC *position = NuSpecialGetDrawPos(&object->special);
-                            if (position != NULL)
-                                GizmoBlowUpTypeBlowUp(world, force->blowup_type, position);
+                    const i32 being_used = user != NULL;
+                    force->state_being_used = being_used;
+                    force->using_object = NULL;
+                    force->progress_draw_active = 0;
+                    const i32 was_moving = (force->anim_set->flags >> 1) & 1;
+                    if (force->runtime_offset_applied && force->field_0x50 == 0.0f) {
+                        NUVEC offset = {0.0f, 0.0f, 0.0f};
+                        if (force->progress_group_member) {
+                            offset.y = GameAnimSet_GetCompletionRatio(force->anim_set) * force->group->combined_height;
                         }
-                    } else {
-                        GizmoBlowUpTypeBlowUp(world, force->blowup_type, &force->position);
+                        GameAnimSet_SetOffset(force->anim_set, &offset);
+                        force->runtime_offset_applied = 0;
                     }
-                    GameAnimSet_SetVisibility(force->anim_set, 0);
-                    force->field_0xaa |= GIZFORCE_STATE_DESTROYED_OR_THROWN;
-                }
-                if (force->pickup_count != 0 && (force->runtime_flags & 2) == 0) {
-                    i32 hearts = ReleaseHearts();
-                    NUVEC position;
-                    NUVEC direction;
-                    NuVecAdd(&position, &force->position, &force->effect_position);
-                    NuVecRotateX(&direction, &v010, force->pickup_rotation_x);
-                    NuVecRotateY(&direction, &direction, force->pickup_rotation_y);
-                    AddPickups(force->pickup_count, hearts, 0, 0, &position, &direction, 2.0f, -1,
-                               force->activation_radius, 2000000.0f, NULL, 1, 0, true);
-                    force->runtime_flags |= 2;
-                }
-                force->runtime_flags |= GIZFORCE_RUNTIME_COMPLETION_RELEASED;
-            }
-        }
-        GIZFORCEGROUP_s *group = force->group;
-        if (group != NULL) {
-            if (force->anim_set->state == GAMEANIMSET_STATE_AT_END) {
-                if (was_moving && group->count == group->configured_count) {
-                    group->field_0x24 |= GIZFORCE_GROUP_STACK_COMPLETE | GIZFORCE_GROUP_STACK_COMPLETE_IN_ORDER;
-                    for (i32 i = 0; i < group->configured_count; ++i) {
-                        i32 order_mask = static_cast<i8>(group->forces[i]->collision_mask);
-                        if (order_mask != 0 && (order_mask & (1 << i)) == 0) {
-                            group->field_0x24 &= static_cast<u8>(~GIZFORCE_GROUP_STACK_COMPLETE_IN_ORDER);
-                            break;
+                    if (force->progress_visible && force->progress_enabled && force->anim_set != NULL &&
+                        !force->progress_reverse_active && !force->state_destroyed_or_thrown) {
+                        if (NuCameraClipTestSphere(&force->position, force->radius, &numtx_identity) == 0) {
+                            force_sys->visible_forces[force_sys->visible_force_count++] = force;
+                            force->progress_draw_active = 1;
                         }
-                    }
-                }
-            } else {
-                group->field_0x24 &=
-                    static_cast<u8>(~(GIZFORCE_GROUP_STACK_COMPLETE | GIZFORCE_GROUP_STACK_COMPLETE_IN_ORDER));
-            }
-        }
-        if ((force->runtime_flags & GIZFORCE_RUNTIME_PENDING_COMPLETION) != 0 && GizForce_Complete(force)) {
-            force->runtime_flags &= static_cast<u8>(~GIZFORCE_RUNTIME_PENDING_COMPLETION);
-        }
-        if ((force->field_0xaa & GIZFORCE_STATE_DESTROYED_OR_THROWN) == 0 &&
-            (force->config_flags & GIZFORCE_CONFIG_HIT_TEST_MASK) != 0) {
-            force_sys->hit_test_gizmos[force_sys->hit_test_gizmo_count++] = gizmo;
-        }
-        if ((force->progress_flags & GIZFORCE_PROGRESS_DRAW_ACTIVE) != 0 && !GizForce_Complete(force)) {
-            if ((force->config_flags & 0x400) != 0) {
-                for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL; object = object->next) {
-                    GIZFORCEANIMDATA_s *object_data = static_cast<GIZFORCEANIMDATA_s *>(object->object_data);
-                    if (object_data->force_glow_active || !NuSpecialExistsFn(&object->special))
-                        continue;
-                    NUVEC centre;
-                    f32 radius = 0.0f;
-                    NuSpecialGetRadius(&object->special, &centre, &radius);
-                    radius = 1.2f * force->horizontal_range * radius;
-                    NuVecMtxTransformVU0(&centre, &centre, NuSpecialGetDrawMtx(&object->special));
-                    NUVEC offset = {0.0f, 0.0f, 0.0f};
-                    if (radius != 0.0f)
-                        offset.y = qrand() / (65535.0f / (0.5f * radius) + 1.0f);
-                    NuVecRotateZ(&offset, &offset, qrand());
-                    NuVecRotateY(&offset, &offset, qrand() & 0xffff);
-                    NuVecAdd(&centre, &centre, &offset);
-                    if ((force->field_0xaa & 2) == 0) {
-                        if ((force->config_flags & 0x10) != 0) {
-                            AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[110].effect, &centre,
-                                                              static_cast<i32>(90.0f * radius), FRAMETIME, 0, 0, NULL);
+
+                        i32 playing_forwards = 0;
+                        i32 started_shaking = 0;
+                        f32 target_speed = 1.0f;
+                        if (user == NULL && force->effect_scale > 1.0f &&
+                            (force->config_flags & GIZFORCE_CONFIG_WAIT_FOR_FORCE_RANGE) == 0 && force->group == NULL &&
+                            GameAnimSet_GetCurrentFrame(force->anim_set) > force->effect_scale &&
+                            !GizForce_AnimComplete(force)) {
+                            goto seek_and_play;
+                        }
+                        if (being_used && (Cheats_CheckFlags(0x400000) != 0 || user->field_0xdec > 0.0f)) {
+                            target_speed = 3.0f;
+                        seek_and_play:
+                            force->animation_speed = SeekValF(force->animation_speed, target_speed, 5.0f);
+                            playing_forwards = true;
                         } else {
-                            AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[109].effect, &centre,
-                                                              static_cast<i32>(90.0f * radius), FRAMETIME, 0, 0, NULL);
+                            force->animation_speed = SeekValF(force->animation_speed, 1.0f, 5.0f);
+                            playing_forwards = being_used || force->runtime_pending_completion;
+                        }
+                        if (playing_forwards) {
+                            force->runtime_completion_released = 0;
+                            GizForce_PlayForwards(force);
+                            if (force->progress_animation_reversed) {
+                                force->field_0x48 = 0.0f;
+                                force->field_0x50 = 0.0f;
+                            } else {
+                                force->field_0x48 = force->force_strength;
+                                if (force->force_range > 0.0f && !force->runtime_force_range_complete &&
+                                    force->anim_set->state == GAMEANIMSET_STATE_AT_END) {
+                                    started_shaking = force->field_0x50 == 0.0f;
+                                    force->field_0x50 += FRAMETIME;
+                                    if (force->field_0x50 >= force->force_range) {
+                                        force->field_0x50 = 0.0f;
+                                        force->runtime_force_range_complete = 1;
+                                    }
+                                } else {
+                                    force->field_0x50 = 0.0f;
+                                }
+                                if ((force->config_flags & 0x40) != 0 && !force->runtime_along_socket_hidden &&
+                                    GizForce_AnimComplete(force) &&
+                                    (force->force_range == 0.0f || force->runtime_force_range_complete)) {
+                                    GameAnimSet_SetVisibility(force->anim_set, 0);
+                                    force->runtime_along_socket_hidden = 1;
+                                }
+                            }
+                        } else {
+                            force->field_0x50 = 0.0f;
+                            if (!GizForce_AnimComplete(force)) {
+                                GizForce_PlayBackwards(force);
+                            } else if (!force->progress_group_member &&
+                                       ((force->config_flags & GIZFORCE_CONFIG_WAIT_FOR_FORCE_RANGE) != 0 ||
+                                        force->field_0x48 > 0.0f)) {
+                                force->field_0x48 -= FRAMETIME;
+                                if (force->field_0x48 <= 0.0f) {
+                                    force->field_0x48 = 0.0f;
+                                    if ((force->config_flags & 0x40) != 0 && force->runtime_along_socket_hidden) {
+                                        GameAnimSet_SetVisibility(force->anim_set, 1);
+                                        force->runtime_along_socket_hidden = 0;
+                                    }
+                                    GizForce_PlayBackwards(force);
+                                    force->runtime_force_range_complete = 0;
+                                }
+                            }
+                        }
+                        if (force->field_0x50 > 0.0f) {
+                            NUVEC offset;
+                            offset.x = qrand() * (1.0f / 65535.0f) * 0.05f - 0.025f;
+                            offset.y = force->progress_group_member ? GameAnimSet_GetCompletionRatio(force->anim_set) *
+                                                                          force->group->combined_height
+                                                                    : 0.0f;
+                            offset.y += qrand() * (1.0f / 65535.0f) * 0.05f - 0.025f;
+                            offset.z = qrand() * (1.0f / 65535.0f) * 0.05f - 0.025f;
+                            GameAnimSet_SetOffset(force->anim_set, &offset);
+                            force->runtime_offset_applied = 1;
+                            if (force->start_sfx_id == -1) {
+                                PlaySfx("LegShakeL", &force->position);
+                            } else if (started_shaking || IsSfxLooping(force->start_sfx_id)) {
+                                GameAudio_PlaySfxById(force->start_sfx_id, &force->position, 0, 0);
+                            }
+                        }
+
+                        if ((force->anim_set->flags & 1) != 0 || was_moving || (force->anim_set->flags & 4) != 0) {
+                            if (force->group != NULL && (force->progress_group_member || force->group->count < 8)) {
+                                GizForce_AddToGroup(force);
+                                force->group->field_0x24 |= GIZFORCE_GROUP_ACTIVE;
+                                NUVEC offset = {0.0f,
+                                                GameAnimSet_GetCompletionRatio(force->anim_set) *
+                                                    force->group->combined_height,
+                                                0.0f};
+                                GameAnimSet_SetOffset(force->anim_set, &offset);
+                            }
+                            force->radius = 1.0f;
+                            force->position = force->file_position;
+                            GameAnimSet_GetCentreAndRadius(force->anim_set, &force->position, &force->radius, 2, 1, 1);
+                            if (was_moving) {
+                                if (GizForce_AnimComplete(force)) {
+                                    if (force->loop_sfx_id != -1)
+                                        GameAudio_PlaySfxById(force->loop_sfx_id, &force->position, 0, 0);
+                                } else if (force->anim_set->state != 4 && force->stop_sfx_id != -1) {
+                                    GameAudio_PlaySfxById(force->stop_sfx_id, &force->position, 0, 0);
+                                }
+                            } else if ((force->anim_set->flags & 5) != 0 && force->field_0x50 == 0.0f &&
+                                       playing_forwards) {
+                                if (force->start_sfx_id == -1) {
+                                    PlaySfx("LegoForm", &force->position);
+                                } else if (force->anim_set->state == GAMEANIMSET_STATE_AT_START ||
+                                           IsSfxLooping(force->start_sfx_id)) {
+                                    GameAudio_PlaySfxById(force->start_sfx_id, &force->position, 0, 0);
+                                }
+                            }
+                            if ((force->config_flags & 0x2000) == 0) {
+                                for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL;
+                                     object = object->next) {
+                                    GIZFORCEANIMDATA_s *object_data =
+                                        static_cast<GIZFORCEANIMDATA_s *>(object->object_data);
+                                    if ((object_data->flags & 2) == 0 && object_data->platform_id != -1) {
+                                        AddShoveObject(&object->special, object_data->platform_id);
+                                    }
+                                }
+                            }
+                        } else if (force->anim_set->state == GAMEANIMSET_STATE_AT_START &&
+                                   force->progress_group_member) {
+                            GizForce_RemoveFromGroup(force);
+                            force->progress_animation_reversed = 0;
+                        }
+
+                        if (force->anim_set->state == GAMEANIMSET_STATE_AT_END) {
+                            if (force->progress_group_member) {
+                                if (GizForce_Complete(force) && user == NULL) {
+                                    force->progress_animation_reversed = 1;
+                                }
+                            } else if (!(force->force_range > 0.0f && !force->runtime_force_range_complete) &&
+                                       !((force->config_flags & 0x40) != 0 && !force->runtime_along_socket_hidden) &&
+                                       (force->anim_set->animated_object_count != 0 || force->force_range > 0.0f ||
+                                        (force->config_flags & 0x40) != 0) &&
+                                       !force->runtime_completion_released) {
+                                if (force->blowup_type != -1) {
+                                    if ((force->config_flags & 0x20) != 0) {
+                                        for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL;
+                                             object = object->next) {
+                                            NUVEC *position = NuSpecialGetDrawPos(&object->special);
+                                            if (position != NULL)
+                                                GizmoBlowUpTypeBlowUp(world, force->blowup_type, position);
+                                        }
+                                    } else {
+                                        GizmoBlowUpTypeBlowUp(world, force->blowup_type, &force->position);
+                                    }
+                                    GameAnimSet_SetVisibility(force->anim_set, 0);
+                                    force->state_destroyed_or_thrown = 1;
+                                }
+                                if (force->pickup_count != 0 && !force->runtime_reward_released) {
+                                    i32 hearts = ReleaseHearts();
+                                    NUVEC position;
+                                    NUVEC direction;
+                                    NuVecAdd(&position, &force->position, &force->effect_position);
+                                    NuVecRotateX(&direction, &v010, force->pickup_rotation_x);
+                                    NuVecRotateY(&direction, &direction, force->pickup_rotation_y);
+                                    AddPickups(force->pickup_count, hearts, 0, 0, &position, &direction, 2.0f, -1,
+                                               force->activation_radius, 2000000.0f, NULL, 1, 0, true);
+                                    force->runtime_reward_released = 1;
+                                }
+                                force->runtime_completion_released = 1;
+                            }
+                        }
+                        GIZFORCEGROUP_s *group = force->group;
+                        if (group != NULL) {
+                            if (force->anim_set->state == GAMEANIMSET_STATE_AT_END) {
+                                if (was_moving && group->count == group->configured_count) {
+                                    group->field_0x24 |=
+                                        GIZFORCE_GROUP_STACK_COMPLETE | GIZFORCE_GROUP_STACK_COMPLETE_IN_ORDER;
+                                    for (i32 i = 0; i < group->configured_count; ++i) {
+                                        i32 order_mask = static_cast<i8>(group->forces[i]->collision_mask);
+                                        if (order_mask != 0 && (order_mask & (1 << i)) == 0) {
+                                            group->field_0x24 &=
+                                                static_cast<u8>(~GIZFORCE_GROUP_STACK_COMPLETE_IN_ORDER);
+                                            break;
+                                        }
+                                    }
+                                }
+                            } else {
+                                group->field_0x24 &= static_cast<u8>(
+                                    ~(GIZFORCE_GROUP_STACK_COMPLETE | GIZFORCE_GROUP_STACK_COMPLETE_IN_ORDER));
+                            }
+                        }
+                        if (force->runtime_pending_completion && GizForce_Complete(force)) {
+                            force->runtime_pending_completion = 0;
+                        }
+                        if (!force->state_destroyed_or_thrown &&
+                            (force->config_flags & GIZFORCE_CONFIG_HIT_TEST_MASK) != 0) {
+                            force_sys->hit_test_gizmos[force_sys->hit_test_gizmo_count++] = gizmo;
+                        }
+                        if (force->progress_draw_active && !GizForce_Complete(force)) {
+                            if ((force->config_flags & 0x400) != 0) {
+                                for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL;
+                                     object = object->next) {
+                                    GIZFORCEANIMDATA_s *object_data =
+                                        static_cast<GIZFORCEANIMDATA_s *>(object->object_data);
+                                    if (object_data->force_glow_active || !NuSpecialExistsFn(&object->special))
+                                        continue;
+                                    NUVEC centre;
+                                    f32 radius = 0.0f;
+                                    NuSpecialGetRadius(&object->special, &centre, &radius);
+                                    radius = 1.2f * force->horizontal_range * radius;
+                                    NuVecMtxTransformVU0(&centre, &centre, NuSpecialGetDrawMtx(&object->special));
+                                    NUVEC offset = {0.0f, 0.0f, 0.0f};
+                                    if (radius != 0.0f)
+                                        offset.y = qrand() / (65535.0f / (0.5f * radius) + 1.0f);
+                                    NuVecRotateZ(&offset, &offset, qrand());
+                                    NuVecRotateY(&offset, &offset, qrand() & 0xffff);
+                                    NuVecAdd(&centre, &centre, &offset);
+                                    if (!force->state_debris_active) {
+                                        if ((force->config_flags & 0x10) != 0) {
+                                            AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[110].effect,
+                                                                              &centre, static_cast<i32>(90.0f * radius),
+                                                                              FRAMETIME, 0, 0, NULL);
+                                        } else {
+                                            AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[109].effect,
+                                                                              &centre, static_cast<i32>(90.0f * radius),
+                                                                              FRAMETIME, 0, 0, NULL);
+                                        }
+                                    }
+                                }
+                            } else if (!force->state_debris_active) {
+                                NUVEC centre;
+                                f32 radius = 0.0f;
+                                GameAnimSet_GetCentreAndRadius(force->anim_set, &centre, &radius, 2, 1, 1);
+                                radius = 1.2f * force->horizontal_range * radius;
+                                NUVEC offset = {0.0f, 0.0f, 0.0f};
+                                if (radius != 0.0f)
+                                    offset.y = qrand() / (65535.0f / (0.5f * radius) + 1.0f);
+                                NuVecRotateZ(&offset, &offset, qrand());
+                                NuVecRotateY(&offset, &offset, qrand() & 0xffff);
+                                NuVecAdd(&centre, &centre, &offset);
+                                if ((force->config_flags & 0x10) != 0) {
+                                    AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[110].effect, &centre,
+                                                                      static_cast<i32>(90.0f * radius), FRAMETIME, 0, 0,
+                                                                      NULL);
+                                } else {
+                                    AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[109].effect, &centre,
+                                                                      static_cast<i32>(90.0f * radius), FRAMETIME, 0, 0,
+                                                                      NULL);
+                                }
+                            }
+                        }
+                        force->state_debris_active = 0;
+                        if ((force->config_flags & 0x400) != 0) {
+                            for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL;
+                                 object = object->next) {
+                                static_cast<GIZFORCEANIMDATA_s *>(object->object_data)->force_glow_active = 0;
+                            }
                         }
                     }
-                }
-            } else if ((force->field_0xaa & 2) == 0) {
-                NUVEC centre;
-                f32 radius = 0.0f;
-                GameAnimSet_GetCentreAndRadius(force->anim_set, &centre, &radius, 2, 1, 1);
-                radius = 1.2f * force->horizontal_range * radius;
-                NUVEC offset = {0.0f, 0.0f, 0.0f};
-                if (radius != 0.0f)
-                    offset.y = qrand() / (65535.0f / (0.5f * radius) + 1.0f);
-                NuVecRotateZ(&offset, &offset, qrand());
-                NuVecRotateY(&offset, &offset, qrand() & 0xffff);
-                NuVecAdd(&centre, &centre, &offset);
-                if ((force->config_flags & 0x10) != 0) {
-                    AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[110].effect, &centre,
-                                                      static_cast<i32>(90.0f * radius), FRAMETIME, 0, 0, NULL);
-                } else {
-                    AddVariableShotDebrisEffectTimed1(WORLD->debris_sys->entries[109].effect, &centre,
-                                                      static_cast<i32>(90.0f * radius), FRAMETIME, 0, 0, NULL);
-                }
-            }
-        }
-        force->field_0xaa &= static_cast<u8>(~2);
-        if ((force->config_flags & 0x400) != 0) {
-            for (GAMEANIMOBJ_s *object = force->anim_set->objects; object != NULL; object = object->next) {
-                static_cast<GIZFORCEANIMDATA_s *>(object->object_data)->force_glow_active = 0;
+                } while (++index, ++gizmo, index < set->count);
             }
         }
     }
@@ -846,7 +858,8 @@ static i32 *GizForces_GetBestBoltTarget(GIZMOSET *set, float *result_distance, N
         aim.y = 0.0f;
         NuVecNorm(&aim, &aim);
     }
-    if (system->hit_test_gizmo_count == 0) {
+    u16 hit_test_gizmo_count = system->hit_test_gizmo_count;
+    if (hit_test_gizmo_count == 0) {
         return NULL;
     }
 
@@ -854,7 +867,7 @@ static i32 *GizForces_GetBestBoltTarget(GIZMOSET *set, float *result_distance, N
     GIZMO *best = NULL, *previous = NULL;
     NUVEC *best_position = NULL, *previous_position = NULL;
     float nearest_distance = 100000000.0f;
-    for (i32 i = 0; i < system->hit_test_gizmo_count; ++i) {
+    for (i32 i = 0; i < hit_test_gizmo_count; ++i) {
         GIZMO *gizmo = system->hit_test_gizmos[i];
         GIZFORCE_s *force = static_cast<GIZFORCE_s *>(gizmo->object);
         if ((force->progress_flags & GIZFORCE_PROGRESS_VISIBLE) == 0 ||

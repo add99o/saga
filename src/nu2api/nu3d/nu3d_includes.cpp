@@ -3,6 +3,33 @@
 
 #include "nu2api/nucore/NuDynamicLight.h"
 #include "nu2api/nu3d/nurndrstat.h"
+#include "nu2api/nucore/nuvuvec.hpp"
+#include "nu2api/nucore/nuvec.hpp"
+#include "nu2api/nucore/nuthread.h"
+#include "legoapi/legoapi_types.h"
+
+// These renderer objects share the original nu3d initializer and lifetime.
+#include "nu2api/nu3d/android/nupostfilter.cpp"
+
+NuDataPortManager NuPostFilterGen::resourceManager;
+NuDataPort<nuframebuffer_s *> NuPostFilterGen::portOutFramebuffer;
+NuDataPort<NuProxyAttachment *> NuPostFilterGen::portColorBuffer;
+NuDataPort<NuProxyAttachment *> NuPostFilterGen::portNormalBuffer;
+NuDataPort<NuProxyAttachment *> NuPostFilterGen::portVelocityBuffer;
+NuDataPort<NuProxyAttachment *> NuPostFilterGen::portDepthRTBuffer;
+NuDataPort<NuProxyAttachment *> NuPostFilterGen::portDepthBuffer;
+
+OcclusionManager g_OcclusionManager;
+
+static const VuVec unitCube[8] = {
+    {-1, -1, -1, 1}, {-1, 1, -1, 1}, {1, 1, -1, 1}, {1, -1, -1, 1},
+    {-1, -1, 1, 1},  {-1, 1, 1, 1},  {1, 1, 1, 1},  {1, -1, 1, 1},
+};
+static const VuVec halfUnitCube[8] = {
+    {-1, -1, 0, 1}, {-1, 1, 0, 1}, {1, 1, 0, 1}, {1, -1, 0, 1},
+    {-1, -1, 1, 1}, {-1, 1, 1, 1}, {1, 1, 1, 1}, {1, -1, 1, 1},
+};
+
 template <typename T> struct LightObjectPool {
     struct __attribute__((aligned(16))) Slot {
         // Construction is explicit; reserving the pool must not construct every light.
@@ -10,6 +37,9 @@ template <typename T> struct LightObjectPool {
     } slots[8];
     i8 occupied;
     i32 next;
+
+    LightObjectPool() : occupied(0), next(0) {
+    }
 
     T *allocate() {
         i32 i;
@@ -32,12 +62,19 @@ template <typename T> struct LightObjectPool {
         return NULL;
     }
 };
-static LightObjectPool<NUDISPLAYLISTITEM> dlistItemPool;
-static LightObjectPool<NURNDRSTATE> rndrStatePool;
 static LightObjectPool<NuDynamicLight> dynamicLightPool;
+static LightObjectPool<NURNDRSTATE> rndrStatePool;
+static LightObjectPool<NUDISPLAYLISTITEM> dlistItemPool;
 DECOMP_ASSERT(sizeof(dynamicLightPool) == 16144, "Dynamic light pool size");
 DECOMP_ASSERT(sizeof(dlistItemPool) == 144, "Dynamic light list item pool size");
 DECOMP_ASSERT(sizeof(rndrStatePool) == 528, "Dynamic light render state pool size");
+
+const NuVec NuVec::vnull(0, 0, 0);
+const NuVec NuVec::vx(1, 0, 0);
+const NuVec NuVec::vy(0, 1, 0);
+const NuVec NuVec::vz(0, 0, 1);
+
+NuCriticalSection criticalSection("Texture");
 
 NuDynamicLight::RenderSet::RenderSet() {
     parameter_100 = 0.01f;
@@ -86,3 +123,7 @@ void NuDynamicLight::destroy(NuDynamicLight *light) {
     dynamicLightPool.next = index;
     dynamicLightPool.occupied &= ~(1 << (index & 7));
 }
+
+#include "nu2api/nu3d/nudynamiclight.cpp"
+
+#include "nu2api/nu3d/nupostfilter_generic.cpp"

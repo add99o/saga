@@ -6,6 +6,7 @@
 #include "decomp.h"
 #include "nu2api/nu3d/android/nutex_ios_ex.h"
 #include "nu2api/nu3d/nuprim.h"
+#include "nu2api/nu3d/nuprim_internal.h"
 #include "nu2api/nu3d/nutex.h"
 #include "nu2api/nucore/common.h"
 #include "nu2api/nucore/nuptrblock.h"
@@ -1025,136 +1026,107 @@ void NuQFntPrintU(NUQFNT *font, char *text) {
     }
 }
 
-struct NuQFntVertex {
-    f32 x;
-    f32 y;
-    f32 z;
-    u32 colour;
-    f32 u;
-    f32 v;
-};
-
-static inline u16 NuQFntFloatToHalf(f32 value) {
-    union {
-        f32 value;
-        u32 bits;
-    } conversion = {value};
-    i32 exponent = static_cast<i32>((conversion.bits >> 23) & 0xff) - 0x70;
-    u16 half_exponent = 0;
-    if (exponent >= 0) {
-        half_exponent = 0x7c00;
-        if (exponent < 0x20)
-            half_exponent = static_cast<u16>(exponent << 10);
-    }
-    return static_cast<u16>((conversion.bits & 0x7fffff) >> 13) | static_cast<u16>((conversion.bits >> 31) << 15) |
-           half_exponent;
-}
-
-static inline void NuQFntSetVertexAttributes(NuQFntVertex *vertex, u32 colour, u32 half_colour, f32 u, f32 v) {
-    if (g_NuPrim_NeedsOverbrightening == 0)
-        vertex->colour = half_colour;
-    else
-        vertex->colour = colour;
-    if (g_NuPrim_NeedsHalfUVs != 0) {
-        u16 *uv = reinterpret_cast<u16 *>(&vertex->u);
-        uv[0] = NuQFntFloatToHalf(u);
-        uv[1] = NuQFntFloatToHalf(v);
-    } else {
-        vertex->u = u;
-        vertex->v = v;
-    }
-}
-
-static inline void NuQFntAdd3DVertex(f32 x, f32 y, f32 z, u32 colour, u32 half_colour, f32 u, f32 v) {
-    NuQFntVertex *vertex = reinterpret_cast<NuQFntVertex *>(g_NuPrim_StreamBufferPtr->void_ptr);
-    NuQFntSetVertexAttributes(vertex, colour, half_colour, u, v);
-    vertex->x = x;
-    vertex->y = y;
-    vertex->z = z;
-    g_NuPrim_StreamBufferPtr->void_ptr = vertex + 1;
-    g_NuPrim_VertexCount++;
-}
-
 void NuQFntPrintCharW(NUQFNT *font, u16 *text, u32 flags) {
     VUFNT *vufnt = static_cast<VUFNT *>(font);
     VUFNT_ANDROID *platform = vufnt->platform_data;
     f32 y = platform->y;
     f32 z = platform->z;
     f32 x = platform->x;
-    if (text == NULL)
-        return;
+    if (text != NULL) {
 
-    f32 inverse_texture_width = 1.0f;
-    f32 inverse_texture_height = 1.0f;
-    if (vufnt->mtl->tex_id > 0) {
-        inverse_texture_width = 1.0f / static_cast<f32>(NuTexWidth(vufnt->mtl->tex_id));
-        inverse_texture_height = 1.0f / static_cast<f32>(NuTexHeight(vufnt->mtl->tex_id));
+        f32 inverse_texture_width = 1.0f;
+        f32 inverse_texture_height = 1.0f;
+        if (vufnt->mtl->tex_id > 0) {
+            inverse_texture_width = 1.0f / static_cast<f32>(NuTexWidth(vufnt->mtl->tex_id));
+            inverse_texture_height = 1.0f / static_cast<f32>(NuTexHeight(vufnt->mtl->tex_id));
+        }
+
+        f32 height = vufnt->height * *vufnt->y_scale;
+        f32 space_width;
+        if (nuqfnt_space_width != 0.0f)
+            space_width = nuqfnt_space_width * *vufnt->x_scale;
+        else
+            space_width = vufnt->space_width * *vufnt->x_scale;
+        NuPrimCSPos++;
+        NuPrimSetCoordinateSystem(NUPRIM_SCALEMODE_PS2);
+        const u32 is_3d = flags & 4;
+        if (is_3d)
+            NuPrim3DBegin(0, 7, vufnt->mtl, &vufnt->platform_data->mtx);
+        else
+            NuPrim2DBegin(4, 7, vufnt->mtl);
+
+        i32 colour = platform->colour;
+        u16 character = *text++;
+        if (character != 0) {
+            do {
+                VUFNTCHAR *glyph = &vufnt->glyphs[character];
+                f32 glyph_width = character == 0x20 ? space_width : glyph->width * *vufnt->x_scale;
+                f32 advance = glyph_width;
+                f32 top, bottom;
+                if (is_3d) {
+                    top = y - height;
+                    bottom = y;
+                } else {
+                    top = y;
+                    bottom = y + height;
+                }
+                f32 left = x;
+                if ((flags & 1) != 0 && static_cast<u16>(character - 0x30) <= 9) {
+                    VUFNTCHAR *zero = &vufnt->glyphs[static_cast<i16>(NuQFntEncodeUnicodeChar(font, 0x30))];
+                    f32 digit_width = zero->width * *vufnt->x_scale;
+                    left = (digit_width - glyph_width) + x;
+                    advance = digit_width;
+                }
+
+                if (character != 0x20) {
+                    f32 right = left + glyph_width;
+                    if (is_3d) {
+                        const f32 u0 = inverse_texture_width * glyph->x;
+                        const f32 v0 = inverse_texture_height * glyph->y;
+                        const f32 v1 = (glyph->y + vufnt->height) * inverse_texture_height;
+                        const f32 u1 = (glyph->width + glyph->x) * inverse_texture_width;
+                        NuRndrPrimSetColour(colour);
+                        NuRndrPrimUV(u0, v1);
+                        NuRndrPrimPosition(left, top, z);
+                        NuRndrPrimSetColour(colour);
+                        NuRndrPrimUV(u1, v1);
+                        NuRndrPrimPosition(right, top, z);
+                        NuRndrPrimSetColour(colour);
+                        NuRndrPrimUV(u1, v0);
+                        NuRndrPrimPosition(right, bottom, z);
+                        NuRndrPrimSetColour(colour);
+                        NuRndrPrimUV(u1, v0);
+                        NuRndrPrimPosition(right, bottom, z);
+                        NuRndrPrimSetColour(colour);
+                        NuRndrPrimUV(u0, v0);
+                        NuRndrPrimPosition(left, bottom, z);
+                        NuRndrPrimSetColour(colour);
+                        NuRndrPrimUV(u0, v1);
+                        NuRndrPrimPosition(left, top, z);
+                    } else {
+                        NuRndrPrimSetColour(colour);
+                        const f32 u0 = inverse_texture_width * glyph->x;
+                        const f32 v0 = inverse_texture_height * glyph->y;
+                        NuRndrPrimUV(u0, v0);
+                        NuPrim2DAddXYZ(left, top, 0.0f);
+                        NuRndrPrimSetColour(colour);
+                        const f32 u1 = (glyph->x + glyph->width) * inverse_texture_width;
+                        const f32 v1 = (glyph->y + vufnt->height) * inverse_texture_height;
+                        NuRndrPrimUV(u1, v1);
+                        NuPrim2DAddXYZ(right, bottom, 0.0f);
+                    }
+                }
+                x += vufnt->ic_gap * *vufnt->x_scale + advance;
+            } while ((character = *text++) != 0);
+        }
+
+        if (is_3d)
+            NuPrim3DEnd();
+        else
+            NuPrim2DEnd();
+        NuPrimCSPos--;
+        NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
     }
-
-    f32 height = vufnt->height * *vufnt->y_scale;
-    f32 space_width = (nuqfnt_space_width == 0.0f ? vufnt->space_width : nuqfnt_space_width) * *vufnt->x_scale;
-    NuPrimCSPos++;
-    NuPrimSetCoordinateSystem(NUPRIM_SCALEMODE_PS2);
-    const u32 is_3d = flags & 4;
-    if (is_3d)
-        NuPrim3DBegin(0, 7, vufnt->mtl, &platform->mtx);
-    else
-        NuPrim2DBegin(4, 7, vufnt->mtl);
-
-    u32 colour = platform->colour;
-    const u32 half_colour = ((static_cast<i32>(colour) >> 1) & 0x7f7f7f) | (colour & 0xff000000);
-    for (u16 character = *text++; character != 0; character = *text++) {
-        VUFNTCHAR *glyph = &vufnt->glyphs[character];
-        f32 glyph_width = character == 0x20 ? space_width : glyph->width * *vufnt->x_scale;
-        f32 advance = glyph_width;
-        f32 top = y, bottom = y + height;
-        if (is_3d) {
-            top = y - height;
-            bottom = y;
-        }
-        f32 left = x;
-        if ((flags & 1) != 0 && static_cast<u16>(character - 0x30) <= 9) {
-            VUFNTCHAR *zero = &vufnt->glyphs[static_cast<i16>(NuQFntEncodeUnicodeChar(font, 0x30))];
-            f32 digit_width = zero->width * *vufnt->x_scale;
-            left = (digit_width - glyph_width) + x;
-            advance = digit_width;
-        }
-
-        if (character != 0x20) {
-            f32 right = left + glyph_width;
-            if (!is_3d) {
-                NuQFntVertex *vertex = reinterpret_cast<NuQFntVertex *>(g_NuPrim_StreamBufferPtr->void_ptr);
-                const f32 u0 = inverse_texture_width * glyph->x;
-                const f32 v0 = inverse_texture_height * glyph->y;
-                NuQFntSetVertexAttributes(vertex, colour, half_colour, u0, v0);
-                NuPrim2DAddXYZ(left, top, 0.0f);
-                vertex = reinterpret_cast<NuQFntVertex *>(g_NuPrim_StreamBufferPtr->void_ptr);
-                const f32 u1 = (glyph->x + glyph->width) * inverse_texture_width;
-                const f32 v1 = (glyph->y + vufnt->height) * inverse_texture_height;
-                NuQFntSetVertexAttributes(vertex, colour, half_colour, u1, v1);
-                NuPrim2DAddXYZ(right, bottom, 0.0f);
-            } else {
-                const f32 u0 = inverse_texture_width * glyph->x;
-                const f32 v0 = inverse_texture_height * glyph->y;
-                const f32 v1 = (glyph->y + vufnt->height) * inverse_texture_height;
-                const f32 u1 = (glyph->width + glyph->x) * inverse_texture_width;
-                NuQFntAdd3DVertex(left, top, z, colour, half_colour, u0, v1);
-                NuQFntAdd3DVertex(right, top, z, colour, half_colour, u1, v1);
-                NuQFntAdd3DVertex(right, bottom, z, colour, half_colour, u1, v0);
-                NuQFntAdd3DVertex(right, bottom, z, colour, half_colour, u1, v0);
-                NuQFntAdd3DVertex(left, bottom, z, colour, half_colour, u0, v0);
-                NuQFntAdd3DVertex(left, top, z, colour, half_colour, u0, v1);
-            }
-        }
-        x = x + vufnt->ic_gap * *vufnt->x_scale + advance;
-    }
-
-    if (is_3d)
-        NuPrim3DEnd();
-    else
-        NuPrim2DEnd();
-    NuPrimCSPos--;
-    NuPrimSetCoordinateSystem(NuPrimCoordSystemStack[NuPrimCSPos]);
 }
 
 NUQFNT_CSMODE NuQFntSetCoordinateSystem(NUQFNT_CSMODE mode) {

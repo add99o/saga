@@ -590,6 +590,8 @@ static void PlayerCamPos(GameObject_s *object, NUVEC *position, NUVEC *reference
 
 // Function prefix and mode selection. MainRenderTime guard precedes cutscenes.
 void MoveGameCamera(GAMECAMERA_s *camera) {
+    i32 shared_index;
+    u16 shared_yaw;
     i32 shared_count = 0;
     NUVEC player_focus[2], player_positions[2];
     GameObject_s *camera_players[2];
@@ -609,21 +611,26 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
         GameCam_ResetLookRot(camera);
         return;
     }
-    if (CutSceneCameraCTRL && (CUTSTOPGAME || CUTCAMONLY)) {
-        camera->render_mtx = cutscenecammtx;
-        camera->mtx = camera->render_mtx;
-        set_cutscenecammtx = 0;
-        pNuCam->mtx = camera->render_mtx;
-        if (cutscenecam_focalLength > 0.0f) {
-            pNuCam->fov = NuCameraFocalLenToFOV(cutscenecam_focalLength);
-            pNuCam->fov *= (1.0f / NuIOS_GetAspectRatio()) / 0.75f;
+    if (CutSceneCameraCTRL) {
+        if (CUTSTOPGAME || CUTCAMONLY) {
+            camera->render_mtx = cutscenecammtx;
+            camera->mtx = camera->render_mtx;
+            set_cutscenecammtx = 0;
+            pNuCam->mtx = camera->render_mtx;
+            if (cutscenecam_focalLength > 0.0f) {
+                pNuCam->fov = NuCameraFocalLenToFOV(cutscenecam_focalLength);
+                pNuCam->fov *= (1.0f / NuIOS_GetAspectRatio()) / 0.75f;
+            }
+            NuCameraSet(pNuCam);
+            CutCamMtx = camera->render_mtx;
+            CUTCAM = 1;
+            return;
         }
-        NuCameraSet(pNuCam);
-        CutCamMtx = camera->render_mtx;
-        CUTCAM = 1;
+    } else if (CUTSTOPGAME) {
+        GameCam_ResetLookRot(camera);
         return;
     }
-    if ((!CutSceneCameraCTRL && CUTSTOPGAME) || NewMode || NewLData != NULL) {
+    if (NewMode || NewLData != NULL) {
         GameCam_ResetLookRot(camera);
         return;
     }
@@ -658,8 +665,8 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 camera->mode = 2;
                 u32 buttons = GAMEPAD_START | GAMEPAD_JUMP | GAMEPAD_SPECIAL | GAMEPAD_ACTION | GAMEPAD_TAG |
                               GAMEPAD_TOGGLELEFT | GAMEPAD_TOGGLERIGHT;
-                for (i32 i = 0; i < 2; i++) {
-                    GameObject_s *object = Player[i];
+                for (shared_index = 0; shared_index < 2; shared_index++) {
+                    GameObject_s *object = Player[shared_index];
                     if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0 &&
                         (object->apiobj.model_draw_result == 0 || object->pad_gamepad->input_magnitude > 0.0f ||
                          (object->pad_gamepad->buttons_held & buttons) != 0)) {
@@ -733,19 +740,19 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
         MiniCutCam = 4;
     NUVEC position = *PlayerStart[0].pos;
     NUVEC target = v000;
-    NUVEC offset, direction;
+    NUVEC offset, direction, ahead, rail_position, pullback_vector;
     // The per-mode camera blend duration starts afresh after transition selection.
     blend_duration = 0.5f;
     f32 position_seek = static_cast<u32>(static_cast<u8>(WORLD->current_level->cam_pos_seek));
     f32 angle_seek = static_cast<u32>(static_cast<u8>(WORLD->current_level->cam_angle_seek));
     GAMEPAD_s *selected_pad = camera->mode == 5 ? ViewCam.gamepad : &GamePad[0];
     f32 left_y = static_cast<f32>(selected_pad->pad->analog_left_y) - 127.5f;
-    f32 left_x = static_cast<f32>(selected_pad->pad->analog_left_x) - 127.5f;
-    f32 right_y = static_cast<f32>(selected_pad->pad->analog_right_y) - 127.5f;
-    f32 right_x = static_cast<f32>(selected_pad->pad->analog_right_x) - 127.5f;
     left_y = NuFabs(left_y) < 34.0f ? 0.0f : left_y / 127.5f;
+    f32 left_x = static_cast<f32>(selected_pad->pad->analog_left_x) - 127.5f;
     left_x = NuFabs(left_x) < 34.0f ? 0.0f : left_x / 127.5f;
+    f32 right_y = static_cast<f32>(selected_pad->pad->analog_right_y) - 127.5f;
     right_y = NuFabs(right_y) < 34.0f ? 0.0f : right_y / 127.5f;
+    f32 right_x = static_cast<f32>(selected_pad->pad->analog_right_x) - 127.5f;
     right_x = NuFabs(right_x) < 34.0f ? 0.0f : right_x / 127.5f;
     i32 pitch_override = -1, yaw_override = -1, roll_override = 0;
     i32 roll_hint_valid = 0;
@@ -758,16 +765,16 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
 
             i32 player_count = 0, vehicle_count = 0;
             f32 landspeeder_speed = 0.0f, landspeeder_yaw = -1.0f, landspeeder_lookahead = 0.0f;
-            for (i32 i = 0; i < 2; i++) {
-                GameObject_s *object = Player[i];
+            for (shared_index = 0; shared_index < 2; shared_index++) {
+                GameObject_s *object = Player[shared_index];
                 if (object == NULL || (static_cast<i8>(object->apiobj.flags_low) >= 0 && !LookAtBoth) ||
                     (netcamera && (object->apiobj.field_0x1f4 & 0x40000) != 0) ||
-                    (BonusWinner != -1 && BonusWinner != i))
+                    (BonusWinner != -1 && BonusWinner != shared_index))
                     continue;
-                vehicle_player[i] = object->apiobj.character_data->model_flags & 0x2000;
+                vehicle_player[shared_index] = object->apiobj.character_data->model_flags & 0x2000;
                 if (!(SPEEDERCHASEA_LDATA != NULL && WORLD->current_level == SPEEDERCHASEA_LDATA &&
                       object->id == id_SPEEDERBIKE && disable_narrow_socks) &&
-                    vehicle_player[i]) {
+                    vehicle_player[shared_index]) {
                     vehicle_count++;
                     if (object->id == id_LANDSPEEDER) {
                         if (landspeeder_lookahead == 0.0f) {
@@ -785,11 +792,11 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     }
                 }
                 if (PODRACE_ADATA != NULL && WORLD->area == PODRACE_ADATA) {
-                    player_focus[player_count] = Player[i]->apiobj.collision_position;
-                    NUVEC offset = {0.0f, 0.0f, 2.0f};
-                    NuVecRotateY(
-                        &offset, &offset,
-                        static_cast<i32>(static_cast<u16>(object->apiobj.facing_angle) + getPodRoll(i) * 5461.0f));
+                    player_focus[player_count] = Player[shared_index]->apiobj.collision_position;
+                    offset = {0.0f, 0.0f, 2.0f};
+                    NuVecRotateY(&offset, &offset,
+                                 static_cast<i32>(static_cast<u16>(object->apiobj.facing_angle) +
+                                                  getPodRoll(shared_index) * 5461.0f));
                     NuVecAdd(&player_focus[player_count], &player_focus[player_count], &offset);
                 } else
                     PlayerCamPos(object, &player_focus[player_count], &camera->pos);
@@ -804,7 +811,7 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 player_positions[player_count] = *source_position;
                 if ((object->apiobj.character_data->model_flags & 0x2000) != 0) {
                     if (PODRACE_ADATA != NULL && WORLD->area == PODRACE_ADATA)
-                        player_roll[player_count] = static_cast<i32>(getPodRoll(i) * 8192.0f);
+                        player_roll[player_count] = static_cast<i32>(getPodRoll(shared_index) * 8192.0f);
                     else
                         player_roll[player_count] = RotDiff(0, object->movement_lean_angle);
                     RotDiff(0, object->tertiary_lean_angle);
@@ -817,22 +824,21 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
             if (player_count != 0) {
                 complexsockposition_forcesock = movegamecamera_forcesock;
                 f32 separation_scale;
-                i32 camera_result =
+                shared_index =
                     SockSysCamera(WORLD->sock_sys, &camera->pos, camera->mode != camera->previous_mode, player_focus,
                                   player_positions, player_count, &camera->sock_position, &position, &target,
                                   &blend_duration, &position_seek, &angle_seek, &camera_shake, &separation_scale);
-                NUVEC rail_position = position;
+                rail_position = position;
                 blend_duration *= 1.5f;
                 if (WORLD->current_level->cam_pullback_dist > 0.0f) {
                     i32 angle = NuAtan2D(target.x - position.x, target.z - position.z);
-                    NUVEC direction, offset;
-                    NuVecSub(&direction, &position, &target);
-                    direction.y = 0.0f;
-                    NuVecNorm(&direction, &direction);
+                    NuVecSub(&pullback_vector, &position, &target);
+                    pullback_vector.y = 0.0f;
+                    NuVecNorm(&pullback_vector, &pullback_vector);
                     f32 pullback = 0.0f;
-                    i32 delta;
+                    i32 &delta = shared_index;
                     if (vehicle_count) {
-                        u16 heading;
+                        u16 &heading = shared_yaw;
                         if (player_count == 2 && vehicle_player[0] && vehicle_player[1])
                             heading = player_yaw[0] + RotDiff(player_yaw[0], player_yaw[1]) / player_count;
                         else if (vehicle_player[0])
@@ -847,7 +853,8 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     }
                     camera->field_0x1e8 = SeekLinearF(camera->field_0x1e8, pullback, FRAMETIME);
                     camera->field_0x1ec = SeekValF(camera->field_0x1ec, camera->field_0x1e8, 3.0f);
-                    NuVecScale(&offset, &direction, camera->field_0x1ec * WORLD->current_level->cam_pullback_dist);
+                    NuVecScale(&offset, &pullback_vector,
+                               camera->field_0x1ec * WORLD->current_level->cam_pullback_dist);
                     NuVecAdd(&position, &position, &offset);
                     NuVecAdd(&target, &target, &offset);
                     f32 lateral = 0.0f;
@@ -860,7 +867,7 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     }
                     camera->field_0x1f0 = SeekLinearF(camera->field_0x1f0, lateral, FRAMETIME);
                     camera->field_0x1f4 = SeekValF(camera->field_0x1f4, camera->field_0x1f0, 3.0f);
-                    NuVecRotateY(&offset, &direction, 0x4000);
+                    NuVecRotateY(&offset, &pullback_vector, 0x4000);
                     NuVecScale(&offset, &offset, (0.5f * WORLD->current_level->cam_lateral_dist) * camera->field_0x1f4);
                     NuVecSub(&position, &position, &offset);
                     NuVecSub(&target, &target, &offset);
@@ -875,16 +882,16 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     else
                         distance = 2.0f;
                     PodCamDist = SeekLinearF(PodCamDist, distance, FRAMETIME);
-                    NUVEC average = {0.0f, 0.0f, 0.0f};
-                    for (i32 index = 0; index < player_count; ++index) {
-                        GameObject_s *player = camera_players[index];
-                        average.x += player->apiobj.pos_x - NU_SIN_LUT(player->apiobj.facing_angle) * PodCamDist;
-                        average.y += player->apiobj.pos_y + 1.0f;
-                        average.z += player->apiobj.pos_z - NU_COS_LUT(player->apiobj.facing_angle) * PodCamDist;
+                    offset = {0.0f, 0.0f, 0.0f};
+                    for (shared_index = 0; shared_index < player_count; ++shared_index) {
+                        GameObject_s *player = camera_players[shared_index];
+                        offset.x += player->apiobj.pos_x - NU_SIN_LUT(player->apiobj.facing_angle) * PodCamDist;
+                        offset.y += player->apiobj.pos_y + 1.0f;
+                        offset.z += player->apiobj.pos_z - NU_COS_LUT(player->apiobj.facing_angle) * PodCamDist;
                     }
                     if (player_count != 1)
-                        NuVecScale(&average, &average, 1.0f / player_count);
-                    position = average;
+                        NuVecScale(&offset, &offset, 1.0f / player_count);
+                    position = offset;
                     position_seek = 10.0f;
                     angle_seek = 10.0f;
                     f32 floor = GameShadow(NULL, &position, 5.0f, -1);
@@ -903,16 +910,16 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     PodCamDist = countdown > 0.0f ? countdown / 3.0f * 10.0f + 2.0f : 2.0f;
                     if (player_count == 2)
                         PodCamDist *= 1.5f;
-                    NUVEC average = {0.0f, 0.0f, 0.0f};
-                    for (i32 index = 0; index < player_count; ++index) {
-                        GameObject_s *player = camera_players[index];
-                        average.x += player->apiobj.position.x;
-                        average.y += player->apiobj.collision_min.y + 0.65f;
-                        average.z += player->apiobj.position.z;
+                    offset = {0.0f, 0.0f, 0.0f};
+                    for (shared_index = 0; shared_index < player_count; ++shared_index) {
+                        GameObject_s *player = camera_players[shared_index];
+                        offset.x += player->apiobj.position.x;
+                        offset.y += player->apiobj.collision_min.y + 0.65f;
+                        offset.z += player->apiobj.position.z;
                     }
                     if (player_count != 1)
-                        NuVecScale(&average, &average, 1.0f / player_count);
-                    target = average;
+                        NuVecScale(&offset, &offset, 1.0f / player_count);
+                    target = offset;
                     u16 yaw = camera_players[0]->apiobj.movement_facing_angle;
                     if (player_count == 2)
                         yaw += RotDiff(yaw, camera_players[1]->apiobj.movement_facing_angle) / player_count;
@@ -920,15 +927,16 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     position.y = target.y + 0.65f;
                     position.z = target.z - NU_COS_LUT(yaw) * PodCamDist;
                     if (countdown <= 0.0f) {
-                        i32 roll = player_roll[0];
+                        i32 &roll = shared_index;
+                        roll = player_roll[0];
                         if (player_count == 2)
                             roll += RotDiff((u16)roll, (u16)player_roll[1]) / player_count;
                         yaw += (i32)(roll * 0.6f);
                         target.x = position.x + NU_SIN_LUT(yaw) * PodCamDist;
                         target.z = position.z + NU_COS_LUT(yaw) * PodCamDist;
                     }
-                    NUVEC floor_probe = {position.x, target.y - 0.65f, position.z};
-                    f32 floor = GameShadow(NULL, &floor_probe, 5.0f, -1);
+                    offset = {position.x, target.y - 0.65f, position.z};
+                    f32 floor = GameShadow(NULL, &offset, 5.0f, -1);
                     if (floor != 2000000.0f) {
                         if (EShadY != 2000000.0f)
                             floor = EShadY > floor ? EShadY : floor;
@@ -952,7 +960,6 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     f32 opposite = static_cast<f32>(camera->yaw - 0x8000);
                     if (opposite < 0.0f)
                         opposite += 65536.0f;
-                    NUVEC offset;
                     NuVecSub(&offset, &position, &target);
                     NuVecNorm(&offset, &offset);
                     NuVecScale(&offset, &offset, landspeeder_lookahead);
@@ -974,34 +981,21 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     bool near_walker = false;
                     if ((SPEEDERCHASEA_LDATA != NULL && WORLD->current_level == SPEEDERCHASEA_LDATA) ||
                         (ENDORBATTLEC_LDATA != NULL && WORLD->current_level == ENDORBATTLEC_LDATA)) {
-                        NUVEC average_position;
-                        Players_AveragePos(&average_position, NULL);
+
+                        Players_AveragePos(&pullback_vector, NULL);
                     } else if (id_ATST != -1) {
                         GameObject_s *walker = FindNearestGameObject(&position, NULL, 0, 5.0f, 0.0f, -1, id_ATST, -1,
                                                                      &walker_distance_sq, 0, NULL, false);
                         if (walker != NULL) {
                             bool is_player = false;
-                            if (Player[0] != NULL && Player[0] == walker)
-                                is_player = true;
-                            if (Player[1] != NULL && Player[1] == walker)
-                                is_player = true;
-                            if (Player[2] != NULL && Player[2] == walker)
-                                is_player = true;
-                            if (Player[3] != NULL && Player[3] == walker)
-                                is_player = true;
-                            if (Player[4] != NULL && Player[4] == walker)
-                                is_player = true;
-                            if (Player[5] != NULL && Player[5] == walker)
-                                is_player = true;
-                            if (Player[6] != NULL && Player[6] == walker)
-                                is_player = true;
-                            if (Player[7] != NULL && Player[7] == walker)
-                                is_player = true;
+                            for (shared_index = 0; shared_index < 8; ++shared_index) {
+                                if (Player[shared_index] != NULL && Player[shared_index] == walker)
+                                    is_player = true;
+                            }
                             landspeeder_lookahead = is_player ? 4.0f : 2.0f;
                             f32 distance = NuFsqrt(walker_distance_sq);
                             f32 factor = MAX(0.0f, 1.0f - distance / 5.0f);
                             factor = (1.0f + NU_SIN_LUT(static_cast<i32>(factor * 32768.0f + 16384.0f))) * 0.5f;
-                            NUVEC offset;
                             NuVecSub(&offset, &position, &target);
                             NuVecNorm(&offset, &offset);
                             f32 amount = landspeeder_lookahead * (1.0f - factor);
@@ -1016,7 +1010,6 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                         if (FindNearestGameObject(&position, NULL, 0, 5.0f, 0.0f, -1, id_DEWBACK, -1,
                                                   &walker_distance_sq, 0, NULL, false) != NULL) {
                             f32 distance = NuFsqrt(walker_distance_sq);
-                            NUVEC offset;
                             NuVecSub(&offset, &position, &target);
                             NuVecNorm(&offset, &offset);
                             f32 amount = 1.5f * (1.0f - distance / 5.0f);
@@ -1029,9 +1022,9 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 }
                 if (TATOOINEE_LDATA != NULL && WORLD->current_level == TATOOINEE_LDATA &&
                     landspeeder_lookahead == 0.0f) {
-                    NUVEC average_position, offset;
-                    Players_AveragePos(&average_position, NULL);
-                    NuVecSub(&offset, &rail_position, &average_position);
+
+                    Players_AveragePos(&pullback_vector, NULL);
+                    NuVecSub(&offset, &rail_position, &pullback_vector);
                     f32 magnitude = NuVecMagSqr(&offset);
                     f32 blend = 0.0f;
                     if (player2 == NULL) {
@@ -1063,14 +1056,14 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 roll_override = 0;
                 roll_seek_override = 0.0f;
                 if (WORLD->current_level->cam_tilt != 0.0f && camera->mode == camera->previous_mode) {
-                    NUVEC forward;
-                    NuVecRotateY(&forward, &v001, camera->yaw);
+                    NuVecRotateY(&direction, &v001, camera->yaw);
                     i32 total = 0;
-                    for (i32 i = 0; i < player_count; i++) {
-                        i32 roll = -RotDiff(0, player_roll[i]);
-                        if (camera_players[i] != NULL)
-                            total += static_cast<i32>(roll * (forward.x * camera_players[i]->facing_direction.x +
-                                                              forward.z * camera_players[i]->facing_direction.z));
+                    for (shared_index = 0; shared_index < player_count; shared_index++) {
+                        i32 roll = -RotDiff(0, player_roll[shared_index]);
+                        if (camera_players[shared_index] != NULL)
+                            total += static_cast<i32>(roll *
+                                                      (direction.x * camera_players[shared_index]->facing_direction.x +
+                                                       direction.z * camera_players[shared_index]->facing_direction.z));
                     }
                     f32 scale = WORLD->current_level->cam_tilt;
                     if (player_count != 1)
@@ -1081,7 +1074,6 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     roll_override = -1;
                 }
                 if (BonusWinner != -1) {
-                    NUVEC offset;
                     f32 distance = NuVecDist(&position, &target, &offset);
                     NuVecNorm(&offset, &offset);
                     NuVecScale(&offset, &offset, distance * 0.666f);
@@ -1137,15 +1129,14 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 target.y = 0.0f;
                 target.z = 0.0f;
                 i32 focus_count = 0;
-                NUVEC player_focus;
                 if (Player[0] != NULL && (static_cast<i8>(Player[0]->apiobj.flags_low) < 0 || LookAtBoth != 0)) {
-                    PlayerCamPos(Player[0], &player_focus, &position);
-                    NuVecAdd(&target, &target, &player_focus);
+                    PlayerCamPos(Player[0], &player_positions[0], &position);
+                    NuVecAdd(&target, &target, &player_positions[0]);
                     focus_count = 1;
                 }
                 if (Player[1] != NULL && (static_cast<i8>(Player[1]->apiobj.flags_low) < 0 || LookAtBoth != 0)) {
-                    PlayerCamPos(Player[1], &player_focus, &position);
-                    NuVecAdd(&target, &target, &player_focus);
+                    PlayerCamPos(Player[1], &player_positions[0], &position);
+                    NuVecAdd(&target, &target, &player_positions[0]);
                     ++focus_count;
                 }
                 if (focus_count != 0) {
@@ -1171,12 +1162,12 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
             static f32 addViewLDy = 0.0f;
             f32 speed = NuFabs(ViewCam.distance) * testmovef * FRAMETIME;
             if (ViewCam.gamepad != NULL) {
-                offset.x = (left_x * 127.5f) * speed;
-                offset.y = static_cast<f32>(static_cast<u32>(ViewCam.gamepad->pad->analog_l1)) * speed -
-                           static_cast<f32>(static_cast<u32>(ViewCam.gamepad->pad->analog_l2)) * speed;
-                offset.z = (-left_y * 127.5f) * speed;
-                NuVecRotateY(&offset, &offset, camera->yaw);
-                NuVecAdd(&ViewCam.target, &ViewCam.target, &offset);
+                pullback_vector.x = (left_x * 127.5f) * speed;
+                pullback_vector.y = static_cast<f32>(static_cast<u32>(ViewCam.gamepad->pad->analog_l1)) * speed -
+                                    static_cast<f32>(static_cast<u32>(ViewCam.gamepad->pad->analog_l2)) * speed;
+                pullback_vector.z = (-left_y * 127.5f) * speed;
+                NuVecRotateY(&pullback_vector, &pullback_vector, camera->yaw);
+                NuVecAdd(&ViewCam.target, &ViewCam.target, &pullback_vector);
                 ViewCam.pitch = static_cast<i16>(ViewCam.pitch + static_cast<i32>(right_y * 16384.0f * FRAMETIME));
                 ViewCam.pitch = MAX(-0x4000, MIN(0x4000, ViewCam.pitch));
                 ViewCam.yaw -= static_cast<i16>(right_x * 16384.0f * FRAMETIME);
@@ -1224,14 +1215,12 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
         case 7: {
             position = WORLD->camera_splines[15]->pts[0];
             target = WORLD->camera_splines[15]->pts[1];
-            i32 active_index;
-            Customiser_GetActiveWeirdoIndex(&active_index, &shared_count);
+            Customiser_GetActiveWeirdoIndex(&shared_index, &shared_count);
             if (shared_count == 1) {
-                if (MenuPacket.reserved_0[active_index] != 0)
-                    active_index = !active_index;
-                target.x = CustomisePos[active_index].x;
-                target.z = CustomisePos[active_index].z;
-                NUVEC offset;
+                if (MenuPacket.reserved_0[shared_index] != 0)
+                    shared_index = !shared_index;
+                target.x = CustomisePos[shared_index].x;
+                target.z = CustomisePos[shared_index].z;
                 NuVecSub(&offset, &target, &position);
                 NuVecScale(&offset, &offset, 0.25f);
                 NuVecAdd(&position, &position, &offset);
@@ -1280,23 +1269,21 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 reinterpret_cast<u8 *>(LevFlag)[1] = 1;
                 first_position = 0.95f;
             }
-            u16 yaw;
-            PointAlongSpline(WORLD->sock_sys->sock[0].mid, first_position, &target, &yaw, NULL, 0);
-            NUVEC ahead;
+            PointAlongSpline(WORLD->sock_sys->sock[0].mid, first_position, &target, &shared_yaw, NULL, 0);
             PointAlongSpline(WORLD->sock_sys->sock[0].mid, spline_position > 1.0f ? 1.0f : spline_position, &ahead,
                              NULL, NULL, 0);
-            NUVEC lateral;
-            NuVecRotateY(&lateral, &v001, yaw);
-            GunshipANorm = lateral;
-            NuVecRotateY(&lateral, &lateral, 0x4000);
-            NUVEC offset = {0.0f, 0.0f, 0.0f};
-            i32 player_count = 0;
-            for (i32 index = 0; index < 2; ++index) {
-                if (Player[index] != NULL) {
-                    f32 projection = (Player[index]->apiobj.pos_x - target.x) * lateral.x +
-                                     (Player[index]->apiobj.pos_z - target.z) * lateral.z;
-                    offset.x += lateral.x * projection;
-                    offset.z += lateral.z * projection;
+            NuVecRotateY(&direction, &v001, shared_yaw);
+            GunshipANorm = direction;
+            NuVecRotateY(&direction, &direction, 0x4000);
+            offset.x = offset.z = 0.0f;
+            i32 &player_count = shared_count;
+            player_count = 0;
+            for (shared_index = 0; shared_index < 2; ++shared_index) {
+                if (Player[shared_index] != NULL) {
+                    f32 projection = (Player[shared_index]->apiobj.pos_x - target.x) * direction.x +
+                                     (Player[shared_index]->apiobj.pos_z - target.z) * direction.z;
+                    offset.x += direction.x * projection;
+                    offset.z += direction.z * projection;
                     ++player_count;
                 }
             }
@@ -1448,14 +1435,15 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
 
     NUMTX orientation = {};
     shared_count = 0;
-    for (i32 i = 0; i < 2; i++) {
-        if (Player[i] != NULL && static_cast<i8>(Player[i]->apiobj.flags_low) < 0 && Player[i]->field_0x1086 == 4) {
+    for (shared_index = 0; shared_index < 2; shared_index++) {
+        if (Player[shared_index] != NULL && static_cast<i8>(Player[shared_index]->apiobj.flags_low) < 0 &&
+            Player[shared_index]->field_0x1086 == 4) {
             NuVecAdd(NUMTX_GET_ROW_VEC(&orientation, 0), NUMTX_GET_ROW_VEC(&orientation, 0),
-                     NUMTX_GET_ROW_VEC(&Player[i]->vehicle_orientation, 0));
+                     NUMTX_GET_ROW_VEC(&Player[shared_index]->vehicle_orientation, 0));
             NuVecAdd(NUMTX_GET_ROW_VEC(&orientation, 1), NUMTX_GET_ROW_VEC(&orientation, 1),
-                     NUMTX_GET_ROW_VEC(&Player[i]->vehicle_orientation, 1));
+                     NUMTX_GET_ROW_VEC(&Player[shared_index]->vehicle_orientation, 1));
             NuVecAdd(NUMTX_GET_ROW_VEC(&orientation, 2), NUMTX_GET_ROW_VEC(&orientation, 2),
-                     NUMTX_GET_ROW_VEC(&Player[i]->vehicle_orientation, 2));
+                     NUMTX_GET_ROW_VEC(&Player[shared_index]->vehicle_orientation, 2));
             shared_count++;
         }
     }
@@ -1494,8 +1482,8 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
     if (camera->judder_time > 0.0f) {
         camera->judder_time -= FRAMETIME;
         if (camera->judder_time > 0.0f) {
-            i32 degrees = (static_cast<i32>(camera->judder_duration / 0.333f) + 1) * 360;
-            i32 phase = static_cast<i32>(((degrees * 0x10000) / 360) *
+            shared_index = (static_cast<i32>(camera->judder_duration / 0.333f) + 1) * 360;
+            i32 phase = static_cast<i32>(((shared_index * 0x10000) / 360) *
                                          ((camera->judder_duration - camera->judder_time) / camera->judder_duration));
             f32 amount = (camera->judder_time / camera->judder_duration) *
                          ((546.0f * camera->judder_duration) * NU_SIN_LUT(phase));
@@ -1523,8 +1511,8 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
         player->combo_input_timer > 0.0f && Cheat_IsOn(0x14))
         camera_shake = 0.6f;
     else {
-        for (i32 i = 0; i < 2; i++) {
-            GameObject_s *object = Player[i];
+        for (shared_index = 0; shared_index < 2; shared_index++) {
+            GameObject_s *object = Player[shared_index];
             if (object != NULL && static_cast<i8>(object->apiobj.flags_low) < 0) {
                 if (WORLD->current_level == DEATHSTARBATTLED_LDATA &&
                     ObjInNarrowSock(object, WORLD->sock_sys, WORLD->level_idx)) {
@@ -1562,7 +1550,7 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                 i32 was_blocked = (object->field_0xefe >> 3) & 1;
                 bool changed = false;
                 if ((GameTimer.update_count & 1) == i) {
-                    NUVEC sample;
+                    NUVEC &sample = player_focus[0];
                     sample.x = 0.0f;
                     sample.y = 0.0f;
                     sample.z = (qrand() * (1.0f / 65535.0f)) * object->apiobj.field_0x1dc;
@@ -1570,7 +1558,7 @@ void MoveGameCamera(GAMECAMERA_s *camera) {
                     sample.y *= object->apiobj.field_0x1e0 / object->apiobj.field_0x1dc;
                     NuVecRotateY(&sample, &sample, qrand());
                     NuVecAdd(&sample, &sample, &object->apiobj.collision_position);
-                    NUVEC ray;
+                    NUVEC &ray = player_positions[0];
                     NuVecSub(&ray, &sample, &GameCam->pos);
                     i32 blocked = GameRayCast(&GameCam->pos, &ray, 0.0f, 0x1f) & 1;
                     object->field_0xefe = (object->field_0xefe & ~8) | (blocked << 3);

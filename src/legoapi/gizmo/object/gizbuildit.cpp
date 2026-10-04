@@ -794,6 +794,8 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
         gizhopsfxwait -= FRAMETIME;
     }
 
+    NUVEC displacement, reward_direction, finish_position, axis, centre, target;
+    NUMTX matrix;
     GIZBUILDIT_s *current = buildit_sys->buildits;
     for (i32 index = 0; index < buildit_sys->count; ++index, ++current) {
         GIZBUILDIT_s &buildit = *current;
@@ -808,20 +810,18 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
             if (buildit.step_timer >= BUILDIT_FINISH_DURATION) {
                 Hint_SetComplete(LEGOHINT_BUILD);
                 GizBuildIt_Finish(&buildit);
-                NUVEC effect_position;
-                NuVecAdd(&effect_position, &buildit.position, &buildit.effect_position);
-                GameAudio_PlaySfx(BUILDIT_SFX_COMPLETE, &effect_position, 0, 0);
+                NuVecAdd(&finish_position, &buildit.position, &buildit.effect_position);
+                GameAudio_PlaySfx(BUILDIT_SFX_COMPLETE, &finish_position, 0, 0);
                 NewRumbleAllPlayers(0.75f, 0.1f, 0, 0);
                 GameCam_Judder(GameCam, -0.4f, 0, NULL);
                 if ((buildit.field_0x83 & GIZBUILDIT_RUNTIME_REWARD_RELEASED) == 0) {
                     buildit.field_0x83 |= GIZBUILDIT_RUNTIME_REWARD_RELEASED;
                     const i32 hearts = ReleaseHearts();
                     if (buildit.field_0x5e != 0 || hearts != 0) {
-                        NUVEC direction;
-                        NuVecRotateX(&direction, &v010, static_cast<u16>(buildit.field_0x60));
-                        NuVecRotateY(&direction, &direction, static_cast<u16>(buildit.field_0x62));
-                        AddPickups(static_cast<u16>(buildit.field_0x5e), hearts, 0, 0, &effect_position, &direction,
-                                   2.0f, -1, 1.75f, 2000000.0f, NULL, 1, 0, true);
+                        NuVecRotateX(&reward_direction, &v010, static_cast<u16>(buildit.field_0x60));
+                        NuVecRotateY(&reward_direction, &reward_direction, static_cast<u16>(buildit.field_0x62));
+                        AddPickups(static_cast<u16>(buildit.field_0x5e), hearts, 0, 0, &finish_position,
+                                   &reward_direction, 2.0f, -1, 1.75f, 2000000.0f, NULL, 1, 0, true);
                     }
                 }
                 if (buildit.blowup_type != -1) {
@@ -835,10 +835,14 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
             for (i32 piece_index = 0; piece_index < buildit.anim_object_count; ++piece_index) {
                 GAMEANIMOBJ_s *piece = buildit.anim_objects[piece_index];
                 GIZBUILDITANIMDATA_s *piece_data = static_cast<GIZBUILDITANIMDATA_s *>(piece->object_data);
-                NUVEC position = buildit.linked_buildit != NULL ? *NUMTX_GET_ROW_VEC(&piece_data->end_mtx, 3)
-                                                                : *NuSpecialGetPos(&piece->special);
+                if (buildit.linked_buildit != NULL) {
+                    finish_position.x = piece_data->end_mtx.m30;
+                    finish_position.y = piece_data->end_mtx.m31;
+                    finish_position.z = piece_data->end_mtx.m32;
+                } else {
+                    finish_position = *NuSpecialGetPos(&piece->special);
+                }
                 const f32 offset = 0.2f * NU_SIN_LUT(32768.0f * finish_progress);
-                NUVEC displacement;
                 if ((buildit.state_flags & GIZBUILDIT_STATE_ROTATING_WOBBLE) != 0) {
                     displacement.x = 0.0f;
                     displacement.y = 0.0f;
@@ -851,11 +855,11 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
                     displacement.y = offset;
                     displacement.z = 0.0f;
                 }
-                NuVecAdd(&position, &position, &displacement);
+                NuVecAdd(&finish_position, &finish_position, &displacement);
                 if (buildit.linked_buildit != NULL) {
-                    *NUMTX_GET_ROW_VEC(&piece_data->draw_mtx, 3) = position;
+                    *NUMTX_GET_ROW_VEC(&piece_data->draw_mtx, 3) = finish_position;
                 } else {
-                    NuSpecialSetDrawPos(&piece->special, &position);
+                    NuSpecialSetDrawPos(&piece->special, &finish_position);
                 }
             }
         } else if (buildit.build_state == GIZBUILDIT_BUILD_IDLE) {
@@ -864,9 +868,9 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
     do {                                                                                                               \
         const f32 previous_step_timer = buildit.step_timer;                                                            \
         buildit.step_timer -= FRAMETIME;                                                                               \
-        GAMEANIMOBJ_s *piece = buildit.anim_objects[buildit.built_object_count];                                       \
                                                                                                                        \
-        if (automatic ? buildit.step_timer > 0.0f : !(buildit.step_timer <= 0.0f)) {                                   \
+        if (!(buildit.step_timer <= 0.0f)) {                                                                           \
+            GAMEANIMOBJ_s *piece = buildit.anim_objects[buildit.built_object_count];                                   \
             if (previous_step_timer == buildit.step_duration) {                                                        \
                 NUVEC *position = NuSpecialGetDrawPos(&piece->special);                                                \
                 const i16 debris_type = GizBuilditGDeb[qrand() / 0x2aab];                                              \
@@ -880,6 +884,7 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
             goto idle_wobble;                                                                                          \
         }                                                                                                              \
                                                                                                                        \
+        GAMEANIMOBJ_s *piece = buildit.anim_objects[buildit.built_object_count];                                       \
         if (buildit.linked_buildit != NULL) {                                                                          \
             GIZBUILDITANIMDATA_s *piece_data = static_cast<GIZBUILDITANIMDATA_s *>(piece->object_data);                \
             piece_data->draw_mtx = piece_data->end_mtx;                                                                \
@@ -940,7 +945,6 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
                 ADVANCE_BUILDIT_PIECE(false, builder);
             } else {
                 if (GizBuildit_AutoBuildPosFn != NULL) {
-                    NUVEC centre;
                     u16 facing;
                     if (GizBuildit_AutoBuildPosFn(world, &buildit.start_position, &centre, &facing) != 0) {
                         f32 radius;
@@ -956,13 +960,11 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
                             radius = 0.5f - progress * 0.3f;
                         }
                         const u16 angle_step =
-                            buildit.anim_object_count != 0
-                                ? static_cast<i32>(65536.0f / static_cast<f32>(buildit.anim_object_count))
-                                : 0;
+                            static_cast<i32>(NuFdiv(65536.0f, static_cast<f32>(buildit.anim_object_count)));
                         for (i32 piece_index = buildit.anim_object_count - 1; piece_index >= buildit.built_object_count;
                              --piece_index) {
                             angle += angle_step;
-                            NUVEC target = centre;
+                            target = centre;
                             target.x += radius * NU_COS_LUT(angle);
                             target.z += radius * NU_SIN_LUT(angle);
                             GAMEANIMOBJ_s *orbit_piece = buildit.anim_objects[piece_index];
@@ -1001,7 +1003,11 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
                 continue;
             GAMEANIMOBJ_s *piece = buildit.anim_objects[piece_index];
             GIZBUILDITANIMDATA_s *data = static_cast<GIZBUILDITANIMDATA_s *>(piece->object_data);
-            NUMTX matrix = buildit.linked_buildit != NULL ? data->start_mtx : *NuSpecialGetMtx(&piece->special);
+            if (buildit.linked_buildit != NULL) {
+                matrix = data->start_mtx;
+            } else {
+                matrix = *NuSpecialGetMtx(&piece->special);
+            }
             if (data->wobble_time > 0.0f) {
                 data->wobble_time -= FRAMETIME;
                 if (data->wobble_time <= 0.0f && gizhopsfxwait <= 0.0f &&
@@ -1022,12 +1028,11 @@ static void GizBuildIts_LateUpdate(void *world_ptr, void *data, float) {
                 i32 angle = static_cast<i32>(3640.0f * NU_SIN_LUT((1.0f - phase) * 65536.0f));
                 if ((data->wobble_axis & 1) != 0)
                     angle = -angle;
-                NUVEC axis, normal;
 #define ROTATE_BUILDIT_WOBBLE(axis_name)                                                                               \
     do {                                                                                                               \
         NuMtxGet##axis_name##Axis(&matrix, &axis);                                                                     \
-        NuVecNorm(&normal, &axis);                                                                                     \
-        const f32 vertical = fabsf(NuVecDot(&normal, &v010));                                                          \
+        NuVecNorm(&target, &axis);                                                                                     \
+        const f32 vertical = fabsf(NuVecDot(&target, &v010));                                                          \
         const f32 factor = 1.0f - (1.0f - NU_SIN_LUT(vertical * 16384.0f + 16384.0f)) * vertical;                      \
         NuMtxPreRotate##axis_name(&matrix, static_cast<i32>(static_cast<f32>(angle) * factor));                        \
     } while (0)

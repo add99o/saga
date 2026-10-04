@@ -11,7 +11,6 @@
 #include <math.h>
 struct nuvisiboxtree_s;
 struct nuvisiboxtreenode_s;
-OcclusionManager g_OcclusionManager;
 NUMTL *OccluderSet::ms_pZOnlyMtl3D;
 NUMTL *OccluderSet::ms_pZOnlyMtl2D;
 NUMTL *OccluderSet::ms_pAlphaMtl2D;
