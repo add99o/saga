@@ -85,7 +85,7 @@ static i32 AddElementR(nuqthdr_s *header, i32 index, nuqtdim_s *bounds, nuqtdim_
             return InsertData(header, index, item);
         }
         u8 *old_item = old_data;
-        for (i32 i = 0; i < entry->count; ++i) {
+        for (i32 i = 0; i < header->entries[index].count; ++i) {
             // The original tests the incoming item's bounds when redistributing
             // existing data, and uses the saved data pointer for each recursive item.
             if (ElOverlaps(&q0, item_bounds))
@@ -98,8 +98,8 @@ static i32 AddElementR(nuqthdr_s *header, i32 index, nuqtdim_s *bounds, nuqtdim_
                 result = AddElementR(header, entry->children[3], &q3, item_bounds, old_item, depth);
             old_item += header->element_size;
         }
-        RemoveData(header, reinterpret_cast<char *>(old_data), entry->count);
-        entry->count = -1;
+        RemoveData(header, reinterpret_cast<char *>(old_data), header->entries[index].count);
+        header->entries[index].count = -1;
     }
     if (entry->count < 0) {
         if (ElOverlaps(&q0, item_bounds) && entry->children[0] != 0)

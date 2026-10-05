@@ -9,6 +9,7 @@
 
 #include "nu2api/nu3d/android/nutex_android.h"
 
+class NuCriticalSection;
 struct nugscn_s;
 enum nutexturetype_e : i32;
 

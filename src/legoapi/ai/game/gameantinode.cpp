@@ -265,7 +265,6 @@ GAMEANTINODE_s *GameAntinode_UpdateAntiNodeUsingData(GAMEANTINODESYS_s *system, 
     return node;
 }
 
-
 void AISysDrawAntinode_Circle(AIANTINODE_s *node, u32 colour) {
     LocaledbitsDrawSolidCircleXY(&node->position, node->radius, node->min_y, node->max_y, colour, 0, 16);
 }

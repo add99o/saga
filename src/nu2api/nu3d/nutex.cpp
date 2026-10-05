@@ -6,6 +6,7 @@
 #include "decomp.h"
 #include "nu2api/nu3d/android/nutex_android.h"
 #include "nu2api/nucore/common.h"
+#include "nu2api/nucore/nuthread.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nucore/nuthread.h"
 #include <pthread.h>

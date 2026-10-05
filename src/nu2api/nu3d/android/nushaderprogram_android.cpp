@@ -10,6 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Original Pair type identity only; its element layout is not used here.
+// These two named empty vectors require only the canonical scalar lifetime.
+template <typename First, typename Second> struct Pair;
+
+static NuVector<Pair<const u8 *, u32>> vertexShaders;
+static NuVector<Pair<const u8 *, u32>> pixelShaders;
+
 // Original 0x2a56a0, 81 bytes.
 bool LinkShaderProgram(u32 program) {
     glLinkProgram(program);
@@ -94,11 +101,6 @@ template <typename First, typename Second> struct Pair {
     First first;
     Second second;
 };
-// Retail retains these shader-cache vectors and registers both destructors,
-// even though its shader-creation path does not populate them.
-static NuVector<Pair<const u8 *, u32>> vertexShaders;
-static NuVector<Pair<const u8 *, u32>> pixelShaders;
-
 static void BuildRegisterIndexToUniformLocationMapping(NUSHADERPROGRAM *result, const char *vertex_source,
                                                        const char *fragment_source) {
     static char uniformName[256];

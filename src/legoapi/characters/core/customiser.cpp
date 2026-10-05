@@ -396,7 +396,7 @@ void Customiser_LoadAll(CUSTOMISER *customiser, WORLDINFO_s *world) {
             world->customiser_resources[category_index] = NULL;
         } else {
             CUSTOMPIECECATEGORY *category = customiser->categories[category_index];
-            if (category->name == NULL) {
+            if (category == NULL || category->name == NULL) {
                 world->customiser_resources[category_index] = NULL;
             } else {
                 const usize bytes = piece_count * sizeof(CUSTOMPIECERESOURCE);
@@ -443,11 +443,11 @@ void Customiser_LoadAll(CUSTOMISER *customiser, WORLDINFO_s *world) {
             char path[0x80];
             NuStrCpy(piece_name, piece->name);
             NuStrCpy(path, "chars\\weirdo\\");
-            NuStrCat(path, category->name);
+            NuStrCat(path, customiser->categories[category_index]->name);
             NuStrCat(path, "\\");
             NuStrCat(path, piece_name);
 
-            if (category->uses_special != 0) {
+            if (customiser->categories[category_index]->uses_special != 0) {
                 resource->scene = world->customiser_shared_scenes[category_index];
                 if (resource->scene == NULL) {
                     NuStrCat(path, ".gsc");
@@ -460,7 +460,7 @@ void Customiser_LoadAll(CUSTOMISER *customiser, WORLDINFO_s *world) {
                 continue;
             }
 
-            if (category->material_tag == -1) {
+            if (customiser->categories[category_index]->material_tag == -1) {
                 continue;
             }
             PLATFORMS_SUPPORTED platform = NuPlatform::Get()->GetCurrentPlatform();

@@ -857,6 +857,7 @@ static i32 *GizForces_GetBestBoltTarget(GIZMOSET *set, float *result_distance, N
     if (directional != 0 && (bolt_type->field_60 & 0x20000) != 0) {
         aim.y = 0.0f;
         NuVecNorm(&aim, &aim);
+        system = static_cast<GIZFORCESYS_s *>(set->unknown);
     }
     u16 hit_test_gizmo_count = system->hit_test_gizmo_count;
     if (hit_test_gizmo_count == 0) {
@@ -1375,6 +1376,11 @@ static i32 GizForces_Load(void *world_ptr, void *data) {
             if (GizmoFileReadName(sfx_name) != 0) {
                 force.stop_sfx_id = static_cast<i16>(GetSfxId(sfx_name));
             }
+        }
+        if (version == 14) {
+            force.start_sfx_id = -1;
+            force.loop_sfx_id = -1;
+            force.stop_sfx_id = -1;
         }
 
         if ((force.config_flags & GIZFORCE_CONFIG_ALONG_SOCKET) != 0) {
