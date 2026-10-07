@@ -1141,7 +1141,9 @@ void DebrisProcessGeneration() {
         }
         key->cutoff_distance = CameraEmitterDistance(&key->position);
         if (key->field_184 != 0) {
-            if (key->cutoff_distance < effect->cut_on ||
+            const f32 near_distance = *reinterpret_cast<f32 *>(&effect->fields_030[4]);
+            const i16 render_group = *reinterpret_cast<i16 *>(key->fields_2f0);
+            if (key->cutoff_distance < near_distance ||
                 (effect->clip_extent > 0.0f && key->cutoff_distance > effect->clip_extent)) {
                 if (effect->use_explicit_clip_box == 0 && effect->time_group != 4)
                     key->field_184 = 0;
@@ -1239,7 +1241,9 @@ void DebrisProcessGeneration() {
             emission_time += emission_interval;
         }
         if (key->field_184 == 0) {
-            if (key->field_2f4 != 0 && key->trigger_second == -1 && key->cutoff_distance >= effect->cut_on &&
+            const f32 near_distance = *reinterpret_cast<f32 *>(&effect->fields_030[4]);
+            const i16 render_group = *reinterpret_cast<i16 *>(key->fields_2f0);
+            if (key->field_2f4 != 0 && key->trigger_second == -1 && key->cutoff_distance >= near_distance &&
                 (effect->clip_extent == 0.0f || key->cutoff_distance <= effect->clip_extent) &&
                 (debris_render_group == 0 || key->render_group == 0 || debris_render_group == key->render_group) &&
                 (static_cast<i8>(key->field_1da) & debris_detail_level) != 0)

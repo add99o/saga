@@ -51,7 +51,6 @@ void NuSoundStreamer::RequestCue(NuSoundStreamingSample *streaming_sample, bool 
     element.loop = loop;
     element.start_offset = start_offset;
     element.buffer = NULL;
-    element.weak_ptr.Set(NULL);
     element.weak_flag = weak_flag;
 
     this->queue1.Push(element);
@@ -84,7 +83,6 @@ void NuSoundStreamer::RequestClose(NuSoundStreamingSample *sample) {
     element.loop = false;
     element.start_offset = 0.0f;
     element.buffer = NULL;
-    element.weak_ptr.Set(NULL);
     element.weak_flag = false;
 
     this->queue1.Push(element);
@@ -101,7 +99,6 @@ void NuSoundStreamer::RequestReCue(NuSoundStreamingSample *sample, bool loop, f3
     element.loop = loop;
     element.start_offset = start_offset;
     element.buffer = NULL;
-    element.weak_ptr.Set(NULL);
     element.weak_flag = false;
 
     this->queue1.Push(element);
@@ -116,7 +113,6 @@ void NuSoundStreamer::ShutdownThread() {
     element.loop = false;
     element.start_offset = 0.0f;
     element.buffer = NULL;
-    element.weak_ptr.Set(NULL);
     element.weak_flag = false;
 
     this->queue1.Push(element);
@@ -146,7 +142,12 @@ void NuSoundStreamer::ThreadFunc(void *self) {
     do {
         streamer->semaphore.Wait();
 
-        QueueElement element = streamer->queue2.Empty() ? streamer->queue1.Pop() : streamer->queue2.Pop();
+        QueueElement element{};
+        if (streamer->queue2.Empty()) {
+            element = streamer->queue1.Pop();
+        } else {
+            element = streamer->queue2.Pop();
+        }
 
         switch (element.message) {
             case QueueElement::Message::OPEN_SAMPLE:

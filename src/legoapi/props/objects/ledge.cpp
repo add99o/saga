@@ -97,10 +97,8 @@ void LedgeTerrain_MoveCode(GameObject_s *object) {
             object->character_context = -1;
             return;
         }
-        if (!object->field_0x7a3 && object->context_animation == LEGOACT_LEDGE_GRAB) {
-            if (AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0))
-                object->context_animation_timer += FRAMETIME;
-        } else {
+        if (object->field_0x7a3 || object->context_animation != LEGOACT_LEDGE_GRAB ||
+            AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0)) {
             object->context_animation_timer += FRAMETIME;
         }
         if (!object->field_0x7a3 && object->context_animation_timer >= object->field_0x768)

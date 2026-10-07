@@ -26,6 +26,7 @@
 #include "nu2api/nu3d/nupostresources.h"
 #include "nu2api/nu3d/android/nurndr_android.h"
 #include "nu2api/nuandroid/ios_graphics.h"
+#include "gamelib/util/gamelib_util_types.h"
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Post-effect globals
@@ -64,24 +65,31 @@ static NuMotionAccumFilter *motionAccumFilter;
 static NuSpeedBlurFilter *speedBlurFilter;
 static NuCopyFilter *copyFilter;
 static u8 filterMem[0x800];
-static u8 *filterCursor = filterMem;
 static nueffecttex_s *g_backBufferCopy;
 u32 g_posteffect_shaderEngineFlag;
 
-template <typename T> static T *AllocatePostFilter() {
-    T *filter = reinterpret_cast<T *>(filterCursor);
-    filterCursor += sizeof(T);
-    memset(filter, 0, sizeof(T));
-    return new (filter) T;
-}
-
 // Original proxy descriptor is 12 bytes, including two one-byte flags.
 
+static NuDataPort<nuframebuffer_s *> portOutFramebuffer;
 static NuProxyBuffer proxyColorBuffer;
 static NuProxyBuffer proxyNormalBuffer;
 static NuProxyBuffer proxyVelocityBuffer;
-static NuProxyBuffer proxyDepthBuffer;
 static NuProxyBuffer proxyDepthRTBuffer;
+static NuProxyBuffer proxyDepthBuffer;
+static NuDataPort<NuProxyAttachment *> portMainNormalBuffer;
+static NuDataPort<NuProxyAttachment *> portMainDepthBuffer;
+static NuProxyBuffer proxyMainNormalBuffer;
+static NuProxyBuffer proxyMainDepthBuffer;
+static NuDataPort<NuProxyAttachment *> portMotionVelocityBuffer;
+static NuProxyBuffer proxyMotionVelocityBuffer;
+static VirtualStackAllocator filterAllocator(filterMem, sizeof(filterMem));
+
+template <typename T> static T *AllocatePostFilter() {
+    T *filter = reinterpret_cast<T *>(filterAllocator.cursor);
+    filterAllocator.cursor += sizeof(T);
+    memset(filter, 0, sizeof(T));
+    return new (filter) T;
+}
 
 static constexpr i32 kProxyKind_Color = 0;
 static constexpr i32 kProxyKind_Normal = 1;
@@ -230,7 +238,7 @@ extern "C" void NuPostEffectDestroy() {
     }
     NuPostFilterGen::destroySharedTextureResources();
     NuPostFilterGen::destroySharedResources();
-    filterCursor = filterMem;
+    filterAllocator.cursor = filterMem;
 }
 
 extern "C" void NuPostEffectRender(nuframebuffer_s *output) {
@@ -238,22 +246,27 @@ extern "C" void NuPostEffectRender(nuframebuffer_s *output) {
     if (output == NULL)
         output = NuFramebufferGetObject(1);
     NuFramebufferGetObject(0);
-    nueffecttex_s *colour = NuFramebufferGetAttachedTex(bound, 0, NULL, NULL);
+    nueffecttex_s *color = NuFramebufferGetAttachedTex(bound, 0, NULL, NULL);
     nueffecttex_s *normal = NuFramebufferGetAttachedTex(bound, 1, NULL, NULL);
     nueffecttex_s *velocity = NuFramebufferGetAttachedTex(bound, 2, NULL, NULL);
     nueffecttex_s *depth_rt = NuFramebufferGetAttachedTex(bound, 2, NULL, NULL);
     nueffecttex_s *depth = NuFramebufferGetAttachedTex(bound, 4, NULL, NULL);
     NuFramebufferResolveMultisample(0);
-#define SET_RESOLVED_PROXY(proxy, attachment, value)                                                                   \
-    proxy.texture = value;                                                                                             \
-    proxy.kind = attachment;                                                                                           \
-    proxy.enabled = proxy.resolved = true
-    SET_RESOLVED_PROXY(proxyColorBuffer, 0, colour);
-    SET_RESOLVED_PROXY(proxyNormalBuffer, 1, normal);
-    SET_RESOLVED_PROXY(proxyVelocityBuffer, 2, velocity);
-    SET_RESOLVED_PROXY(proxyDepthRTBuffer, 2, depth_rt);
-    SET_RESOLVED_PROXY(proxyDepthBuffer, 4, depth);
-#undef SET_RESOLVED_PROXY
+    proxyColorBuffer.texture = color;
+    proxyColorBuffer.kind = 0;
+    proxyColorBuffer.enabled = proxyColorBuffer.resolved = true;
+    proxyNormalBuffer.texture = normal;
+    proxyNormalBuffer.kind = 1;
+    proxyNormalBuffer.enabled = proxyNormalBuffer.resolved = true;
+    proxyVelocityBuffer.texture = velocity;
+    proxyVelocityBuffer.kind = 2;
+    proxyVelocityBuffer.enabled = proxyVelocityBuffer.resolved = true;
+    proxyDepthRTBuffer.texture = depth_rt;
+    proxyDepthRTBuffer.kind = 2;
+    proxyDepthRTBuffer.enabled = proxyDepthRTBuffer.resolved = true;
+    proxyDepthBuffer.texture = depth;
+    proxyDepthBuffer.kind = 4;
+    proxyDepthBuffer.enabled = proxyDepthBuffer.resolved = true;
     NuPostFilterGen::portColorBuffer.set(&proxyColorBuffer);
     NuPostFilterGen::portNormalBuffer.set(&proxyNormalBuffer);
     NuPostFilterGen::portVelocityBuffer.set(&proxyVelocityBuffer);
@@ -261,17 +274,26 @@ extern "C" void NuPostEffectRender(nuframebuffer_s *output) {
     NuPostFilterGen::portDepthBuffer.set(&proxyDepthBuffer);
     NuPostFilterGen *filters[5];
     i32 count = 0;
-#define APPEND_POST_FILTER(filter)                                                                                     \
-    if (filter != NULL && filter->isEnabled()) {                                                                       \
-        filters[count++] = filter;                                                                                     \
-        NuFramebufferAttachTex2D(filter->getInputFbo(), 0, colour, 0);                                                 \
+    if (speedBlurFilter != NULL && speedBlurFilter->isEnabled()) {
+        filters[count++] = speedBlurFilter;
+        NuFramebufferAttachTex2D(speedBlurFilter->getInputFbo(), 0, color, 0);
     }
-    APPEND_POST_FILTER(speedBlurFilter);
-    APPEND_POST_FILTER(deferredFilter);
-    APPEND_POST_FILTER(mainFilter);
-    APPEND_POST_FILTER(motionFilter);
-    APPEND_POST_FILTER(motionAccumFilter);
-#undef APPEND_POST_FILTER
+    if (deferredFilter != NULL && deferredFilter->isEnabled()) {
+        filters[count++] = deferredFilter;
+        NuFramebufferAttachTex2D(deferredFilter->getInputFbo(), 0, color, 0);
+    }
+    if (mainFilter != NULL && mainFilter->isEnabled()) {
+        filters[count++] = mainFilter;
+        NuFramebufferAttachTex2D(mainFilter->getInputFbo(), 0, color, 0);
+    }
+    if (motionFilter != NULL && motionFilter->isEnabled()) {
+        filters[count++] = motionFilter;
+        NuFramebufferAttachTex2D(motionFilter->getInputFbo(), 0, color, 0);
+    }
+    if (motionAccumFilter != NULL && motionAccumFilter->isEnabled()) {
+        filters[count++] = motionAccumFilter;
+        NuFramebufferAttachTex2D(motionAccumFilter->getInputFbo(), 0, color, 0);
+    }
     g_boundShader = 0;
     glUseProgram(0);
     g_currentShaderProgram = NULL;

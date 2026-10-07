@@ -24,10 +24,10 @@ void LevelStreaming_Update(WORLDINFO_s *world) {
 
     other_level = -1;
     if (no_more_loads == 0) {
-        CUTINFO *cut = static_cast<CUTINFO *>(CutStopInfo);
+        CUTINFO *cut;
         if (other_level_override != -1) {
             other_level = other_level_override;
-        } else if (CUTSTOPGAME != 0 && cut != NULL && cut->skip_level != -1 &&
+        } else if (CUTSTOPGAME != 0 && (cut = static_cast<CUTINFO *>(CutStopInfo)) != NULL && cut->skip_level != -1 &&
                    LDataList[cut->skip_level].area_index == LDataList[world->level_idx].area_index) {
             other_level = cut->skip_level;
         } else if ((world->current_level->flags & (LEVEL_INTRO | LEVEL_MIDTRO | LEVEL_OUTRO)) == 0) {
@@ -49,9 +49,9 @@ void LevelStreaming_Update(WORLDINFO_s *world) {
 
                 LEVELLOAD_s *load = LevelLoad;
                 i32 i;
-                for (i = 0; i < LevelLoadCount; ++i, ++load) {
-                    if (load->level == world->level_idx &&
-                        (((load->flags & 1) != 0 && InStory() != 0) || ((load->flags & 2) != 0 && InStory() == 0))) {
+                for (i = 0; i < LevelLoadCount; ++i) {
+                    if (LevelLoad[i].level == world->level_idx && (((LevelLoad[i].flags & 1) != 0 && InStory() != 0) ||
+                                                                   ((LevelLoad[i].flags & 2) != 0 && InStory() == 0))) {
                         break;
                     }
                 }
@@ -62,7 +62,7 @@ void LevelStreaming_Update(WORLDINFO_s *world) {
                         NUVEC *points = world->camera_splines[LEGOSPL_SPLIT]->pts;
                         if (InsideLineXZ(position.x, position.z, points[0].x, points[0].z, points[1].x, points[1].z) !=
                             0) {
-                            other_level = load->first_level;
+                            other_level = LevelLoad[i].first_level;
                         } else {
                             other_level = load->second_level;
                         }

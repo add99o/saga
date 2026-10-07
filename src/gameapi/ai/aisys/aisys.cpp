@@ -68,223 +68,6 @@ void LetGoOfBalloon(GameObject_s *object);
 void GizmoPickup_TurnOnPickup(GIZMOPICKUP_s *pickup);
 void SetForceBack(GameObject_s *object, NUVEC *position, f32 radius, i32 type);
 void AddGameMsgCount(NUVEC *position, i32 count, i32 total, u8 red, u8 green, u8 blue, f32 duration);
-extern "C" void AISysFindRoute(AIPACKET *packet) {
-    AIPATH *path = packet->path_info.path;
-    if (path->route_count == 0 || packet->path_info.connection == NULL) {
-        return;
-    }
-
-    const u16 valid_routes = packet->available_routes & packet->path_info.connection->route_mask;
-    if (valid_routes == 0) {
-        return;
-    }
-
-    i32 route = packet->next_route;
-    if (route >= path->route_count) {
-        route = 0;
-    }
-    const i32 first_route = route;
-    do {
-        if (((static_cast<u64>(valid_routes) >> route) & 1) != 0) {
-            packet->current_route = static_cast<u8>(route);
-            packet->next_route = static_cast<u8>(route + 1);
-            return;
-        }
-        ++route;
-        if (route >= path->route_count) {
-            route = 0;
-        }
-    } while (route != first_route);
-}
-
-extern "C" void AISysCharacterSetPathCnx(AIPACKET *packet, NUVEC *position, AIPATHCNX *connection, i32 direction) {
-    if (connection == NULL || packet->owner == NULL) {
-        packet->path_info.connection = connection;
-        packet->current_route = 0xff;
-        packet->next_route = 0;
-        return;
-    }
-
-    if (packet->path_info.connection == connection && packet->path_info.direction == direction &&
-        (packet->path_info.flags & (AIPATHINFO_FLAG_ON_PATH | AIPATHINFO_FLAG_ROUTE_CHECKED)) !=
-            AIPATHINFO_FLAG_ON_PATH) {
-        return;
-    }
-
-    const u32 connection_flags = connection->traversal_flags[direction];
-    if (connection_flags != 0) {
-        if ((connection_flags & AIPATH_CONNECTION_FLAG_RESELECT_ROUTE) != 0) {
-            AISysFindRoute(packet);
-            return;
-        }
-        if ((packet->capabilities & connection_flags) == 0) {
-            return;
-        }
-    }
-
-    if (packet->path_info.connection != connection || packet->path_info.direction != direction) {
-        packet->path_info.direction = static_cast<u8>(direction);
-        packet->path_connection_state = 0;
-        packet->path_info.connection = connection;
-
-        AIPATHNODE &node = packet->path_info.path->nodes[connection->node_indices[0]];
-        NUVEC rotated;
-        NUVEC delta;
-        delta.x = position->x - node.position.x;
-        delta.z = position->z - node.position.z;
-        NuVecRotateY(&rotated, &delta, -connection->rotation);
-        packet->path_info.dist = rotated.z / connection->horizontal_distance;
-        packet->path_info.width = rotated.x;
-        packet->path_info.flags &= static_cast<u8>(~AIPATHINFO_FLAG_ROUTE_CHECKED);
-    }
-
-    const u8 route_state = packet->path_info.flags & (AIPATHINFO_FLAG_ON_PATH | AIPATHINFO_FLAG_ROUTE_CHECKED);
-    if (route_state == AIPATHINFO_FLAG_ON_PATH) {
-        if (packet->current_route != 0xff &&
-            ((static_cast<u64>(packet->path_info.connection->route_mask) >> packet->current_route) & 1) == 0) {
-            packet->current_route = 0xff;
-        }
-        if (packet->current_route == 0xff) {
-            AISysFindRoute(packet);
-        }
-        packet->path_info.flags |= AIPATHINFO_FLAG_ROUTE_CHECKED;
-    }
-}
-
-extern "C" void AISysCharacterSetPath(AIPACKET *packet, AIPATH *path) {
-    if (packet->path_info.path == path) {
-        return;
-    }
-
-    memset(&packet->path_info, 0, sizeof(packet->path_info));
-    packet->path_info.path = path;
-    packet->path_info.path_index = 0xff;
-    packet->available_routes = 0;
-    packet->inside_path_node = -1;
-    packet->current_route = 0xff;
-    packet->next_route = 0;
-    packet->goal_path_node = NULL;
-
-    if (path == NULL || path->route_count == 0) {
-        return;
-    }
-
-    const u64 character_mask = packet->character_type_mask;
-    i32 route_index = 0;
-    do {
-        AIPATHROUTE &route = path->routes[route_index];
-        if ((route.character_masks[0] & character_mask) != 0) {
-            packet->available_routes |= static_cast<u16>(static_cast<u64>(1) << route_index);
-        }
-        ++route_index;
-    } while (path->route_count > route_index);
-}
-
-extern "C" f32 AIPathNodeDistanceToPathNode(AIPATH *path, i32 start_node, i32 destination_node, i32 route_index,
-                                            u32 excluded_route_mask) {
-    if (path->route_matrix == NULL) {
-        return FLT_MAX;
-    }
-    if (start_node == destination_node) {
-        return 0.0f;
-    }
-    AIPATHNODE *nodes = path->nodes;
-    AIPATHNODE *node = &nodes[start_node];
-    f32 *cached_distance = NULL;
-    AIPATHROUTE *route = NULL;
-    if (excluded_route_mask == 0 && route_index == 0xff) {
-        if (node->distance_cache_nodes[0] == destination_node) {
-            return node->distance_cache[0];
-        }
-        if (node->distance_cache_nodes[1] == destination_node) {
-            return node->distance_cache[1];
-        }
-        node->distance_cache_nodes[1] = node->distance_cache_nodes[0];
-        node->distance_cache_nodes[0] = static_cast<u8>(destination_node);
-        nodes = path->nodes;
-        node->distance_cache[1] = node->distance_cache[0];
-        cached_distance = &node->distance_cache[0];
-        *cached_distance = 0.0f;
-    }
-    i32 node_index = node - nodes;
-    if (route_index != 0xff) {
-        route = &path->routes[route_index];
-        if (((static_cast<u64>(node->route_membership_mask) >> route_index) & 1) == 0) {
-            return FLT_MAX;
-        }
-    }
-
-    AIPATHNODE *destination = &nodes[destination_node];
-    AIPATHCNX *previous_connection = NULL;
-    f32 distance = 0.0f;
-    while (node != destination) {
-        i32 connection_index = 0xff;
-        if (route != NULL) {
-            if ((static_cast<u64>(destination->route_membership_mask) & (static_cast<u64>(1) << route_index)) != 0) {
-                u8 from = route->node_routes[node_index];
-                if (from < route->route_count && route->node_routes[destination_node] < route->route_count) {
-                    connection_index = route->route_nodes[from][route->node_routes[destination_node]];
-                }
-            } else {
-                f32 nearest = FLT_MAX;
-                for (i32 index = 0; index < route->exit_node_count; ++index) {
-                    f32 first =
-                        route->exit_nodes[index] == start_node
-                            ? 0.0f
-                            : AIPathNodeDistanceToPathNode(path, start_node, route->exit_nodes[index], route_index, 0);
-                    f32 second =
-                        route->exit_nodes[index] == destination_node
-                            ? 0.0f
-                            : AIPathNodeDistanceToPathNode(path, route->exit_nodes[index], destination_node, 0xff,
-                                                           static_cast<u32>(static_cast<u64>(1) << route_index));
-                    f32 candidate = first != FLT_MAX && second != FLT_MAX ? second + first : FLT_MAX;
-                    if (candidate < nearest) {
-                        nearest = candidate;
-                    }
-                }
-                if (nearest == FLT_MAX) {
-                    if (cached_distance != NULL) {
-                        *cached_distance = FLT_MAX;
-                    }
-                    return FLT_MAX;
-                }
-                distance += nearest;
-                break;
-            }
-        } else {
-            connection_index = path->route_matrix[node_index][destination_node];
-        }
-        if (connection_index == 0xff) {
-            if (cached_distance != NULL) {
-                *cached_distance = FLT_MAX;
-            }
-            return FLT_MAX;
-        }
-        AIPATHCNX *connection = node->connections[connection_index];
-        if (connection == NULL) {
-            return FLT_MAX;
-        }
-        if ((connection->route_mask & excluded_route_mask) != 0) {
-            if (cached_distance != NULL) {
-                *cached_distance = FLT_MAX;
-            }
-            return FLT_MAX;
-        }
-        if (connection == previous_connection) {
-            break;
-        }
-        node_index =
-            connection->node_indices[0] == node_index ? connection->node_indices[1] : connection->node_indices[0];
-        node = &nodes[node_index];
-        distance += connection->distance;
-        previous_connection = connection;
-    }
-    if (cached_distance != NULL) {
-        *cached_distance = distance;
-    }
-    return distance;
-}
-
 extern void CurrentStart(GameObject_s *object, i32 mode, i32 start);
 extern "C" void ComplexSockAngles(SOCKROT *angles);
 extern void oneAtOnce_SetInitDistPerRow(f32 distance);
@@ -1928,24 +1711,32 @@ extern void oneAtOnce_SetAttackersPerRow(i32);
 
 static i32 Action_SetAttackersAtOnce(AISYS *, AISCRIPTPROCESS *processor, AIPACKET *, char **params, i32 param_count,
                                      i32 first_time, f32) {
-    if (first_time && param_count != 0) {
-        for (i32 index = 0; index < param_count; ++index) {
-            char *value = NuStrIStr(params[index], "max");
-            if (value != NULL)
-                oneAtOnce_SetNumAttackers((i32)AIParamToFloat(processor, value + 4));
-        }
+    if (first_time == 0) {
+        return 1;
+    }
+    if (param_count == 0) {
+        return 1;
+    }
+    for (i32 index = 0; index < param_count; ++index) {
+        char *value = NuStrIStr(params[index], "max");
+        if (value != NULL)
+            oneAtOnce_SetNumAttackers((i32)AIParamToFloat(processor, value + 4));
     }
     return 1;
 }
 
 static i32 Action_SetAttackersPerRow(AISYS *, AISCRIPTPROCESS *processor, AIPACKET *, char **params, i32 param_count,
                                      i32 first_time, f32) {
-    if (first_time && param_count != 0) {
-        for (i32 index = 0; index < param_count; ++index) {
-            char *value = NuStrIStr(params[index], "num");
-            if (value != NULL)
-                oneAtOnce_SetAttackersPerRow((i32)AIParamToFloat(processor, value + 4));
-        }
+    if (first_time == 0) {
+        return 1;
+    }
+    if (param_count == 0) {
+        return 1;
+    }
+    for (i32 index = 0; index < param_count; ++index) {
+        char *value = NuStrIStr(params[index], "num");
+        if (value != NULL)
+            oneAtOnce_SetAttackersPerRow((i32)AIParamToFloat(processor, value + 4));
     }
     return 1;
 }
@@ -4494,16 +4285,22 @@ __used__ static i32 Action_SetStateArea(AISYS *sys, AISCRIPTPROCESS *processor, 
         const f32 distance_squared =
             difference.x * difference.x + difference.y * difference.y + difference.z * difference.z;
 
-        i32 matching_type = type_count == 0;
-        for (i32 type_index = 0; type_index < type_count; ++type_index) {
-            if (object->id == types[type_index]) {
-                matching_type = 1;
+        if (type_count != 0) {
+            i32 matching_type = 0;
+            for (i32 type_index = 0; type_index < type_count; ++type_index) {
+                if (object->id == types[type_index]) {
+                    matching_type = 1;
+                }
+            }
+            if (matching_type == 0) {
+                continue;
             }
         }
-        if (matching_type != 0 && range_squared > distance_squared) {
-            AIPACKET *object_packet = object->apiobj.ai;
-            object_packet->script_process.next_state = AIStateFind(state_name, object_packet->script_process.script);
+        if (!(range_squared > distance_squared)) {
+            continue;
         }
+        AIPACKET *object_packet = object->apiobj.ai;
+        object_packet->script_process.next_state = AIStateFind(state_name, object_packet->script_process.script);
     }
     return 1;
 }
@@ -4599,7 +4396,7 @@ __used__ static i32 Action_TurnOnPickup(AISYS *sys, AISCRIPTPROCESS *processor, 
                                         i32 param_4, i32 param_5, f32 param_6) {
     if (param_5 != 0 && param_4 > 0) {
         GIZMOPICKUP_s *pickup = NULL;
-        for (i32 index = 0; index < param_4; ++index) {
+        for (i32 index = 0; index != param_4; ++index) {
             char *value = NuStrIStr(params[index], "name=");
             if (value != NULL) {
                 pickup = GizmoPickup_FindByName(WORLD, value + NuStrLen("name="));
@@ -5509,9 +5306,11 @@ __used__ static i32 Action_AlwaysBackFlip(AISYS *sys, AISCRIPTPROCESS *processor
     if (packet != NULL && packet->owner != NULL && packet->owner->apiobj.objptr != NULL) {
         GameObject_s *object = packet->owner->apiobj.objptr;
         object->field_0xef9 |= 0x01;
-        for (i32 index = 0; index < param_4; ++index) {
-            if (NuStrICmp(params[index], "FALSE") == 0) {
-                object->field_0xef9 &= static_cast<u8>(~0x01u);
+        if (param_4 != 0) {
+            for (i32 index = 0; index < param_4; ++index) {
+                if (NuStrICmp(params[index], "FALSE") == 0) {
+                    object->field_0xef9 &= static_cast<u8>(~0x01u);
+                }
             }
         }
     }
@@ -5750,12 +5549,11 @@ __used__ static i32 Action_DontRaycastLOS(AISYS *sys, AISCRIPTPROCESS *processor
     (void)processor;
     (void)packet;
     (void)param_6;
-    if (param_5 != 0 && WORLD != NULL && WORLD->api_object_sys != NULL) {
-        u8 &flags = WORLD->api_object_sys->state[0x208];
-        flags |= 1;
+    if (param_5 != 0 && WORLD->api_object_sys != NULL) {
+        WORLD->api_object_sys->state[0x208] |= 1;
         for (i32 index = 0; index < param_4; ++index) {
             if (NuStrICmp(params[index], "false") == 0) {
-                flags &= static_cast<u8>(~1u);
+                WORLD->api_object_sys->state[0x208] &= static_cast<u8>(~1u);
             }
         }
     }
@@ -6144,9 +5942,11 @@ __used__ static i32 Action_PrefersPlayers(AISYS *sys, AISCRIPTPROCESS *processor
     GameObject_s *object = packet != NULL && packet->owner != NULL ? packet->owner->apiobj.objptr : NULL;
     if (object != NULL) {
         object->field_0xefb |= 0x40;
-        for (i32 index = 0; index < param_4; ++index) {
-            if (NuStrICmp(params[index], "FALSE") == 0) {
-                object->field_0xefb &= static_cast<u8>(~0x40u);
+        if (param_4 != 0) {
+            for (i32 index = 0; index < param_4; ++index) {
+                if (NuStrICmp(params[index], "FALSE") == 0) {
+                    object->field_0xefb &= static_cast<u8>(~0x40u);
+                }
             }
         }
     }
@@ -7559,20 +7359,22 @@ __used__ static i32 Action_PlayGizObstacle(AISYS *sys, AISCRIPTPROCESS *processo
     (void)processor;
     (void)packet;
     (void)param_6;
-    if (param_5 == 0 || param_4 == 0 || WORLD == NULL || WORLD->gizmo_sys == NULL) {
+    if (param_5 == 0 || param_4 == 0) {
         return 1;
     }
 
     GIZOBSTACLE *obstacle = NULL;
-    bool backwards = false;
-    bool stay_open = false;
-    bool stay_shut = false;
-    bool snap = false;
+    i32 backwards = 0;
+    i32 stay_open = 0;
+    i32 stay_shut = 0;
+    i32 snap = 0;
     for (i32 index = 0; index < param_4; ++index) {
         char *value = NuStrIStr(params[index], "name=");
         if (value != NULL) {
-            GIZMO *gizmo = GizmoFindByName(WORLD->gizmo_sys, obstacle_gizmotype_id, value + NuStrLen("name="));
-            obstacle = gizmo != NULL ? static_cast<GIZOBSTACLE *>(gizmo->object) : NULL;
+            GIZMO *gizmo = GizmoFindByName(WORLD->gizmo_sys, obstacle_gizmotype_id, value + 5);
+            if (gizmo != NULL) {
+                obstacle = static_cast<GIZOBSTACLE *>(gizmo->object);
+            }
         } else if (NuStrICmp(params[index], "backwards") == 0) {
             backwards = true;
         } else if (NuStrICmp(params[index], "stayopen") == 0) {
@@ -7596,8 +7398,10 @@ __used__ static i32 Action_PlayGizObstacle(AISYS *sys, AISCRIPTPROCESS *processo
         } else {
             GizObstacle_PlayForwards(obstacle);
         }
-        obstacle->runtime_flags =
-            static_cast<u8>((obstacle->runtime_flags & 0xf3u) | (stay_shut ? 8u : 0u) | (stay_open ? 4u : 0u));
+        u32 runtime_flags = obstacle->runtime_flags & 0xf3u;
+        runtime_flags |= static_cast<u32>(stay_shut) << 3;
+        runtime_flags |= static_cast<u32>(stay_open) << 2;
+        obstacle->runtime_flags = static_cast<u8>(runtime_flags);
     }
     return 1;
 }
@@ -7611,7 +7415,7 @@ __used__ static i32 Action_PressJumpButton(AISYS *sys, AISCRIPTPROCESS *processo
     (void)param_5;
     (void)param_6;
     GameObject_s *object = packet != NULL && packet->owner != NULL ? packet->owner->apiobj.objptr : NULL;
-    if (object != NULL && object->pad_gamepad != NULL) {
+    if (object != NULL) {
         object->pad_gamepad->buttons_pressed |= GAMEPAD_JUMP;
     }
     return 1;
@@ -7723,14 +7527,15 @@ __used__ static i32 Action_SetHearDistance(AISYS *sys, AISCRIPTPROCESS *processo
     (void)param_6;
     if (packet != NULL && packet->owner != NULL && param_5 != 0) {
         APIOBJECT *object = &packet->owner->apiobj;
-        if (packet->field_0x134 != 0xff && sys != NULL) {
+        if (packet->field_0x134 != 0xff) {
             object->heardistance = sys->creatures[packet->field_0x134].hear_distance;
-        } else if (GetHearDistanceFn != NULL && object->character_model != NULL) {
+        } else if (GetHearDistanceFn != NULL) {
             object->heardistance = GetHearDistanceFn(object->character_model->model_id);
         } else {
             object->heardistance = 1.0f;
         }
         if (param_4 != 0 && NuStrICmp(params[0], "default") != 0) {
+            object = &packet->owner->apiobj;
             object->heardistance = AIParamToFloatEx(packet, processor, params[0]);
         }
     }
@@ -7879,14 +7684,15 @@ __used__ static i32 Action_SetViewDistance(AISYS *sys, AISCRIPTPROCESS *processo
     (void)param_6;
     if (packet != NULL && packet->owner != NULL && param_5 != 0) {
         APIOBJECT *object = &packet->owner->apiobj;
-        if (packet->field_0x134 != 0xff && sys != NULL) {
+        if (packet->field_0x134 != 0xff) {
             object->viewdistance = sys->creatures[packet->field_0x134].view_distance;
-        } else if (GetViewRangeFn != NULL && object->character_model != NULL) {
+        } else if (GetViewRangeFn != NULL) {
             object->viewdistance = GetViewRangeFn(object->character_model->model_id);
         } else {
             object->viewdistance = 1.0f;
         }
         if (param_4 != 0 && NuStrICmp(params[0], "default") != 0) {
+            object = &packet->owner->apiobj;
             object->viewdistance = AIParamToFloatEx(packet, processor, params[0]);
         }
     }
@@ -8387,14 +8193,15 @@ __used__ static i32 Action_SetMaxViewHeight(AISYS *sys, AISCRIPTPROCESS *process
     (void)param_6;
     if (packet != NULL && packet->owner != NULL && param_5 != 0) {
         APIOBJECT *object = &packet->owner->apiobj;
-        if (packet->field_0x134 != 0xff && sys != NULL) {
+        if (packet->field_0x134 != 0xff) {
             object->maxviewheight = sys->creatures[packet->field_0x134].max_view_height;
-        } else if (GetMaxViewHeightFn != NULL && object->character_model != NULL) {
+        } else if (GetMaxViewHeightFn != NULL) {
             object->maxviewheight = GetMaxViewHeightFn(object->character_model->model_id);
         } else {
             object->maxviewheight = 1.0f;
         }
         if (param_4 != 0 && NuStrICmp(params[0], "default") != 0) {
+            object = &packet->owner->apiobj;
             object->maxviewheight = AIParamToFloatEx(packet, processor, params[0]);
         }
     }
@@ -8406,14 +8213,15 @@ __used__ static i32 Action_SetMinViewHeight(AISYS *sys, AISCRIPTPROCESS *process
     (void)param_6;
     if (packet != NULL && packet->owner != NULL && param_5 != 0) {
         APIOBJECT *object = &packet->owner->apiobj;
-        if (packet->field_0x134 != 0xff && sys != NULL) {
+        if (packet->field_0x134 != 0xff) {
             object->minviewheight = sys->creatures[packet->field_0x134].min_view_height;
-        } else if (GetMinViewHeightFn != NULL && object->character_model != NULL) {
+        } else if (GetMinViewHeightFn != NULL) {
             object->minviewheight = GetMinViewHeightFn(object->character_model->model_id);
         } else {
             object->minviewheight = 1.0f;
         }
         if (param_4 != 0 && NuStrICmp(params[0], "default") != 0) {
+            object = &packet->owner->apiobj;
             object->minviewheight = AIParamToFloatEx(packet, processor, params[0]);
         }
     }
@@ -8426,12 +8234,12 @@ __used__ static i32 Action_SetObstacleToEnd(AISYS *sys, AISCRIPTPROCESS *process
     (void)processor;
     (void)packet;
     (void)param_6;
-    if (param_5 != 0 && WORLD != NULL && WORLD->giz_obstacle_sys != NULL) {
+    if (param_5 != 0 && param_4 != 0) {
         GIZOBSTACLE *obstacle = NULL;
         for (i32 index = 0; index < param_4; ++index) {
             char *value = NuStrIStr(params[index], "name=");
             if (value != NULL) {
-                obstacle = GizObstacle_FindByName(WORLD->giz_obstacle_sys, value + NuStrLen("name="));
+                obstacle = GizObstacle_FindByName(WORLD->giz_obstacle_sys, value + 5);
             }
         }
         if (obstacle != NULL) {
@@ -8594,6 +8402,7 @@ static f32 Condition_Side(AISYS *, AISCRIPTPROCESS *, AIPACKET *packet, char *, 
         } else if (side == 1) {
             if ((packet->owner->apiobj.field_0x1f4 & 5) == 0)
                 return 1.0f;
+            return 0.0f;
         } else if (side == -1) {
             if (packet->owner->apiobj.field_0x1f4 & 1)
                 return 1.0f;
@@ -8796,12 +8605,11 @@ static f32 Condition_BeingTowed(AISYS *, AISCRIPTPROCESS *, AIPACKET *packet, ch
 
 __used__ static f32 Condition_CategoryIs(AISYS *, AISCRIPTPROCESS *, AIPACKET *packet, char *, void *argument) {
     const i32 category = (i32)(isize)argument;
-    f32 result = 0.0f;
-    if (category != -1 && packet != NULL && packet->owner != NULL) {
-        if (CharCategory_IsCategory(packet->owner->apiobj.objptr, category))
-            result = 1.0f;
-    }
-    return result;
+    if (category == -1 || packet == NULL || packet->owner == NULL)
+        return 0.0f;
+    if (CharCategory_IsCategory(packet->owner->apiobj.objptr, category))
+        return 1.0f;
+    return 0.0f;
 }
 
 static f32 Condition_GotLocator(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET *packet, char *, void *) {
@@ -9267,12 +9075,12 @@ static f32 Condition_GizmoOutput3(AISYS *, AISCRIPTPROCESS *, AIPACKET *, char *
 
 static f32 Condition_LocatorRange(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET *packet, char *, void *void_arg) {
     NUVEC difference;
+    AILOCATOR *locator = static_cast<AILOCATOR *>(void_arg);
     if (packet != NULL && packet->owner != NULL) {
-        if (void_arg == NULL) {
-            void_arg = processor->unknown_a4;
+        if (locator == NULL) {
+            locator = processor->unknown_a4;
         }
-        if (void_arg != NULL) {
-            AILOCATOR *locator = static_cast<AILOCATOR *>(void_arg);
+        if (locator != NULL) {
             return NuVecDist(&packet->terrain_origin, &locator->position, &difference);
         }
     }
@@ -9741,12 +9549,12 @@ static f32 Condition_EitherPlayerLocatorRangeXZ(AISYS *, AISCRIPTPROCESS *proces
 
 static f32 Condition_LocatorRangeXZ(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET *packet, char *, void *void_arg) {
     NUVEC difference;
+    AILOCATOR *locator = static_cast<AILOCATOR *>(void_arg);
     if (packet != NULL && packet->owner != NULL) {
-        if (void_arg == NULL) {
-            void_arg = processor->unknown_a4;
+        if (locator == NULL) {
+            locator = processor->unknown_a4;
         }
-        if (void_arg != NULL) {
-            AILOCATOR *locator = static_cast<AILOCATOR *>(void_arg);
+        if (locator != NULL) {
             return NuVecXZDist(&packet->terrain_origin, &locator->position, &difference);
         }
     }
@@ -10117,12 +9925,12 @@ static void *Condition_OpponentToLocatorInit(AISYS *sys, char *arg, AISCRIPT *) 
 static f32 Condition_OpponentToLocatorXZ(AISYS *sys, AISCRIPTPROCESS *processor, AIPACKET *packet, char *,
                                          void *void_arg) {
     NUVEC difference;
+    AILOCATOR *locator = static_cast<AILOCATOR *>(void_arg);
     if (packet != NULL && packet->opponent_object != NULL) {
-        if (void_arg == NULL) {
-            void_arg = processor->unknown_a4;
+        if (locator == NULL) {
+            locator = processor->unknown_a4;
         }
-        if (void_arg != NULL) {
-            AILOCATOR *locator = static_cast<AILOCATOR *>(void_arg);
+        if (locator != NULL) {
             return NuVecXZDist(&packet->opponent_object->position, &locator->position, &difference);
         }
     }

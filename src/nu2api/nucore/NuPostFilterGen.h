@@ -6,6 +6,7 @@
 struct VuVec;
 struct nueffecttex_s;
 struct nuframebuffer_s;
+struct NuProxyAttachment;
 struct nushaderprogram_s;
 struct numtx_s;
 
@@ -37,8 +38,9 @@ struct NuPostFilterGen {
     nuframebuffer_s *input_fbo;
 
     static NuDataPortManager resourceManager;
-    static NuPostDataPort portOutFramebuffer, portColorBuffer, portNormalBuffer;
-    static NuPostDataPort portVelocityBuffer, portDepthRTBuffer, portDepthBuffer;
+    static NuDataPort<nuframebuffer_s *> portOutFramebuffer;
+    static NuDataPort<NuProxyAttachment *> portColorBuffer, portNormalBuffer;
+    static NuDataPort<NuProxyAttachment *> portVelocityBuffer, portDepthRTBuffer, portDepthBuffer;
     static nuframebuffer_s *blurFbo, *copyFbo;
     static nueffecttex_s *workTex;
     static nushaderprogram_s *copyTexProgram, *copyTexLodProgram, *copyTexColorDepthProgram;

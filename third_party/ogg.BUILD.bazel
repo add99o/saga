@@ -23,6 +23,11 @@ cc_library(
         "include/ogg/ogg.h",
         "include/ogg/os_types.h",
     ],
+    # Retail's bitwise and framing functions use optimized NDK register allocation.
+    copts = select({
+        "@platforms//os:android": ["-O3"],
+        "//conditions:default": [],
+    }),
     includes = [
         ".",
         "include",

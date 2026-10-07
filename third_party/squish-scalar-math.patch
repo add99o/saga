@@ -1,0 +1,119 @@
+diff --git a/maths.h b/maths.h
+--- a/maths.h
++++ b/maths.h
+@@ -32,6 +32,29 @@
+ 
+ namespace squish {
+ 
++inline float ScalarSelect( float condition, float nonnegative, float negative )
++{
++	return condition >= 0.0f ? nonnegative : negative;
++}
++
++inline float ScalarFloor( float value )
++{
++	float integral = static_cast<float>( static_cast<int>( value ) );
++	float previous = integral - 1.0f;
++	return ScalarSelect( value - integral, integral, previous );
++}
++
++inline float ScalarCeil( float value )
++{
++	float lower = ScalarFloor( value );
++	return lower == value ? lower : lower + 1.0f;
++}
++
++inline float ScalarTruncate( float value )
++{
++	return value > 0.0f ? ScalarFloor( value ) : ScalarCeil( value );
++}
++
+ class Vec3
+ {
+ public:
+@@ -162,28 +185,28 @@
+ 	
+ 	friend Vec3 Min( Arg left, Arg right )
+ 	{
++		Vec3 difference = left - right;
+ 		return Vec3(
+-			std::min( left.m_x, right.m_x ), 
+-			std::min( left.m_y, right.m_y ), 
+-			std::min( left.m_z, right.m_z )
++			ScalarSelect( difference.m_x, right.m_x, left.m_x ),
++			ScalarSelect( difference.m_y, right.m_y, left.m_y ),
++			ScalarSelect( difference.m_z, right.m_z, left.m_z )
+ 		);
+ 	}
+-
+ 	friend Vec3 Max( Arg left, Arg right )
+ 	{
++		Vec3 difference = left - right;
+ 		return Vec3(
+-			std::max( left.m_x, right.m_x ), 
+-			std::max( left.m_y, right.m_y ), 
+-			std::max( left.m_z, right.m_z )
++			ScalarSelect( difference.m_x, left.m_x, right.m_x ),
++			ScalarSelect( difference.m_y, left.m_y, right.m_y ),
++			ScalarSelect( difference.m_z, left.m_z, right.m_z )
+ 		);
+ 	}
+-
+ 	friend Vec3 Truncate( Arg v )
+ 	{
+ 		return Vec3(
+-			v.m_x > 0.0f ? std::floor( v.m_x ) : std::ceil( v.m_x ), 
+-			v.m_y > 0.0f ? std::floor( v.m_y ) : std::ceil( v.m_y ), 
+-			v.m_z > 0.0f ? std::floor( v.m_z ) : std::ceil( v.m_z )
++			ScalarTruncate( v.m_x ), 
++			ScalarTruncate( v.m_y ), 
++			ScalarTruncate( v.m_z )
+ 		);
+ 	}
+ 
+diff --git a/simd_float.h b/simd_float.h
+--- a/simd_float.h
++++ b/simd_float.h
+@@ -135,30 +135,30 @@
+ 	friend Vec4 Min( Vec4::Arg left, Vec4::Arg right )
+ 	{
+ 		return Vec4( 
+-			std::min( left.m_x, right.m_x ), 
+-			std::min( left.m_y, right.m_y ), 
+-			std::min( left.m_z, right.m_z ), 
+-			std::min( left.m_w, right.m_w ) 
++			ScalarSelect( left.m_x - right.m_x, right.m_x, left.m_x ), 
++			ScalarSelect( left.m_y - right.m_y, right.m_y, left.m_y ), 
++			ScalarSelect( left.m_z - right.m_z, right.m_z, left.m_z ), 
++			ScalarSelect( left.m_w - right.m_w, right.m_w, left.m_w ) 
+ 		);
+ 	}
+ 	
+ 	friend Vec4 Max( Vec4::Arg left, Vec4::Arg right )
+ 	{
+ 		return Vec4( 
+-			std::max( left.m_x, right.m_x ), 
+-			std::max( left.m_y, right.m_y ), 
+-			std::max( left.m_z, right.m_z ), 
+-			std::max( left.m_w, right.m_w ) 
++			ScalarSelect( left.m_x - right.m_x, left.m_x, right.m_x ), 
++			ScalarSelect( left.m_y - right.m_y, left.m_y, right.m_y ), 
++			ScalarSelect( left.m_z - right.m_z, left.m_z, right.m_z ), 
++			ScalarSelect( left.m_w - right.m_w, left.m_w, right.m_w ) 
+ 		);
+ 	}
+ 	
+ 	friend Vec4 Truncate( Vec4::Arg v )
+ 	{
+ 		return Vec4(
+-			v.m_x > 0.0f ? std::floor( v.m_x ) : std::ceil( v.m_x ), 
+-			v.m_y > 0.0f ? std::floor( v.m_y ) : std::ceil( v.m_y ), 
+-			v.m_z > 0.0f ? std::floor( v.m_z ) : std::ceil( v.m_z ),
+-			v.m_w > 0.0f ? std::floor( v.m_w ) : std::ceil( v.m_w )
++			v.m_x > 0.0f ? std::floor( static_cast<double>( v.m_x ) ) : std::ceil( static_cast<double>( v.m_x ) ), 
++			v.m_y > 0.0f ? std::floor( static_cast<double>( v.m_y ) ) : std::ceil( static_cast<double>( v.m_y ) ), 
++			v.m_z > 0.0f ? std::floor( static_cast<double>( v.m_z ) ) : std::ceil( static_cast<double>( v.m_z ) ),
++			v.m_w > 0.0f ? std::floor( static_cast<double>( v.m_w ) ) : std::ceil( static_cast<double>( v.m_w ) )
+ 		);
+ 	}
+ 	

@@ -11,12 +11,16 @@ struct nueffecttex_s {
 DECOMP_ASSERT(sizeof(nueffecttex_s) == 20, "nueffecttex_s size");
 struct nuframebuffer_s;
 
-struct NuProxyBuffer {
+struct NuProxyAttachment {
     nueffecttex_s *texture;
     i32 kind;
     bool enabled, resolved;
     u8 padding[2];
+
+    NuProxyAttachment() : texture(NULL), kind(0), enabled(true), resolved(true) {
+    }
 };
+using NuProxyBuffer = NuProxyAttachment;
 DECOMP_ASSERT(sizeof(NuProxyBuffer) == 12, "NuProxyBuffer size");
 
 extern "C" {

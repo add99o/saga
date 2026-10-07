@@ -3,6 +3,7 @@
 #include "nu2api/nu3d/android/nurndr_android.h"
 #include "nu2api/nucore/nustring.h"
 #include "nu2api/nucore/nuvector.hpp"
+#include "nu2api/nucore/nuvuvec.hpp"
 
 #include <ctype.h>
 #include <stdio.h>
@@ -81,6 +82,10 @@ struct __attribute__((aligned(16))) ShaderProgramPool {
     NUSHADERPROGRAM programs[64];
     u8 occupied[8];
     i32 next;
+
+    ShaderProgramPool() : next(0) {
+        memset(occupied, 0, sizeof(occupied));
+    }
 };
 DECOMP_ASSERT(sizeof(ShaderProgramPool) == 0x810, "Shader program pool ABI");
 DECOMP_ASSERT(offsetof(ShaderProgramPool, occupied) == 0x800, "Shader program occupancy offset");
@@ -92,6 +97,10 @@ extern "C" {
 }
 static i32 g_uniformParameterRecordAllocator;
 
+template <typename First, typename Second> struct Pair {
+    First first;
+    Second second;
+};
 static void BuildRegisterIndexToUniformLocationMapping(NUSHADERPROGRAM *result, const char *vertex_source,
                                                        const char *fragment_source) {
     static char uniformName[256];

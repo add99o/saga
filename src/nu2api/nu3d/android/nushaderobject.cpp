@@ -13,6 +13,7 @@
 #include "nu2api/nucore/bgproc.h"
 #include "nu2api/nucore/nuapi.h"
 #include "nu2api/nucore/nustring.h"
+#include "nu2api/nucore/nuvuvec.hpp"
 #include "nu2api/nufile/nufilepak.h"
 #include "nu2api/numath/numtx.h"
 

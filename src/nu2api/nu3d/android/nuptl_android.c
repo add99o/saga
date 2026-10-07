@@ -273,18 +273,18 @@ extern "C" void NuRndrParticleGroup(uv1debdata *chunks, PartHeader *header, NUMT
 void BuildDebrisVerts(PartHeader *header, uv1debdata *chunk_data, NUMTL *material, f32 time, NUMTX *matrix,
                       i32 particle_type, f32, f32, f32, f32 near_clip) {
     f32 u0;
-    f32 u1;
     f32 v0;
+    f32 u1;
     f32 v1;
     if (material->particle_type_tag == -105) {
         u0 = 0.0f;
-        u1 = 1.0f;
         v0 = 0.0f;
+        u1 = 1.0f;
         v1 = 1.0f;
     } else {
         u0 = header->texture_u0;
-        u1 = header->texture_u1;
         v0 = header->texture_v0;
+        u1 = header->texture_u1;
         v1 = header->texture_v1;
     }
     dma_particle_chunk_s *chunk = reinterpret_cast<dma_particle_chunk_s *>(chunk_data);

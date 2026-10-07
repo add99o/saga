@@ -796,6 +796,7 @@ extern CHARACTERMODEL_s *dco_cmodel;
 
 static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTSCENE_s *cutscene,
                                    instNUGCUTCHAR_s *instance, NUGCUTCHAR_s *character, f32 frame, i32 paused) {
+    i32 layer_mask = -1;
     WORLDINFO_s *world = WorldInfo_CurrentlyActive();
     CUTSYS *cutscene_system = world->cutscene_sys;
     if (cutscene_system == NULL) {
@@ -803,11 +804,10 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
     }
 
     CUTINFO *cut = NULL;
-    for (i32 i = 0; i < cutscene_system->count; ++i) {
+    for (i32 i = 0; i < cutscene_system->count && cut == NULL; ++i) {
         CUTINFO *candidate = cutscene_system->cuts[i];
         if (candidate->instance == cutscene_instance) {
             cut = candidate;
-            break;
         }
     }
 
@@ -827,7 +827,8 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
             model = static_cast<CHARACTERMODEL_s *>(instance->character_model);
         }
     }
-    if (model->hierarchy == NULL) {
+    nuhgobj_s *hierarchy = model->hierarchy;
+    if (hierarchy == NULL) {
         return;
     }
 
@@ -840,17 +841,19 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
     f32 animation_rate;
     f32 blend_time;
     f32 animation_start_frame;
-    i32 layer_mask = -1;
-    NuGCutCharAnimProcess(character, frame, &world_matrix, &visible, &animation_index, &animation_rate, &blend_time,
-                          &animation_start_frame, &layer_mask);
     bool use_low_detail = false;
     if (cut != NULL) {
         use_low_detail = (cut->flags & 0x10000) != 0 && g_isLowEndDevice != 0;
+        NuGCutCharAnimProcess(character, frame, &world_matrix, &visible, &animation_index, &animation_rate, &blend_time,
+                              &animation_start_frame, &layer_mask);
         if (cut->low_end_distance > 0.0f && g_isLowEndDevice != 0 &&
             NuVecDistSqr(reinterpret_cast<NUVEC *>(&world_matrix.m30), reinterpret_cast<NUVEC *>(&pNuCam->mtx.m30),
                          NULL) > cut->low_end_distance * cut->low_end_distance) {
             return;
         }
+    } else {
+        NuGCutCharAnimProcess(character, frame, &world_matrix, &visible, &animation_index, &animation_rate, &blend_time,
+                              &animation_start_frame, &layer_mask);
     }
     if (paused != 0) {
         animation_rate = 0.0f;
@@ -965,9 +968,9 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
     void **dwa = NULL;
     if (!blending) {
         if (animation_a == NULL) {
-            NuHGobjEval(model->hierarchy, 0, NULL, joint_matrices);
+            NuHGobjEval(hierarchy, 0, NULL, joint_matrices);
         } else {
-            NuHGobjEvalAnim2(model->hierarchy, animation_a, instance->animation_frame_a, 0, NULL, joint_matrices);
+            NuHGobjEvalAnim2(hierarchy, animation_a, instance->animation_frame_a, 0, NULL, joint_matrices);
         }
         if (dwa_animation_a != NULL) {
             dwa = NuHGobjEvalDwa2(render_count, render_indices, dwa_animation_a, instance->animation_frame_a);
@@ -984,14 +987,14 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
             dwa_animation_b = static_cast<nuanimdata2_s *>(model->model_data_c[instance->field_17 - 1]);
         }
         if (animation_a != NULL && animation_b != NULL) {
-            NuHGobjEvalAnimBlend2(model->hierarchy, animation_a, instance->animation_frame_a, animation_b,
+            NuHGobjEvalAnimBlend2(hierarchy, animation_a, instance->animation_frame_a, animation_b,
                                   instance->animation_frame_b, instance->blend_progress, 0, NULL, joint_matrices);
         } else if (animation_b != NULL) {
-            NuHGobjEvalAnim2(model->hierarchy, animation_b, instance->animation_frame_b, 0, NULL, joint_matrices);
+            NuHGobjEvalAnim2(hierarchy, animation_b, instance->animation_frame_b, 0, NULL, joint_matrices);
         } else if (animation_a != NULL) {
-            NuHGobjEvalAnim2(model->hierarchy, animation_a, instance->animation_frame_a, 0, NULL, joint_matrices);
+            NuHGobjEvalAnim2(hierarchy, animation_a, instance->animation_frame_a, 0, NULL, joint_matrices);
         } else {
-            NuHGobjEval(model->hierarchy, 0, NULL, joint_matrices);
+            NuHGobjEval(hierarchy, 0, NULL, joint_matrices);
         }
 
         if (dwa_animation_a != NULL && dwa_animation_b != NULL) {
@@ -1001,11 +1004,12 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
 
         if (animation_b != NULL && instance->field_17 != 0xff && instance->field_17 != 0 &&
             (cut == NULL || cut != CutStopInfo || CutSceneWaiting == 0)) {
-            const f32 end_frame = AnimEndFrame(model, static_cast<u8>(instance->field_17) - 1);
+            const i32 current_animation = static_cast<u8>(instance->field_17) - 1;
+            const f32 end_frame = AnimEndFrame(model, current_animation);
             instance->animation_frame_b += FRAMETIME * 60.0f * animation_rate;
             if (instance->animation_frame_b > end_frame) {
                 CHARACTERANIM_s *animation_info =
-                    static_cast<CHARACTERANIM_s *>(model->model_data_a[static_cast<u8>(instance->field_17) - 1]);
+                    static_cast<CHARACTERANIM_s *>(model->model_data_a[current_animation]);
                 if ((animation_info->flags & 2) == 0) {
                     instance->animation_frame_b = end_frame;
                 } else {
@@ -1019,13 +1023,13 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
     NUMTX locator_matrices[16];
     StoreLocatorCoordinates(model, &world_matrix, joint_matrices, locator_positions, locator_matrices);
 
-    if (animation_a != NULL && animation_a_index != 0 && animation_a_index != 0xff &&
+    if (animation_a != NULL && instance->field_16 != 0xff && instance->field_16 != 0 &&
         (cut == NULL || cut != CutStopInfo || CutSceneWaiting == 0)) {
-        const f32 end_frame = AnimEndFrame(model, animation_a_index - 1);
+        const i32 current_animation = static_cast<u8>(instance->field_16) - 1;
+        const f32 end_frame = AnimEndFrame(model, current_animation);
         instance->animation_frame_a += FRAMETIME * 60.0f * animation_rate;
         if (instance->animation_frame_a > end_frame) {
-            CHARACTERANIM_s *animation_info =
-                static_cast<CHARACTERANIM_s *>(model->model_data_a[animation_a_index - 1]);
+            CHARACTERANIM_s *animation_info = static_cast<CHARACTERANIM_s *>(model->model_data_a[current_animation]);
             if ((animation_info->flags & 2) == 0) {
                 instance->animation_frame_a = end_frame;
             } else {
@@ -1045,13 +1049,13 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
     if ((character->flags & 0x20) == 0 && (character_data->model_flags & 0x10000) != 0) {
         render_character = static_cast<u8>(((character->flags >> 4) ^ 1) & 1);
     }
-    model->hierarchy->suppress_shadow_surface_points = render_character;
+    hierarchy->suppress_shadow_surface_points = render_character;
 
     if ((game_data->flags_090 & 0x8000) != 0) {
-        APITransparentCharDraw(model->hierarchy, &world_matrix, render_count, render_indices, joint_matrices, dwa,
+        APITransparentCharDraw(hierarchy, &world_matrix, render_count, render_indices, joint_matrices, dwa,
                                character->flags & 8);
     }
-    NuHGobjRndrMtxDwa(model->hierarchy, &world_matrix, render_count, render_indices, joint_matrices, dwa,
+    NuHGobjRndrMtxDwa(hierarchy, &world_matrix, render_count, render_indices, joint_matrices, dwa,
                       character->flags & 8);
 
     NUMTX *attachment_matrix = NULL;
@@ -1158,8 +1162,8 @@ static void CutScene_DrawCharacter(instNUGCUTSCENE_s *cutscene_instance, NUGCUTS
             if (MatrixReflection(&world_matrix, 2, reflection_height, WORLD->current_level->unknown_0cc,
                                  &reflection_matrix) != 0) {
                 NuRndrStartReflectionRender(0);
-                NuHGobjRndrMtxDwa(model->hierarchy, &reflection_matrix, render_count, render_indices, joint_matrices,
-                                  dwa, character->flags & 8);
+                NuHGobjRndrMtxDwa(hierarchy, &reflection_matrix, render_count, render_indices, joint_matrices, dwa,
+                                  character->flags & 8);
                 if (attachment_matrix != NULL) {
                     NUMTX attachment_reflection;
                     if (MatrixReflection(attachment_matrix, 2, reflection_height, WORLD->current_level->unknown_0cc,
