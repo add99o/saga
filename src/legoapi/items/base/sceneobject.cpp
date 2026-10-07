@@ -202,6 +202,10 @@ void sceneHelperSubRender(EdSubSystem *object) {
     helper->SubRender();
 }
 
+inline void SceneObject::operator delete(void *pointer) {
+    theMemoryManager.FreePool(pointer, sizeof(SceneObject));
+}
+
 Placeable *SceneObject::Clone(i32 attributes) const {
     SceneInstance *copy = static_cast<SceneInstance *>(theSceneObjectHelper.CreateObject(NULL, 0, 0));
     if (copy == NULL)

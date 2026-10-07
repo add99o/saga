@@ -17,7 +17,8 @@ template <class T, i32 Tag> class NuMechPtr {
         ManagedBase() : managed_links(NULL) {
         }
         virtual ~ManagedBase() {
-            NuMechPtr *head = managed_links;
+            NuMechPtr *&links = managed_links;
+            NuMechPtr *head = links;
             if (head != NULL) {
                 while (head->next != head) {
                     NuMechPtr *link = head->next;

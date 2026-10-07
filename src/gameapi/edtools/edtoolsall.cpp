@@ -5296,7 +5296,7 @@ void EdMatrixControl::Destroy() {
 EdMatrixControl::EdMatrixControl() {
 }
 
-EdMatrixControl::~EdMatrixControl() {
+inline EdMatrixControl::~EdMatrixControl() {
     Destroy();
 }
 
@@ -5470,9 +5470,6 @@ void EdStringControl::AddMenuItem(eduimenu_s *menu, EdRef *member, void *target)
 EdStringControl::EdStringControl() {
 }
 
-EdStringControl::~EdStringControl() {
-}
-
 inline void EdStringControl::operator delete(void *memory) {
     theMemoryManager.FreePool(memory, sizeof(EdStringControl));
 }
@@ -5506,13 +5503,14 @@ void EdStringControl::cbPress(eduimenu_s *menu, eduiitem_s *item, u32) {
 
 template <> f32 EdValueControl<f32>::MouseScale = 100.0f;
 
-template <> EdValueControl<f32>::~EdValueControl() {
+template <> SAGA_HOST_LINKABLE_DTOR EdValueControl<f32>::~EdValueControl() {
 }
 
 template <> inline void EdValueControl<f32>::operator delete(void *memory) {
     theMemoryManager.FreePool(memory, sizeof(EdValueControl<f32>));
 }
 
+SAGA_HOST_LINKABLE_DTOR
 EdFloatControl::~EdFloatControl() {
 }
 
@@ -5636,7 +5634,7 @@ void EdVectorControl::Destroy() {
 EdVectorControl::EdVectorControl() {
 }
 
-EdVectorControl::~EdVectorControl() {
+inline EdVectorControl::~EdVectorControl() {
     Destroy();
 }
 
@@ -6174,7 +6172,7 @@ void EdClassObjectNameControl::AddMenuItem(eduimenu_s *menu, EdRef *member, void
 EdClassObjectNameControl::EdClassObjectNameControl() : selected{NULL, NULL, NULL} {
 }
 
-EdClassObjectNameControl::~EdClassObjectNameControl() {
+inline EdClassObjectNameControl::~EdClassObjectNameControl() {
 }
 
 inline void EdClassObjectNameControl::operator delete(void *memory) {
@@ -6505,7 +6503,7 @@ void EdSystem::Reset() {
     }
 }
 
-EdSubSystem::~EdSubSystem() {
+inline EdSubSystem::~EdSubSystem() {
 }
 
 __attribute__((weak)) void EdSubSystem::SubInitialise(variptr_u &, variptr_u &, i32) {
@@ -6520,6 +6518,7 @@ __attribute__((weak)) void EdSubSystem::SubProcess(float) {
 __attribute__((weak)) void EdSubSystem::SubRender() {
 }
 
+SAGA_HOST_LINKABLE_DTOR
 EdControl::~EdControl() {
 }
 

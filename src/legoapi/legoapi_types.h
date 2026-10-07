@@ -5800,6 +5800,7 @@ struct SceneObject : SpecialObject {
     i32 editor_owned;
     i32 reserved_0x28;
 
+    static void operator delete(void *pointer);
     Placeable *Clone(i32) const override;
     SceneObject();
 };

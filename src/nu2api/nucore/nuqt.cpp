@@ -4,7 +4,7 @@
 #include <string.h>
 
 static int ElOverlaps(nuqtdim_s *a, nuqtdim_s *b) {
-    if (a->x1 > b->x0 && b->x1 > a->x0 && a->y0 > b->y1 && b->y0 > a->y1)
+    if (b->x0 < a->x1 && b->x1 > a->x0 && b->y1 < a->y0 && b->y0 > a->y1)
         return 1;
     return 0;
 }
@@ -40,10 +40,12 @@ static i32 InsertData(nuqthdr_s *header, i32 index, void *item) {
 }
 
 static void RemoveData(nuqthdr_s *header, char *data, i32 count) {
+    char *source;
+    char *destination;
     i32 length = header->element_size * count;
     char *end = (char *)header->data + header->data_used;
-    char *destination = data;
-    char *source = destination + length;
+    destination = data;
+    source = destination + length;
     while (source < end) {
         *destination = *source;
         ++destination;
