@@ -4342,8 +4342,8 @@ extern "C" {
                     max_item_height = item_height;
 
                 if (!menu->child)
-                    interact(x, y, menu->width, item_height, menu, item,
-                             reinterpret_cast<edui_sel_s *>(item)->interact, 0x40, 0);
+                    interact(x, y, menu->width, item_height, menu, item, reinterpret_cast<edui_sel_s *>(item)->interact,
+                             0x40, 0);
 
                 item = item->next;
                 if (!(menu->flags & 2))
@@ -4380,12 +4380,11 @@ extern "C" {
         menu->field_28 = y - menu->y;
 
         const u32 outline = eduiGetActiveMenu() == menu ? eduimenu_selected_outline_colour : eduimenu_outline_colour;
-        outline_rect((menu->x - 1) << 4, (menu->y << 3) - 8, (menu->field_24 + 2) << 4,
-                     (menu->field_28 << 3) + 16, outline, uimtls[ui_outmtl]);
+        outline_rect((menu->x - 1) << 4, (menu->y << 3) - 8, (menu->field_24 + 2) << 4, (menu->field_28 << 3) + 16,
+                     outline, uimtls[ui_outmtl]);
 
         if (menu->child) {
-            interact(menu->x, menu->y, menu->field_24, menu->field_28, menu, NULL,
-                     cbInteractMenuCancelChild, 0x40, 1);
+            interact(menu->x, menu->y, menu->field_24, menu->field_28, menu, NULL, cbInteractMenuCancelChild, 0x40, 1);
             eduiMenuRender(menu->child);
         }
 
@@ -6235,22 +6234,20 @@ extern "C" {
         }
         if (!edui_donotdraw)
             NuQFntSet(edui_font);
-        eduiFntPrintEx(edui_font, (plot_x + graph_width) << 4,
-                       (y << 3) + static_cast<i32>(NuQFntHeight(edui_font)), 32, picker->x_label);
+        eduiFntPrintEx(edui_font, (plot_x + graph_width) << 4, (y << 3) + static_cast<i32>(NuQFntHeight(edui_font)), 32,
+                       picker->x_label);
         eduiFntPrintEx(edui_font, (x + total_width - 3) << 4, (y + total_height) << 3, 32, picker->y_label);
-        eduiFntPrintEx(edui_font, plot_x << 4, (y << 3) + static_cast<i32>(NuQFntHeight(edui_font)), 16,
-                       picker->title);
-        eduiFntPrintEx(edui_font, (x + 28) << 4,
-                       (plot_bottom << 3) - 48 + static_cast<i32>(NuQFntHeight(edui_font)), 32, "0.0");
+        eduiFntPrintEx(edui_font, plot_x << 4, (y << 3) + static_cast<i32>(NuQFntHeight(edui_font)), 16, picker->title);
+        eduiFntPrintEx(edui_font, (x + 28) << 4, (plot_bottom << 3) - 48 + static_cast<i32>(NuQFntHeight(edui_font)),
+                       32, "0.0");
         u32 cursor_colour = selected ? 0x80707070 : 0x80303030;
         i32 cursor_line_y = static_cast<i32>(plot_y + (1.0f - cursor_y) * graph_height) << 3;
         if (!edui_donotdraw)
-            NuRndrLine2di(plot_x << 4, cursor_line_y, (plot_x + graph_width - 1) << 4, cursor_line_y,
-                          cursor_colour, uimtls[0]);
+            NuRndrLine2di(plot_x << 4, cursor_line_y, (plot_x + graph_width - 1) << 4, cursor_line_y, cursor_colour,
+                          uimtls[0]);
         i32 cursor_line_x = static_cast<i32>(plot_x + cursor_x * graph_width) << 4;
         if (!edui_donotdraw)
-            NuRndrLine2di(cursor_line_x, plot_y << 3, cursor_line_x, (plot_bottom << 3) - 8, cursor_colour,
-                          uimtls[0]);
+            NuRndrLine2di(cursor_line_x, plot_y << 3, cursor_line_x, (plot_bottom << 3) - 8, cursor_colour, uimtls[0]);
         picker->selected_point = -1;
         f32 closest = 1.0f;
         for (i32 point = 0; point < picker->graph->point_count; ++point) {
@@ -6260,8 +6257,8 @@ extern "C" {
                 NuRndrLine2di((px - 10) << 4, py << 3, (px + 10) << 4, py << 3, 0x80505050, uimtls[0]);
             if (!edui_donotdraw)
                 NuRndrLine2di(px << 4, (py << 3) - 80, px << 4, (py << 3) + 80, 0x80505050, uimtls[0]);
-            f32 distance = fabsf(picker->cursor_x - picker->graph->x[point]) +
-                           fabsf(picker->cursor_y - picker->graph->y[point]);
+            f32 distance =
+                fabsf(picker->cursor_x - picker->graph->x[point]) + fabsf(picker->cursor_y - picker->graph->y[point]);
             if (distance < closest && distance < 0.05f) {
                 picker->selected_point = point;
                 closest = distance;
@@ -6287,8 +6284,8 @@ extern "C" {
         if (picker->selected_point >= 0 && !edui_donotdraw) {
             i32 point = picker->selected_point;
             NuRndrLineRect2di((plot_x + static_cast<i32>(picker->graph->x[point] * graph_width) - 6) << 4,
-                              ((plot_bottom - static_cast<i32>(picker->graph->y[point] * graph_height)) << 3) - 48, 192, 96,
-                              0x80ffffff, uimtls[ui_outmtl]);
+                              ((plot_bottom - static_cast<i32>(picker->graph->y[point] * graph_height)) << 3) - 48, 192,
+                              96, 0x80ffffff, uimtls[ui_outmtl]);
         }
         if (show_x_scale_help || show_y_scale_help) {
             if (!edui_donotdraw)
@@ -6323,7 +6320,8 @@ extern "C" {
                            picker->graph->y[point] * picker->graph->y_scale * picker->graph->y_extent);
         }
         eduiFntPrintEx(edui_font, (x + total_width - 4) << 4, label_y + label_baseline, 32,
-                       "Cursor pos = %1.02f, %1.02f", picker->cursor_x * picker->graph->x_scale * picker->graph->x_extent,
+                       "Cursor pos = %1.02f, %1.02f",
+                       picker->cursor_x * picker->graph->x_scale * picker->graph->x_extent,
                        picker->cursor_y * picker->graph->y_scale * picker->graph->y_extent);
         return total_height + label_height;
     }
@@ -6450,8 +6448,8 @@ extern "C" {
             f32 caret_x = draw_x + property->label_width + 2.0f + caret_width;
             if (!edui_donotdraw)
                 NuRndrLine2di(static_cast<i32>(caret_x * 16.0f), static_cast<i32>(draw_y * 8.0f),
-                              static_cast<i32>(caret_x * 16.0f), static_cast<i32>((draw_y + height) * 8.0f),
-                              0xff000000, uimtls[0]);
+                              static_cast<i32>(caret_x * 16.0f), static_cast<i32>((draw_y + height) * 8.0f), 0xff000000,
+                              uimtls[0]);
         } else {
             property->button_size = indent_width;
             property->button_x = draw_x + draw_width - (1.0f + indent_width);
@@ -6688,7 +6686,8 @@ extern "C" {
                             NuQFntSetColour(edui_font, item->colours[0]);
                     }
                     letter[0] = textrow[row][column];
-                    eduiFntPrintEx(edui_font, (x + height * column) << 4, ((y + row * height) << 3) + baseline, 16, letter);
+                    eduiFntPrintEx(edui_font, (x + height * column) << 4, ((y + row * height) << 3) + baseline, 16,
+                                   letter);
                 };
                 draw_key(0);
                 draw_key(1);
@@ -6728,7 +6727,8 @@ extern "C" {
                 if (!edui_donotdraw)
                     NuQFntSetColour(edui_font, item->colours[0]);
                 eduiFntPrintEx(edui_font, x << 4, ((y + height * 5) << 3) + baseline, 16,
-                               TextPickCopyBuffer[0] ? TextPickCopyBuffer : const_cast<char *>("Copy L2+R2 Paste L1+R1"));
+                               TextPickCopyBuffer[0] ? TextPickCopyBuffer
+                                                     : const_cast<char *>("Copy L2+R2 Paste L1+R1"));
             }
             return total_height;
         } else {

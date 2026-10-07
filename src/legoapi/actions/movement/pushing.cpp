@@ -243,8 +243,7 @@ void FindForcePushTarget(GameObject_s *object, i32 activate, i32 target_filter) 
         }
         i32 target_special = best->apiobj.character_data->model_flags & 0x10;
         i32 continuing_direct = 0;
-        if (target_special == 0 &&
-            (best->apiobj.character_data->game_character->flags_090 & 0x40) != 0 &&
+        if (target_special == 0 && (best->apiobj.character_data->game_character->flags_090 & 0x40) != 0 &&
             best->apiobj.character_model->model_data_b[0x41] != NULL) {
             continuing_direct = 1;
         } else if ((choke_style | second_style) != 0) {
@@ -288,8 +287,7 @@ void FindForcePushTarget(GameObject_s *object, i32 activate, i32 target_filter) 
         selected_second = 0;
         selected_direct = 0;
         for (i32 index = 0; index < object_count; ++index, ++candidate) {
-            if (candidate->apiobj.in_use == 0 || candidate == object ||
-                candidate->apiobj.character == 0 ||
+            if (candidate->apiobj.in_use == 0 || candidate == object || candidate->apiobj.character == 0 ||
                 candidate->apiobj.field_0x287 != 0 || candidate->apiobj.model_draw_result == 0 ||
                 candidate->character_context == 0x3c || candidate->character_context == 0x39 ||
                 candidate->character_context == 0x3b || candidate->character_context == 0x41 ||
@@ -363,7 +361,8 @@ void FindForcePushTarget(GameObject_s *object, i32 activate, i32 target_filter) 
                 }
 
                 NUVEC delta;
-                f32 distance = NuVecDistSqr(&object->apiobj.collision_position, &candidate->apiobj.collision_position, &delta);
+                f32 distance =
+                    NuVecDistSqr(&object->apiobj.collision_position, &candidate->apiobj.collision_position, &delta);
                 if (candidate->id == id_ATST) {
                     distance *= 1.0f / 3.0f;
                 }

@@ -218,15 +218,22 @@ MechTouchTaskJump::MechTouchTaskJump(MechInputTouchGestureBasedController &owner
         end = packet.end;
         f32 x = packet.start.x - packet.end.x;
         f32 y = packet.start.y - packet.end.y;
-        if (x * x + y * y > 0.01f) {
+        if (x * x + y * y > 0.1f * 0.1f) {
             i32 angle = NuAtan2D(x, y);
             stick.x = NU_SIN_LUT(angle);
             stick.y = NU_COS_LUT(angle);
             f32 speed = player->apiobj.character_data->game_character->movement_speed;
             stick.x *= speed;
             stick.y *= speed;
-            stick.x = MAX(-1.0f, MIN(-stick.x, 1.0f));
-            stick.y = MAX(-1.0f, MIN(stick.y, 1.0f));
+            stick.x = -stick.x;
+            if (stick.x < 1.0f)
+                stick.x = MAX(-1.0f, stick.x);
+            else
+                stick.x = MIN(stick.x, 1.0f);
+            if (stick.y < 1.0f)
+                stick.y = MAX(-1.0f, stick.y);
+            else
+                stick.y = MIN(stick.y, 1.0f);
         }
     }
     flags |= 10;
@@ -658,8 +665,12 @@ bool MechTouchTaskHatMachine::Update() {
 }
 
 void MechTouchTaskPlannedGoTo::AnalysePath() {
-    const i32 end = path_index + MIN(2, path_count - path_index);
-    VuVec position = start_position;
+    const i32 end = path_index + (MIN(2, path_count - path_index));
+    VuVec position;
+    position.x = start_position.x;
+    position.y = start_position.y;
+    position.z = start_position.z;
+    position.w = start_position.w;
     for (; path_index <= end;) {
         position.x += step_x;
         position.z += step_z;
@@ -682,11 +693,15 @@ void MechTouchTaskPlannedGoTo::AnalysePath() {
             path_points[path_index].y = ground_height;
             if (path_index > 1 && path_index < path_count) {
                 MechTempPosInterface marker_position;
-                marker_position.position = path_points[path_index];
+                marker_position.position.x = path_points[path_index].x;
+                marker_position.position.y = path_points[path_index].y;
+                marker_position.position.z = path_points[path_index].z;
+                marker_position.position.w = path_points[path_index].w;
                 marker_position.position.x += static_cast<f32>(qrand()) * 1.5259022e-6f - 0.05f;
                 marker_position.position.z += static_cast<f32>(qrand()) * 1.5259022e-6f - 0.05f;
                 const f32 base_radius = static_cast<f32>(path_index) / static_cast<f32>(path_count) * 0.2f;
-                marker_position.radius = MAX(static_cast<f32>(qrand()) * 1.5259022e-7f + base_radius, 0.05f);
+                const f32 radius = static_cast<f32>(qrand()) * 1.5259022e-7f + base_radius;
+                marker_position.radius = MAX(radius, 0.05f);
                 if (field_6fe == 0) {
                     MoveToMarker *marker = MechSystems::Get()->NewMoveToMarker(marker_position);
                     if (marker != NULL) {
@@ -696,7 +711,10 @@ void MechTouchTaskPlannedGoTo::AnalysePath() {
             }
             field_20 = 0;
         }
-        start_position = position;
+        start_position.x = position.x;
+        start_position.y = position.y;
+        start_position.z = position.z;
+        start_position.w = position.w;
         position.y = path_points[path_index].y + step_y;
         ++path_index;
     }
@@ -739,13 +757,33 @@ void MechTouchTaskPlannedGoTo::GenerateWaypoints() {
     while (true) {
         if (path_points[current].y > path_points[current - 1].y + 0.15f) {
             waypoints[waypoint_index].active = 1;
-            waypoints[waypoint_index].position = path_points[current - 1];
+            const f32 previous_point_x = path_points[current - 1].x;
+            const f32 previous_point_y = path_points[current - 1].y;
+            const f32 previous_point_z = path_points[current - 1].z;
+            const f32 previous_point_w = path_points[current - 1].w;
+            waypoints[waypoint_index].position.x = previous_point_x;
+            waypoints[waypoint_index].position.y = previous_point_y;
+            waypoints[waypoint_index].position.z = previous_point_z;
+            waypoints[waypoint_index].position.w = previous_point_w;
             waypoints[waypoint_index].field_14 = 0;
-            waypoints[waypoint_index].target_position.position = path_points[current - 1];
+            waypoints[waypoint_index].target_position.position.x = previous_point_x;
+            waypoints[waypoint_index].target_position.position.y = previous_point_y;
+            waypoints[waypoint_index].target_position.position.z = previous_point_z;
+            waypoints[waypoint_index].target_position.position.w = previous_point_w;
             waypoints[waypoint_index + 1].active = 1;
-            waypoints[waypoint_index + 1].position = path_points[current];
+            const f32 current_point_x = path_points[current].x;
+            const f32 current_point_y = path_points[current].y;
+            const f32 current_point_z = path_points[current].z;
+            const f32 current_point_w = path_points[current].w;
+            waypoints[waypoint_index + 1].position.x = current_point_x;
+            waypoints[waypoint_index + 1].position.y = current_point_y;
+            waypoints[waypoint_index + 1].position.z = current_point_z;
+            waypoints[waypoint_index + 1].position.w = current_point_w;
             waypoints[waypoint_index + 1].field_14 = 1;
-            waypoints[waypoint_index + 1].target_position.position = path_points[current];
+            waypoints[waypoint_index + 1].target_position.position.x = current_point_x;
+            waypoints[waypoint_index + 1].target_position.position.y = current_point_y;
+            waypoints[waypoint_index + 1].target_position.position.z = current_point_z;
+            waypoints[waypoint_index + 1].target_position.position.w = current_point_w;
             if (current == path_count || path_points[current + 1].y == -1000000000.0f) {
                 break;
             }
@@ -759,12 +797,26 @@ void MechTouchTaskPlannedGoTo::GenerateWaypoints() {
     }
     goto cleanup;
 
-write_final_waypoint:
+write_final_waypoint: {
     waypoints[waypoint_index].active = 1;
-    waypoints[waypoint_index].position = path_points[current];
+    const f32 final_point_x = path_points[current].x;
+    const f32 final_point_y = path_points[current].y;
+    const f32 final_point_z = path_points[current].z;
+    const f32 final_point_w = path_points[current].w;
+    waypoints[waypoint_index].position.x = final_point_x;
+    waypoints[waypoint_index].position.y = final_point_y;
+    waypoints[waypoint_index].position.z = final_point_z;
+    waypoints[waypoint_index].position.w = final_point_w;
     waypoints[waypoint_index].field_14 = 0;
-    waypoints[waypoint_index].target_position.position = path_points[current];
-    target_position.position = path_points[current];
+    waypoints[waypoint_index].target_position.position.x = final_point_x;
+    waypoints[waypoint_index].target_position.position.y = final_point_y;
+    waypoints[waypoint_index].target_position.position.z = final_point_z;
+    waypoints[waypoint_index].target_position.position.w = final_point_w;
+    target_position.position.x = final_point_x;
+    target_position.position.y = final_point_y;
+    target_position.position.z = final_point_z;
+    target_position.position.w = final_point_w;
+}
 
 cleanup:
     if (field_6fd == 0) {
@@ -894,8 +946,8 @@ bool MechTouchTaskPlannedGoTo::Update() {
         return false;
     }
     if (waypoints[current_waypoint].field_14 == 0) {
-        MechTouchPlannedWaypoint &waypoint = waypoints[current_waypoint];
-        MechTouchTaskGoTo *task = new MechTouchTaskGoTo(*controller, &waypoint.target_position);
+        MechInputTouchGestureBasedController *owner = controller;
+        MechTouchTaskGoTo *task = new MechTouchTaskGoTo(*owner, &waypoints[current_waypoint].target_position);
         task->field_50 = 1;
         controller->StartNewTask(task, *touch_holder, true, false);
         return true;
@@ -911,7 +963,7 @@ bool MechTouchTaskPlannedGoTo::Update() {
     f32 velocity_x;
     f32 velocity_y;
     f32 velocity_z;
-    if (dx * dx + dy * dy + dz * dz > 1.96f || dy > player->apiobj.scaled_height) {
+    if (dx * dx + dy * dy + dz * dz > 1.4f * 1.4f || dy > player->apiobj.scaled_height) {
         const VuVec velocity = TouchHacks::CalculateJumpVelToHitPointDblJump(*player, waypoint.position);
         velocity_x = velocity.x;
         velocity_y = velocity.y;
@@ -923,6 +975,7 @@ bool MechTouchTaskPlannedGoTo::Update() {
         velocity_y = velocity.y;
         velocity_z = velocity.z;
     }
+    GameObject_s *angle_player = player;
     const f32 previous_z = player->apiobj.velocity.z;
     const f32 previous_target_z = player->target_velocity.z;
     const f32 previous_y = player->apiobj.velocity.y;
@@ -930,8 +983,8 @@ bool MechTouchTaskPlannedGoTo::Update() {
     const f32 previous_x = player->apiobj.velocity.x;
     const f32 previous_target_x = player->target_velocity.x;
     const i32 angle = NuAtan2D(velocity_x, velocity_z);
-    player->apiobj.movement_facing_angle = angle;
-    player->apiobj.facing_angle = angle;
+    angle_player->apiobj.movement_facing_angle = angle;
+    angle_player->apiobj.facing_angle = angle;
     player->apiobj.velocity.x = velocity_x;
     player->apiobj.velocity.y = velocity_y;
     player->apiobj.velocity.z = velocity_z;
@@ -945,7 +998,11 @@ bool MechTouchTaskPlannedGoTo::Update() {
     packet.velocity.y = velocity_y;
     packet.velocity.z = velocity_z;
     packet.velocity.w = 1.0f;
-    *reinterpret_cast<VuVec *>(packet.field_1c) = waypoint.position;
+    VuVec *destination = reinterpret_cast<VuVec *>(packet.field_1c);
+    destination->x = waypoints[current_waypoint].position.x;
+    destination->y = waypoints[current_waypoint].position.y;
+    destination->z = waypoints[current_waypoint].position.z;
+    destination->w = waypoints[current_waypoint].position.w;
     if (!controller->TriggerJumpTask(packet, true, true, true)) {
         player->apiobj.velocity.x = previous_x;
         player->apiobj.velocity.y = previous_y;
@@ -1054,7 +1111,7 @@ void MechTouchTaskPlannedDoubleClickGoTo::OnResume() {
     f32 velocity_x;
     f32 velocity_y;
     f32 velocity_z;
-    if (dx * dx + dy * dy + dz * dz > 1.96f || dy > player->apiobj.scaled_height) {
+    if (dx * dx + dy * dy + dz * dz > 1.4f * 1.4f || dy > player->apiobj.scaled_height) {
         const VuVec velocity = TouchHacks::CalculateJumpVelToHitPointDblJump(*player, position);
         velocity_x = velocity.x;
         velocity_y = velocity.y;
@@ -1073,9 +1130,10 @@ void MechTouchTaskPlannedDoubleClickGoTo::OnResume() {
     const f32 previous_target_y = player->target_velocity.y;
     const f32 previous_x = player->apiobj.velocity.x;
     const f32 previous_target_x = player->target_velocity.x;
+    GameObject_s *angle_player = player;
     const i32 angle = NuAtan2D(velocity_x, velocity_z);
-    player->apiobj.movement_facing_angle = angle;
-    player->apiobj.facing_angle = angle;
+    angle_player->apiobj.movement_facing_angle = angle;
+    angle_player->apiobj.facing_angle = angle;
     player->apiobj.velocity.x = velocity_x;
     player->apiobj.velocity.y = velocity_y;
     player->apiobj.velocity.z = velocity_z;
@@ -1130,9 +1188,10 @@ void MechTouchTaskPlannedDoubleClickGoTo::OnStart() {
     const f32 distance = NuFsqrt(distance_squared);
     const f32 offset_z = position.z / distance * 2.0f;
     const f32 offset_x = position.x / distance * 2.0f;
-    target.Get()->GetPos(position, -1);
-    position.x -= offset_x;
-    position.z -= offset_z;
+    VuVec next_position;
+    target.Get()->GetPos(next_position, -1);
+    position.x = next_position.x - offset_x;
+    position.z = next_position.z - offset_z;
     position.y = GameShadow(player, &position.xyz, 5.0f, -1);
     target_position.position.x = position.x;
     target_position.position.y = position.y;

@@ -87,14 +87,16 @@ void BezierLineEval(VuVec &result, VuVec &start, VuVec &first_control, VuVec &en
     const f32 first_weight = (along * 3.0f) * complement_squared;
     const f32 second_weight = (3.0f * squared) * complement;
     const f32 end_weight = along * squared;
-    const VuVec point{((first_control.x * first_weight + start.x * start_weight) + second_control.x * second_weight) +
-                          end.x * end_weight,
-                      ((first_control.y * first_weight + start.y * start_weight) + second_control.y * second_weight) +
-                          end.y * end_weight,
-                      ((first_control.z * first_weight + start.z * start_weight) + second_control.z * second_weight) +
-                          end.z * end_weight,
-                      0.0f};
-    result = point;
+    const f32 y = end.y * end_weight +
+                  (second_control.y * second_weight + (first_control.y * first_weight + start.y * start_weight));
+    const f32 z = end.z * end_weight +
+                  ((first_control.z * first_weight + start.z * start_weight) + second_control.z * second_weight);
+    const f32 x = end_weight * end.x +
+                  (second_weight * second_control.x + (first_weight * first_control.x + start_weight * start.x));
+    result.w = 0.0f;
+    result.y = y;
+    result.z = z;
+    result.x = x;
 }
 
 void CalcSplinePoint(flightspline_s *spline, _vuv_s *result, float along) {
@@ -182,7 +184,7 @@ f32 BezierLineLength(VuVec &start, VuVec &first_control, VuVec &end, VuVec &seco
                    (first_middle.z + middle_last.z) * 0.5f, 0.0f};
     NUVEC error{(start.x + end.x) * 0.5f - midpoint.x, (start.y + end.y) * 0.5f - midpoint.y,
                 (start.z + end.z) * 0.5f - midpoint.z};
-    if (NuVecMag(&error) >= 0.01f && bezierline_depth < 2) {
+    if (!(NuVecMag(&error) < 0.01f) && bezierline_depth < 2) {
         ++bezierline_depth;
         f32 first_length = BezierLineLength(start, first, midpoint, first_middle);
         f32 second_length = BezierLineLength(midpoint, middle_last, end, last);
@@ -407,11 +409,12 @@ i32 OutSideSplineArea(nuvec_s *position, nugspline_s *spline, nuvec_s *edge_end,
         f32 dx = spline->pts[i].x - position->x;
         f32 dz = spline->pts[i].z - position->z;
         f32 distance = dx * dx + dz * dz;
-        if (distance < best) {
+        if (distance < best)
             closest_index = i;
-            closest = spline->pts[i];
-            best = distance;
-        }
+        closest.x = distance < best ? spline->pts[i].x : closest.x;
+        closest.y = distance < best ? spline->pts[i].y : closest.y;
+        closest.z = distance < best ? spline->pts[i].z : closest.z;
+        best = distance < best ? distance : best;
     }
     i32 previous = closest_index == 0 ? spline->length - 2 : closest_index - 1;
     i32 next = closest_index == spline->length - 2 ? 0 : closest_index + 1;
@@ -531,8 +534,7 @@ void LevelSplines_InitForGame(LEVELSPLINE *splines) {
     for (LEVELSPLINE *spline = splines; spline->name != NULL; ++spline) {
         if (levspl_i_start == -1 && NuStrICmp(spline->name, "start") == 0) {
             levspl_i_start = LEVELSPLINECOUNT;
-        }
-        if (levspl_i_startcam == -1 && NuStrICmp(spline->name, "start_cam") == 0) {
+        } else if (levspl_i_startcam == -1 && NuStrICmp(spline->name, "start_cam") == 0) {
             levspl_i_startcam = LEVELSPLINECOUNT;
         }
         ++LEVELSPLINECOUNT;

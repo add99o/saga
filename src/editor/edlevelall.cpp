@@ -263,9 +263,11 @@ void ClassEditor::AddMenuItems(eduimenu_s *menu) {
     EdClass *classes[32];
     i32 class_count = 0;
     for (ClassObjectListEntry *entry = selected_objects.first; entry != NULL; entry = entry->next) {
-        i32 index = 0;
-        while (index < class_count && classes[index] != entry->ed_class)
-            ++index;
+        i32 index;
+        for (index = 0; index < class_count; ++index) {
+            if (classes[index] == entry->ed_class)
+                break;
+        }
         if (index == class_count)
             classes[class_count++] = entry->ed_class;
     }
@@ -478,9 +480,8 @@ void ClassEditor::Render() {
         if (!Editable(NULL, ed_class, index) || ed_class->interface == NULL || (ed_class->flags & 0x08000080) == 0)
             continue;
 
-        EdClassInterface *interface = ed_class->interface;
-        for (void *object = interface->vtable->get_next_object(interface, NULL); object != NULL;
-             object = interface->vtable->get_next_object(interface, object)) {
+        for (void *object = ed_class->interface->vtable->get_next_object(ed_class->interface, NULL); object != NULL;
+             object = ed_class->interface->vtable->get_next_object(ed_class->interface, object)) {
             if (!Editable(object, ed_class, -1))
                 continue;
 
@@ -622,7 +623,8 @@ i32 ClassEditor::Editable(void *object, EdClass *object_class, i32 index) {
 }
 
 i32 ClassEditor::FindNearestObject(VuVec &point, ClassObject &result, ClassObject &after, i32 filter) {
-    ClassObject candidates[16];
+    EdClass *candidate_classes[16] = {};
+    void *candidate_objects[16] = {};
     i32 candidate_count = 0;
     for (i32 class_index = 0; class_index < theRegistry.class_count; ++class_index) {
         EdClass *ed_class = &theRegistry.classes[class_index];
@@ -631,7 +633,7 @@ i32 ClassEditor::FindNearestObject(VuVec &point, ClassObject &result, ClassObjec
             interface->vtable->get_next_object == NULL)
             continue;
         for (void *object = interface->vtable->get_next_object(interface, NULL); object != NULL;
-             object = interface->vtable->get_next_object(interface, object)) {
+             object = ed_class->interface->vtable->get_next_object(ed_class->interface, object)) {
             if (!Editable(object, ed_class, -1))
                 continue;
             EdMember member;
@@ -642,11 +644,15 @@ i32 ClassEditor::FindNearestObject(VuVec &point, ClassObject &result, ClassObjec
             f32 dx = position.x - point.x;
             f32 dy = position.y - point.y;
             f32 dz = position.z - point.z;
+            f32 distance_squared = dx * dx + dy * dy + dz * dz;
             f32 radius = 1.0f;
             if (ed_class->FindMember(&member, object, 0x40, 1))
                 member.reference->GetAttributeData(member.object, 0x40, EdType_Float, &radius, 0);
-            if (dx * dx + dy * dy + dz * dz < radius * radius && candidate_count < 16)
-                candidates[candidate_count++] = {ed_class, object, NULL};
+            if (distance_squared < radius * radius && candidate_count < 16) {
+                candidate_classes[candidate_count] = ed_class;
+                candidate_objects[candidate_count] = object;
+                ++candidate_count;
+            }
         }
     }
     if (candidate_count == 0)
@@ -654,14 +660,14 @@ i32 ClassEditor::FindNearestObject(VuVec &point, ClassObject &result, ClassObjec
     i32 choice = 0;
     if (after.object != NULL) {
         for (i32 index = 0; index < candidate_count; ++index) {
-            if (candidates[index].object == after.object) {
+            if (candidate_objects[index] == after.object) {
                 choice = (index + 1) % candidate_count;
                 break;
             }
         }
     }
-    result.ed_class = candidates[choice].ed_class;
-    result.object = candidates[choice].object;
+    result.ed_class = candidate_classes[choice];
+    result.object = candidate_objects[choice];
     return 1;
 }
 
@@ -671,11 +677,11 @@ i32 ClassEditor::FindNearestObject(VuVec &point, ClassObject &result, i32 filter
     f32 nearest_distance = FLT_MAX;
     for (i32 class_index = 0; class_index < theRegistry.class_count; ++class_index) {
         EdClass *ed_class = &theRegistry.classes[class_index];
-        EdClassInterface *interface = ed_class->interface;
         if (!Editable(NULL, ed_class, class_index) || (ed_class->flags & 8) == 0)
             continue;
+        EdClassInterface *interface = ed_class->interface;
         for (void *object = interface->vtable->get_next_object(interface, NULL); object != NULL;
-             object = interface->vtable->get_next_object(interface, object)) {
+             object = ed_class->interface->vtable->get_next_object(ed_class->interface, object)) {
             EdMember member;
             if (!ed_class->FindMember(&member, object, 8, 1))
                 continue;
@@ -693,13 +699,14 @@ i32 ClassEditor::FindNearestObject(VuVec &point, ClassObject &result, i32 filter
         }
     }
     if (nearest_object != NULL && filter != 0) {
+        f32 nearest_radius = NuFsqrt(nearest_distance);
         f32 radius = 1.0f;
         if ((nearest_class->flags & 0x40) != 0) {
             EdMember member;
             if (nearest_class->FindMember(&member, nearest_object, 0x40, 1))
                 member.reference->GetAttributeData(member.object, 0x40, EdType_Float, &radius, 0);
         }
-        if (NuFsqrt(nearest_distance) > radius) {
+        if (nearest_radius > radius) {
             nearest_class = NULL;
             nearest_object = NULL;
         }
@@ -1102,12 +1109,13 @@ void ClassEditor::UpdateLists(MemoryBuffer *first, MemoryBuffer *second) {
 void ClassEditor::UpdateSelectedObjects(EdInputContext &input) {
     for (ClassObjectListEntry *entry = selected_objects.first; entry != NULL;) {
         ClassObjectListEntry *next_entry = entry->next;
+        void *selected_object = entry->object;
         EdClassInterface *interface = entry->ed_class->interface;
         void *object = interface->vtable->get_next_object(interface, NULL);
         for (;;) {
             if (object == NULL)
                 break;
-            if (object == entry->object)
+            if (object == selected_object)
                 break;
             object = interface->vtable->get_next_object(interface, object);
         }
@@ -2627,9 +2635,13 @@ PropertyMenu *PropertyTool::CreatePropertyMenu(ClassObject &object) {
     PropertyMenuMetrics metrics __attribute__((aligned(16))) = ediGetMenuStartMetrics();
     char name[64];
     char title[128];
-    if (!get_class_object_attribute(object.ed_class, object.object, object.reference, 2, EdType_String, name,
-                                    sizeof(name))) {
-        NuStrCpy(name, const_cast<char *>("no name"));
+    EdMember member;
+    i32 name_type = EdType_String;
+    if (object.reference == NULL ||
+        !object.reference->GetAttributeData(object.object, 2, name_type, name, sizeof(name))) {
+        if (!object.ed_class->FindMember(&member, object.object, 2, 1) ||
+            !member.reference->GetAttributeData(member.object, 2, name_type, name, sizeof(name)))
+            NuStrCpy(name, const_cast<char *>("no name"));
     }
     sprintf(title, "%s - %s", object.ed_class->name, name);
     eduimenu_s *menu = eduiMenuCreate(metrics.x, metrics.y, metrics.width, metrics.height,
@@ -2816,14 +2828,15 @@ i32 PropertyTool::ProcessMenu(EdInputContext &input) {
             return 1;
         }
     }
-    for (PropertyMenu *menu = active_menu; menu != NULL; menu = menu->next) {
-        if (menu == active) {
-            continue;
+    for (PropertyMenu *menu = active_menu; menu != NULL;) {
+        PropertyMenu *next = menu->next;
+        if (menu != active) {
+            RefreshMenuControls(menu);
+            if (eduiMenuProcess(menu->menu, input.delta_time, input.pad) != 0) {
+                return 1;
+            }
         }
-        RefreshMenuControls(menu);
-        if (eduiMenuProcess(menu->menu, input.delta_time, input.pad) != 0) {
-            return 1;
-        }
+        menu = next;
     }
     if ((input.pad->digital_buttons_pressed & 0x100) != 0) {
         ToggleActiveMenu();
@@ -2997,16 +3010,28 @@ i32 ClassObjectList::GetAveragePosition(VuVec &average, float &radius) {
     float radii[64];
     for (ClassObjectListEntry *entry = first; entry != NULL && position_count < 64; entry = entry->next) {
         VuVec &position = positions[position_count];
-        if (get_class_object_attribute(entry->ed_class, entry->object, entry->reference, 8, EdType_VuVec, &position,
-                                       0)) {
-            average.x += position.x;
-            average.y += position.y;
-            average.z += position.z;
-            radii[position_count] = 1.0f;
-            get_class_object_attribute(entry->ed_class, entry->object, entry->reference, 64, EdType_Float,
-                                       &radii[position_count], 0);
-            ++position_count;
-        }
+        EdMember member;
+        i32 position_type = EdType_VuVec;
+        if (entry->reference != NULL &&
+            entry->reference->GetAttributeData(entry->object, 8, position_type, &position, 0))
+            goto position_found;
+        if (!entry->ed_class->FindMember(&member, entry->object, 8, 1))
+            continue;
+        if (!member.reference->GetAttributeData(member.object, 8, position_type, &position, 0))
+            continue;
+    position_found:
+        average.x += position.x;
+        average.y += position.y;
+        average.z += position.z;
+        radii[position_count] = 1.0f;
+        i32 radius_type = EdType_Float;
+        if (entry->reference != NULL &&
+            entry->reference->GetAttributeData(entry->object, 64, radius_type, &radii[position_count], 0))
+            goto radius_found;
+        if (entry->ed_class->FindMember(&member, entry->object, 64, 1))
+            member.reference->GetAttributeData(member.object, 64, radius_type, &radii[position_count], 0);
+    radius_found:
+        ++position_count;
     }
     if (position_count != 0) {
         float scale = 1.0f / position_count;

@@ -319,7 +319,7 @@ i32 GetMipOffset(NuHardwareTexture *tex, i32 targetMip, i32 targetSlice, NUTEXFO
 #define SQUISH_KDXT3 (1 << 1) // 2
 #define SQUISH_KDXT5 (1 << 2) // 4
 
-static const i32 CSWTCH_249[] = {SQUISH_KDXT1, SQUISH_KDXT3, SQUISH_KDXT5};
+static const i32 CSWTCH_249[] = {SQUISH_KDXT3, SQUISH_KDXT1, SQUISH_KDXT5};
 
 void DecompressTextureToRGBA(unsigned char *ddsData, u32 size, unsigned char *&outBuffer) {
     i32 squishFlags;
@@ -375,10 +375,11 @@ void DecompressTextureToRGBA(unsigned char *ddsData, u32 size, unsigned char *&o
     for (i32 face = 0; face < faceLimit; face++) {
         if (tex.mips != 0) {
             for (i32 mip = 0; mip < tex.mips; mip++) {
+                i32 mipWidth = tex.width >> mip;
+                i32 mipHeight = tex.height >> mip;
                 i32 mipOffset = GetMipOffset(&tex, mip, face, NUTEX_UNKNOWN);
                 i32 rgbaOffset = GetMipOffset(&tex, mip, face, NUTEX_RGBA32);
-                squish::DecompressImage(outBuffer + rgbaOffset, tex.width >> mip, tex.height >> mip,
-                                        ddsData + mipOffset, squishFlags);
+                squish::DecompressImage(outBuffer + rgbaOffset, mipWidth, mipHeight, ddsData + mipOffset, squishFlags);
             }
         }
     }
@@ -394,9 +395,13 @@ GLuint CreateTexturePS(void) {
     return tex;
 }
 
+SAGA_HOST_HOOK void *NuIOS_AllocateDefaultTexturePixels(usize bytes) {
+    return malloc(bytes);
+}
+
 GLuint loadDefaultTexture(GLuint texture, GLint level, GLsizei size, GLenum texture_type, GLenum target) {
     isize pixel_count = size * size;
-    u8 *pixels = (u8 *)malloc(pixel_count * 4);
+    u8 *pixels = (u8 *)NuIOS_AllocateDefaultTexturePixels(pixel_count * 4);
     u8 *p1 = pixels + 8;
     u8 *p2 = pixels + 4;
     for (i32 i = 0; i < pixel_count; i += 2) {
@@ -790,9 +795,9 @@ i32 GetMipOffset(i32 width, i32 height, NUTEXFORMAT format, i32 depth, bool isCu
     if (format > 0 && format < 119) {
         const i32 formatIndex = format - 1;
         isCompressed = FormatIsCompressedTable[formatIndex];
-        minBlocks = FormatMinBlocksYTable[formatIndex];
-        bytesPerBlockOrPixel = FormatBytesPerElementTable[formatIndex];
-        blockWidth = FormatBlockWidthTable[formatIndex];
+        minBlocks = static_cast<i8>(FormatMinBlocksYTable[formatIndex]);
+        bytesPerBlockOrPixel = static_cast<i8>(FormatBytesPerElementTable[formatIndex]);
+        blockWidth = static_cast<i8>(FormatBlockWidthTable[formatIndex]);
     } else {
         isCompressed = false;
         minBlocks = 1;

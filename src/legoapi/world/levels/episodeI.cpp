@@ -142,12 +142,12 @@ struct WORLDLEVOBJ_s {
 // Names are the original statics (_ZL... symbols in res/libTTapp.so) and must
 // not be renamed. Initial values match the original .data image.
 
-static PODRACE_s *PodRace;            // _ZL7PodRace
-static GameObject_s *pod_pacemaker;   // _ZL13pod_pacemaker
-static float pod_pacemaker_alpha;     // _ZL19pod_pacemaker_alpha
-static float podlapalpha;             // _ZL11podlapalpha
-static float podhurryalpha;           // _ZL13podhurryalpha
-static float podstartracealpha;       // _ZL17podstartracealpha
+static PODRACE_s *PodRace;          // _ZL7PodRace
+static GameObject_s *pod_pacemaker; // _ZL13pod_pacemaker
+static float pod_pacemaker_alpha;   // _ZL19pod_pacemaker_alpha
+static float podlapalpha;           // _ZL11podlapalpha
+static float podhurryalpha;         // _ZL13podhurryalpha
+static float podstartracealpha;     // _ZL17podstartracealpha
 static const float mine_generate_d_sock_along[] = {0.0f, 1.5f, 0.75f, 1.5f};
 static i32 podhurry_i;                // _ZL10podhurry_i
 static NUVEC pod_old_pos[2] __used__; // _ZL11pod_old_pos (0x18 bytes of .bss)

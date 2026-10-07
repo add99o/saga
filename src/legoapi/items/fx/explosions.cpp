@@ -129,7 +129,7 @@ void UpdateExplosion_Generic(EXPLOSION *explosion) {
     }
     NUVEC minimum = {explosion->position.x - radius, explosion->position.y - radius, explosion->position.z - radius};
     NUVEC maximum = {explosion->position.x + radius, explosion->position.y + radius, explosion->position.z + radius};
-    bool hit_character = false;
+    i32 hit_character = 0;
     if ((explosion->field_0x24 & 0x100) == 0) {
         GameObject_s *target = Obj;
         for (i32 i = 0; i < HIGHGAMEOBJECT; ++i, ++target) {
@@ -148,9 +148,9 @@ void UpdateExplosion_Generic(EXPLOSION *explosion) {
                 (((object->field_0x1e4 & explosion->field_0x00) | (object->field_0x1e8 & explosion->field_0x04)) != 0 ||
                  explosion->object == target))
                 continue;
-            if (!(object->collision_min.x <= maximum.x && minimum.x <= object->collision_max.x &&
-                  object->collision_min.y <= maximum.y && minimum.y <= object->collision_max.y &&
-                  object->collision_min.z <= maximum.z && minimum.z <= object->collision_max.z))
+            if (object->collision_min.x > maximum.x || minimum.x > object->collision_max.x ||
+                object->collision_min.y > maximum.y || minimum.y > object->collision_max.y ||
+                object->collision_min.z > maximum.z || minimum.z > object->collision_max.z)
                 continue;
             if (!SphereSphereOverlapScaleY(&object->collision_position, object->field_0x1dc, object->field_0x1e0,
                                            &explosion->position, radius, radius))
@@ -172,7 +172,7 @@ void UpdateExplosion_Generic(EXPLOSION *explosion) {
                 explosion->object == target || target->spawn_protection_timer > 0.0f ||
                 (target->field_0xefe & 0x40) != 0)
                 continue;
-            if (object->field_0x27c != -1 && target->field_0x1024 > 0.0f && (explosion->field_0x24 & 0x2000) == 0)
+            if (object->field_0x27c != -1 && !(target->field_0x1024 <= 0.0f) && (explosion->field_0x24 & 0x2000) == 0)
                 continue;
             GameObject_s *source;
             if (explosion->object != NULL && !(Arcade_GetMode(NULL) == 99 && (explosion->field_0x24 & 0x10010) != 0)) {
@@ -188,12 +188,12 @@ void UpdateExplosion_Generic(EXPLOSION *explosion) {
             if (target->field_0xd24 >= 0.99f) {
                 ObjHitShield(explosion->object, target, target->field_0xe37, NULL);
                 if ((explosion->field_0x24 & 0x20) == 0) {
-                    hit_character = true;
+                    hit_character = 1;
                     continue;
                 }
             }
             if (CannotKill(target)) {
-                hit_character = true;
+                hit_character = 1;
                 continue;
             }
             i32 damage;
@@ -230,7 +230,7 @@ void UpdateExplosion_Generic(EXPLOSION *explosion) {
                 GameCam_HitJudder();
             } else if (explosion->object != NULL)
                 NewBuzz(explosion->object->pad_gamepad->pad, 0.1f, 0);
-            hit_character = true;
+            hit_character = 1;
         }
     }
     if (!hit_character && (explosion->field_0x24 & 2) != 0) {

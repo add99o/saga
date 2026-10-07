@@ -1266,8 +1266,7 @@ extern "C" {
                 buf->addr = ALIGN(buf->addr, 0x10);
                 camera_instance->camera_states = reinterpret_cast<instNUGCUTCAMSTATE_s *>(buf->void_ptr);
                 buf->void_ptr = camera_instance->camera_states + camera_system->camera_count;
-                memset(camera_instance->camera_states, 0,
-                       camera_system->camera_count * sizeof(instNUGCUTCAMSTATE_s));
+                memset(camera_instance->camera_states, 0, camera_system->camera_count * sizeof(instNUGCUTCAMSTATE_s));
             }
             instance->camera_instance = camera_instance;
         }
@@ -1308,7 +1307,8 @@ extern "C" {
                                                   reinterpret_cast<usize>(rigid->scene->display_list->specials)) &
                                                  ~static_cast<usize>(0xf);
                             inst_rigid->special = NULL;
-                            inst_rigid->display_special = reinterpret_cast<u8 *>(scene->display_list->specials) + offset;
+                            inst_rigid->display_special =
+                                reinterpret_cast<u8 *>(scene->display_list->specials) + offset;
                         }
                         if ((rigid->flags & 2) != 0) {
                             inst_rigid->visible = rigid->flags & 1;
@@ -1357,8 +1357,7 @@ extern "C" {
                 buf->addr = ALIGN(buf->addr, 0x10);
                 locator_instance->locators = reinterpret_cast<instNUGCUTLOCATOR_s *>(buf->void_ptr);
                 buf->void_ptr = locator_instance->locators + locator_system->locator_count;
-                memset(locator_instance->locators, 0,
-                       locator_system->locator_count * sizeof(instNUGCUTLOCATOR_s));
+                memset(locator_instance->locators, 0, locator_system->locator_count * sizeof(instNUGCUTLOCATOR_s));
                 for (i32 i = 0; i < locator_system->locator_count; ++i) {
                     NUGCUTLOCATOR_s *locator = &locator_system->locators[i];
                     NUGCUTLOCATORTYPE_s *type = &locator_system->types[locator->type_index];
@@ -2287,8 +2286,8 @@ static void instNuGCutCamSysUpdate(instNUGCUTSCENE_s *instance, float frame) {
 
     while (camera_instance->next_target_index < camera_instance->target_count &&
            frame >= camera_instance->targets[camera_instance->next_target_index].start_frame) {
-        const i8 mapped_camera = system->target_camera_map[
-            camera_instance->targets[camera_instance->next_target_index].target_index];
+        const i8 mapped_camera =
+            system->target_camera_map[camera_instance->targets[camera_instance->next_target_index].target_index];
         instNUGCUTCAMSTATE_s *state = &camera_instance->camera_states[mapped_camera];
         state->flags |= 2;
         state->event_index = camera_instance->next_target_index;
@@ -2297,8 +2296,8 @@ static void instNuGCutCamSysUpdate(instNUGCUTSCENE_s *instance, float frame) {
     while (camera_instance->next_target_index != 0 &&
            frame < camera_instance->targets[camera_instance->next_target_index - 1].start_frame) {
         --camera_instance->next_target_index;
-        const i8 mapped_camera = system->target_camera_map[
-            camera_instance->targets[camera_instance->next_target_index].target_index];
+        const i8 mapped_camera =
+            system->target_camera_map[camera_instance->targets[camera_instance->next_target_index].target_index];
         instNUGCUTCAMSTATE_s *state = &camera_instance->camera_states[mapped_camera];
         state->flags |= 2;
         state->event_index = camera_instance->next_target_index;

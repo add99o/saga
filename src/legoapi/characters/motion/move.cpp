@@ -2660,8 +2660,7 @@ void MovePlayer_DIRECTIONAL(GameObject_s *object) {
         do {
             if (object->character_context == 0x46)
                 goto directional_heading_0x46;
-            if (api.player_controlled && object->character_context == 0x1b &&
-                (object->field_0xe21 & 2) == 0)
+            if (api.player_controlled && object->character_context == 0x1b && (object->field_0xe21 & 2) == 0)
                 goto directional_heading_0x1b;
             if (object->character_context == 0x1c)
                 goto directional_heading_0x1c;
@@ -3623,9 +3622,9 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
         NuSpecialExistsFn(&LevHSpecial[0]) &&
         NuVecXZDistSqr(NuSpecialGetDrawPos(&LevHSpecial[0]), &api.collision_position, &carwash_delta) < 0.36f) {
         CarWashHack = object;
-        if (pad->input_magnitude > (api.character_data->game_character->walk_speed +
-                                    api.character_data->game_character->run_speed) *
-                                       0.5f &&
+        if (pad->input_magnitude >
+                (api.character_data->game_character->walk_speed + api.character_data->game_character->run_speed) *
+                    0.5f &&
             (LevGizObst[0] == NULL || LevGizObst[0]->anim_set == NULL || (LevGizObst[0]->anim_set->flags & 1) == 0))
             CarWashHack = NULL;
     }
@@ -3650,13 +3649,11 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
     Techno_FindOperator(object, &pad, &operator_object);
     f32 requested_speed;
     if (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA)
-        requested_speed = pad->input_magnitude /
-                          operator_object->apiobj.character_data->game_character->run_speed *
-                          35.0f;
+        requested_speed =
+            pad->input_magnitude / operator_object->apiobj.character_data->game_character->run_speed * 35.0f;
     else
         requested_speed = api.character_data->game_character->run_speed *
-                          (pad->input_magnitude /
-                           operator_object->apiobj.character_data->game_character->run_speed);
+                          (pad->input_magnitude / operator_object->apiobj.character_data->game_character->run_speed);
     if ((object->field_0xe20 & 0x20) != 0 && object->character_context != 0x23 && object->character_context != 0x24) {
         MoveInactiveVehicle(object, 0, &other);
         if (other != NULL) {
@@ -3698,19 +3695,18 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
                 if ((object->in_narrow_socket && (api.flags_low & 0x80) != 0 &&
                      WORLD->current_level == DEATHSTARBATTLED_LDATA &&
                      ObjInNarrowSock(object, WORLD->sock_sys, WORLD->level_idx)) ||
-                    (object->in_narrow_socket &&
-                     (WORLD->current_level == DEATHSTAR2BATTLEE_LDATA ||
-                      WORLD->current_level == DEATHSTAR2BATTLEF_LDATA ||
-                      WORLD->current_level == DEATHSTAR2BATTLEG_LDATA)))
+                    (object->in_narrow_socket && (WORLD->current_level == DEATHSTAR2BATTLEE_LDATA ||
+                                                  WORLD->current_level == DEATHSTAR2BATTLEF_LDATA ||
+                                                  WORLD->current_level == DEATHSTAR2BATTLEG_LDATA)))
                     turn_multiplier = 0.5f;
                 else if (WORLD->current_level == SPEEDERCHASEA_LDATA && !disable_narrow_socks)
                     turn_multiplier = 0.75f;
                 else if ((api.flags_low & 0x80) != 0 && (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA))
                     turn_multiplier = 0.25f;
-                f32 ratio = (NuFsqrt(api.velocity.x * api.velocity.x + api.velocity.z * api.velocity.z) -
-                             api.character_data->game_character->tiptoe_speed) /
-                            (api.character_data->game_character->run_speed -
-                             api.character_data->game_character->tiptoe_speed);
+                f32 ratio =
+                    (NuFsqrt(api.velocity.x * api.velocity.x + api.velocity.z * api.velocity.z) -
+                     api.character_data->game_character->tiptoe_speed) /
+                    (api.character_data->game_character->run_speed - api.character_data->game_character->tiptoe_speed);
                 if (ratio < 0.0f)
                     ratio = 0.0f;
                 if (ratio > 1.0f)
@@ -3791,8 +3787,7 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
                         }
                     }
                 }
-            } else if ((api.flags_low & 0x80) != 0 &&
-                       (api.character_data->game_character->flags_090 & 0x10000) == 0 &&
+            } else if ((api.flags_low & 0x80) != 0 && (api.character_data->game_character->flags_090 & 0x10000) == 0 &&
                        (i8)object->field_0xf03 >= 0) {
                 i32 outside = OutSideSplineArea(&api.collision_position, WORLD->camera_splines[16], &a, &b, 0);
                 i32 inside = 0;
@@ -3813,8 +3808,7 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
         f32 seek_rate = (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA)
                             ? 8.0f
                             : api.character_data->game_character->velocity_seek_rate;
-        if ((api.character_data->game_character->flags_090 & 0x40) != 0 &&
-            object->field_0xcc0 == NULL)
+        if ((api.character_data->game_character->flags_090 & 0x40) != 0 && object->field_0xcc0 == NULL)
             seek_rate = 5.0f;
         i32 special_lean = 0;
         if (api.movement_direction.x != 0.0f || api.movement_direction.z != 0.0f) {
@@ -3894,14 +3888,11 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
                     if (object->field_0xee0 != 1.0e9f)
                         desired = GetVehicleSpeedMul(object, object->field_0xee0);
                     else {
-                        if (WORLD->current_level == SPEEDERCHASEA_LDATA && player_vehicle != 0 &&
-                            !disable_narrow_socks)
+                        if (WORLD->current_level == SPEEDERCHASEA_LDATA && player_vehicle != 0 && !disable_narrow_socks)
                             desired = GetVehicleSpeedMul(
                                 object, api.character_data->game_character->run_speed * 0.75f +
-                                            api.character_data->game_character->run_speed *
-                                                0.25f *
-                                                (pad->input_magnitude /
-                                                 api.character_data->game_character->run_speed));
+                                            api.character_data->game_character->run_speed * 0.25f *
+                                                (pad->input_magnitude / api.character_data->game_character->run_speed));
                         else
                             desired = GetVehicleSpeedMul(object, requested_speed);
                         if (desired > object->field_0xdc8)
@@ -3909,16 +3900,14 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
                                         ? 0.5f
                                         : api.character_data->game_character->field_0x7c;
                     }
-                } else if (WORLD->current_level == SPEEDERCHASEA_LDATA && player_vehicle != 0 &&
-                           !disable_narrow_socks)
-                    desired = GetVehicleSpeedMul(
-                        object, api.character_data->game_character->run_speed * 0.75f);
+                } else if (WORLD->current_level == SPEEDERCHASEA_LDATA && player_vehicle != 0 && !disable_narrow_socks)
+                    desired = GetVehicleSpeedMul(object, api.character_data->game_character->run_speed * 0.75f);
                 else if (player_vehicle != 0 && (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA))
                     desired = 25.0f;
                 else if ((!IDLESPEEDINNARROWSOCKSONLY || object->in_narrow_socket) && player_vehicle != 0 &&
                          (object->field_0xf03 & 2) == 0)
-                    desired = api.character_data->game_character->field_0x10 /
-                              api.character_data->game_character->run_speed;
+                    desired =
+                        api.character_data->game_character->field_0x10 / api.character_data->game_character->run_speed;
                 else
                     desired = 0.0f;
                 f32 step = (1.0f / decel) * FRAMETIME;
@@ -3926,10 +3915,9 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
                     desired *= object->current_speed_mul;
                 object->field_0xdc8 = SeekLinearF(object->field_0xdc8, desired, step);
             }
-            f32 speed =
-                object->field_0xdc8 * ((PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA)
-                                           ? 35.0f
-                                           : api.character_data->game_character->run_speed);
+            f32 speed = object->field_0xdc8 * ((PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA)
+                                                   ? 35.0f
+                                                   : api.character_data->game_character->run_speed);
             if ((api.flags_low & 0x80) != 0 && WORLD->current_level == DEATHSTARBATTLED_LDATA &&
                 ObjInNarrowSock(object, WORLD->sock_sys, WORLD->level_idx))
                 speed *= 2.0f;
@@ -3969,8 +3957,7 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
                 object->target_velocity.x =
                     ((PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA)
                          ? (object->field_0x7a3 == 0 ? 10.5f : -10.5f)
-                         : (object->field_0x7a3 == 0 ? 0.4f : -0.4f) *
-                               api.character_data->game_character->run_speed);
+                         : (object->field_0x7a3 == 0 ? 0.4f : -0.4f) * api.character_data->game_character->run_speed);
                 NuVecRotateY(&object->target_velocity, &object->target_velocity, api.facing_angle);
             } else if ((api.flags_low & 0x80) != 0 && (PODSPRINT_ADATA != NULL && WORLD->area == PODSPRINT_ADATA) &&
                        object->in_narrow_socket) {
@@ -3996,10 +3983,9 @@ void MovePlayer_VEHICLEDIRECTIONAL(GameObject_s *object) {
             api.velocity.y = SeekValF(api.velocity.y, object->target_velocity.y, 10.0f);
         } else if ((api.character_data->game_character->field_0x94 & 0x20) != 0 &&
                    ((pad->buttons_held & GAMEPAD_JUMP) != 0 || object->character_context != 0x4b)) {
-            object->target_velocity.y =
-                (pad->buttons_held & GAMEPAD_JUMP) != 0
-                    ? api.character_data->game_character->run_speed * 0.7f
-                    : -api.character_data->game_character->run_speed * 0.7f;
+            object->target_velocity.y = (pad->buttons_held & GAMEPAD_JUMP) != 0
+                                            ? api.character_data->game_character->run_speed * 0.7f
+                                            : -api.character_data->game_character->run_speed * 0.7f;
             api.velocity.y = SeekValF(api.velocity.y, object->target_velocity.y, 3.0f);
         } else if (object->character_context == 0x4b) {
             object->target_velocity.y =
@@ -4326,7 +4312,7 @@ vehicle_gravity_done:
         Buck_MoveCode(object, pad->buttons_pressed & (GAMEPAD_SPECIAL | GAMEPAD_ACTION));
     }
     if (object->id == id_ZAMSSPEEDER && WORLD->current_level == BOUNTYHUNTERPURSUITE_LDATA &&
-               object->current_hp < static_cast<i32>(object->hitpoints)) {
+        object->current_hp < static_cast<i32>(object->hitpoints)) {
         const i32 effect = WORLD->debris_sys->entries[134].effect;
         if (effect != -1) {
             i32 count = ParticlesPerSecond(zam_smoke_rate, FRAMETIME) *
@@ -8338,9 +8324,8 @@ void JumpCode(GameObject_s *object, i32 jump_pressed, i32 jump_held, u32 animati
                     return;
                 }
             }
-            if (DoubleJump_JediSlam != 0 && (animation_set & 0x10) != 0 &&
-                (touch_action || action_pressed != 0) && (vertical_speed > -1.25f || touch_action) &&
-                variant_flags >= 0 &&
+            if (DoubleJump_JediSlam != 0 && (animation_set & 0x10) != 0 && (touch_action || action_pressed != 0) &&
+                (vertical_speed > -1.25f || touch_action) && variant_flags >= 0 &&
                 ((movement_state == 0 && (object->jump_sequence == 2 || (game_character->field_0x98 & 0x20) != 0)) ||
                  movement_state == 1 || movement_state == 2) &&
                 LEGOACT_SLAM != -1 && object->apiobj.character_model->model_data_b[LEGOACT_SLAM] != NULL) {
@@ -9263,8 +9248,7 @@ u16 SeekRot(u16 current, u16 target, f32 rate) {
     }
     // Original 0x490a3d converts to signed i32 before retaining the low
     // 16 bits.  Interpolation across zero can produce a negative angle.
-    const i32 angle =
-        static_cast<i32>(static_cast<f32>(current_angle) + static_cast<f32>(difference) * blend);
+    const i32 angle = static_cast<i32>(static_cast<f32>(current_angle) + static_cast<f32>(difference) * blend);
     return static_cast<u16>(angle);
 }
 
@@ -10199,7 +10183,8 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
     i8 context = object->character_context;
     if ((object->field_0xef8 & 8) != 0 && pressed != 0 && (CInfo[context].flags & 0x20) == 0) {
         if (static_cast<i8>(object->apiobj.flags_low) < 0) {
-            if ((context == 6 || context == 7) && (object->apiobj.character_data->game_character->flags_094[1] & 0x10) != 0)
+            if ((context == 6 || context == 7) &&
+                (object->apiobj.character_data->game_character->flags_094[1] & 0x10) != 0)
                 return 0;
         } else if (context == 6 || context == 7) {
             goto shoot_weapon_in;
@@ -10217,10 +10202,9 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
             } else {
                 if (object->weapon_scale_state == 0 && object->apiobj.field_0x27d != 0 &&
                     object->pad_gamepad->input_magnitude == 0.0f &&
-                    object->apiobj.character_model
-                            ->model_data_b[data->uses_weapon_action == 0 && (character->model_flags & 0x80) != 0
-                                               ? 0x7f
-                                               : 0x11] != NULL &&
+                    object->apiobj.character_model->model_data_b
+                            [data->uses_weapon_action == 0 && (character->model_flags & 0x80) != 0 ? 0x7f : 0x11] !=
+                        NULL &&
                     (context == -1 || (CInfo[context].flags & 4) != 0))
                     SlowWeaponOut(object);
                 else
@@ -10266,7 +10250,8 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
                         AnimPlaying(&object->apiobj.anim_packet, 0x5b, 1, 1) == NULL) {
                         direction.x = forward.z;
                         direction.z = -forward.x;
-                        target = TargetGameObject(object, &position, &direction, range, range_squared, 0, 1, 1, bolt_id);
+                        target =
+                            TargetGameObject(object, &position, &direction, range, range_squared, 0, 1, 1, bolt_id);
                         if (target != NULL)
                             object->context_animation = 0x5b;
                     }
@@ -10274,7 +10259,8 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
                         AnimPlaying(&object->apiobj.anim_packet, 0x5a, 1, 1) == NULL) {
                         direction.x = -forward.z;
                         direction.z = forward.x;
-                        target = TargetGameObject(object, &position, &direction, range, range_squared, 0, 1, 1, bolt_id);
+                        target =
+                            TargetGameObject(object, &position, &direction, range, range_squared, 0, 1, 1, bolt_id);
                         if (target != NULL)
                             object->context_animation = 0x5a;
                     }
@@ -10282,7 +10268,8 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
                         AnimPlaying(&object->apiobj.anim_packet, 0x5c, 1, 1) == NULL) {
                         direction.x = -forward.x;
                         direction.z = -forward.z;
-                        target = TargetGameObject(object, &position, &direction, range, range_squared, 0, 1, 1, bolt_id);
+                        target =
+                            TargetGameObject(object, &position, &direction, range, range_squared, 0, 1, 1, bolt_id);
                         if (target != NULL)
                             object->context_animation = 0x5c;
                     }
@@ -10300,8 +10287,8 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
                             if (part != NULL)
                                 SetPartTarget(object, part);
                             else
-                                target = TargetGameObject(object, &position, &forward, range, range_squared, 0x200, 1, 0,
-                                                          bolt_id);
+                                target = TargetGameObject(object, &position, &forward, range, range_squared, 0x200, 1,
+                                                          0, bolt_id);
                         }
                     }
                 }
@@ -10312,8 +10299,8 @@ static i32 ShootCode(GameObject_s *object, i32 pressed, i32 special_pressed, i32
         object->quick_shoot_timer = AnimDuration(object->id, object->context_animation, 0.0f, 0.0f, 0);
         object->field_0xe22 &= ~4;
         object->reserved_e30 = 0;
-        if ((object->id == id_ATST || object->id == id_MINIATST || object->id == id_ATST_LOWRES || object->id == id_ATAT ||
-             object->id == id_MINIATAT || object->id == id_MINIATTE) &&
+        if ((object->id == id_ATST || object->id == id_MINIATST || object->id == id_ATST_LOWRES ||
+             object->id == id_ATAT || object->id == id_MINIATAT || object->id == id_MINIATTE) &&
             AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 1) == NULL &&
             AnimPlaying(&object->apiobj.anim_packet, 1, 0, 0) == NULL)
             goto immediate_shot;

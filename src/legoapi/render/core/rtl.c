@@ -416,56 +416,75 @@ extern "C" {
         f32 maximum_x = -FLT_MAX;
         f32 minimum_z = FLT_MAX;
         f32 maximum_z = -FLT_MAX;
-        for (i32 index = 0; index < 128 && set->lights[index].type != 0; ++index) {
-            rtl_s *light = &set->lights[index];
+        rtl_s *light;
+        for (light = set->lights; light < set->lights + 128 && light->type != 0; ++light) {
             minimum_x = MIN(minimum_x, light->position.x - light->outer_radius);
             maximum_x = MAX(maximum_x, light->position.x + light->outer_radius);
             minimum_z = MIN(minimum_z, light->position.z - light->outer_radius);
             maximum_z = MAX(maximum_z, light->position.z + light->outer_radius);
         }
 
-        const f32 width = maximum_x - minimum_x;
-        const f32 depth = maximum_z - minimum_z;
-        if (minimum_x > maximum_x || minimum_z > maximum_z || width <= 0.0f || depth <= 0.0f) {
+        if (minimum_x > maximum_x || minimum_z > maximum_z)
             return;
-        }
-
+        // The reference writes offsets before checking the derived extents.
         grid->offset_x = -minimum_x;
         grid->offset_z = -minimum_z;
-        if (width <= depth) {
+        maximum_x -= minimum_x;
+        maximum_z -= minimum_z;
+        if (maximum_x <= 0.0f || maximum_z <= 0.0f)
+            return;
+        if (maximum_x <= maximum_z) {
             grid->depth = 16;
-            grid->width = MIN(static_cast<i32>(width * 16.0f / depth) + 1, 16);
-            grid->scale = 16.0f / depth;
+            grid->width = MIN(static_cast<i32>(maximum_x * 16.0f / maximum_z) + 1, 16);
+            grid->scale = 16.0f / maximum_z;
         } else {
             grid->width = 16;
-            grid->depth = MIN(static_cast<i32>(depth * 16.0f / width) + 1, 16);
-            grid->scale = 16.0f / width;
+            grid->depth = MIN(static_cast<i32>(maximum_z * 16.0f / maximum_x) + 1, 16);
+            grid->scale = 16.0f / maximum_x;
         }
 
         buffer->addr = ALIGN(buffer->addr, alignof(char *));
         grid->cells = static_cast<char **>(buffer->void_ptr);
-        char **cells = grid->cells;
         buffer->addr += grid->width * grid->depth * sizeof(char *);
 
         for (i32 row = 0; row < grid->depth; ++row) {
             const f32 minimum_cell_z = static_cast<f32>(row) / grid->scale - grid->offset_z;
             const f32 maximum_cell_z = static_cast<f32>(row + 1) / grid->scale - grid->offset_z;
             for (i32 column = 0; column < grid->width; ++column) {
+                grid->cells[row * grid->width + column] = buffer->char_ptr;
+                ++buffer->addr;
+                u8 *indices = reinterpret_cast<u8 *>(grid->cells[row * grid->width + column]);
+                *indices = 0;
                 const f32 minimum_cell_x = static_cast<f32>(column) / grid->scale - grid->offset_x;
                 const f32 maximum_cell_x = static_cast<f32>(column + 1) / grid->scale - grid->offset_x;
-                u8 *indices = buffer->u8_ptr;
-                cells[row * grid->width + column] = reinterpret_cast<char *>(indices);
-                *indices = 0;
-                ++buffer->addr;
 
-                for (i32 index = 0; index < 128 && set->lights[index].type != 0; ++index) {
-                    rtl_s *light = &set->lights[index];
-                    const bool directional = light->type == 5;
-                    const bool overlaps = light->position.x + light->outer_radius >= minimum_cell_x &&
-                                          light->position.x - light->outer_radius <= maximum_cell_x &&
-                                          light->position.z + light->outer_radius >= minimum_cell_z &&
-                                          light->position.z - light->outer_radius <= maximum_cell_z;
-                    if (directional || overlaps) {
+                i32 index = 0;
+                light = set->lights;
+                while (light < set->lights + 128 && light->type != 0) {
+                    // Original JBE overlap branches accept unordered comparisons.
+                    if (light->type != 5) {
+                        if (minimum_cell_x > light->position.x + light->outer_radius) {
+                            ++index;
+                            ++light;
+                            continue;
+                        }
+                        if (light->position.x - light->outer_radius > maximum_cell_x) {
+                            ++index;
+                            ++light;
+                            continue;
+                        }
+                        if (minimum_cell_z > light->position.z + light->outer_radius) {
+                            ++index;
+                            ++light;
+                            continue;
+                        }
+                        if (light->position.z - light->outer_radius > maximum_cell_z) {
+                            ++index;
+                            ++light;
+                            continue;
+                        }
+                    }
+                    {
                         // GetNextRTL's original char count cannot represent 128.
                         // Fall back to the bounded full scan for a full cell.
                         if (indices[0] == 127)
@@ -474,6 +493,8 @@ extern "C" {
                         indices[indices[0]] = static_cast<u8>(index);
                         ++buffer->addr;
                     }
+                    ++index;
+                    ++light;
                 }
             }
         }
@@ -486,40 +507,56 @@ extern "C" {
         rtlset *set = static_cast<rtlset *>(buffer->void_ptr);
         memset(set, 0, sizeof(*set));
 
-        if (NuFileLoadBuffer(path, set, buffer_end - buffer->addr) > 0) {
+        i32 loaded = NuFileLoadBuffer(path, buffer->void_ptr, buffer_end - buffer->addr);
+        if (loaded > 0) {
             rtlSwapSetEndianess(set);
         }
 
-        const u32 version = set->header;
-        if (version == 2) {
-            rtlfog_s *old_fog = reinterpret_cast<rtlfog_s *>(&set->lights[64]);
-            old_fog[0].type = 1;
-            old_fog[0].radius = 10.0f;
-            old_fog[0].position = {0.0f, 0.0f, 0.0f};
-            for (i32 i = 1; i < 32; ++i)
-                old_fog[i].type = 0;
-        }
-        if (version == 2 || version == 3) {
-            rtlfog_s *old_fog = reinterpret_cast<rtlfog_s *>(&set->lights[64]);
-            memmove(set->fog, old_fog, sizeof(set->fog));
-            for (i32 i = 64; i < 128; ++i)
-                set->lights[i].type = 0;
-        }
-        if (version >= 2 && version <= 4) {
-            for (i32 i = 0; i < 128; ++i) {
-                set->lights[i].field_79 = -1;
-                set->lights[i].field_7a = -1;
-                set->lights[i].field_7b = 0;
-                set->lights[i].intensity = 1.0f;
+        struct LegacySet {
+            u32 header;
+            rtl_s lights[64];
+            rtlfog_s fog[32];
+        };
+        i32 i;
+        switch (set->header) {
+            case 2: {
+                LegacySet *legacy = reinterpret_cast<LegacySet *>(set);
+                legacy->fog[0].radius = 10.0f;
+                NuVecClear(&legacy->fog[0].position);
+                legacy->fog[0].type = 1;
+                for (i = 1; i < 32; ++i)
+                    legacy->fog[i].type = 0;
             }
-        }
-        if (version != 1) {
-            for (i32 i = 0; i < 128; ++i) {
-                set->lights[i].uid = rtl_uid++;
-                if (rtl_uid == 0)
-                    ++rtl_uid;
-                set->lights[i].field_7c = set->lights;
+            // Fall through to migrate the legacy fog records.
+            case 3: {
+                LegacySet *legacy = reinterpret_cast<LegacySet *>(set);
+                i = 32;
+                while (i != 0) {
+                    --i;
+                    set->fog[i] = legacy->fog[i];
+                }
+                for (i = 64; i < 128; ++i)
+                    set->lights[i].type = 0;
             }
+            // Fall through to initialize the newer modifier fields.
+            case 4:
+                for (i = 0; i < 128; ++i) {
+                    set->lights[i].field_79 = -1;
+                    set->lights[i].field_7a = -1;
+                    set->lights[i].field_7b = 0;
+                    set->lights[i].intensity = 1.0f;
+                }
+                // Fall through to assign unique light identifiers.
+            default:
+                for (i = 0; i < 128; ++i) {
+                    set->lights[i].uid = rtl_uid++;
+                    if (rtl_uid == 0)
+                        ++rtl_uid;
+                    set->lights[i].field_7c = set->lights;
+                }
+                break;
+            case 1:
+                break;
         }
         set->header = curr_version;
         buffer->addr += sizeof(*set);
@@ -659,29 +696,16 @@ static f32 ClampUnit(f32 value) {
 }
 
 static __used__ void rtlCalcLights(nuvec_s *position, numtx_s *rotation, f32 scale, rtlidata_s *lighting_data) {
-    for (i32 slot = 0; slot < 3; ++slot) {
-        if (lighting_data->directional_lights[slot] == NULL) {
-            lighting_data->intensity_vectors[slot] = {0.0f, 0.0f, 0.0f};
-            lighting_data->direction[slot] = nuvec_y;
-        } else {
-            bool invalid = false;
+    const NUVEC black = {0.0f, 0.0f, 0.0f};
+    i32 slot;
+    f32 strength;
+    for (slot = 0; slot < 3; ++slot) {
+        if (lighting_data->directional_lights[slot] != NULL) {
+            i32 invalid = 0;
+            // The reference copies ambient x/y/z back to the selected light in the default, 4 and 2 arms.
             switch (lighting_data->directional_lights[slot]->type) {
-                case 2:
-                case 3:
-                case 6:
-                case 8:
-                    if (position == NULL)
-                        invalid = true;
-                    else {
-                        NuVecSub(&lighting_data->direction[slot], &lighting_data->directional_lights[slot]->position,
-                                 position);
-                        NuVecNorm(&lighting_data->direction[slot], &lighting_data->direction[slot]);
-                    }
-                    break;
-                case 4:
-                    lighting_data->direction[slot] = lighting_data->directional_lights[slot]->direction;
-                    break;
                 default:
+                    lighting_data->directional_lights[slot]->ambient = lighting_data->directional_lights[slot]->ambient;
                     lighting_data->direction[slot] = {0.0f, 0.0f, 1.0f};
                     NuVecRotateX(&lighting_data->direction[slot], &lighting_data->direction[slot],
                                  lighting_data->directional_lights[slot]->pitch);
@@ -691,13 +715,39 @@ static __used__ void rtlCalcLights(nuvec_s *position, numtx_s *rotation, f32 sca
                                    &global_camera.mtx);
                     lighting_data->directional_strengths[slot] = 1.0f;
                     break;
+                case 4:
+                    lighting_data->directional_lights[slot]->ambient = lighting_data->directional_lights[slot]->ambient;
+                    lighting_data->direction[slot] = lighting_data->directional_lights[slot]->direction;
+                    break;
+                case 2:
+                    if (position == NULL)
+                        invalid = 1;
+                    else {
+                        lighting_data->directional_lights[slot]->ambient =
+                            lighting_data->directional_lights[slot]->ambient;
+                        NuVecSub(&lighting_data->direction[slot], &lighting_data->directional_lights[slot]->position,
+                                 position);
+                        NuVecNorm(&lighting_data->direction[slot], &lighting_data->direction[slot]);
+                    }
+                    break;
+                case 3:
+                case 6:
+                case 8:
+                    if (position == NULL)
+                        invalid = 1;
+                    else {
+                        NuVecSub(&lighting_data->direction[slot], &lighting_data->directional_lights[slot]->position,
+                                 position);
+                        NuVecNorm(&lighting_data->direction[slot], &lighting_data->direction[slot]);
+                    }
+                    break;
             }
             if (invalid)
-                lighting_data->intensity_vectors[slot] = {0.0f, 0.0f, 0.0f};
+                lighting_data->intensity_vectors[slot] = black;
             else {
-                f32 strength = ApplyAntilights(lighting_data->directional_lights[slot], lighting_data,
-                                               lighting_data->directional_strengths[slot] *
-                                                   lighting_data->directional_lights[slot]->intensity);
+                strength = ApplyAntilights(lighting_data->directional_lights[slot], lighting_data,
+                                           lighting_data->directional_strengths[slot] *
+                                               lighting_data->directional_lights[slot]->intensity);
                 // Re-read selected lights after service callbacks, as in the reference.
                 lighting_data->intensity_vectors[slot].x =
                     lighting_data->directional_lights[slot]->ambient.x * strength;
@@ -706,6 +756,9 @@ static __used__ void rtlCalcLights(nuvec_s *position, numtx_s *rotation, f32 sca
                 lighting_data->intensity_vectors[slot].z =
                     lighting_data->directional_lights[slot]->ambient.z * strength;
             }
+        } else {
+            lighting_data->intensity_vectors[slot] = black;
+            lighting_data->direction[slot] = nuvec_y;
         }
         if (rotation != NULL)
             NuVecMtxRotate(&lighting_data->direction[slot], &lighting_data->direction[slot], rotation);
@@ -716,16 +769,16 @@ static __used__ void rtlCalcLights(nuvec_s *position, numtx_s *rotation, f32 sca
         NuVecScale(&lighting_data->intensity_vectors[2], &lighting_data->intensity_vectors[2], scale);
     }
     NuVecClear(&lighting_data->ambient);
-    for (i32 slot = 0; slot < 3; ++slot) {
+    for (slot = 0; slot < 3; ++slot) {
         if (lighting_data->ambient_lights[slot] != NULL) {
-            f32 strength = ApplyAntilights(lighting_data->ambient_lights[slot], lighting_data,
-                                           lighting_data->ambient_lights[slot]->intensity *
-                                               lighting_data->ambient_strengths[slot]);
+            strength = ApplyAntilights(lighting_data->ambient_lights[slot], lighting_data,
+                                       lighting_data->ambient_lights[slot]->intensity *
+                                           lighting_data->ambient_strengths[slot]);
 #define RTL_AMBIENT_COMPONENT(component)                                                                               \
     lighting_data->ambient.component =                                                                                 \
-        lighting_data->ambient.component + lighting_data->ambient_lights[slot]->ambient.component * strength <= 1.0f   \
-            ? lighting_data->ambient.component + lighting_data->ambient_lights[slot]->ambient.component * strength     \
-            : 1.0f
+        lighting_data->ambient.component + lighting_data->ambient_lights[slot]->ambient.component * strength > 1.0f    \
+            ? 1.0f                                                                                                     \
+            : lighting_data->ambient.component + lighting_data->ambient_lights[slot]->ambient.component * strength
             RTL_AMBIENT_COMPONENT(x);
             RTL_AMBIENT_COMPONENT(y);
             RTL_AMBIENT_COMPONENT(z);
@@ -812,7 +865,7 @@ static void rtlApplySetScaleLoop(void *set, rtlidata_s *lighting_data, NUVEC *po
 #define RTL_RADIUS_FRACTION ((distance - light->inner_radius) / (light->outer_radius - light->inner_radius))
 #define RTL_FALLOFF                                                                                                    \
     do {                                                                                                               \
-        if (light->inner_radius < light->outer_radius) {                                                               \
+        if (!(light->inner_radius >= light->outer_radius)) {                                                           \
             distance = NuFsqrt(distance_sq);                                                                           \
             strength = 1.0f - ((RTL_RADIUS_FRACTION > 1.0f ? 1.0f : RTL_RADIUS_FRACTION) < 0.0f                        \
                                    ? 0.0f                                                                              \
@@ -872,7 +925,7 @@ static void rtlApplySetScaleLoop(void *set, rtlidata_s *lighting_data, NUVEC *po
                             distance_sq = RTL_DISTANCE_SQ;
                         else
                             distance_sq = 0.0f;
-                        if (light->outer_radius * light->outer_radius <= distance_sq) {
+                        if (!(distance_sq < light->outer_radius * light->outer_radius)) {
                             if (lighting_data->cached_light == light)
                                 lighting_data->cached_value = 0.0000001f;
                         } else {
@@ -3371,6 +3424,9 @@ static i32 edrtlProcBurn(float delta_time, nupad_s *pad) {
 
 extern "C" void edrtlCalculateBurnout(burnset_s *set, f32 *threshold, f32 *intensity, f32 *dispersion,
                                       NUVEC *camera_position, f32 frame_time) {
+    i32 i;
+    f32 nearest_distance = -1.0f;
+    i32 nearest_index = -1;
     if (set == NULL)
         set = edrtl_edit_burnset;
     if (set == NULL) {
@@ -3380,17 +3436,14 @@ extern "C" void edrtlCalculateBurnout(burnset_s *set, f32 *threshold, f32 *inten
         return;
     }
 
-    f32 nearest_distance = -1.0f;
-    i32 nearest_index = -1;
-    for (i32 i = 0; i < 32; ++i) {
-        burnout_s &burnout = set->burnouts[i];
-        if (!burnout.active)
-            continue;
-        f32 distance = NuVecDist(camera_position, &burnout.position, NULL);
-        if (distance < burnout.field_1c + burnout.field_20 &&
-            (nearest_distance < 0.0f || distance < nearest_distance)) {
-            nearest_index = i;
-            nearest_distance = distance;
+    for (i = 0; i < 32; ++i) {
+        if (set->burnouts[i].active) {
+            f32 distance = NuVecDist(camera_position, &set->burnouts[i].position, NULL);
+            if (distance < set->burnouts[i].field_1c + set->burnouts[i].field_20 &&
+                (nearest_distance < 0.0f || distance < nearest_distance)) {
+                nearest_index = i;
+                nearest_distance = distance;
+            }
         }
     }
 
@@ -3402,39 +3455,51 @@ extern "C" void edrtlCalculateBurnout(burnset_s *set, f32 *threshold, f32 *inten
         desired_intensity = set->parameters.field_14;
         desired_dispersion = set->parameters.field_1c;
     } else {
-        burnout_s &burnout = set->burnouts[nearest_index];
-        if (nearest_distance <= burnout.field_1c) {
-            desired_threshold = burnout.field_10;
-            desired_intensity = burnout.field_14;
-            desired_dispersion = burnout.field_18;
+        if (nearest_distance <= set->burnouts[nearest_index].field_1c) {
+            desired_threshold = set->burnouts[nearest_index].field_10;
+            desired_intensity = set->burnouts[nearest_index].field_14;
+            desired_dispersion = set->burnouts[nearest_index].field_18;
         } else {
-            f32 fraction = (nearest_distance - burnout.field_1c) / burnout.field_20;
-            desired_threshold = burnout.field_10 * (1.0f - fraction) + set->parameters.field_24 * fraction;
-            desired_intensity = burnout.field_14 * (1.0f - fraction) + set->parameters.field_14 * fraction;
-            desired_dispersion = burnout.field_18 * (1.0f - fraction) + set->parameters.field_1c * fraction;
+            f32 fraction =
+                (nearest_distance - set->burnouts[nearest_index].field_1c) / set->burnouts[nearest_index].field_20;
+            desired_threshold =
+                set->burnouts[nearest_index].field_10 * (1.0f - fraction) + set->parameters.field_24 * fraction;
+            desired_intensity =
+                set->burnouts[nearest_index].field_14 * (1.0f - fraction) + set->parameters.field_14 * fraction;
+            desired_dispersion =
+                set->burnouts[nearest_index].field_18 * (1.0f - fraction) + set->parameters.field_1c * fraction;
         }
     }
 
     if (set->field_b4) {
+        // The reference interleaves internal state and output stores, preserving output aliases.
         set->parameters_copy.field_24 = desired_threshold;
+        *threshold = set->parameters_copy.field_24;
         set->parameters_copy.field_14 = desired_intensity;
+        *intensity = set->parameters_copy.field_14;
         set->parameters_copy.field_1c = desired_dispersion;
+        *dispersion = set->parameters_copy.field_1c;
         set->field_b4 = 0;
+        return;
     } else {
         f32 step = set->field_b8 * frame_time;
         if (desired_threshold > set->parameters_copy.field_24) {
-            f32 moved = set->parameters_copy.field_24 + step;
-            set->parameters_copy.field_24 = moved > desired_threshold ? desired_threshold : moved;
+            set->parameters_copy.field_24 = (set->parameters_copy.field_24 + step) > desired_threshold
+                                                ? desired_threshold
+                                                : (set->parameters_copy.field_24 + step);
         } else if (desired_threshold < set->parameters_copy.field_24) {
-            f32 moved = set->parameters_copy.field_24 - step;
-            set->parameters_copy.field_24 = desired_threshold > moved ? desired_threshold : moved;
+            set->parameters_copy.field_24 = desired_threshold > (set->parameters_copy.field_24 - step)
+                                                ? desired_threshold
+                                                : (set->parameters_copy.field_24 - step);
         }
         if (desired_dispersion > set->parameters_copy.field_1c) {
-            f32 moved = set->parameters_copy.field_1c + step;
-            set->parameters_copy.field_1c = desired_dispersion > moved ? desired_dispersion : moved;
+            set->parameters_copy.field_1c = desired_dispersion > (set->parameters_copy.field_1c + step)
+                                                ? desired_dispersion
+                                                : (set->parameters_copy.field_1c + step);
         } else if (desired_dispersion < set->parameters_copy.field_1c) {
-            f32 moved = set->parameters_copy.field_1c - step;
-            set->parameters_copy.field_1c = moved > desired_dispersion ? desired_dispersion : moved;
+            set->parameters_copy.field_1c = (set->parameters_copy.field_1c - step) > desired_dispersion
+                                                ? desired_dispersion
+                                                : (set->parameters_copy.field_1c - step);
         }
 
         if (!set->field_b0 && !set->field_a8 && !set->field_ac) {
@@ -3444,8 +3509,8 @@ extern "C" void edrtlCalculateBurnout(burnset_s *set, f32 *threshold, f32 *inten
                 set->field_ac = 1;
         }
 
-        f32 intensity_target = desired_intensity;
         if (set->field_a8 || set->field_ac) {
+            f32 intensity_target;
             step = set->field_bc * frame_time;
             if (set->field_a8) {
                 intensity_target = desired_intensity + set->field_c4;
@@ -3456,17 +3521,20 @@ extern "C" void edrtlCalculateBurnout(burnset_s *set, f32 *threshold, f32 *inten
                 if (intensity_target < set->field_cc)
                     intensity_target = set->field_cc > desired_intensity ? desired_intensity : set->field_cc;
             }
+            desired_intensity = intensity_target;
         }
-        if (intensity_target > set->parameters_copy.field_14) {
-            f32 moved = set->parameters_copy.field_14 + step;
-            set->parameters_copy.field_14 = moved > intensity_target ? intensity_target : moved;
-        } else if (intensity_target < set->parameters_copy.field_14) {
-            f32 moved = set->parameters_copy.field_14 - step;
-            set->parameters_copy.field_14 = intensity_target > moved ? intensity_target : moved;
+        if (desired_intensity > set->parameters_copy.field_14) {
+            set->parameters_copy.field_14 = (set->parameters_copy.field_14 + step) > desired_intensity
+                                                ? desired_intensity
+                                                : (set->parameters_copy.field_14 + step);
+        } else if (desired_intensity < set->parameters_copy.field_14) {
+            set->parameters_copy.field_14 = desired_intensity > (set->parameters_copy.field_14 - step)
+                                                ? desired_intensity
+                                                : (set->parameters_copy.field_14 - step);
         }
-        if (set->field_b0 && set->parameters_copy.field_14 == intensity_target)
+        if (set->field_b0 && set->parameters_copy.field_14 == desired_intensity)
             set->field_b0 = 0;
-        if ((set->field_a8 || set->field_ac) && set->parameters_copy.field_14 == intensity_target) {
+        if ((set->field_a8 || set->field_ac) && set->parameters_copy.field_14 == desired_intensity) {
             set->field_a8 = 0;
             set->field_ac = 0;
             set->field_b0 = 1;

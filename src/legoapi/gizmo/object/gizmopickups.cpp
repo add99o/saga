@@ -87,9 +87,11 @@ void AddCoinsToPanel(i32 coins, nuvec_s *position, i32 player, float, GameObject
         target.z = 1.0f;
         DrawBuildUpTime = COINMSGTIME + 1.0f;
         for (i32 i = 0; i < 4; ++i) {
-            GIZMO_PICKUP_TYPE *type = &GizmoPickupType[CoinTab[i]];
+            const i32 type_index = CoinTab[i];
+            const i32 count = counts[type_index];
+            GIZMO_PICKUP_TYPE *type = &GizmoPickupType[type_index];
             i32 base_model = static_cast<i16>(type->first_model_id);
-            for (i32 j = 0; j < counts[CoinTab[i]]; ++j) {
+            for (i32 j = 0; j < count; ++j) {
                 i32 model = base_model;
                 if (type->random_model_count != 0)
                     model += qrand() / (65535 / type->random_model_count + 1);
@@ -160,13 +162,15 @@ void AddPickups(i32 coins, i32 hearts, i32 torpedoes, i32 powerups, nuvec_s *pos
     if (coins > 0) {
         PlaySfx("CoinsLand", position);
         i32 remaining = coins;
-        for (i32 i = 3; remaining > 0; --i) {
-            i32 type = CoinTab[i];
+        uintptr_t coin = reinterpret_cast<uintptr_t>(&CoinTab[3]);
+        do {
+            i32 type = *reinterpret_cast<const u8 *>(coin);
             while (remaining - GizmoPickupType[type].score >= 0) {
                 remaining -= GizmoPickupType[type].score;
                 ++counts[type];
             }
-        }
+            --coin;
+        } while (remaining > 0);
         has_coins = true;
     }
     if (world->area != NULL && (world->area->flags & 0x104) == 0 && consolidate) {

@@ -43,20 +43,24 @@ void AIPathCalcExtents(AIPATH *path) {
 
     for (i32 node_index = 0; node_index < path->node_count; ++node_index) {
         AIPATHNODE &node = path->nodes[node_index];
-        const f32 min_x = node.position.x - node.radius;
-        const f32 min_z = node.position.z - node.radius;
-        const f32 max_x = node.position.x + node.radius;
-        const f32 max_z = node.position.z + node.radius;
+        const f32 x = node.position.x;
+        const f32 radius = node.radius;
+        const f32 z = node.position.z;
+        const f32 min_x = x - radius;
+        const f32 min_z = z - radius;
+        const f32 min_height = node.min_height;
 
         if (min_x < path->bounds_min.x) {
             path->bounds_min.x = min_x;
         }
-        if (node.min_height < path->bounds_min.y) {
-            path->bounds_min.y = node.min_height;
+        if (min_height < path->bounds_min.y) {
+            path->bounds_min.y = min_height;
         }
         if (min_z < path->bounds_min.z) {
             path->bounds_min.z = min_z;
         }
+        const f32 max_x = x + radius;
+        const f32 max_z = z + radius;
         if (max_x > path->bounds_max.x) {
             path->bounds_max.x = max_x;
         }
@@ -281,6 +285,7 @@ AIPATHCNXCONTROLLER_s *AIPathCnxControllerCreate(AIPATHCNXCONTROLSYS_s *control_
     AIPATHCNX *connection = static_cast<AIPATHCNX *>(AIPAthFindPathCnx(ai_system, path, from, to, &direction));
     void *target = NULL;
     if (connection != NULL) {
+        i32 gizmo_type;
         switch (target_type) {
             case 0:
                 if (target_name != NULL) {
@@ -297,13 +302,17 @@ AIPATHCNXCONTROLLER_s *AIPathCnxControllerCreate(AIPATHCNXCONTROLSYS_s *control_
                 target = GizmoFindByName(WORLD->gizmo_sys, -1, target_name);
                 break;
             case 4:
+                gizmo_type = blowup_gizmotype_id;
+                goto find_typed_gizmo;
             case 7:
+                gizmo_type = force_gizmotype_id;
+                goto find_typed_gizmo;
             case 8:
+                gizmo_type = obstacle_gizmotype_id;
+                goto find_typed_gizmo;
             case 9: {
-                i32 gizmo_type = target_type == 4   ? blowup_gizmotype_id
-                                 : target_type == 7 ? force_gizmotype_id
-                                 : target_type == 8 ? obstacle_gizmotype_id
-                                                    : zipup_gizmotype_id;
+                gizmo_type = zipup_gizmotype_id;
+            find_typed_gizmo:
                 GIZMO *gizmo = GizmoFindByName(WORLD->gizmo_sys, gizmo_type, target_name);
                 target = gizmo != NULL ? gizmo->object : NULL;
                 break;

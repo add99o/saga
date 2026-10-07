@@ -67,8 +67,9 @@ static void CalculateBezierPoint(NUVEC *result, NUVEC *start, NUVEC *end, NUVEC 
 
     const f32 inverse = 1.0f - amount;
     const f32 start_weight = inverse * inverse * inverse;
-    const f32 control_a_weight = inverse * 3.0f * amount * inverse;
-    const f32 control_b_weight = amount * 3.0f * amount * inverse;
+    const f32 three_amount = 3.0f * amount;
+    const f32 control_a_weight = inverse * three_amount * inverse;
+    const f32 control_b_weight = amount * three_amount * inverse;
     const f32 end_weight = amount * amount * amount;
     result->x =
         start->x * start_weight + control_a.x * control_a_weight + control_b.x * control_b_weight + end->x * end_weight;
@@ -80,11 +81,12 @@ static void CalculateBezierPoint(NUVEC *result, NUVEC *start, NUVEC *end, NUVEC 
 
 static void CalculateStreakSegment(STREAK_s *newer, STREAK_s *segment) {
     for (i32 index = 1; index < segment->segment_count; ++index) {
-        const f32 amount = static_cast<f32>(index) / static_cast<f32>(segment->segment_count);
         CalculateBezierPoint(&segment->positions[index - 1], &newer->position, &segment->position,
-                             &newer->start_tangent, &segment->start_tangent, amount);
+                             &newer->start_tangent, &segment->start_tangent,
+                             (1.0f / static_cast<f32>(segment->segment_count)) * static_cast<f32>(index));
         CalculateBezierPoint(&segment->tangents[index - 1], &newer->previous_position, &segment->previous_position,
-                             &newer->end_tangent, &segment->end_tangent, amount);
+                             &newer->end_tangent, &segment->end_tangent,
+                             (1.0f / static_cast<f32>(segment->segment_count)) * static_cast<f32>(index));
     }
 }
 
@@ -118,7 +120,7 @@ void InitStreaks(variptr_u *buffer, variptr_u end, char *name) {
         streakhdrs[i].index = i;
         streakhdrs[i].next = &streakhdrs[i + 1];
         streakhdrs[i].prev =
-            reinterpret_cast<STREAKHDR_s *>(reinterpret_cast<usize>(&streakhdrs[i]) - sizeof(STREAKHDR_s));
+            reinterpret_cast<STREAKHDR_s *>(reinterpret_cast<usize>(streakhdrs) + (i - 1) * sizeof(STREAKHDR_s));
     }
 
     streakhdrs_free = streakhdrs;
@@ -128,7 +130,7 @@ void InitStreaks(variptr_u *buffer, variptr_u end, char *name) {
 
     for (i32 i = 0; i < 128; i++) {
         streaks[i].next = &streaks[i + 1];
-        streaks[i].prev = reinterpret_cast<STREAK_s *>(reinterpret_cast<usize>(&streaks[i]) - sizeof(STREAK_s));
+        streaks[i].prev = reinterpret_cast<STREAK_s *>(reinterpret_cast<usize>(streaks) + (i - 1) * sizeof(STREAK_s));
     }
 
     streaks_free = streaks;
@@ -249,14 +251,15 @@ void DrawStreaks() {
     for (STREAKHDR_s *header = streakhdrs_used; header != NULL; header = header->next) {
         NURND_VERTEX3D vertices[254];
         i32 vertex_count = 0;
+        const u32 endpoint_colour = header->colour;
         STREAK_s *streak = header->streaks;
 
         while (vertex_count < 254 && streak != NULL) {
             const f32 fade = streak->remaining_time < 0.0f ? 0.0f : streak->remaining_time;
-            i32 alpha = static_cast<i32>(static_cast<f32>(header->colour >> 24) * fade * 2.0f);
+            i32 alpha = static_cast<i32>(static_cast<f32>(endpoint_colour >> 24) * fade * 2.0f);
             if (alpha > 255)
                 alpha = 255;
-            const u32 colour = (header->colour & 0x00ffffff) | (static_cast<u32>(alpha) << 24);
+            const u32 colour = (endpoint_colour & 0x00ffffff) | (static_cast<u32>(alpha) << 24);
 
             vertices[vertex_count].position = streak->position;
             vertices[vertex_count].colour = colour;

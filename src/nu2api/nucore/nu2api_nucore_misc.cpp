@@ -326,50 +326,64 @@ void NuVpSetSourceRect(float left, float top, float right, float bottom) {
 }
 
 void NuGCutRigidCalcMtx(NUGCUTRIGID_s *rigid, float frame, numtx_s *mtx) {
-    if (rigid->animation == NULL) {
-        *mtx = rigid->base_matrix;
-        return;
-    }
-    if (*reinterpret_cast<u32 *>(rigid->animation) + 0xbeb1b6ccU < 2) {
-        NuGCutRigidCalcMtx_3(rigid, frame, mtx);
-        return;
-    }
+    if (rigid->animation != NULL) {
+        if (*reinterpret_cast<u32 *>(rigid->animation) + 0xbeb1b6ccU < 2) {
+            NuGCutRigidCalcMtx_3(rigid, frame, mtx);
+            return;
+        }
 
-    nuanimdata2_s *animation = rigid->animation;
-    nuanimcurve2_s *curves = animation->curves;
-    u8 *curve_types = animation->curve_types;
-    u8 flags = *animation->node_flags;
-    nuanimtime_s time;
-    NuAnimData2CalcTime(animation, frame, &time);
+        nuanimdata2_s *animation = rigid->animation;
+        nuanimcurve2_s *curves = animation->curves;
+        // The reference sign-extends curve type bytes before passing them to the evaluator.
+        i8 *curve_types = reinterpret_cast<i8 *>(animation->curve_types);
+        u8 flags = *animation->node_flags;
+        nuanimtime_s time;
+        NUVEC translation;
+        // The reference aligns its stack to 16 bytes and places this vector at esp+0x50.
+        NUVEC_ALIGNED16 scale;
+        NUANGVEC angles;
+        NuAnimData2CalcTime(animation, frame, &time);
 
-    auto evaluate = [&](u32 curve) {
-        u8 type = curve_types[curve];
-        return type == 0 ? curves[curve].data.constant : NuAnimCurve2CalcValEx(&curves[curve], &time, type);
-    };
-
-    if ((flags & 1) == 0) {
-        NuMtxSetIdentity(mtx);
+        if ((flags & 1) != 0) {
+            f32 rx =
+                (curve_types[3] ? NuAnimCurve2CalcValEx(curves + 3, &time, curve_types[3]) : curves[3].data.constant);
+            f32 ry =
+                (curve_types[4] ? NuAnimCurve2CalcValEx(curves + 4, &time, curve_types[4]) : curves[4].data.constant);
+            f32 rz =
+                (curve_types[5] ? NuAnimCurve2CalcValEx(curves + 5, &time, curve_types[5]) : curves[5].data.constant);
+            angles.x = static_cast<NUANG>(rx * 10430.378f);
+            angles.y = static_cast<NUANG>(ry * 10430.378f);
+            angles.z = static_cast<NUANG>(rz * 10430.378f);
+            NuMtxSetRotateXYZ(mtx, &angles);
+        } else {
+            NuMtxSetIdentity(mtx);
+        }
+        if ((flags & 8) != 0) {
+            scale.x =
+                (curve_types[6] ? NuAnimCurve2CalcValEx(curves + 6, &time, curve_types[6]) : curves[6].data.constant);
+            scale.y =
+                (curve_types[7] ? NuAnimCurve2CalcValEx(curves + 7, &time, curve_types[7]) : curves[7].data.constant);
+            scale.z =
+                (curve_types[8] ? NuAnimCurve2CalcValEx(curves + 8, &time, curve_types[8]) : curves[8].data.constant);
+            NuMtxPreScale(mtx, &scale);
+        }
+        translation.x =
+            (curve_types[0] ? NuAnimCurve2CalcValEx(curves + 0, &time, curve_types[0]) : curves[0].data.constant);
+        translation.y =
+            (curve_types[1] ? NuAnimCurve2CalcValEx(curves + 1, &time, curve_types[1]) : curves[1].data.constant);
+        translation.z =
+            (curve_types[2] ? NuAnimCurve2CalcValEx(curves + 2, &time, curve_types[2]) : curves[2].data.constant);
+        NuMtxTranslate(mtx, &translation);
+        mtx->m02 = -mtx->m02;
+        mtx->m12 = -mtx->m12;
+        mtx->m20 = -mtx->m20;
+        mtx->m21 = -mtx->m21;
+        mtx->m23 = -mtx->m23;
+        mtx->m32 = -mtx->m32;
+        NuMtxTranslate(mtx, reinterpret_cast<NUVEC *>(&rigid->base_matrix.m30));
     } else {
-        NUANGVEC angles = {
-            static_cast<NUANG>(evaluate(3) * 10430.378f),
-            static_cast<NUANG>(evaluate(4) * 10430.378f),
-            static_cast<NUANG>(evaluate(5) * 10430.378f),
-        };
-        NuMtxSetRotateXYZ(mtx, &angles);
+        *mtx = rigid->base_matrix;
     }
-    if ((flags & 8) != 0) {
-        NUVEC scale = {evaluate(6), evaluate(7), evaluate(8)};
-        NuMtxPreScale(mtx, &scale);
-    }
-    NUVEC translation = {evaluate(0), evaluate(1), evaluate(2)};
-    NuMtxTranslate(mtx, &translation);
-    mtx->m02 = -mtx->m02;
-    mtx->m12 = -mtx->m12;
-    mtx->m20 = -mtx->m20;
-    mtx->m21 = -mtx->m21;
-    mtx->m23 = -mtx->m23;
-    mtx->m32 = -mtx->m32;
-    NuMtxTranslate(mtx, reinterpret_cast<NUVEC *>(&rigid->base_matrix.m30));
 }
 
 // NuIOSDLMtlCallback is transcribed in android/nuiosdl_gl.cpp (original 0x29c480).
@@ -377,21 +391,28 @@ void NuGCutRigidCalcMtx(NUGCUTRIGID_s *rigid, float frame, numtx_s *mtx) {
 void NuGCutRigidCalcMtx_3(NUGCUTRIGID_s *rigid, float frame, numtx_s *mtx) {
     ani3_animheader_s *animation = reinterpret_cast<ani3_animheader_s *>(rigid->animation);
     f32 *values = NuAnimCurveExtractAllNodeCurves_3(animation, 0, frame, NULL);
-    u8 flags = *animation->node_flags;
+    // Curve extraction can replace the animation; the reference reloads it before reading flags.
+    u8 flags = *reinterpret_cast<ani3_animheader_s *>(rigid->animation)->node_flags;
+    NUVEC translation;
+    NUANGVEC angles;
+    NUVEC scale;
     if ((flags & 1) == 0) {
         NuMtxSetIdentity(mtx);
     } else {
-        NUANGVEC angles;
         angles.x = static_cast<NUANG>(values[3] * 10430.378f);
         angles.y = static_cast<NUANG>(values[4] * 10430.378f);
         angles.z = static_cast<NUANG>(values[5] * 10430.378f);
         NuMtxSetRotateXYZ(mtx, &angles);
     }
     if ((flags & 8) != 0) {
-        NUVEC scale = {values[6], values[7], values[8]};
+        scale.x = values[6];
+        scale.y = values[7];
+        scale.z = values[8];
         NuMtxPreScale(mtx, &scale);
     }
-    NUVEC translation = {values[0], values[1], values[2]};
+    translation.x = values[0];
+    translation.y = values[1];
+    translation.z = values[2];
     NuMtxTranslate(mtx, &translation);
     mtx->m02 = -mtx->m02;
     mtx->m12 = -mtx->m12;
@@ -663,18 +684,18 @@ GLuint NuIOS_CreateGLTexFromPVRInMemory(void *data, i32 *out_width, i32 *out_hei
         GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
     };
 
-    comeFromHash = 0;
+    *reinterpret_cast<u8 *>(&comeFromHash) = 0;
 
     u8 *header = (u8 *)data;
     u8 *pixels = header + 0x34 + *(u32 *)(header + 0x30);
     const u32 pixel_format = *(u32 *)(header + 0x08);
     const u32 channel_bits = *(u32 *)(header + 0x0c);
-    const i32 height = *(i32 *)(header + 0x18);
-    const i32 width = *(i32 *)(header + 0x1c);
-    const u32 depth = *(u32 *)(header + 0x20);
-    const u32 surfaces = *(u32 *)(header + 0x24);
-    const u32 faces = *(u32 *)(header + 0x28);
-    const u32 mip_count = *(u32 *)(header + 0x2c);
+    const i32 &height = *(i32 *)(header + 0x18);
+    const i32 &width = *(i32 *)(header + 0x1c);
+    const u32 &depth = *(u32 *)(header + 0x20);
+    const u32 &surfaces = *(u32 *)(header + 0x24);
+    const u32 &faces = *(u32 *)(header + 0x28);
+    const u32 &mip_count = *(u32 *)(header + 0x2c);
 
     if (faces == 6) {
         struct PVRMetadataHeader {
@@ -693,27 +714,131 @@ GLuint NuIOS_CreateGLTexFromPVRInMemory(void *data, i32 *out_width, i32 *out_hei
                 break;
             }
             if (record.fourcc == 0x03525650 && record.key == 2 && record.data_size == 6) {
-                for (u32 face = 0; face < 6; ++face) {
-                    switch (metadata[face]) {
-                        case 'X':
-                            cube_faces[face] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
-                            break;
-                        case 'x':
-                            cube_faces[face] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
-                            break;
-                        case 'Y':
-                            cube_faces[face] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
-                            break;
-                        case 'y':
-                            cube_faces[face] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
-                            break;
-                        case 'Z':
-                            cube_faces[face] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
-                            break;
-                        case 'z':
-                            cube_faces[face] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
-                            break;
-                    }
+
+                switch (metadata[0]) {
+                    case 'X':
+                        cube_faces[0] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+                        break;
+                    case 'x':
+                        cube_faces[0] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+                        break;
+                    case 'Y':
+                        cube_faces[0] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+                        break;
+                    case 'y':
+                        cube_faces[0] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                        break;
+                    case 'Z':
+                        cube_faces[0] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+                        break;
+                    case 'z':
+                        cube_faces[0] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                        break;
+                }
+
+                switch (metadata[1]) {
+                    case 'X':
+                        cube_faces[1] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+                        break;
+                    case 'x':
+                        cube_faces[1] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+                        break;
+                    case 'Y':
+                        cube_faces[1] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+                        break;
+                    case 'y':
+                        cube_faces[1] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                        break;
+                    case 'Z':
+                        cube_faces[1] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+                        break;
+                    case 'z':
+                        cube_faces[1] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                        break;
+                }
+
+                switch (metadata[2]) {
+                    case 'X':
+                        cube_faces[2] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+                        break;
+                    case 'x':
+                        cube_faces[2] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+                        break;
+                    case 'Y':
+                        cube_faces[2] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+                        break;
+                    case 'y':
+                        cube_faces[2] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                        break;
+                    case 'Z':
+                        cube_faces[2] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+                        break;
+                    case 'z':
+                        cube_faces[2] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                        break;
+                }
+
+                switch (metadata[3]) {
+                    case 'X':
+                        cube_faces[3] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+                        break;
+                    case 'x':
+                        cube_faces[3] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+                        break;
+                    case 'Y':
+                        cube_faces[3] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+                        break;
+                    case 'y':
+                        cube_faces[3] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                        break;
+                    case 'Z':
+                        cube_faces[3] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+                        break;
+                    case 'z':
+                        cube_faces[3] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                        break;
+                }
+
+                switch (metadata[4]) {
+                    case 'X':
+                        cube_faces[4] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+                        break;
+                    case 'x':
+                        cube_faces[4] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+                        break;
+                    case 'Y':
+                        cube_faces[4] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+                        break;
+                    case 'y':
+                        cube_faces[4] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                        break;
+                    case 'Z':
+                        cube_faces[4] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+                        break;
+                    case 'z':
+                        cube_faces[4] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                        break;
+                }
+
+                switch (metadata[5]) {
+                    case 'X':
+                        cube_faces[5] = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+                        break;
+                    case 'x':
+                        cube_faces[5] = GL_TEXTURE_CUBE_MAP_NEGATIVE_X;
+                        break;
+                    case 'Y':
+                        cube_faces[5] = GL_TEXTURE_CUBE_MAP_POSITIVE_Y;
+                        break;
+                    case 'y':
+                        cube_faces[5] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Y;
+                        break;
+                    case 'Z':
+                        cube_faces[5] = GL_TEXTURE_CUBE_MAP_POSITIVE_Z;
+                        break;
+                    case 'z':
+                        cube_faces[5] = GL_TEXTURE_CUBE_MAP_NEGATIVE_Z;
+                        break;
                 }
             }
             metadata += record.data_size;
@@ -848,7 +973,6 @@ GLuint NuIOS_CreateGLTexFromPVRInMemory(void *data, i32 *out_width, i32 *out_hei
 
     return texture;
 }
-
 void NuDynamicLightTestShadowExtrusions(nudynamiclight_s *light, _vuv_s const *first, _vuv_s const *second, i32 *) {
     reinterpret_cast<NuDynamicLight *>(light)->testShadowExtrusions(*reinterpret_cast<const VuVec *>(first),
                                                                     *reinterpret_cast<const VuVec *>(second));

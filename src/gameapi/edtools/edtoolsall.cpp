@@ -1047,9 +1047,9 @@ void edppDrawCursor() {
                 NuVecRotateZ(&vector, &vector, edpp_refrotz);
                 NuVecRotateY(&vector, &vector, edpp_refroty);
                 rotate();
-                edbitsDrawCube(edpp_cam_pos.x + vector.x, edpp_cam_pos.y + vector.y,
-                               edpp_cam_pos.z + vector.z, 0.25f, 0.0f, 0.25f, edpp_refrotz, edpp_refroty, 0,
-                               rotation_z, rotation_y, 0xffff0000, edpp_mtl);
+                edbitsDrawCube(edpp_cam_pos.x + vector.x, edpp_cam_pos.y + vector.y, edpp_cam_pos.z + vector.z, 0.25f,
+                               0.0f, 0.25f, edpp_refrotz, edpp_refroty, 0, rotation_z, rotation_y, 0xffff0000,
+                               edpp_mtl);
             }
         }
         if (edpp_dpad_mode == 4) {
@@ -1150,8 +1150,7 @@ void edppDrawCursor() {
                     NuQFntSetColour(system_qfont, 0x80000080);
                     count = effect->max_particles;
                 }
-                NuQFntPrintEx(system_qfont, 0x1cc0, 0xcd0, 0x10, "%d (%d)", count,
-                              ((count - 1) / group + 1) * group);
+                NuQFntPrintEx(system_qfont, 0x1cc0, 0xcd0, 0x10, "%d (%d)", count, ((count - 1) / group + 1) * group);
                 NuQFntSetColour(system_qfont, 0x80000000);
             }
         }
@@ -1246,8 +1245,8 @@ void EdDrawPolyArrow(VuVec const &start, VuVec const &end, i32 sides, i32 colour
     if (!(length > 0.0f))
         return;
     const float inverse_length = 1.0f / length;
-    VuVec direction(displacement.x * inverse_length, displacement.y * inverse_length,
-                    displacement.z * inverse_length, 0.0f);
+    VuVec direction(displacement.x * inverse_length, displacement.y * inverse_length, displacement.z * inverse_length,
+                    0.0f);
     const float half_length = length * 0.4f;
     const float minimum_radius = radius_factor * half_length + radius_offset;
 
@@ -1265,17 +1264,15 @@ void EdDrawPolyArrow(VuVec const &start, VuVec const &end, i32 sides, i32 colour
     const float draw_limit = limit < draw_radius ? limit : draw_radius;
 
     VuMtx transform;
-    VuVec center(start.x + displacement.x * 0.4f, start.y + displacement.y * 0.4f,
-                 start.z + displacement.z * 0.4f, 0.0f);
+    VuVec center(start.x + displacement.x * 0.4f, start.y + displacement.y * 0.4f, start.z + displacement.z * 0.4f,
+                 0.0f);
     NuMtxSetRotateXYZVU0(&transform.matrix, &angles);
     NuMtxTranslate(&transform.matrix, &center.xyz);
     EdDrawPolyCylinder(transform, half_length, draw_limit, draw_limit, sides, colour, 1, 0);
     NuMtxTranslateNeg(&transform.matrix, &center.xyz);
-    center = VuVec(end.x - displacement.x * 0.1f, end.y - displacement.y * 0.1f,
-                   end.z - displacement.z * 0.1f, 0.0f);
+    center = VuVec(end.x - displacement.x * 0.1f, end.y - displacement.y * 0.1f, end.z - displacement.z * 0.1f, 0.0f);
     NuMtxTranslate(&transform.matrix, &center.xyz);
-    EdDrawPolyCylinder(transform, half_length * 0.25f, draw_limit * 1.6f, 0.0f, sides, colour,
-                       1, 0);
+    EdDrawPolyCylinder(transform, half_length * 0.25f, draw_limit * 1.6f, 0.0f, sides, colour, 1, 0);
 }
 
 void edbriDrawCursor() {
@@ -1837,7 +1834,7 @@ void EdDrawLineSphere(VuVec const &center, float radius, float scale, i32 colour
     {                                                                                                                  \
         first = VuVec(center.x + first_radius * NU_COS_LUT(angle), first_height,                                       \
                       center.z + first_radius * NU_SIN_LUT(angle), 1.0f);                                              \
-        second = VuVec(center.x + second_radius * NU_COS_LUT(angle), second_height,                                     \
+        second = VuVec(center.x + second_radius * NU_COS_LUT(angle), second_height,                                    \
                        center.z + second_radius * NU_SIN_LUT(angle), 1.0f);                                            \
         EdDrawLineSegment(first, second, colour);                                                                      \
         if (latitude != 0) {                                                                                           \
@@ -1890,42 +1887,42 @@ void EdDrawPolySector(VuVec const &center, float radius, i32 axis, i32 first_ang
         VuVec first;
         VuVec second;
         switch (axis) {
-        case 1:
-            first.w = 1.0f;
-            first.x = negative_radius * 0.0f;
-            first.y = negative_radius * 0.0f;
-            first.z = negative_radius;
-            NuVecRotateY(&first.xyz, &first.xyz, -previous_angle);
-            second.w = 1.0f;
-            second.x = negative_radius * 0.0f;
-            second.y = negative_radius * 0.0f;
-            second.z = negative_radius;
-            NuVecRotateY(&second.xyz, &second.xyz, -angle);
-            break;
-        case 2:
-            first.w = 1.0f;
-            first.x = 0.0f * radius;
-            first.y = radius;
-            first.z = 0.0f * radius;
-            NuVecRotateZ(&first.xyz, &first.xyz, -previous_angle);
-            second.w = 1.0f;
-            second.x = 0.0f * radius;
-            second.y = radius;
-            second.z = 0.0f * radius;
-            NuVecRotateZ(&second.xyz, &second.xyz, -angle);
-            break;
-        case 0:
-            first.w = 1.0f;
-            first.x = 0.0f * radius;
-            first.y = 0.0f * radius;
-            first.z = radius;
-            NuVecRotateX(&first.xyz, &first.xyz, -previous_angle);
-            second.w = 1.0f;
-            second.x = 0.0f * radius;
-            second.y = 0.0f * radius;
-            second.z = radius;
-            NuVecRotateX(&second.xyz, &second.xyz, -angle);
-            break;
+            case 1:
+                first.w = 1.0f;
+                first.x = negative_radius * 0.0f;
+                first.y = negative_radius * 0.0f;
+                first.z = negative_radius;
+                NuVecRotateY(&first.xyz, &first.xyz, -previous_angle);
+                second.w = 1.0f;
+                second.x = negative_radius * 0.0f;
+                second.y = negative_radius * 0.0f;
+                second.z = negative_radius;
+                NuVecRotateY(&second.xyz, &second.xyz, -angle);
+                break;
+            case 2:
+                first.w = 1.0f;
+                first.x = 0.0f * radius;
+                first.y = radius;
+                first.z = 0.0f * radius;
+                NuVecRotateZ(&first.xyz, &first.xyz, -previous_angle);
+                second.w = 1.0f;
+                second.x = 0.0f * radius;
+                second.y = radius;
+                second.z = 0.0f * radius;
+                NuVecRotateZ(&second.xyz, &second.xyz, -angle);
+                break;
+            case 0:
+                first.w = 1.0f;
+                first.x = 0.0f * radius;
+                first.y = 0.0f * radius;
+                first.z = radius;
+                NuVecRotateX(&first.xyz, &first.xyz, -previous_angle);
+                second.w = 1.0f;
+                second.x = 0.0f * radius;
+                second.y = 0.0f * radius;
+                second.z = radius;
+                NuVecRotateX(&second.xyz, &second.xyz, -angle);
+                break;
         }
         first.x += center.x;
         first.y += center.y;
@@ -2230,9 +2227,9 @@ void edpartDrawCursor() {
                 NuVecRotateY(&vector, &vector, edpart_refroty);
                 NuVecRotateZ(&vector, &vector, rotation_z);
                 NuVecRotateY(&vector, &vector, rotation_y);
-                edbitsDrawCube(edpart_cam_pos.x + vector.x, edpart_cam_pos.y + vector.y,
-                               edpart_cam_pos.z + vector.z, 0.25f, 0.0f, 0.25f, edpart_refrotz, edpart_refroty, 0,
-                               rotation_z, rotation_y, 0xffff0000, edpart_mtl);
+                edbitsDrawCube(edpart_cam_pos.x + vector.x, edpart_cam_pos.y + vector.y, edpart_cam_pos.z + vector.z,
+                               0.25f, 0.0f, 0.25f, edpart_refrotz, edpart_refroty, 0, rotation_z, rotation_y,
+                               0xffff0000, edpart_mtl);
             }
         }
     }
@@ -2434,25 +2431,25 @@ i32 edpartSaveEffects(char *filename, char page) {
         EdFileWriteChar(part_types[index].effect_pages[5]);
         EdFileWriteChar(part_types[index].effect_pages[6]);
         EdFileWriteChar(part_types[index].effect_pages[7]);
-#define WRITE_PART_OBJECT_NAME(variant) \
-    do { \
-        i16 effect_id = part_types[index].effect_ids[variant]; \
-        if (effect_id == -1) \
-            EdFileWrite(empty_name, 16); \
-        else if (effect_id == 9999) \
-            EdFileWrite(null_instance_name, 16); \
-        else if (effect_id == 9998) \
-            EdFileWrite(part_types[index].object_names[variant], 16); \
-        else if (part_types[index].effect_pages[variant] == 0) { \
-            nuhspecial_s special; \
-            NuGScnGetSpecial(&special, edbits_base_scene, effect_id); \
-            EdFileWrite(NuSpecialGetName(&special), 16); \
-        } else if (part_types[index].effect_pages[variant] == 1) { \
-            nuhspecial_s special; \
-            NuGScnGetSpecial(&special, edbits_things_scene, effect_id); \
-            EdFileWrite(NuSpecialGetName(&special), 16); \
-        } else \
-            EdFileWrite(empty_name, 16); \
+#define WRITE_PART_OBJECT_NAME(variant)                                                                                \
+    do {                                                                                                               \
+        i16 effect_id = part_types[index].effect_ids[variant];                                                         \
+        if (effect_id == -1)                                                                                           \
+            EdFileWrite(empty_name, 16);                                                                               \
+        else if (effect_id == 9999)                                                                                    \
+            EdFileWrite(null_instance_name, 16);                                                                       \
+        else if (effect_id == 9998)                                                                                    \
+            EdFileWrite(part_types[index].object_names[variant], 16);                                                  \
+        else if (part_types[index].effect_pages[variant] == 0) {                                                       \
+            nuhspecial_s special;                                                                                      \
+            NuGScnGetSpecial(&special, edbits_base_scene, effect_id);                                                  \
+            EdFileWrite(NuSpecialGetName(&special), 16);                                                               \
+        } else if (part_types[index].effect_pages[variant] == 1) {                                                     \
+            nuhspecial_s special;                                                                                      \
+            NuGScnGetSpecial(&special, edbits_things_scene, effect_id);                                                \
+            EdFileWrite(NuSpecialGetName(&special), 16);                                                               \
+        } else                                                                                                         \
+            EdFileWrite(empty_name, 16);                                                                               \
     } while (0)
         WRITE_PART_OBJECT_NAME(0);
         WRITE_PART_OBJECT_NAME(1);
@@ -2627,8 +2624,7 @@ void EdDrawPolyCylinder(VuMtx const &transform, float half_length, float radius,
     const float taper = end_radius / radius;
     i32 shaded_colour = colour & 0xff000000;
     shaded_colour |= ((colour & 0xff) * 0xdc) >> 8;
-    shaded_colour |= ((((colour >> 8) & 0xff) * 0xdc) & 0xff00) |
-                     (((((colour >> 16) & 0xff) * 0xdc) >> 8) << 16);
+    shaded_colour |= ((((colour >> 8) & 0xff) * 0xdc) & 0xff00) | (((((colour >> 16) & 0xff) * 0xdc) >> 8) << 16);
     VuVec first;
     VuVec second;
     VuVec third;
@@ -2714,8 +2710,7 @@ __attribute__((force_align_arg_pointer)) void EdDrawPolyCylinder(VuVec const &st
     float second_radius = limit > minimum_radius * 0.1f ? limit : minimum_radius * 0.1f;
     if (second_radius > offset)
         second_radius = offset;
-    EdDrawPolyCylinder(transform, half_length, first_radius, second_radius, sides,
-                       colour, 1, 1);
+    EdDrawPolyCylinder(transform, half_length, first_radius, second_radius, sides, colour, 1, 1);
 }
 
 void edanimParamDestroy(i32 index) {
@@ -2800,14 +2795,12 @@ void edgraCalculatePage(char page, i32 calculate_vectors) {
                         i32 rows = static_cast<i32>(NuFsqrt(static_cast<f32>(count)));
                         i32 columns = (count - 1 + rows) / rows;
                         offset.y = 0.0f;
-                        offset.x =
-                            static_cast<f32>(element / columns) *
-                                (2.0f * GrassClumps[clump_index].size / static_cast<f32>(rows - 1)) -
-                            GrassClumps[clump_index].size;
-                        offset.z =
-                            static_cast<f32>(element % columns) *
-                                (2.0f * GrassClumps[clump_index].size / static_cast<f32>(columns - 1)) -
-                            GrassClumps[clump_index].size;
+                        offset.x = static_cast<f32>(element / columns) *
+                                       (2.0f * GrassClumps[clump_index].size / static_cast<f32>(rows - 1)) -
+                                   GrassClumps[clump_index].size;
+                        offset.z = static_cast<f32>(element % columns) *
+                                       (2.0f * GrassClumps[clump_index].size / static_cast<f32>(columns - 1)) -
+                                   GrassClumps[clump_index].size;
                         sample.w = NuFsqrt(offset.x * offset.x + offset.z * offset.z);
                         break;
                     }
@@ -2846,16 +2839,16 @@ void edgraCalculatePage(char page, i32 calculate_vectors) {
                                    GrassClumps[clump_index].field_2c;
                         break;
                     case 3: {
-                        f32 limited = sample.w < GrassClumps[clump_index].size ? sample.w
-                                                                             : GrassClumps[clump_index].size;
+                        f32 limited =
+                            sample.w < GrassClumps[clump_index].size ? sample.w : GrassClumps[clump_index].size;
                         sample.w = GrassClumps[clump_index].field_30 -
                                    (limited / GrassClumps[clump_index].size) *
                                        (GrassClumps[clump_index].field_30 - GrassClumps[clump_index].field_2c);
                         break;
                     }
                     case 4: {
-                        f32 limited = sample.w < GrassClumps[clump_index].size ? sample.w
-                                                                             : GrassClumps[clump_index].size;
+                        f32 limited =
+                            sample.w < GrassClumps[clump_index].size ? sample.w : GrassClumps[clump_index].size;
                         i32 angle = static_cast<i32>((limited / GrassClumps[clump_index].size) * 16384.0f);
                         sample.w = (GrassClumps[clump_index].field_30 - GrassClumps[clump_index].field_2c) *
                                        NU_COS_LUT(angle) +
@@ -2888,14 +2881,17 @@ void edgraCalculatePage(char page, i32 calculate_vectors) {
                 NuMtxRotateY(element_matrix,
                              GetIndGrassClump(GrassClumps[clump_index].individual_index, element)->field_12);
                 if (terrain_rotation) {
-                    NuMtxRotateZ(element_matrix,
-                                 static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].z));
-                    NuMtxRotateX(element_matrix,
-                                 static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].x));
+                    NuMtxRotateZ(
+                        element_matrix,
+                        static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].z));
+                    NuMtxRotateX(
+                        element_matrix,
+                        static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].x));
                 }
                 NuMtxScale(element_matrix, &scale);
                 if (terrain_enabled)
-                    position.y = terrain_height + static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].y;
+                    position.y =
+                        terrain_height + static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].y;
                 NuMtxTranslate(element_matrix, &position);
             } else {
                 if (terrain_enabled && calculate_vectors)
@@ -2904,14 +2900,17 @@ void edgraCalculatePage(char page, i32 calculate_vectors) {
                 NuMtxSetIdentity(element_matrix);
                 NuMtxPreRotateY(element_matrix, static_cast<u16>(NuRandIntSeeded(&seed)));
                 if (terrain_rotation) {
-                    NuMtxRotateZ(element_matrix,
-                                 static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].z));
-                    NuMtxRotateX(element_matrix,
-                                 static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].x));
+                    NuMtxRotateZ(
+                        element_matrix,
+                        static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].z));
+                    NuMtxRotateX(
+                        element_matrix,
+                        static_cast<i32>(static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].x));
                 }
                 NuMtxScale(element_matrix, &scale);
                 if (terrain_enabled)
-                    position.y = terrain_height + static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].y;
+                    position.y =
+                        terrain_height + static_cast<NUVEC *>(GrassClumps[clump_index].vector_buffer)[element].y;
                 NuMtxTranslate(element_matrix, &position);
                 if (GrassClumps[clump_index].kind == 1)
                     element_matrix->m33 = GrassClumps[clump_index].field_18 * sample.w;
@@ -5083,30 +5082,30 @@ i32 EdManipulator::SelectRotator(EdInputContext &input, VuVec &center, VuVec &pl
         f32 nearest_distance = __FLT_MAX__;
         i32 angle = 0;
         if (LineToSphereIntersection(*reinterpret_cast<VuVec *>(input.reserved_00 + 0x20),
-                                     *reinterpret_cast<VuVec *>(input.reserved_00 + 0x30),
-                                     center, scale + 0.01f, &far_point, &near_point) != 0) {
+                                     *reinterpret_cast<VuVec *>(input.reserved_00 + 0x30), center, scale + 0.01f,
+                                     &far_point, &near_point) != 0) {
             SpherePos1 = far_point;
             SpherePos2 = near_point;
             VuVec screen_point;
             VuVec projection;
             VuVec difference;
-#define CHECK_ROTATOR(point, normal, candidate) \
-            { \
-                f32 distance_to_plane = point.x * normal.x + point.y * normal.y + point.z * normal.z + normal.w; \
-                projection = VuVec(point.x - normal.x * distance_to_plane, point.y - normal.y * distance_to_plane, \
-                                   point.z - normal.z * distance_to_plane, 0.0f); \
-                NuCameraTransformScreenClip(&projection.xyz, &projection.xyz, 1, NULL); \
-                NuCameraTransformScreenClip(&screen_point.xyz, &point.xyz, 1, NULL); \
-                difference.x = screen_point.x - projection.x; \
-                difference.y = screen_point.y - projection.y; \
-                difference.z = screen_point.z - projection.z; \
-                f32 distance = NuVecMag(&difference.xyz); \
-                if (distance < 0.05f && distance < nearest_distance) { \
-                    nearest_distance = distance; \
-                    chosen = point; \
-                    axis = candidate; \
-                } \
-            }
+#define CHECK_ROTATOR(point, normal, candidate)                                                                        \
+    {                                                                                                                  \
+        f32 distance_to_plane = point.x * normal.x + point.y * normal.y + point.z * normal.z + normal.w;               \
+        projection = VuVec(point.x - normal.x * distance_to_plane, point.y - normal.y * distance_to_plane,             \
+                           point.z - normal.z * distance_to_plane, 0.0f);                                              \
+        NuCameraTransformScreenClip(&projection.xyz, &projection.xyz, 1, NULL);                                        \
+        NuCameraTransformScreenClip(&screen_point.xyz, &point.xyz, 1, NULL);                                           \
+        difference.x = screen_point.x - projection.x;                                                                  \
+        difference.y = screen_point.y - projection.y;                                                                  \
+        difference.z = screen_point.z - projection.z;                                                                  \
+        f32 distance = NuVecMag(&difference.xyz);                                                                      \
+        if (distance < 0.05f && distance < nearest_distance) {                                                         \
+            nearest_distance = distance;                                                                               \
+            chosen = point;                                                                                            \
+            axis = candidate;                                                                                          \
+        }                                                                                                              \
+    }
             for (i32 candidate = 0; candidate < 3; ++candidate) {
                 CHECK_ROTATOR(far_point, normals[candidate], candidate + 1);
                 CHECK_ROTATOR(near_point, normals[candidate], candidate + 1);
@@ -5155,7 +5154,7 @@ i32 EdManipulator::SelectRotator(EdInputContext &input, VuVec &center, VuVec &pl
     plane = *selected_plane;
     VuVec intersection;
     if (LineToPlaneIntersecion(*reinterpret_cast<VuVec *>(input.reserved_00 + 0x20),
-                             *reinterpret_cast<VuVec *>(input.reserved_00 + 0x30), plane, &intersection) == 0) {
+                               *reinterpret_cast<VuVec *>(input.reserved_00 + 0x30), plane, &intersection) == 0) {
         *angle_delta = 0;
         return axis;
     }

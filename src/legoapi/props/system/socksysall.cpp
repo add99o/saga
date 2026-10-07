@@ -561,15 +561,21 @@ static void SockMidpointAt(const SOCK *sock, i32 point, NUVEC *midpoint) {
 
 static SOCKROT *SockRailAngles(SOCK *sock, NUGSPLINE *spline, SOCKROT *rotations) {
     for (i32 point = 0; point < sock->cam->length; ++point, ++rotations) {
-        i32 previous = point - 1;
-        if (previous < 0)
-            previous = sock->cam->length - 1;
-        i32 next = point + 1;
-        if (next >= sock->cam->length)
-            next = 0;
+        i32 samples[3];
+        samples[0] = point - 1;
+        if (samples[0] < 0)
+            samples[0] = sock->cam->length - 1;
+        samples[1] = point;
+        samples[2] = point + 1;
+        if (samples[2] >= sock->cam->length)
+            samples[2] = 0;
         NUVEC previous_pos, position, next_pos;
         f32 midpoint_scale;
-        if (spline == NULL) {
+        if (spline != NULL) {
+            previous_pos = spline->pts[samples[0]];
+            position = spline->pts[samples[1]];
+            next_pos = spline->pts[samples[2]];
+        } else {
             // These three fixed samples are the reference's corner-average path,
             // not a lookup of sock->mid (the explicit spline argument selects that).
 #define SOCK_RAIL_CORNER_SAMPLE(out, index)                                                                            \
@@ -581,35 +587,33 @@ static SOCKROT *SockRailAngles(SOCK *sock, NUGSPLINE *spline, SOCKROT *rotations
     } else                                                                                                             \
         midpoint_scale = 0.5f;                                                                                         \
     NuVecScale(&(out), &(out), midpoint_scale)
-            SOCK_RAIL_CORNER_SAMPLE(previous_pos, previous);
-            SOCK_RAIL_CORNER_SAMPLE(position, point);
-            SOCK_RAIL_CORNER_SAMPLE(next_pos, next);
+            SOCK_RAIL_CORNER_SAMPLE(previous_pos, samples[0]);
+            SOCK_RAIL_CORNER_SAMPLE(position, samples[1]);
+            SOCK_RAIL_CORNER_SAMPLE(next_pos, samples[2]);
 #undef SOCK_RAIL_CORNER_SAMPLE
-        } else {
-            previous_pos = spline->pts[previous];
-            position = spline->pts[point];
-            next_pos = spline->pts[next];
         }
-        u16 x1 = 0, x0 = 0, y1 = 0, y0 = 0;
+        u16 x[2], y[2];
+        x[0] = x[1] = 0;
+        y[0] = y[1] = 0;
         i32 edge_count = 2;
         if (point == 0) {
             if (sock->looping == 0) {
-                SockEdgeAnglesXY(&position, &next_pos, &x0, &y0);
+                SockEdgeAnglesXY(&position, &next_pos, &x[0], &y[0]);
                 edge_count = 1;
             }
         } else if (point == sock->cam->length - 1 && sock->looping == 0) {
-            SockEdgeAnglesXY(&previous_pos, &position, &x0, &y0);
+            SockEdgeAnglesXY(&previous_pos, &position, &x[0], &y[0]);
             edge_count = 1;
         }
         if (edge_count == 2) {
-            SockEdgeAnglesXY(&previous_pos, &position, &x0, &y0);
-            SockEdgeAnglesXY(&position, &next_pos, &x1, &y1);
+            SockEdgeAnglesXY(&previous_pos, &position, &x[0], &y[0]);
+            SockEdgeAnglesXY(&position, &next_pos, &x[1], &y[1]);
         }
-        rotations->x = x0;
-        rotations->y = y0;
+        rotations->x = x[0];
+        rotations->y = y[0];
         if (edge_count > 1) {
-            rotations->x += RotDiff(x0, x1) / 2;
-            rotations->y += RotDiff(y0, y1) / 2;
+            rotations->x += RotDiff(x[0], x[1]) / 2;
+            rotations->y += RotDiff(y[0], y[1]) / 2;
         }
     }
     return rotations;
@@ -619,11 +623,24 @@ static f32 SplineLength(NUGSPLINE *spline, i32 closed) {
     if (spline == NULL || spline->length < 2) {
         return 0.0f;
     }
-    i32 segment_count = closed == 0 ? spline->length - 1 : spline->length;
+    i32 segment_count;
+    if (closed != 0)
+        segment_count = spline->length;
+    else
+        segment_count = spline->length - 1;
     f32 length = 0.0f;
+    NUVEC *previous = spline->pts;
     for (i32 segment = 0; segment < segment_count; ++segment) {
-        i32 next = segment == spline->length - 1 ? 0 : segment + 1;
-        length += NuVecDist(&spline->pts[segment], &spline->pts[next], NULL);
+        i32 next;
+        if (segment == spline->length - 1)
+            next = 0;
+        else
+            next = segment + 1;
+        NUVEC *point = &spline->pts[next];
+        NUVEC difference;
+        NuVecSub(&difference, point, previous);
+        length += NuVecMag(&difference);
+        previous = point;
     }
     return length;
 }
@@ -668,8 +685,8 @@ static i32 InsideLineXZ(f32 x, f32 z, f32 x0, f32 z0, f32 x1, f32 z1) {
 }
 
 static f32 DistanceToPlane(NUVEC *point, NUVEC *plane_point, NUVEC *normal) {
-    return normal->x * (point->x - plane_point->x) + normal->y * (point->y - plane_point->y) +
-           normal->z * (point->z - plane_point->z);
+    return (point->x - plane_point->x) * normal->x + (point->y - plane_point->y) * normal->y +
+           (point->z - plane_point->z) * normal->z;
 }
 
 f32 RatioBetweenPlanes(NUVEC *point, NUVEC *point_a, NUVEC *normal_a, NUVEC *point_b, NUVEC *normal_b) {
@@ -722,19 +739,21 @@ static void FillSockPosition(SOCKSYS *sock_sys, SOCKPOSITION *position) {
     i32 next = position->next_segment;
     SockSysPointAlongSpline(&temp_sockcampos, sock->cam, segment, next, position->ratio);
 
-    SOCKROT *cam_from = &sock->cam_rotations[segment];
-    SOCKROT *cam_to = &sock->cam_rotations[next];
-    position->camera_rotation.x = (u16)(cam_from->x + (f32)RotDiff(cam_from->x, cam_to->x) * position->ratio);
-    position->camera_rotation.y = (u16)(cam_from->y + (f32)RotDiff(cam_from->y, cam_to->y) * position->ratio);
+    position->camera_rotation.x =
+        (u16)(sock->cam_rotations[segment].x +
+              (f32)RotDiff(sock->cam_rotations[segment].x, sock->cam_rotations[next].x) * position->ratio);
+    position->camera_rotation.y =
+        (u16)(sock->cam_rotations[segment].y +
+              (f32)RotDiff(sock->cam_rotations[segment].y, sock->cam_rotations[next].y) * position->ratio);
+    position->midpoint_rotation.x =
+        (u16)(sock->mid_rotations[segment].x +
+              (f32)RotDiff(sock->mid_rotations[segment].x, sock->mid_rotations[next].x) * position->ratio);
+    position->midpoint_rotation.y =
+        (u16)(sock->mid_rotations[segment].y +
+              (f32)RotDiff(sock->mid_rotations[segment].y, sock->mid_rotations[next].y) * position->ratio);
 
-    SOCKROT *mid_from = &sock->mid_rotations[segment];
-    SOCKROT *mid_to = &sock->mid_rotations[next];
-    position->midpoint_rotation.x = (u16)(mid_from->x + (f32)RotDiff(mid_from->x, mid_to->x) * position->ratio);
-    position->midpoint_rotation.y = (u16)(mid_from->y + (f32)RotDiff(mid_from->y, mid_to->y) * position->ratio);
-
-    position->distance = (f32)segment + position->ratio;
-    i32 divisor = sock->length + (sock->unknown_33 != 0 ? 1 : 0);
-    position->normalized_distance = position->distance / (f32)divisor;
+    position->distance = position->ratio + (f32)position->location.segment;
+    position->normalized_distance = position->distance / (f32)(sock->unknown_33 != 0 ? sock->length + 1 : sock->length);
 }
 
 static f32 BestSockPosition(SOCKSYS *sock_sys, NUVEC *point, SOCKPOSITION *result, i32 sock_index, i32 prior_segment) {
@@ -848,6 +867,7 @@ extern "C" {
 
     void ComplexSockPosition(SOCKSYS *sock_sys, NUVEC *position, i32 prior_sock, i32 prior_segment,
                              SOCKPOSITION *result) {
+        i32 fallback_search = 0;
         if (sock_sys == NULL) {
             result->location.sock = -1;
             result->location.segment = -1;
@@ -858,7 +878,11 @@ extern "C" {
         i32 original_prior_sock = prior_sock;
         i32 forced_sock = complexsockposition_forcesock;
         complexsockposition_forcesock = -1;
-        memset(TempSPosList, 0, sizeof(TempSPosList));
+        SOCKPOSITION *positions = TempSPosList;
+        memset(positions, 0, sizeof(TempSPosList));
+        i32 candidate_count = 0;
+        SOCKPOSITION *best = NULL;
+        f32 best_distance = 1000000.0f;
         temp_pos = *position;
 
         i32 sockets_to_check = 0x40;
@@ -866,36 +890,30 @@ extern "C" {
             prior_sock = forced_sock;
             prior_segment = -1;
             sockets_to_check = 1;
-        } else if (prior_sock == -1) {
+        }
+        if (prior_sock == -1) {
             prior_sock = 0;
             prior_segment = -1;
         }
 
-        bool fallback_search = false;
         for (;;) {
-            i32 candidate_count = 0;
             u32 candidate_mask = 0;
-            bool excluded_socket_seen = false;
-            SOCKPOSITION *best = NULL;
-            f32 best_distance = 1000000.0f;
+            i32 excluded_socket_seen = 0;
 
             for (i32 checked = 0; checked < sockets_to_check; ++checked) {
-                SOCK *sock = &sock_sys->sock[prior_sock];
-                if ((sock->flags & 0x100) == 0) {
-                    bool excluded = forced_sock == -1 && !fallback_search && original_prior_sock != -1 &&
-                                    prior_sock != original_prior_sock &&
-                                    SockBitIsSet(&sock_sys->sock[original_prior_sock], prior_sock);
-                    if (excluded) {
-                        excluded_socket_seen = true;
+                if ((sock_sys->sock[prior_sock].flags & 0x100) == 0) {
+                    if (forced_sock == -1 && !fallback_search && original_prior_sock != -1 &&
+                        prior_sock != original_prior_sock &&
+                        SockBitSet(&sock_sys->sock[original_prior_sock], prior_sock)) {
+                        excluded_socket_seen = 1;
                     } else {
-                        f32 distance = BestSockPosition(sock_sys, position, &TempSPosList[candidate_count], prior_sock,
+                        f32 distance = BestSockPosition(sock_sys, position, &positions[candidate_count], prior_sock,
                                                         prior_segment);
-                        SOCKPOSITION *candidate = &TempSPosList[candidate_count];
-                        if (candidate->location.sock != -1) {
-                            candidate->midpoint = temp_sockmidpos;
-                            candidate->camera_position = temp_sockcampos;
+                        if (positions[candidate_count].location.sock != -1) {
+                            positions[candidate_count].midpoint = temp_sockmidpos;
+                            positions[candidate_count].camera_position = temp_sockcampos;
                             if (best == NULL || distance < best_distance) {
-                                best = candidate;
+                                best = &positions[candidate_count];
                                 best_distance = distance;
                             }
                             candidate_mask |= 1U << (prior_sock & 0x1f);
@@ -913,30 +931,29 @@ extern "C" {
             if (best != NULL) {
                 *result = *best;
                 result->candidate_mask = candidate_mask;
-                result->flags = fallback_search ? 1 : 0;
-                result->candidate_count = (i8)candidate_count;
-                TempBestSPos = best;
-                TempSPosCount = candidate_count;
-                memcpy(TempSLoc, result, sizeof(TempSLoc));
-                return;
+                result->flags = 0;
+                if (fallback_search)
+                    result->flags |= 1;
+                break;
             }
             if (!excluded_socket_seen) {
                 result->location.sock = -1;
                 result->location.segment = -1;
                 result->flags = 0;
-                result->candidate_count = 0;
-                TempBestSPos = NULL;
-                TempSPosCount = 0;
-                memcpy(TempSLoc, result, sizeof(TempSLoc));
-                return;
+                break;
             }
 
-            fallback_search = true;
+            fallback_search = 1;
             prior_sock = 0;
             prior_segment = -1;
             forced_sock = -1;
+            candidate_count = 0;
             sockets_to_check = 0x40;
         }
+        result->candidate_count = (i8)candidate_count;
+        TempBestSPos = best;
+        TempSPosCount = candidate_count;
+        memcpy(TempSLoc, result, sizeof(TempSLoc));
     }
 
     void ComplexSockAngles(SOCKROT *angles) {
@@ -1165,8 +1182,14 @@ extern "C" {
         NuMtxSetIdentity(out);
         if (position->location.sock == -1)
             return;
-        i32 first = (mode == 4 || mode == 5) ? 0 : 1;
-        i32 last = (mode == 4 || mode == 5) ? 3 : 2;
+        i32 first, last;
+        if (mode == 4 || mode == 5) {
+            first = 0;
+            last = 3;
+        } else {
+            first = 1;
+            last = 2;
+        }
         SOCK *sock = &system->sock[position->location.sock];
         i32 segment = position->location.segment;
         i32 samples[4];
@@ -1229,13 +1252,17 @@ extern "C" {
         ratio += (f32)(segment % stride);
         ratio /= (f32)stride;
         if (sock->flags & 0x200) {
-            f32 width = (1.0f - ratio) * (widths[1] / base_width) + (widths[2] / base_width) * ratio;
+            f32 first_width = widths[1] / base_width;
+            f32 second_width = widths[2] / base_width;
+            f32 width = (1.0f - ratio) * first_width + second_width * ratio;
             if (1.0f >= width)
                 sock->camera_local_x_ratio = sock->camera_lateral_ratio * width;
             else
                 sock->camera_local_x_ratio =
                     sock->camera_lateral_ratio + (1.0f - 1.0f / width) * (1.0f - sock->camera_lateral_ratio);
-            f32 height = (1.0f - ratio) * (heights[1] / base_height) + (heights[2] / base_height) * ratio;
+            f32 first_height = heights[1] / base_height;
+            f32 second_height = heights[2] / base_height;
+            f32 height = (1.0f - ratio) * first_height + second_height * ratio;
             if (1.0f >= height)
                 sock->camera_vertical_ratio = sock->camera_lateral_ratio * height;
             else
@@ -1420,8 +1447,10 @@ extern "C" {
                                         candidate->ratio);
                 local_right = {1.0f, 0.0f, 0.0f};
                 NuVecRotateY(&local_right, &local_right, candidate->midpoint_rotation.y);
-                magnitude = local_right.x * (scratch.x - candidate->midpoint.x) +
-                            local_right.z * (scratch.z - candidate->midpoint.z);
+                displacement.x = scratch.x - candidate->midpoint.x;
+                displacement.z = scratch.z - candidate->midpoint.z;
+                side = local_right.x * displacement.x + local_right.z * displacement.z;
+                magnitude = side;
 
                 SockSysPointAlongSpline(&scratch, sock->a, candidate->location.segment, candidate->next_segment,
                                         candidate->ratio);
@@ -1432,9 +1461,9 @@ extern "C" {
                                         candidate->ratio);
                 displacement.x = scratch.x - candidate->midpoint.x;
                 displacement.z = scratch.z - candidate->midpoint.z;
-                half_width =
-                    (half_width + NuFsqrt(displacement.x * displacement.x + displacement.z * displacement.z)) * 0.5f;
-                lateral_ratio = half_width <= 0.0f ? 0.0f : magnitude / half_width * working_scale;
+                half_width += NuFsqrt(displacement.x * displacement.x + displacement.z * displacement.z);
+                half_width *= 0.5f;
+                lateral_ratio = half_width > 0.0f ? magnitude / half_width * working_scale : 0.0f;
             }
 
             if (lateral_ratio != 0.0f && (sock->flags & SOCK_FLAG_PROJECT_CAMERA_FROM_PLAYER) == 0) {
@@ -1445,11 +1474,19 @@ extern "C" {
                     local_right = {1.0f, 0.0f, 0.0f};
                     NuVecRotateY(&local_right, &local_right, candidate->midpoint_rotation.y);
                     side = local_right.x * displacement.x + local_right.z * displacement.z;
-                    NUGSPLINE *limit = side < 0.0f ? sock->left : sock->right;
-                    if (limit != NULL) {
-
-                        SockSysPointAlongSpline(&scratch, limit, candidate->location.segment, candidate->next_segment,
-                                                candidate->ratio);
+                    bool have_limit = false;
+                    if (side < 0.0f) {
+                        if (sock->left != NULL) {
+                            SockSysPointAlongSpline(&scratch, sock->left, candidate->location.segment,
+                                                    candidate->next_segment, candidate->ratio);
+                            have_limit = true;
+                        }
+                    } else if (sock->right != NULL) {
+                        SockSysPointAlongSpline(&scratch, sock->right, candidate->location.segment,
+                                                candidate->next_segment, candidate->ratio);
+                        have_limit = true;
+                    }
+                    if (have_limit) {
                         local_x.x = scratch.x - candidate->camera_position.x;
                         local_x.z = scratch.z - candidate->camera_position.z;
                         half_width = NuFsqrt(local_x.x * local_x.x + local_x.z * local_x.z);
@@ -1465,33 +1502,36 @@ extern "C" {
             }
 
             if (sock->camera_vertical_ratio != 0.0f && (sock->flags & SOCK_FLAG_PROJECT_CAMERA_FROM_PLAYER) == 0) {
-                candidate_camera.y += sock->camera_vertical_ratio * (average_camera_position.y - candidate->midpoint.y);
+                displacement.y = sock->camera_vertical_ratio * (average_camera_position.y - candidate->midpoint.y);
+                candidate_camera.y += displacement.y;
             }
 
-            if (!((sock->camera_arena_blend.x <= 0.0f && sock->camera_arena_blend.y <= 0.0f &&
-                   sock->camera_arena_blend.z <= 0.0f) ||
-                  (sock->camera_arena_offset.x == 0.0f && sock->camera_arena_offset.y == 0.0f &&
-                   sock->camera_arena_offset.z == 0.0f))) {
+            if ((sock->camera_arena_blend.x > 0.0f || sock->camera_arena_blend.y > 0.0f ||
+                 sock->camera_arena_blend.z > 0.0f) &&
+                (sock->camera_arena_offset.x != 0.0f || sock->camera_arena_offset.y != 0.0f ||
+                 sock->camera_arena_offset.z != 0.0f)) {
                 NuVecAdd(&scratch, &average_player_position, &sock->camera_arena_offset);
-                if (sock->camera_arena_blend.x >= 1.0f)
-                    candidate_camera.x = scratch.x;
-                else
+                if (1.0f > sock->camera_arena_blend.x)
                     candidate_camera.x += (scratch.x - candidate_camera.x) * sock->camera_arena_blend.x;
-                if (sock->camera_arena_blend.y >= 1.0f)
-                    candidate_camera.y = scratch.y;
                 else
+                    candidate_camera.x = scratch.x;
+                if (1.0f > sock->camera_arena_blend.y)
                     candidate_camera.y += (scratch.y - candidate_camera.y) * sock->camera_arena_blend.y;
-                if (sock->camera_arena_blend.z >= 1.0f)
-                    candidate_camera.z = scratch.z;
                 else
+                    candidate_camera.y = scratch.y;
+                if (1.0f > sock->camera_arena_blend.z)
                     candidate_camera.z += (scratch.z - candidate_camera.z) * sock->camera_arena_blend.z;
+                else
+                    candidate_camera.z = scratch.z;
                 if ((sock->flags & SOCK_FLAG_CLAMP_TARGET_Y) != 0) {
                     candidate_camera.y = EnforceSockYLimits(candidate_camera.y, candidate, sock_sys);
                 }
             } else if (sock->camera_arena_offset.y != 0.0f) {
                 height_sum = 0.0f;
-                for (i32 player = 0; player < player_count; ++player)
-                    height_sum = height_sum + player_camera_positions[player].y + sock->camera_arena_offset.y;
+                for (i32 player = 0; player < player_count; ++player) {
+                    height_sum += player_camera_positions[player].y;
+                    height_sum += sock->camera_arena_offset.y;
+                }
                 candidate_camera.y = height_sum / static_cast<f32>(player_count);
                 if ((sock->flags & SOCK_FLAG_CLAMP_TARGET_Y) != 0) {
                     candidate_camera.y = EnforceSockYLimits(candidate_camera.y, candidate, sock_sys);
@@ -1534,25 +1574,22 @@ extern "C" {
                         NuVecRotateX(&look_position, &look_position, candidate->camera_rotation.x);
                         NuVecRotateY(&look_position, &look_position, candidate->camera_rotation.y);
                     } else {
-                        SOCKROT *from_rotation = &sock->cam_rotations[look_from];
-                        SOCKROT *to_rotation = &sock->cam_rotations[look_to];
-                        const u16 pitch = static_cast<u16>(static_cast<i32>(
-                            from_rotation->x +
-                            static_cast<f32>(RotDiff(from_rotation->x, to_rotation->x)) * candidate->ratio));
-                        const u16 yaw = static_cast<u16>(static_cast<i32>(
-                            from_rotation->y +
-                            static_cast<f32>(RotDiff(from_rotation->y, to_rotation->y)) * candidate->ratio));
+                        u16 from_angle = sock->cam_rotations[look_from].x;
+                        i32 difference = RotDiff(sock->cam_rotations[look_from].x, sock->cam_rotations[look_to].x);
+                        const u16 pitch = static_cast<u16>(
+                            static_cast<i32>(from_angle + static_cast<f32>(difference) * candidate->ratio));
+                        from_angle = sock->cam_rotations[look_from].y;
+                        difference = RotDiff(sock->cam_rotations[look_from].y, sock->cam_rotations[look_to].y);
+                        const u16 yaw = static_cast<u16>(
+                            static_cast<i32>(from_angle + static_cast<f32>(difference) * candidate->ratio));
                         NuVecRotateX(&look_position, &look_position, pitch);
                         NuVecRotateY(&look_position, &look_position, yaw - 0x1555);
                     }
                     NuVecAdd(&look_position, &look_position, &candidate_camera);
                 }
-                accumulated_target.x =
-                    accumulated_target.x + (camera_target->x - look_position.x) * sock->look_ratio_xz + look_position.x;
-                accumulated_target.y =
-                    accumulated_target.y + (camera_target->y - look_position.y) * sock->look_ratio_y + look_position.y;
-                accumulated_target.z =
-                    accumulated_target.z + (camera_target->z - look_position.z) * sock->look_ratio_xz + look_position.z;
+                accumulated_target.x += (camera_target->x - look_position.x) * sock->look_ratio_xz + look_position.x;
+                accumulated_target.y += (camera_target->y - look_position.y) * sock->look_ratio_y + look_position.y;
+                accumulated_target.z += (camera_target->z - look_position.z) * sock->look_ratio_xz + look_position.z;
             }
 
             NuVecAdd(camera_position, camera_position, &candidate_camera);
@@ -1619,14 +1656,14 @@ extern "C" {
             }
         }
         if (player_count == 2 && two_player_pullback != 0.0f) {
-            SOCK *active_socket = &sock_sys->sock[camera_socket_position->location.sock];
             // The reference has distinct spatial and planar pullback blocks.
 #define SOCK_CAMERA_PAIR_PULLBACK(distance_service, with_y)                                                            \
     do {                                                                                                               \
-        if ((active_socket->flags & SOCK_FLAG_TWO_PLAYER_VERTICAL_SEPARATION) == 0)                                    \
-            pair_offset = distance_service(&player_camera_positions[0], &player_camera_positions[1], NULL);            \
-        else                                                                                                           \
+        if ((sock_sys->sock[camera_socket_position->location.sock].flags &                                             \
+             SOCK_FLAG_TWO_PLAYER_VERTICAL_SEPARATION) != 0)                                                           \
             pair_offset = NuFabs(player_camera_positions[0].y - player_camera_positions[1].y);                         \
+        else                                                                                                           \
+            pair_offset = distance_service(&player_camera_positions[0], &player_camera_positions[1], NULL);            \
         pair_offset *= -two_player_pullback;                                                                           \
         working_scale = distance_service(camera_target, camera_position, &scratch);                                    \
         NuVecNorm(&scratch, &scratch);                                                                                 \
@@ -1637,10 +1674,12 @@ extern "C" {
             camera_position->y += scratch.y * pair_offset;                                                             \
         camera_position->z += scratch.z * pair_offset;                                                                 \
     } while (0)
-            if ((active_socket->flags & SOCK_FLAG_TWO_PLAYER_PLANAR_PULLBACK) == 0) {
-                SOCK_CAMERA_PAIR_PULLBACK(NuVecDist, true);
-            } else {
+            if (camera_socket_position->location.sock != -1 &&
+                (sock_sys->sock[camera_socket_position->location.sock].flags & SOCK_FLAG_TWO_PLAYER_PLANAR_PULLBACK) !=
+                    0) {
                 SOCK_CAMERA_PAIR_PULLBACK(NuVecXZDist, false);
+            } else {
+                SOCK_CAMERA_PAIR_PULLBACK(NuVecDist, true);
             }
 #undef SOCK_CAMERA_PAIR_PULLBACK
         }
@@ -1729,12 +1768,12 @@ extern "C" {
 
     struct SOCKPAR_CONTEXT {
         u32 reserved[2];
-        SOCKSYS **sock_sys;
+        SOCKSYS *sock_sys;
         SOCK *sock;
     };
 
     void SockSysConfigureNuFPar(NUFPAR *parser, SOCKPAR_CONTEXT *context) {
-        if (context == NULL || context->sock_sys == NULL || *context->sock_sys == NULL || parser == NULL) {
+        if (context == NULL || context->sock_sys == NULL || context->sock_sys->sock == NULL || parser == NULL) {
             return;
         }
 
@@ -1746,9 +1785,19 @@ extern "C" {
             return;
         }
 
-        context->sock = &(*context->sock_sys)->sock[sock_index];
+        context->sock = &context->sock_sys->sock[sock_index];
         sockpar_sock = context->sock;
-        memset(&sockpar_sock->unknown_110, 0, sizeof(sockpar_sock->unknown_110) + sizeof(sockpar_sock->unknown_114));
+        sockpar_sock->blend_count = 0;
+        sockpar_sock->camera_character_close_lift = -1.0f;
+        sockpar_sock->camera_min_distance = -1.0f;
+        sockpar_sock->camera_range_of_effect = -1.0f;
+        sockpar_sock->camera_tilt_angle_change = -1.0f;
+        sockpar_sock->camera_tilt_angle_rate = -1.0f;
+        sockpar_sock->camera_tilt_distance = -1.0f;
+        sockpar_sock->camera_tilt_height = -1.0f;
+        sockpar_sock->manual_camera_max_x = 0.0f;
+        sockpar_sock->manual_camera_max_y = 0.0f;
+        sockpar_sock->terrain_camera_inactive = 0;
 
         NuFParPushComCTX(parser, SockSys_ConfigKeywords);
         do {
@@ -1905,15 +1954,17 @@ extern "C" {
                     AdjustMinMaxBox(&sock->a->pts[next], &segment->min, &segment->max);
                     AdjustMinMaxBox(&sock->b->pts[next], &segment->min, &segment->max);
                 }
-                if (sock->mid == NULL)
+                if (sock->mid != NULL)
+                    segment->length = NuVecDist(&sock->mid->pts[segment_index], &sock->mid->pts[next], NULL);
+                else
                     segment->length = NuVecDist(&sock->segments[segment_index].midpoint,
                                                 &sock->segments[segment_index].next_midpoint, NULL);
-                else
-                    segment->length = NuVecDist(&sock->mid->pts[segment_index], &sock->mid->pts[next], NULL);
                 segment->distance_from_start = distance_from_start;
                 distance_from_start += segment->length;
             }
-            if (sock->mid == NULL) {
+            if (sock->mid != NULL) {
+                sock->unknown_98 = SplineLength(sock->mid, sock->unknown_33);
+            } else {
                 sock->unknown_98 = 0.0f;
                 u32 segment_count = sock->length;
                 if (sock->unknown_33 != 0)
@@ -1922,8 +1973,6 @@ extern "C" {
                     sock->unknown_98 += NuVecDist(&sock->segments[segment_index].midpoint,
                                                   &sock->segments[segment_index].next_midpoint, NULL);
                 }
-            } else {
-                sock->unknown_98 = SplineLength(sock->mid, sock->unknown_33);
             }
             buf->void_ptr = segment;
         }
@@ -1937,7 +1986,11 @@ extern "C" {
             for (i32 other_index = 0; other_index < 0x40; ++other_index, ++other) {
                 if (sock_index == other_index || other->valid == 0)
                     continue;
-                bool ignore_y = (sock->flags & 1) != 0 || (other->flags & 1) != 0;
+                i32 ignore_y;
+                if ((sock->flags & 1) != 0 || (other->flags & 1) != 0)
+                    ignore_y = 1;
+                else
+                    ignore_y = 0;
                 if (sock->max.x < other->min.x || other->max.x < sock->min.x || sock->max.z < other->min.z ||
                     other->max.z < sock->min.z ||
                     (!ignore_y && (sock->max.y < other->min.y || other->max.y < sock->min.y))) {

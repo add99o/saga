@@ -984,8 +984,7 @@ void TrueHero_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 active
             f32 time = stage->field_0x18;
             if (time > 1.0f)
                 time = 1.0f;
-            const f32 blend =
-                (NuTrigTable[(static_cast<i32>(time * 32768.0f + 16384.0f) >> 1) & 0x7fff] + 1.0f) * 0.5f;
+            const f32 blend = (NuTrigTable[(static_cast<i32>(time * 32768.0f + 16384.0f) >> 1) & 0x7fff] + 1.0f) * 0.5f;
             DrawBuildUpBar(0.0f, 0.7f, packet->true_hero_percent, 100, 1.0f, 1.75f, 1.0f, 0);
             sprintf(text, "%i%%", static_cast<i32>(packet->true_hero_percent));
             Text3DEx(text, 0.0f, 0.3f, 1.0f, 0.8f, 0.8f, 0.8f, 0, 255, 191, 0,
@@ -994,12 +993,11 @@ void TrueHero_LSW_Draw(STATUS_STAGE_s *stage, STATUSPACKET_s *packet, i32 active
         }
         case 3: {
             const f32 blend =
-                1.0f -
-                (NuTrigTable[stage->field_0x18 < 1.0f
-                                 ? ((static_cast<i32>(stage->field_0x18 * 32768.0f + 16384.0f) >> 1) & 0x7fff)
-                                 : 0x6000] +
-                 1.0f) *
-                    0.5f;
+                1.0f - (NuTrigTable[stage->field_0x18 < 1.0f
+                                        ? ((static_cast<i32>(stage->field_0x18 * 32768.0f + 16384.0f) >> 1) & 0x7fff)
+                                        : 0x6000] +
+                        1.0f) *
+                           0.5f;
             if (blend < 1.0f) {
                 const i32 opacity = static_cast<i32>((1.0f - blend) * 64.0f) & 255;
                 f32 scale = (blend * 0.5f + 1.0f) * 0.8f;
@@ -1089,7 +1087,8 @@ void DrawStatusScreen(WORLDINFO_s *) {
                 green = MENUENTRYG;
                 blue = MENUENTRYB;
             }
-            Text3D(text, 0.0f, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 0, red & 255, green & 255, blue & 255);
+            Text3D(text, 0.0f, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 0, red & 255, green & 255,
+                   blue & 255);
         }
         y += MENUDY;
         {
@@ -1125,7 +1124,8 @@ void DrawStatusScreen(WORLDINFO_s *) {
                 green = MENUENTRYG;
                 blue = MENUENTRYB;
             }
-            Text3D(text, 0.0f, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 0, red & 255, green & 255, blue & 255);
+            Text3D(text, 0.0f, y, 1.0f, MENUTEXTSCALE, MENUTEXTSCALE, MENUTEXTSCALE, 0, red & 255, green & 255,
+                   blue & 255);
         }
         return;
     }
@@ -1141,8 +1141,7 @@ void DrawStatusScreen(WORLDINFO_s *) {
         }
 
         i32 stage_index = 1;
-        for (STATUS_STAGE_s *stage = StatusStages; stage->type != -1;
-             stage = StatusStages + stage_index++) {
+        for (STATUS_STAGE_s *stage = StatusStages; stage->type != -1; stage = StatusStages + stage_index++) {
             if (stage->draw_callback != NULL) {
                 if (stage == status->stage)
                     stage->draw_callback(stage, status, 1);

@@ -197,34 +197,34 @@ void AITriggerSetSysProcess(AITRIGGERSETSYS_s *system) {
             i32 assigned = set->trigger_indices[index];
             if (assigned != -1)
                 has_assignments = 1;
-            u16 bit = 1u << index;
             GIZMO_s *gizmo = set->gizmos[index];
             bool release = false;
             if (gizmo == NULL) {
-                set->field_0x20e &= ~bit;
+                set->field_0x20e &= ~(1u << index);
                 release = true;
             } else if (gizmo->type_id == lever_gizmotype_id) {
                 LEVER_s *lever = static_cast<LEVER_s *>(gizmo->object);
-                if (GameObjectUsingLever(player, lever) || (player2 != NULL && GameObjectUsingLever(player2, lever))) {
-                    set->field_0x20e |= bit;
-                } else if ((set->field_0x20e & bit) && !Lever_BeingPulled(lever)) {
-                    set->field_0x20e &= ~bit;
+                if (GameObjectUsingLever(player, lever) ||
+                    (player2 != NULL && player2->character_context == 0x4a && player2->field_0x788 == lever)) {
+                    set->field_0x20e |= 1u << index;
+                } else if (((set->field_0x20e >> index) & 1) && !Lever_BeingPulled(lever)) {
+                    set->field_0x20e &= ~(1u << index);
                 }
                 if (Lever_BeingPulled(lever) && set->trigger_indices[index] != -1) {
                     GameObject_s *object = &Obj[set->trigger_indices[index]];
-                    if ((object->apiobj.object_flags & 0x1001) != 0x1001 || !GameObjectUsingLever(object, lever))
+                    if ((object->apiobj.field_0x1f8 & 0x1001) != 0x1001 || !GameObjectUsingLever(object, lever))
                         release = true;
                 }
             } else if (gizmo->type_id == obstacle_gizmotype_id) {
                 GIZOBSTACLE_s *obstacle = static_cast<GIZOBSTACLE_s *>(gizmo->object);
                 if (obstacle->triggering_object == player ||
                     (player2 != NULL && obstacle->triggering_object == player2)) {
-                    set->field_0x20e |= bit;
-                } else if (set->field_0x20e & bit) {
+                    set->field_0x20e |= 1u << index;
+                } else if ((set->field_0x20e >> index) & 1) {
                     if (obstacle->anim_set != NULL &&
                         (obstacle->anim_set->state == 3 || obstacle->anim_set->state == 0 ||
                          obstacle->anim_set->state == 4))
-                        set->field_0x20e &= ~bit;
+                        set->field_0x20e &= ~(1u << index);
                 } else if ((obstacle->progress_flags & 3) != 3) {
                     release = true;
                 }
@@ -232,19 +232,19 @@ void AITriggerSetSysProcess(AITRIGGERSETSYS_s *system) {
                 GIZSPINNER_s *spinner = static_cast<GIZSPINNER_s *>(gizmo->object);
                 if ((spinner->flags & 6) || ((spinner->flags & 8) && !ShadowMode) || spinner->field_70 == 1.0f ||
                     (spinner->state_flags & 0x20)) {
-                    set->field_0x20e &= ~bit;
+                    set->field_0x20e &= ~(1u << index);
                 } else if ((player->character_context == 0x28 && player->field_0x788 == spinner) ||
                            (player2 != NULL && player2->character_context == 0x28 && player2->field_0x788 == spinner)) {
-                    set->field_0x20e |= bit;
-                } else if ((set->field_0x20e & bit) && spinner->room_index == -1) {
-                    set->field_0x20e &= ~bit;
+                    set->field_0x20e |= 1u << index;
+                } else if (((set->field_0x20e >> index) & 1) && spinner->room_index == -1) {
+                    set->field_0x20e &= ~(1u << index);
                 }
             } else if (gizmo->type_id == force_gizmotype_id) {
                 GIZFORCE_s *force = static_cast<GIZFORCE_s *>(gizmo->object);
                 if (GizForce_GameObjUsingForce(player, force) || GizForce_GameObjUsingForce(player2, force)) {
-                    set->field_0x20e |= bit;
-                } else if (set->field_0x20e & bit) {
-                    set->field_0x20e &= ~bit;
+                    set->field_0x20e |= 1u << index;
+                } else if ((set->field_0x20e >> index) & 1) {
+                    set->field_0x20e &= ~(1u << index);
                 } else if (GizForce_Complete(force)) {
                     release = true;
                 }
@@ -254,14 +254,14 @@ void AITriggerSetSysProcess(AITRIGGERSETSYS_s *system) {
                 if (((i8)player->character_context == LEGOCONTEXT_GRAPPLE && player->field_0x788 == grapple) ||
                     (player2 != NULL && (i8)player2->character_context == LEGOCONTEXT_GRAPPLE &&
                      player2->field_0x788 == grapple)) {
-                    set->field_0x20e |= bit;
-                } else if (set->field_0x20e & bit) {
-                    set->field_0x20e &= ~bit;
+                    set->field_0x20e |= 1u << index;
+                } else if ((set->field_0x20e >> index) & 1) {
+                    set->field_0x20e &= ~(1u << index);
                 } else if (Grapple_Occupied(grapple, object, NULL)) {
                     release = true;
                 }
             } else {
-                set->field_0x20e &= ~bit;
+                set->field_0x20e &= ~(1u << index);
             }
             if (release && set->trigger_indices[index] != -1) {
                 system->field_0x4280[set->trigger_indices[index]] = -1;
@@ -284,7 +284,7 @@ void AITriggerSetSysProcess(AITRIGGERSETSYS_s *system) {
             i32 assigned_count = 0;
             for (i32 index = 0; index < set->trigger_count && assigned_count + player_count < set->trigger_count;
                  ++index) {
-                if (!(set->field_0x20e & (1u << index)) && set->trigger_indices[index] == -1) {
+                if (!((set->field_0x20e >> index) & 1) && set->trigger_indices[index] == -1) {
                     GIZMO_s *gizmo = set->gizmos[index];
                     bool available = false;
                     if (gizmo->type_id == lever_gizmotype_id) {
@@ -315,7 +315,7 @@ void AITriggerSetSysProcess(AITRIGGERSETSYS_s *system) {
                         GameObject_s *object = Obj;
                         for (i32 object_index = 0; object_index < HIGHGAMEOBJECT; ++object_index, ++object) {
                             if (system->field_0x42c0[object_index] != -1 ||
-                                (object->apiobj.object_flags & 0x1001) != 0x1001 || object->apiobj.field_0x287 != 0 ||
+                                (object->apiobj.field_0x1f8 & 0x1001) != 0x1001 || object->apiobj.field_0x287 != 0 ||
                                 (object->apiobj.flags_low & 0x80) || (object->field_0xeff & 1) ||
                                 (character_mask && !(character_mask & object->ai.character_type_mask)) ||
                                 !(object->field_0xf02 & 4) || (!set->field_0x20e && object->trigger_set != set))

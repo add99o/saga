@@ -112,9 +112,11 @@ bool OccluderSet::IsOccludedOBB(nuvec_s const *minimum, nuvec_s const *maximum, 
         for (i32 edge = 0; edge < 4 && inside; ++edge) {
             i32 start = winding > 0.0f ? edge : 3 - edge;
             i32 end = winding > 0.0f ? (edge + 1) & 3 : (6 - edge) & 3;
-            NUVEC4 normal = {v[end].y - v[start].y, -(v[end].x - v[start].x), 0.0f, 0.0f};
-            NuVecNorm(reinterpret_cast<NUVEC *>(&normal), reinterpret_cast<NUVEC *>(&normal));
+            NUVEC4 normal;
+            normal.y = -(v[end].x - v[start].x);
+            normal.x = v[end].y - v[start].y;
             normal.z = normal.w = 0.0f;
+            NuVecNorm(reinterpret_cast<NUVEC *>(&normal), reinterpret_cast<NUVEC *>(&normal));
             for (u32 corner = 0; corner < 8; ++corner) {
                 float distance =
                     (corners[corner].x - v[start].x) * normal.x + (corners[corner].y - v[start].y) * normal.y + 0.0f;
@@ -135,7 +137,7 @@ bool OccluderSet::IsOccludedSphere(nuvec_s const *center, float radius) {
         return false;
     NUVEC4 projected;
     NuVec4MtxTransform(&projected, const_cast<NUVEC *>(center), &projection_matrix);
-    if (!(radius <= projected.w))
+    if (radius > projected.w)
         return false;
     projected.x /= projected.w;
     i32 limit = static_cast<i32>(count) < 101 ? static_cast<i32>(count) : 100;
@@ -149,42 +151,42 @@ bool OccluderSet::IsOccludedSphere(nuvec_s const *center, float radius) {
         OccluderRecord &record = occluders[indices[i]];
         if (projected.w - radius - 2.0f < record.depth)
             return false;
-        if (!(projected.x - screen_radius <= record.max_x && projected.y - screen_radius <= record.max_y &&
-              record.min_x <= projected.x + screen_radius && record.min_y <= projected.y + screen_radius))
+        if (projected.x - screen_radius > record.max_x || projected.y - screen_radius > record.max_y ||
+            record.min_x > projected.x + screen_radius || record.min_y > projected.y + screen_radius)
             continue;
         NUVEC4 *v = record.transformed;
         float winding = (v[1].y - v[0].y) * (v[2].x - v[0].x) - (v[1].x - v[0].x) * (v[2].y - v[0].y);
-        NUVEC4 *start = &v[(winding <= 0.0f) * 3];
-        NUVEC4 *end = &v[(winding <= 0.0f) + 1];
+        NUVEC4 *start = &v[(!(winding > 0.0f)) * 3];
+        NUVEC4 *end = &v[(!(winding > 0.0f)) + 1];
         normal.y = -(end->x - start->x);
         normal.x = end->y - start->y;
         normal.z = normal.w = 0.0f;
         NuVecNorm(reinterpret_cast<NUVEC *>(&normal), reinterpret_cast<NUVEC *>(&normal));
-        if (!(0.0f <= (projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius))
+        if ((projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius < 0.0f)
             continue;
-        start = &v[(winding <= 0.0f) + 1];
+        start = &v[(!(winding > 0.0f)) + 1];
         end = &v[(winding > 0.0f) + 1];
         normal.y = -(end->x - start->x);
         normal.x = end->y - start->y;
         normal.z = normal.w = 0.0f;
         NuVecNorm(reinterpret_cast<NUVEC *>(&normal), reinterpret_cast<NUVEC *>(&normal));
-        if (!(0.0f <= (projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius))
+        if ((projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius < 0.0f)
             continue;
         start = &v[(winding > 0.0f) + 1];
         end = &v[(winding > 0.0f) * 3];
-        normal.y = -(end->x - start->x);
         normal.x = end->y - start->y;
+        normal.y = -(end->x - start->x);
         normal.z = normal.w = 0.0f;
         NuVecNorm(reinterpret_cast<NUVEC *>(&normal), reinterpret_cast<NUVEC *>(&normal));
-        if (!(0.0f <= (projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius))
+        if ((projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius < 0.0f)
             continue;
         start = &v[(winding > 0.0f) * 3];
-        end = &v[(winding <= 0.0f) * 3];
-        normal.y = -(end->x - start->x);
+        end = &v[(!(winding > 0.0f)) * 3];
         normal.x = end->y - start->y;
+        normal.y = -(end->x - start->x);
         normal.z = normal.w = 0.0f;
         NuVecNorm(reinterpret_cast<NUVEC *>(&normal), reinterpret_cast<NUVEC *>(&normal));
-        if (!(0.0f <= (projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius))
+        if ((projected.x - start->x) * normal.x + (projected.y - start->y) * normal.y + 0.0f - screen_radius < 0.0f)
             continue;
         return true;
     }

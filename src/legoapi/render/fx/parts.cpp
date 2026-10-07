@@ -312,8 +312,8 @@ static void PartCollide(PART_s *part, i32 three_dimensional) {
             continue;
         if ((part->flags & 4) != 0 && (api->flags_low & 0x80) == 0)
             continue;
-        if (minimum.x > api->collision_max.x || api->collision_min.x > maximum.x ||
-            minimum.z > api->collision_max.z || api->collision_min.z > maximum.z)
+        if (minimum.x > api->collision_max.x || api->collision_min.x > maximum.x || minimum.z > api->collision_max.z ||
+            api->collision_min.z > maximum.z)
             continue;
         if (three_dimensional != 0) {
             if ((api->character_data->model_flags & 0x2000) != 0 && (part->flags & 0x40) != 0)
@@ -1482,10 +1482,9 @@ extern "C" {
             }
         }
 
-        const f32 thinning =
-            forced_debris_thinning == 0
-                ? (effect->thinning < debris_thinning_level ? effect->thinning : debris_thinning_level)
-                : debris_thinning_level;
+        const f32 thinning = forced_debris_thinning == 0
+                                 ? (effect->thinning < debris_thinning_level ? effect->thinning : debris_thinning_level)
+                                 : debris_thinning_level;
         const f32 emission_rate = NuFdiv(static_cast<f32>(count), thinning);
         const f32 emission_interval = NuFdiv(1.0f, emission_rate);
 
@@ -1529,13 +1528,13 @@ extern "C" {
 #define TRY_EXISTING_DEBRIS_KEY(slot)                                                                                  \
     if (effect->particle_keys[slot] != -1) {                                                                           \
         key = &debkeydata[effect->particle_keys[slot]];                                                                \
-        if (effect->particle_type == 7 ? key->particle_count + particle_count <= 0x180 :                                 \
-                                        key->particle_count + particle_count <= 0x400) {                               \
+        if (effect->particle_type == 7 ? key->particle_count + particle_count <= 0x180                                 \
+                                       : key->particle_count + particle_count <= 0x400) {                              \
             particle_key_slot = slot;                                                                                  \
             goto debris_key_found;                                                                                     \
         }                                                                                                              \
-    } else {                                                                                                          \
-        key = NULL;                                                                                                   \
+    } else {                                                                                                           \
+        key = NULL;                                                                                                    \
     }
 
 #define TRY_OR_ALLOCATE_DEBRIS_KEY(slot)                                                                               \
@@ -1544,8 +1543,8 @@ extern "C" {
         goto allocate_debris_key;                                                                                      \
     }                                                                                                                  \
     key = &debkeydata[effect->particle_keys[slot]];                                                                    \
-    if (effect->particle_type == 7 ? key->particle_count + particle_count <= 0x180 :                                     \
-                                    key->particle_count + particle_count <= 0x400) {                                   \
+    if (effect->particle_type == 7 ? key->particle_count + particle_count <= 0x180                                     \
+                                   : key->particle_count + particle_count <= 0x400) {                                  \
         particle_key_slot = slot;                                                                                      \
         goto debris_key_found;                                                                                         \
     }
@@ -1600,44 +1599,44 @@ extern "C" {
         const i32 required_particles = key->particle_count + particle_count;
 
 #define GROW_DEBRIS_CHUNKS(width, free_count, capacity, free_list)                                                     \
-    do {                                                                                                             \
-        i32 allocated_chunks = key->allocated_chunk_count;                                                            \
-        if (allocated_chunks * width < required_particles) {                                                         \
-            if (allocated_chunks < 0) {                                                                              \
-                key->allocated_chunk_count = 0;                                                                      \
-                allocated_chunks = 0;                                                                                \
-            }                                                                                                        \
-            const i32 required_chunks = (required_particles + width - 1) / width;                                   \
-            const i32 new_chunk_count = required_chunks - allocated_chunks;                                         \
-            const i32 first_free_chunk = free_count;                                                                 \
-            if (capacity <= first_free_chunk + new_chunk_count || required_chunks > 32) {                           \
-                return;                                                                                              \
-            }                                                                                                        \
-            for (i32 i = 0; i < new_chunk_count; ++i) {                                                              \
-                key->particle_chunks[allocated_chunks + i] = free_list[first_free_chunk + i];                       \
-                for (i32 particle = 0; particle < width; ++particle) {                                               \
-                    key->particle_chunks[allocated_chunks + i]->particles[particle].start_time = 0.0f;              \
-                    key->particle_chunks[allocated_chunks + i]->particles[particle].inverse_lifetime = 32768.0f;    \
-                }                                                                                                    \
-            }                                                                                                        \
-            free_count = first_free_chunk + new_chunk_count;                                                         \
-            key->allocated_chunk_count = static_cast<i16>(required_chunks);                                          \
-            LinkDmaParticalSets(key->particle_chunks, required_chunks);                                               \
-            if (required_chunks == new_chunk_count) {                                                                \
-                const i32 total_chunk_count = debrischunks + debrischunksglass;                                      \
-                for (i32 i = 0; i < total_chunk_count; ++i) {                                                        \
-                    particlechunkrendertype_s *render_chunk = &ParticleChunkToRender[i];                           \
-                    if (render_chunk->particle_chunk == NULL) {                                                     \
-                        render_chunk->particle_chunk = key->particle_chunks[0];                                     \
-                        render_chunk->effect = effect;                                                              \
-                        render_chunk->key = key;                                                                    \
-                        render_chunk->render_priority = render_priority;                                            \
-                        AddChunkToRenderStack(render_chunk, &ParticleChunkRenderStack[effect->time_group]);         \
-                        break;                                                                                       \
-                    }                                                                                                \
-                }                                                                                                    \
-            }                                                                                                        \
-        }                                                                                                            \
+    do {                                                                                                               \
+        i32 allocated_chunks = key->allocated_chunk_count;                                                             \
+        if (allocated_chunks * width < required_particles) {                                                           \
+            if (allocated_chunks < 0) {                                                                                \
+                key->allocated_chunk_count = 0;                                                                        \
+                allocated_chunks = 0;                                                                                  \
+            }                                                                                                          \
+            const i32 required_chunks = (required_particles + width - 1) / width;                                      \
+            const i32 new_chunk_count = required_chunks - allocated_chunks;                                            \
+            const i32 first_free_chunk = free_count;                                                                   \
+            if (capacity <= first_free_chunk + new_chunk_count || required_chunks > 32) {                              \
+                return;                                                                                                \
+            }                                                                                                          \
+            for (i32 i = 0; i < new_chunk_count; ++i) {                                                                \
+                key->particle_chunks[allocated_chunks + i] = free_list[first_free_chunk + i];                          \
+                for (i32 particle = 0; particle < width; ++particle) {                                                 \
+                    key->particle_chunks[allocated_chunks + i]->particles[particle].start_time = 0.0f;                 \
+                    key->particle_chunks[allocated_chunks + i]->particles[particle].inverse_lifetime = 32768.0f;       \
+                }                                                                                                      \
+            }                                                                                                          \
+            free_count = first_free_chunk + new_chunk_count;                                                           \
+            key->allocated_chunk_count = static_cast<i16>(required_chunks);                                            \
+            LinkDmaParticalSets(key->particle_chunks, required_chunks);                                                \
+            if (required_chunks == new_chunk_count) {                                                                  \
+                const i32 total_chunk_count = debrischunks + debrischunksglass;                                        \
+                for (i32 i = 0; i < total_chunk_count; ++i) {                                                          \
+                    particlechunkrendertype_s *render_chunk = &ParticleChunkToRender[i];                               \
+                    if (render_chunk->particle_chunk == NULL) {                                                        \
+                        render_chunk->particle_chunk = key->particle_chunks[0];                                        \
+                        render_chunk->effect = effect;                                                                 \
+                        render_chunk->key = key;                                                                       \
+                        render_chunk->render_priority = render_priority;                                               \
+                        AddChunkToRenderStack(render_chunk, &ParticleChunkRenderStack[effect->time_group]);            \
+                        break;                                                                                         \
+                    }                                                                                                  \
+                }                                                                                                      \
+            }                                                                                                          \
+        }                                                                                                              \
     } while (0)
 
         if (effect->particle_type == 7) {

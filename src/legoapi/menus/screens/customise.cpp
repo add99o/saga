@@ -1202,8 +1202,7 @@ void Customiser_SetNameAndIcon(CUSTOMISER *customiser, i32 index) {
     if (index == 1 || !single) {
         customiser->display_names[1][0] = 0;
         sprintf(customiser->display_names[1], "%s %i", TTab[tSTRANGER], 2);
-        CDataList[customiser->character_ids[1]].field20_0x42 =
-            Customiser_GetIcon(customiser, &Game.customizer[1], 1);
+        CDataList[customiser->character_ids[1]].field20_0x42 = Customiser_GetIcon(customiser, &Game.customizer[1], 1);
     }
 }
 

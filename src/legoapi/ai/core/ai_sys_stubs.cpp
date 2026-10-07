@@ -624,7 +624,7 @@ static char *AISysLoadString(AISYS *system, i32 length) {
     return text;
 }
 
-static void AISysLoadPathRoutes(AISYS *system, AIPATH *path, i32 version) {
+static void AISysLoadPathRoutes(AISYS *system, AIPATH *path, i32 version, char *name_buffer) {
     path->route_matrix = static_cast<u8 **>(AISysLoadAlloc(system, path->node_count * sizeof(u8 *)));
     if (path->node_count != 0) {
         for (i32 i = 0; i < path->node_count; ++i) {
@@ -668,7 +668,7 @@ static void AISysLoadPathRoutes(AISYS *system, AIPATH *path, i32 version) {
 
             i32 character_count = EdFileReadChar();
             for (i32 character_index = 0; character_index < character_count; ++character_index) {
-                char character_name[256];
+                char *character_name = name_buffer;
                 i32 character_name_length = EdFileReadChar();
                 EdFileRead(character_name, character_name_length);
                 if (SpecialRouteCharacterTypeIDFn != NULL) {
@@ -699,7 +699,7 @@ static void AISysLoadPathRoutes(AISYS *system, AIPATH *path, i32 version) {
     }
 }
 
-static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene) {
+static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene, char *name_buffer) {
     i32 path_count = EdFileReadInt();
     if (path_count == 0) {
         return NULL;
@@ -713,8 +713,8 @@ static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene) {
     path_system->paths = static_cast<AIPATH **>(AISysLoadAlloc(system, path_system->path_count * sizeof(AIPATH *)));
 
     for (i32 path_index = 0; path_index < path_system->path_count; ++path_index) {
-        AIPATH *path = static_cast<AIPATH *>(AISysLoadAlloc(system, sizeof(AIPATH)));
-        path_system->paths[path_index] = path;
+        path_system->paths[path_index] = static_cast<AIPATH *>(AISysLoadAlloc(system, sizeof(AIPATH)));
+        AIPATH *path = path_system->paths[path_index];
         EdFileRead(path->name, sizeof(path->name));
         path->node_count = static_cast<u8>(EdFileReadChar());
         path->flags = static_cast<u8>(EdFileReadChar());
@@ -728,15 +728,15 @@ static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene) {
                 AIPATHCNX *connection = &path->connections[connection_index];
                 connection->direction_a = static_cast<u8>(EdFileReadChar());
                 connection->direction_b = static_cast<u8>(EdFileReadChar());
-                if (version < 9) {
-                    connection->node_a = EdFileReadChar();
-                    connection->node_b = EdFileReadChar();
-                } else if (version < 12) {
+                if (version > 11) {
+                    connection->node_a = EdFileReadInt();
+                    connection->node_b = EdFileReadInt();
+                } else if (version > 8) {
                     connection->node_a = EdFileReadShort();
                     connection->node_b = EdFileReadShort();
                 } else {
-                    connection->node_a = EdFileReadInt();
-                    connection->node_b = EdFileReadInt();
+                    connection->node_a = EdFileReadChar();
+                    connection->node_b = EdFileReadChar();
                 }
                 connection->previous_node_a = connection->node_a;
                 connection->previous_node_b = connection->node_b;
@@ -779,7 +779,7 @@ static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene) {
                 if (version < 19)
                     node->special_route_index = 0xff;
 
-                char special_name[256];
+                char *special_name = name_buffer;
                 i32 special_name_length = EdFileReadChar();
                 if (special_name_length != 0) {
                     EdFileRead(special_name, special_name_length);
@@ -812,7 +812,7 @@ static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene) {
             AIPathCalcExtents(path);
         }
 
-        AISysLoadPathRoutes(system, path, version);
+        AISysLoadPathRoutes(system, path, version, name_buffer);
     }
 
     if (version < 19)
@@ -835,8 +835,9 @@ static AIPATHSYS *AISysLoadPaths(AISYS *system, i32 version, NUGSCN *scene) {
 
 static AIAREA *AISysLoadFindArea(AISYS *system, char *name) {
     for (i32 index = 0; index < system->area_count; ++index) {
-        if (NuStrICmp(system->areas[index].name, name) == 0) {
-            return &system->areas[index];
+        AIAREA *area = &system->areas[index];
+        if (NuStrICmp(name, area->name) == 0) {
+            return area;
         }
     }
     return NULL;
@@ -934,7 +935,7 @@ static u32 AISysCharacterTestPathCnx(AISYS *system, APIOBJECT *object, AIPACKET 
             i32 node_index = first - path->nodes;
             path->inside_node_bits[node_index / 8] |= 1 << (node_index % 8);
             packet->inside_path_node = node_index;
-            if (second_radius * second_radius >= NuVecXZDistSqr(&object->position, &second->position, &radial)) {
+            if (NuVecXZDistSqr(&object->position, &second->position, &radial) <= second_radius * second_radius) {
                 node_index = second - path->nodes;
                 path->inside_node_bits[node_index / 8] |= 1 << (node_index % 8);
                 packet->inside_path_node = node_index;
@@ -961,7 +962,7 @@ static u32 AISysCharacterTestPathCnx(AISYS *system, APIOBJECT *object, AIPACKET 
         return 0;
     }
 
-    const i32 angle = AISysPathIntersectionAngle((second_radius - first_radius) / connection->horizontal_distance);
+    const i32 angle = NuASin((second_radius - first_radius) / connection->horizontal_distance);
     NUVEC wall = local;
     if (wall.x < 0.0f) {
         wall.x = -wall.x;
@@ -1075,13 +1076,13 @@ static u32 AISysCharacterTestPathCnx(AISYS *system, APIOBJECT *object, AIPACKET 
             packet->last_path_position = object->position;
             packet->inside_path_node = -1;
             if (first_radius > local.z) {
-                if (first_radius * first_radius >= NuVecXZDistSqr(&object->position, &first->position, &radial)) {
+                if (NuVecXZDistSqr(&object->position, &first->position, &radial) <= first_radius * first_radius) {
                     u8 node_index = connection->node_indices[0];
                     path->inside_node_bits[node_index >> 3] |= 1 << (node_index & 7);
                     packet->inside_path_node = connection->node_indices[0];
                 }
             } else if (local.z > length - second_radius) {
-                if (second_radius * second_radius >= NuVecXZDistSqr(&object->position, &second->position, &radial)) {
+                if (NuVecXZDistSqr(&object->position, &second->position, &radial) <= second_radius * second_radius) {
                     u8 node_index = connection->node_indices[1];
                     path->inside_node_bits[node_index >> 3] |= 1 << (node_index & 7);
                     packet->inside_path_node = connection->node_indices[1];
@@ -1139,8 +1140,9 @@ static void AISysResetPathSearchConnectionChecks(AIPATH *path) {
 
 static AILOCATOR *AISysLoadFindLocator(AISYS *system, char *name) {
     for (i32 index = 0; index < system->locator_count; ++index) {
-        if (NuStrICmp(system->locators[index].name, name) == 0) {
-            return &system->locators[index];
+        AILOCATOR *locator = &system->locators[index];
+        if (NuStrICmp(name, locator->name) == 0) {
+            return locator;
         }
     }
     return NULL;
@@ -1171,23 +1173,36 @@ static void AISysLoadAreas(AISYS *system, i32 version) {
     }
 
     system->areas = static_cast<AIAREA *>(AISysLoadAlloc(system, system->area_count * sizeof(AIAREA)));
-    for (i32 index = 0; index < system->area_count; ++index) {
-        AIAREA *area = &system->areas[index];
-        EdFileRead(area->name, sizeof(area->name));
-        area->min_x = EdFileReadFloat();
-        area->min_y = EdFileReadFloat();
-        area->min_z = EdFileReadFloat();
-        area->max_x = EdFileReadFloat();
-        area->max_y = EdFileReadFloat();
-        area->max_z = EdFileReadFloat();
-        area->flags = EdFileReadShort();
-        area->system = system;
-        if (version > 19) {
+    if (version > 19) {
+        for (i32 index = 0; index < system->area_count; ++index) {
+            AIAREA *area = &system->areas[index];
+            EdFileRead(area->name, sizeof(area->name));
+            area->min_x = EdFileReadFloat();
+            area->min_y = EdFileReadFloat();
+            area->min_z = EdFileReadFloat();
+            area->max_x = EdFileReadFloat();
+            area->max_y = EdFileReadFloat();
+            area->max_z = EdFileReadFloat();
+            area->flags = EdFileReadShort();
+            area->system = system;
             area->game_flags = static_cast<u8>(EdFileReadChar());
-        } else {
             EdFileReadChar();
         }
-        EdFileReadChar();
+    } else {
+        for (i32 index = 0; index < system->area_count; ++index) {
+            AIAREA *area = &system->areas[index];
+            EdFileRead(area->name, sizeof(area->name));
+            area->min_x = EdFileReadFloat();
+            area->min_y = EdFileReadFloat();
+            area->min_z = EdFileReadFloat();
+            area->max_x = EdFileReadFloat();
+            area->max_y = EdFileReadFloat();
+            area->max_z = EdFileReadFloat();
+            area->flags = EdFileReadShort();
+            area->system = system;
+            EdFileReadChar();
+            EdFileReadChar();
+        }
     }
 }
 
@@ -1274,7 +1289,7 @@ static void AISysLoadCreatures(AISYS *system, i32 version) {
         }
         creature->count = static_cast<u8>(EdFileReadChar());
         creature->count_across = static_cast<u8>(EdFileReadChar());
-        creature->active_mask = EdFileReadUnsignedInt();
+        creature->active_mask = static_cast<u32>(EdFileReadInt());
         creature->x_spacing = EdFileReadFloat();
         creature->z_spacing = EdFileReadFloat();
         creature->flags = EdFileReadInt();
@@ -1285,9 +1300,10 @@ static void AISysLoadCreatures(AISYS *system, i32 version) {
         creature->path_info.connection = &creature->path_info.path->connections[connection_index];
 
         if (version > 2) {
-            for (i32 param = 0; param < 4; ++param) {
-                creature->script_params[param] = EdFileReadFloat();
-            }
+            creature->script_params[0] = EdFileReadFloat();
+            creature->script_params[1] = EdFileReadFloat();
+            creature->script_params[2] = EdFileReadFloat();
+            creature->script_params[3] = EdFileReadFloat();
         }
 
         if (version > 3) {
@@ -1330,29 +1346,28 @@ static void AISysLoadCreatures(AISYS *system, i32 version) {
             creature->max_view_height = EdFileReadFloat();
             creature->min_view_height = EdFileReadFloat();
             EdFileReadInt();
+            if (GetViewRangeFn != NULL && creature->view_distance == 0.0f) {
+                creature->view_distance = GetViewRangeFn(creature->type);
+            }
+            if (GetHearDistanceFn != NULL && creature->hear_distance == 0.0f) {
+                creature->hear_distance = GetHearDistanceFn(creature->type);
+            }
+            if (GetMaxViewHeightFn != NULL && creature->max_view_height == 0.0f) {
+                creature->max_view_height = GetMaxViewHeightFn(creature->type);
+            }
+            if (GetMinViewHeightFn != NULL && creature->min_view_height == 0.0f) {
+                creature->min_view_height = GetMinViewHeightFn(creature->type);
+            }
         } else {
             creature->view_distance = GetViewRangeFn == NULL ? 1.0f : GetViewRangeFn(creature->type);
             creature->hear_distance = GetHearDistanceFn == NULL ? 1.0f : GetHearDistanceFn(creature->type);
             creature->max_view_height = GetMaxViewHeightFn == NULL ? 1.0f : GetMaxViewHeightFn(creature->type);
             creature->min_view_height = GetMinViewHeightFn == NULL ? 1.0f : GetMinViewHeightFn(creature->type);
         }
-
-        if (version > 10 && creature->view_distance == 0.0f && GetViewRangeFn != NULL) {
-            creature->view_distance = GetViewRangeFn(creature->type);
-        }
-        if (version > 10 && creature->hear_distance == 0.0f && GetHearDistanceFn != NULL) {
-            creature->hear_distance = GetHearDistanceFn(creature->type);
-        }
-        if (version > 10 && creature->max_view_height == 0.0f && GetMaxViewHeightFn != NULL) {
-            creature->max_view_height = GetMaxViewHeightFn(creature->type);
-        }
-        if (version > 10 && creature->min_view_height == 0.0f && GetMinViewHeightFn != NULL) {
-            creature->min_view_height = GetMinViewHeightFn(creature->type);
-        }
     }
 }
 
-static void AISysLoadAntinodes(AISYS *system, i32 version, NUGSCN *scene) {
+static void AISysLoadAntinodes(AISYS *system, i32 version, NUGSCN *scene, char *name_buffer) {
     system->antinode_count = EdFileReadInt();
     if (system->antinode_count == 0) {
         return;
@@ -1387,7 +1402,7 @@ static void AISysLoadAntinodes(AISYS *system, i32 version, NUGSCN *scene) {
         }
         antinode->game_flags = static_cast<u8>(EdFileReadChar());
 
-        char special_name[256];
+        char *special_name = name_buffer;
         i32 special_name_length = EdFileReadChar();
         if (special_name_length != 0) {
             EdFileRead(special_name, special_name_length);
@@ -1519,12 +1534,11 @@ extern "C" {
         }
 
         const i32 node_index = static_cast<i32>(node - path->nodes);
-        const u8 node_bit = static_cast<u8>(1u << (node_index % 8));
         u8 &updated_nodes = path->updated_node_bits[node_index / 8];
-        if ((updated_nodes & node_bit) != 0) {
+        if (((updated_nodes >> (node_index % 8)) & 1) != 0) {
             return;
         }
-        updated_nodes |= node_bit;
+        updated_nodes |= 1 << (node_index % 8);
 
         nuhspecial_s *special = &node->special_handle;
         if ((node->runtime_flags & AIPATHNODE_RUNTIME_SPECIAL_UNAVAILABLE) != 0) {
@@ -1535,9 +1549,12 @@ extern "C" {
             node->runtime_flags &= static_cast<u8>(~AIPATHNODE_RUNTIME_SPECIAL_UNAVAILABLE);
             for (i32 index = 0; index < node->connection_count; ++index) {
                 AIPATHCNX *connection = node->connections[index];
-                const u8 other_index =
-                    connection->direction_a == node_index ? connection->direction_b : connection->direction_a;
-                if ((path->nodes[other_index].runtime_flags & AIPATHNODE_RUNTIME_SPECIAL_UNAVAILABLE) == 0) {
+                AIPATHNODE *other_node;
+                if (connection->direction_a == node_index)
+                    other_node = &path->nodes[connection->direction_b];
+                else
+                    other_node = &path->nodes[connection->direction_a];
+                if ((other_node->runtime_flags & AIPATHNODE_RUNTIME_SPECIAL_UNAVAILABLE) == 0) {
                     connection->traversal_flags[0] &= ~AIPATH_CONNECTION_FLAG_SPECIAL_UNAVAILABLE;
                     connection->traversal_flags[1] &= ~AIPATH_CONNECTION_FLAG_SPECIAL_UNAVAILABLE;
                 }
@@ -1563,20 +1580,14 @@ extern "C" {
         for (i32 index = 0; index < node->connection_count; ++index) {
             AIPATHCNX *connection = node->connections[index];
             AIPATHNODE *other_node;
-            NUVEC *from;
-            NUVEC *to;
+            NUVEC direction;
             if (connection->direction_a == node_index) {
                 other_node = &path->nodes[connection->direction_b];
-                from = &other_node->position;
-                to = &node->position;
+                connection->horizontal_distance = NuVecXZDist(&other_node->position, &node->position, &direction);
             } else {
                 other_node = &path->nodes[connection->direction_a];
-                from = &node->position;
-                to = &other_node->position;
+                connection->horizontal_distance = NuVecXZDist(&node->position, &other_node->position, &direction);
             }
-
-            NUVEC direction;
-            connection->horizontal_distance = NuVecXZDist(from, to, &direction);
             connection->rotation = static_cast<i16>(NuAtan2(direction.x, direction.z) * 10430.378f);
 
             if (connection->max_horizontal_distance != 0.0f) {
@@ -1648,40 +1659,49 @@ extern "C" {
 
         i32 storage_size = system->storage_size;
         memset(system->storage, 0, storage_size);
+        system = aieditor->ai_system;
         *reinterpret_cast<volatile i32 *>(&system->storage_size) = storage_size;
         system->storage_cursor.addr = reinterpret_cast<usize>(system->storage);
         system->path_sys =
             pathEditorCreateData(&system->storage_cursor, &system->storage_end, &aieditorsettings.external_display_a,
                                  &aieditorsettings.external_display_b);
         system = aieditor->ai_system;
-        memset(system->groups, 0, sizeof(system->groups));
-        NULISTHDR *areas = reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x37a40);
-        system->area_count = 0;
-        for (NULISTLNK *area = NuLinkedListGetHead(areas); area != NULL; area = NuLinkedListGetNext(areas, area)) {
-            ++system->area_count;
+        memset(aieditor->ai_system->groups, 0, sizeof(aieditor->ai_system->groups));
+        NULISTLNK *area_head =
+            NuLinkedListGetHead(reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x37a40));
+        aieditor->ai_system->area_count = 0;
+        for (NULISTLNK *area = area_head; area != NULL;
+             area =
+                 NuLinkedListGetNext(reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x37a40), area)) {
+            ++aieditor->ai_system->area_count;
         }
-        if (system->area_count != 0) {
-            system->areas = static_cast<AIAREA *>(
-                AISysBufferAlloc(&system->storage_cursor, &system->storage_end, system->area_count * sizeof(AIAREA)));
+        if (aieditor->ai_system->area_count != 0) {
+            aieditor->ai_system->areas = static_cast<AIAREA *>(
+                AISysBufferAlloc(&aieditor->ai_system->storage_cursor, &aieditor->ai_system->storage_end,
+                                 aieditor->ai_system->area_count * sizeof(AIAREA)));
             i32 index = 0;
-            for (NULISTLNK *area = NuLinkedListGetHead(areas); area != NULL; area = NuLinkedListGetNext(areas, area)) {
-                AIAREA *runtime = &system->areas[index++];
+            for (NULISTLNK *area =
+                     NuLinkedListGetHead(reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x37a40));
+                 area != NULL; area = NuLinkedListGetNext(
+                                   reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x37a40), area)) {
+                AIAREA *runtime = &aieditor->ai_system->areas[index++];
                 memcpy(runtime, reinterpret_cast<u8 *>(area) + sizeof(NULISTLNK), sizeof(AIAREA));
-                runtime->system = system;
+                runtime->system = aieditor->ai_system;
             }
         }
-        if (system->path_sys != NULL) {
-            system->locator_count = 0;
-            for (EDLOCATOR_s *locator = reinterpret_cast<EDLOCATOR_s *>(NuLinkedListGetHead(&aieditor->locators));
-                 locator != NULL;
+        if (aieditor->ai_system->path_sys != NULL) {
+            EDLOCATOR_s *locator_head = reinterpret_cast<EDLOCATOR_s *>(NuLinkedListGetHead(&aieditor->locators));
+            aieditor->ai_system->locator_count = 0;
+            for (EDLOCATOR_s *locator = locator_head; locator != NULL;
                  locator = reinterpret_cast<EDLOCATOR_s *>(NuLinkedListGetNext(&aieditor->locators, &locator->link))) {
                 if (locator->path != NULL) {
-                    ++system->locator_count;
+                    ++aieditor->ai_system->locator_count;
                 }
             }
-            if (system->locator_count != 0) {
-                system->locators = static_cast<AILOCATOR *>(AISysBufferAlloc(
-                    &system->storage_cursor, &system->storage_end, system->locator_count * sizeof(AILOCATOR)));
+            if (aieditor->ai_system->locator_count != 0) {
+                aieditor->ai_system->locators = static_cast<AILOCATOR *>(
+                    AISysBufferAlloc(&aieditor->ai_system->storage_cursor, &aieditor->ai_system->storage_end,
+                                     aieditor->ai_system->locator_count * sizeof(AILOCATOR)));
                 i32 index = 0;
                 for (EDLOCATOR_s *locator = reinterpret_cast<EDLOCATOR_s *>(NuLinkedListGetHead(&aieditor->locators));
                      locator != NULL; locator = reinterpret_cast<EDLOCATOR_s *>(
@@ -1691,12 +1711,12 @@ extern "C" {
                         continue;
                     }
                     locator->runtime_index = index;
-                    AILOCATOR *runtime = &system->locators[index++];
+                    AILOCATOR *runtime = &aieditor->ai_system->locators[index++];
                     strcpy(runtime->name, locator->name);
                     runtime->position = locator->position;
                     runtime->direction = locator->direction;
                     runtime->locator_flags = locator->path_angle;
-                    runtime->path_info.path = system->path_sys->paths[locator->path->draw_index];
+                    runtime->path_info.path = aieditor->ai_system->path_sys->paths[locator->path->draw_index];
                     runtime->path_info.dist = locator->path_fraction;
                     runtime->path_info.width = locator->path_width;
                     AIPATH *path = runtime->path_info.path;
@@ -1723,24 +1743,25 @@ extern "C" {
                     }
                 }
             }
-            system->locator_set_count = 0;
+            aieditor->ai_system->locator_set_count = 0;
             for (EDLOCATORSET_s *set = reinterpret_cast<EDLOCATORSET_s *>(NuLinkedListGetHead(&aieditor->locator_sets));
                  set != NULL;
                  set = reinterpret_cast<EDLOCATORSET_s *>(NuLinkedListGetNext(&aieditor->locator_sets, &set->link))) {
-                ++system->locator_set_count;
+                ++aieditor->ai_system->locator_set_count;
             }
-            if (system->locator_set_count != 0) {
+            if (aieditor->ai_system->locator_set_count != 0) {
                 // The original reserves 0x3c bytes per set, but indexes records at the 0x1c-byte stride.
-                system->locator_sets = static_cast<AILOCATORSET *>(
-                    AISysBufferAlloc(&system->storage_cursor, &system->storage_end, system->locator_set_count * 0x3c));
+                aieditor->ai_system->locator_sets = static_cast<AILOCATORSET *>(
+                    AISysBufferAlloc(&aieditor->ai_system->storage_cursor, &aieditor->ai_system->storage_end,
+                                     aieditor->ai_system->locator_set_count * 0x3c));
                 // Retail skips locator-set population when the buffer allocation fails.
-                if (system->locator_sets != NULL) {
+                if (aieditor->ai_system->locator_sets != NULL) {
                     i32 index = 0;
                     for (EDLOCATORSET_s *set =
                              reinterpret_cast<EDLOCATORSET_s *>(NuLinkedListGetHead(&aieditor->locator_sets));
                          set != NULL; set = reinterpret_cast<EDLOCATORSET_s *>(
                                           NuLinkedListGetNext(&aieditor->locator_sets, &set->link))) {
-                        AILOCATORSET *runtime = &system->locator_sets[index++];
+                        AILOCATORSET *runtime = &aieditor->ai_system->locator_sets[index++];
                         strcpy(runtime->name, set->name);
                         runtime->locator_count = 0;
                         for (i32 member = 0; member < 64 && set->locators[member] != NULL; ++member) {
@@ -1749,36 +1770,40 @@ extern "C" {
                             }
                         }
                         if (runtime->locator_count != 0) {
-                            runtime->locator_entries = static_cast<u8 *>(AISysBufferAlloc(
-                                &system->storage_cursor, &system->storage_end, runtime->locator_count));
+                            runtime->locator_entries = static_cast<u8 *>(
+                                AISysBufferAlloc(&aieditor->ai_system->storage_cursor,
+                                                 &aieditor->ai_system->storage_end, runtime->locator_count));
                             for (i32 member = 0; member < runtime->locator_count; ++member) {
                                 if (set->locators[member]->runtime_index != 0xff) {
                                     runtime->locator_entries[member] = set->locators[member]->runtime_index;
                                 }
                             }
-                            runtime->assigned = static_cast<u8 *>(AISysBufferAlloc(
-                                &system->storage_cursor, &system->storage_end, runtime->locator_count));
+                            runtime->assigned = static_cast<u8 *>(AISysBufferAlloc(&aieditor->ai_system->storage_cursor,
+                                                                                   &aieditor->ai_system->storage_end,
+                                                                                   runtime->locator_count));
                             memset(runtime->assigned, 0, runtime->locator_count);
                         }
                     }
                 }
             }
-            system->creature_count = 0;
-            for (RebuildEditorCreature *creature =
-                     reinterpret_cast<RebuildEditorCreature *>(NuLinkedListGetHead(&aieditor->creatures));
-                 creature != NULL; creature = reinterpret_cast<RebuildEditorCreature *>(
-                                       NuLinkedListGetNext(&aieditor->creatures, &creature->link))) {
-                ++system->creature_count;
+            RebuildEditorCreature *creature_head =
+                reinterpret_cast<RebuildEditorCreature *>(NuLinkedListGetHead(&aieditor->creatures));
+            aieditor->ai_system->creature_count = 0;
+            for (RebuildEditorCreature *creature = creature_head; creature != NULL;
+                 creature = reinterpret_cast<RebuildEditorCreature *>(
+                     NuLinkedListGetNext(&aieditor->creatures, &creature->link))) {
+                ++aieditor->ai_system->creature_count;
             }
-            if (system->creature_count != 0) {
-                system->creatures = static_cast<AICREATURE *>(AISysBufferAlloc(
-                    &system->storage_cursor, &system->storage_end, system->creature_count * sizeof(AICREATURE)));
+            if (aieditor->ai_system->creature_count != 0) {
+                aieditor->ai_system->creatures = static_cast<AICREATURE *>(
+                    AISysBufferAlloc(&aieditor->ai_system->storage_cursor, &aieditor->ai_system->storage_end,
+                                     aieditor->ai_system->creature_count * sizeof(AICREATURE)));
                 i32 index = 0;
                 for (RebuildEditorCreature *creature =
                          reinterpret_cast<RebuildEditorCreature *>(NuLinkedListGetHead(&aieditor->creatures));
                      creature != NULL; creature = reinterpret_cast<RebuildEditorCreature *>(
                                            NuLinkedListGetNext(&aieditor->creatures, &creature->link))) {
-                    AICREATURE *runtime = &system->creatures[index++];
+                    AICREATURE *runtime = &aieditor->ai_system->creatures[index++];
                     strcpy(runtime->name, creature->name);
                     strcpy(runtime->script_name, creature->script_name);
                     runtime->type = creature->character_type;
@@ -1791,7 +1816,8 @@ extern "C" {
                     runtime->flags = creature->flags;
                     runtime->pos = creature->position;
                     runtime->y_rot = creature->angle;
-                    runtime->path_info.path = system->path_sys->paths[creature->path_check.path->draw_index];
+                    runtime->path_info.path =
+                        aieditor->ai_system->path_sys->paths[creature->path_check.path->draw_index];
                     runtime->path_info.dist = creature->path_check.fraction;
                     runtime->path_info.width = creature->path_check.width;
                     for (i32 param = 0; param < 4; ++param) {
@@ -1822,8 +1848,8 @@ extern "C" {
                     }
 
                     if (creature->trigger_area != NULL) {
-                        for (i32 area_index = 0; area_index < system->area_count; ++area_index) {
-                            AIAREA *area = &system->areas[area_index];
+                        for (i32 area_index = 0; area_index < aieditor->ai_system->area_count; ++area_index) {
+                            AIAREA *area = &aieditor->ai_system->areas[area_index];
                             if (NuStrICmp(creature->trigger_area->name, area->name) == 0) {
                                 runtime->area = area;
                                 break;
@@ -1831,8 +1857,9 @@ extern "C" {
                         }
                     }
                     if (creature->locator != NULL) {
-                        for (i32 locator_index = 0; locator_index < system->locator_count; ++locator_index) {
-                            AILOCATOR *locator = &system->locators[locator_index];
+                        for (i32 locator_index = 0; locator_index < aieditor->ai_system->locator_count;
+                             ++locator_index) {
+                            AILOCATOR *locator = &aieditor->ai_system->locators[locator_index];
                             if (NuStrICmp(creature->locator->name, locator->name) == 0) {
                                 runtime->locator = locator;
                                 break;
@@ -1840,8 +1867,9 @@ extern "C" {
                         }
                     }
                     if (creature->respawn_locator != NULL) {
-                        for (i32 locator_index = 0; locator_index < system->locator_count; ++locator_index) {
-                            AILOCATOR *locator = &system->locators[locator_index];
+                        for (i32 locator_index = 0; locator_index < aieditor->ai_system->locator_count;
+                             ++locator_index) {
+                            AILOCATOR *locator = &aieditor->ai_system->locators[locator_index];
                             if (NuStrICmp(creature->respawn_locator->name, locator->name) == 0) {
                                 runtime->respawn_locator = locator;
                                 break;
@@ -1862,8 +1890,8 @@ extern "C" {
                     if (creature->activation == 1) {
                         runtime->activate_type = 0;
                         if (creature->activation_area != NULL) {
-                            for (i32 area_index = 0; area_index < system->area_count; ++area_index) {
-                                AIAREA *area = &system->areas[area_index];
+                            for (i32 area_index = 0; area_index < aieditor->ai_system->area_count; ++area_index) {
+                                AIAREA *area = &aieditor->ai_system->areas[area_index];
                                 if (NuStrICmp(creature->activation_area->name, area->name) == 0) {
                                     runtime->activate_area = area;
                                     runtime->activate_type = 1;
@@ -1875,24 +1903,30 @@ extern "C" {
                 }
             }
             if (GameAISYSRebuildFromEditorDataFn != NULL) {
-                GameAISYSRebuildFromEditorDataFn(system, &system->storage_cursor, &system->storage_end);
+                GameAISYSRebuildFromEditorDataFn(aieditor->ai_system, &aieditor->ai_system->storage_cursor,
+                                                 &aieditor->ai_system->storage_end);
             }
         }
         system = aieditor->ai_system;
-        NULISTHDR *antinode_sets = reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x42e94);
-        system->antinode_count = 0;
-        for (EDANTINODE_s *node = reinterpret_cast<EDANTINODE_s *>(NuLinkedListGetHead(antinode_sets)); node != NULL;
-             node = reinterpret_cast<EDANTINODE_s *>(NuLinkedListGetNext(antinode_sets, &node->link))) {
-            ++system->antinode_count;
+        aieditor->ai_system->antinode_count = 0;
+        for (EDANTINODE_s *node = reinterpret_cast<EDANTINODE_s *>(
+                 NuLinkedListGetHead(reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x42e94)));
+             node != NULL;
+             node = reinterpret_cast<EDANTINODE_s *>(NuLinkedListGetNext(
+                 reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x42e94), &node->link))) {
+            ++aieditor->ai_system->antinode_count;
         }
-        if (system->antinode_count != 0) {
-            system->antinodes = static_cast<AIANTINODE *>(AISysBufferAlloc(
-                &system->storage_cursor, &system->storage_end, system->antinode_count * sizeof(AIANTINODE)));
+        if (aieditor->ai_system->antinode_count != 0) {
+            aieditor->ai_system->antinodes = static_cast<AIANTINODE *>(
+                AISysBufferAlloc(&aieditor->ai_system->storage_cursor, &aieditor->ai_system->storage_end,
+                                 aieditor->ai_system->antinode_count * sizeof(AIANTINODE)));
             i32 index = 0;
-            for (EDANTINODE_s *node = reinterpret_cast<EDANTINODE_s *>(NuLinkedListGetHead(antinode_sets));
+            for (EDANTINODE_s *node = reinterpret_cast<EDANTINODE_s *>(
+                     NuLinkedListGetHead(reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x42e94)));
                  node != NULL;
-                 node = reinterpret_cast<EDANTINODE_s *>(NuLinkedListGetNext(antinode_sets, &node->link))) {
-                AIANTINODE *runtime = &system->antinodes[index++];
+                 node = reinterpret_cast<EDANTINODE_s *>(NuLinkedListGetNext(
+                     reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x42e94), &node->link))) {
+                AIANTINODE *runtime = &aieditor->ai_system->antinodes[index++];
                 runtime->enabled = 1;
                 runtime->position = node->position;
                 runtime->radius = node->radius;
@@ -1920,7 +1954,7 @@ extern "C" {
                 }
             }
         }
-        AISysSetLevelPath(system, NULL);
+        AISysSetLevelPath(aieditor->ai_system, NULL);
     }
 
     void AIScriptForceParamReEval(AISCRIPTPROCESS *processor) {
@@ -2559,8 +2593,9 @@ extern "C" {
     AIAREA *AISysFindArea(AISYS *sys, char *name) {
         if (sys != NULL) {
             for (i32 i = 0; i < sys->area_count; ++i) {
-                if (NuStrICmp(sys->areas[i].name, name) == 0) {
-                    return &sys->areas[i];
+                AIAREA *area = &sys->areas[i];
+                if (NuStrICmp(name, area->name) == 0) {
+                    return area;
                 }
             }
         }
@@ -2570,9 +2605,8 @@ extern "C" {
     AIPATH *AISysFindPath(AISYS *sys, char *name) {
         if (sys != NULL && sys->path_sys != NULL) {
             for (i32 i = 0; i < sys->path_sys->path_count; ++i) {
-                AIPATH *path = sys->path_sys->paths[i];
-                if (NuStrICmp(path->name, name) == 0) {
-                    return path;
+                if (NuStrICmp(sys->path_sys->paths[i]->name, name) == 0) {
+                    return sys->path_sys->paths[i];
                 }
             }
         }
@@ -2919,7 +2953,7 @@ extern "C" {
             i32 version = EdFileReadInt();
             system->scene = gscene;
 
-            system->path_sys = AISysLoadPaths(system, version, gscene);
+            system->path_sys = AISysLoadPaths(system, version, gscene, packed_name);
             if (version > 3)
                 AISysLoadAreas(system, version);
             if (system->path_sys != NULL) {
@@ -2929,7 +2963,7 @@ extern "C" {
                 }
                 AISysLoadCreatures(system, version);
                 if (version > 12)
-                    AISysLoadAntinodes(system, version, gscene);
+                    AISysLoadAntinodes(system, version, gscene, packed_name);
                 if (version > 6 && GameAILoadFn != NULL) {
                     GameAILoadFn(system, version, gscene, cursor, end);
                 }
@@ -2944,6 +2978,7 @@ extern "C" {
     }
 
     void AISysProcess(AISYS *system, APIOBJECT *player_1, APIOBJECT *player_2) {
+        NUVEC forward = {0.0f, 0.0f, 1.0f};
         if (system == NULL) {
             return;
         }
@@ -2974,7 +3009,6 @@ extern "C" {
             antinode->max_y = antinode->position.y + antinode->max_y_offset;
 
             if (antinode->type != 0) {
-                NUVEC forward = {0.0f, 0.0f, 1.0f};
                 NUVEC rotated;
                 NuVecMtxRotate(&rotated, &forward, draw_matrix);
                 antinode->flags = NuAtan2D(rotated.x, rotated.z);
@@ -2985,12 +3019,15 @@ extern "C" {
         for (i32 index = 0; index < 16; ++index) {
             AIGROUP *group = &system->groups[index];
             if (group->is_used) {
-                group->can_respawn = group->member_is_alive == 0;
+                if (group->member_is_alive == 0)
+                    group->can_respawn = 1;
+                else
+                    group->can_respawn = 0;
             }
         }
 
-        for (i32 index = 0; index < system->locator_count; ++index) {
-            AILOCATOR *locator = &system->locators[index];
+        AILOCATOR *locator = system->locators;
+        for (i32 index = 0; index < system->locator_count; ++index, ++locator) {
             if (locator->path_info.path == NULL || locator->path_info.connection == NULL) {
                 continue;
             }

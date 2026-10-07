@@ -336,23 +336,21 @@ static __used__
 #undef CREATURE_EDITOR_REGPARM1
 
 static __used__ void creatureEditor_cbActivationMenu(eduimenu_s *parent, eduiitem_s *, unsigned int) {
-    CreatureEditorRecord *creature = creatureEditor_Current();
-    if (creature == nullptr)
+    if (creatureEditor_Current() == nullptr)
         return;
     eduimenu_s *menu = eduiMenuCreate(220, 70, 240, 250, ed_fnt, creatureEditor_cbCancelMenu, "Activation Condition");
     if (menu == nullptr)
         return;
-    eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_difficulty, 1, 9, creature->difficulty,
-                                                  "Activation Difficulty"));
-    eduiMenuAddItem(
-        menu, eduiItemCheckCreate(0, attr, creature->activation == 0, 1, creatureEditor_cbSetActivation, "AUTOMATIC"));
-    eduiMenuAddItem(
-        menu, eduiItemCheckCreate(2, attr, creature->activation == 2, 1, creatureEditor_cbSetActivation, "SCRIPT"));
+    eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_difficulty, 1, 9,
+                                                  creatureEditor_Current()->difficulty, "Activation Difficulty"));
+    eduiMenuAddItem(menu, eduiItemCheckCreate(0, attr, creatureEditor_Current()->activation == 0, 1,
+                                              creatureEditor_cbSetActivation, "AUTOMATIC"));
+    eduiMenuAddItem(menu, eduiItemCheckCreate(2, attr, creatureEditor_Current()->activation == 2, 1,
+                                              creatureEditor_cbSetActivation, "SCRIPT"));
     i32 index = 0;
     char label[64];
-    NULISTHDR *list = creatureEditor_AreaList();
-    for (NULISTLNK *link = NuLinkedListGetHead(list); link != nullptr;
-         link = NuLinkedListGetNext(list, link), ++index) {
+    for (NULISTLNK *link = NuLinkedListGetHead(creatureEditor_AreaList()); link != nullptr;
+         link = NuLinkedListGetNext(creatureEditor_AreaList(), link), ++index) {
         if (creatureEditor_Current()->activation_area == link) {
             sprintf(label, "AREA \"%s\"", reinterpret_cast<char *>(link) + 8);
             eduiMenuAddItem(menu, eduiItemCheckCreate(index, attr, 1, 1, creatureEditor_cbSetAreaActivation, label));
@@ -399,22 +397,21 @@ static __used__ void creatureEditor_cbFlagsToggle(eduimenu_s *, eduiitem_s *item
 }
 
 static __used__ void creatureEditor_cbGroupMenu(eduimenu_s *parent, eduiitem_s *, unsigned int) {
-    CreatureEditorRecord *creature = creatureEditor_Current();
-    if (creature == nullptr)
+    if (creatureEditor_Current() == nullptr)
         return;
     eduimenu_s *menu = eduiMenuCreate(220, 70, 240, 250, ed_fnt, creatureEditor_cbCancelMenu, "Group Values");
     if (menu == nullptr)
         return;
-    eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_ngroup, 1, 31, creature->group_count,
-                                                  "Group Size"));
+    eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_ngroup, 1, 31,
+                                                  creatureEditor_Current()->group_count, "Group Size"));
     eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_stagger_start, 0.0f, 60.0f,
-                                               creature->stagger_start, "Stagger Time"));
-    eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_nacross, 1, 31, creature->across_count,
-                                                  "Formation Width"));
-    eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_xspacing, 0.2f, 4.8f, creature->x_spacing,
-                                               "Formation X Spacing"));
-    eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_zspacing, 0.2f, 4.8f, creature->z_spacing,
-                                               "Formation Z Spacing"));
+                                               creatureEditor_Current()->stagger_start, "Stagger Time"));
+    eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_nacross, 1, 31,
+                                                  creatureEditor_Current()->across_count, "Formation Width"));
+    eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_xspacing, 0.2f, 4.8f,
+                                               creatureEditor_Current()->x_spacing, "Formation X Spacing"));
+    eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_zspacing, 0.2f, 4.8f,
+                                               creatureEditor_Current()->z_spacing, "Formation Z Spacing"));
     eduiMenuAttach(parent, menu);
 }
 
@@ -501,41 +498,41 @@ static __used__ __attribute__((force_align_arg_pointer)) void creatureEditor_cbV
     if (menu == nullptr)
         return;
     eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_viewdistance, 0.5f, 49.5f,
-                                               creature->view_distance, "View Distance"));
+                                               creatureEditor_Current()->view_distance, "View Distance"));
     eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_heardistance, 0.5f, 49.5f,
-                                               creature->hear_distance, "Hearing Distance"));
+                                               creatureEditor_Current()->hear_distance, "Hearing Distance"));
     eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_maxviewheight, 0.1f, 99.9f,
-                                               creature->max_view_height, "Max View Height"));
-    eduiMenuAddItem(menu, eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_minviewheight, 0.1f, 99.9f,
-                                               -creature->negative_min_view_height, "Min View Height -"));
+                                               creatureEditor_Current()->max_view_height, "Max View Height"));
+    eduiMenuAddItem(menu,
+                    eduiItemSliderCreate(1, attr, 0, creatureEditor_cb_minviewheight, 0.1f, 99.9f,
+                                         -creatureEditor_Current()->negative_min_view_height, "Min View Height -"));
     eduiMenuAttach(parent, menu);
 }
 
 static __used__ void creatureEditor_cbScriptParams(eduimenu_s *parent, eduiitem_s *, unsigned int) {
-    CreatureEditorRecord *creature = creatureEditor_Current();
-    if (creature == nullptr)
+    if (creatureEditor_Current() == nullptr)
         return;
     eduimenu_s *menu = eduiMenuCreate(220, 70, 240, 250, ed_fnt, creatureEditor_cbCancelMenu, "Script Params");
     if (menu == nullptr)
         return;
     char label[64];
     if (NuLinkedListGetHead(creatureEditor_AreaList()) != nullptr) {
-        if (creature->trigger_area != nullptr) {
-            sprintf(label, "Trigger Area \"%s\"", reinterpret_cast<char *>(creature->trigger_area) + 8);
+        if (creatureEditor_Current()->trigger_area != nullptr) {
+            sprintf(label, "Trigger Area \"%s\"", reinterpret_cast<char *>(creatureEditor_Current()->trigger_area) + 8);
         } else {
             strcpy(label, "Trigger Area NONE");
         }
         eduiMenuAddItem(menu, eduiItemSelCreate(1, attr, 0, 0, creatureEditor_cbSelectTriggerArea, label));
     }
     if (NuLinkedListGetHead(creatureEditor_LocatorList()) != nullptr) {
-        if (creature->locator != nullptr) {
-            sprintf(label, "Locator \"%s\"", reinterpret_cast<char *>(creature->locator) + 8);
+        if (creatureEditor_Current()->locator != nullptr) {
+            sprintf(label, "Locator \"%s\"", reinterpret_cast<char *>(creatureEditor_Current()->locator) + 8);
         } else {
             strcpy(label, "Locator NONE");
         }
         eduiMenuAddItem(menu, eduiItemSelCreate(1, attr, 0, 0, creatureEditor_cbSelectLocator, label));
     }
-    AISCRIPT *script = AIScriptFind(aieditor->ai_system, creature->script_name, 1, 1, 1);
+    AISCRIPT *script = AIScriptFind(aieditor->ai_system, creatureEditor_Current()->script_name, 1, 1, 1);
     if (script == nullptr) {
         sprintf(label, "Param%d", 0);
         eduiMenuAddItem(menu, eduiItemSliderCreate(0, attr, 0, creatureEditor_cbSetScriptParam, 0.0f, 100.0f,
@@ -669,9 +666,7 @@ static __used__ void creatureEditor_cbSetScriptParam(eduimenu_s *menu, eduiitem_
     if (value == aieditorsettings.current_script_params[index])
         return;
     aieditorsettings.current_script_params[index] = value;
-    u32 bit = 2u << (index & 31);
-    if (index & 0x20)
-        bit = 0;
+    u32 bit = static_cast<u32>(u64(2) << (index & 63));
     aieditorsettings.current_script_flags |= bit;
     creature->script_params[index] = value;
     creature->flags = (creature->flags & ~0x1e) | aieditorsettings.current_script_flags;
@@ -1133,22 +1128,29 @@ extern "C" {
             }
             if (aidata_version <= 10)
                 continue;
-            EdFileWriteFloat(GetViewRangeFn != nullptr &&
-                                     creature->view_distance == GetViewRangeFn(creature->character_type)
-                                 ? 0.0f
-                                 : creature->view_distance);
-            EdFileWriteFloat(GetHearDistanceFn != nullptr &&
-                                     creature->hear_distance == GetHearDistanceFn(creature->character_type)
-                                 ? 0.0f
-                                 : creature->hear_distance);
-            EdFileWriteFloat(GetMaxViewHeightFn != nullptr &&
-                                     creature->max_view_height == GetMaxViewHeightFn(creature->character_type)
-                                 ? 0.0f
-                                 : creature->max_view_height);
-            EdFileWriteFloat(GetMinViewHeightFn != nullptr &&
-                                     creature->negative_min_view_height == GetMinViewHeightFn(creature->character_type)
-                                 ? 0.0f
-                                 : creature->negative_min_view_height);
+            if (GetViewRangeFn != nullptr && creature->view_distance == GetViewRangeFn(creature->character_type)) {
+                EdFileWriteFloat(0.0f);
+            } else {
+                EdFileWriteFloat(creature->view_distance);
+            }
+            if (GetHearDistanceFn != nullptr &&
+                creature->hear_distance == GetHearDistanceFn(creature->character_type)) {
+                EdFileWriteFloat(0.0f);
+            } else {
+                EdFileWriteFloat(creature->hear_distance);
+            }
+            if (GetMaxViewHeightFn != nullptr &&
+                creature->max_view_height == GetMaxViewHeightFn(creature->character_type)) {
+                EdFileWriteFloat(0.0f);
+            } else {
+                EdFileWriteFloat(creature->max_view_height);
+            }
+            if (GetMinViewHeightFn != nullptr &&
+                creature->negative_min_view_height == GetMinViewHeightFn(creature->character_type)) {
+                EdFileWriteFloat(0.0f);
+            } else {
+                EdFileWriteFloat(creature->negative_min_view_height);
+            }
             EdFileWriteInt(0);
         }
     }
@@ -1258,7 +1260,7 @@ extern "C" {
             else if (fraction < 0.0f)
                 radius = check->first->radius;
             else
-                radius = check->first->radius * (1.0f - fraction) + check->second->radius * fraction;
+                radius = check->second->radius * fraction + check->first->radius * (1.0f - fraction);
 
             f32 old_y = record->position.y;
             record->position = check->first->position;
@@ -1410,25 +1412,24 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                     selected->locator = locator;
             }
         } else {
-            NULISTHDR *creatures = &aieditor->creatures;
             CreatureEditorRecord *selected = creatureEditor_Current();
             bool change_selection = false;
             if ((pad->digital_buttons_pressed & 0x1000) != 0 ||
                 ((pad->digital_buttons & 0x100) != 0 && (pad->digital_buttons_pressed & 8) != 0)) {
                 if (selected != nullptr)
-                    aieditor->mode_selection_36930 =
-                        reinterpret_cast<EditorNamedEntry *>(NuLinkedListGetNext(creatures, &selected->link));
+                    aieditor->mode_selection_36930 = reinterpret_cast<EditorNamedEntry *>(
+                        NuLinkedListGetNext(&aieditor->creatures, &selected->link));
                 if (creatureEditor_Current() == nullptr)
                     aieditor->mode_selection_36930 =
-                        reinterpret_cast<EditorNamedEntry *>(NuLinkedListGetHead(creatures));
+                        reinterpret_cast<EditorNamedEntry *>(NuLinkedListGetHead(&aieditor->creatures));
                 change_selection = true;
             } else if ((pad->digital_buttons & 0x100) != 0 && (pad->digital_buttons_pressed & 2) != 0) {
                 if (selected != nullptr)
-                    aieditor->mode_selection_36930 =
-                        reinterpret_cast<EditorNamedEntry *>(NuLinkedListGetPrev(creatures, &selected->link));
+                    aieditor->mode_selection_36930 = reinterpret_cast<EditorNamedEntry *>(
+                        NuLinkedListGetPrev(&aieditor->creatures, &selected->link));
                 if (creatureEditor_Current() == nullptr)
                     aieditor->mode_selection_36930 =
-                        reinterpret_cast<EditorNamedEntry *>(NuLinkedListGetTail(creatures));
+                        reinterpret_cast<EditorNamedEntry *>(NuLinkedListGetTail(&aieditor->creatures));
                 change_selection = true;
             } else if (pad->digital_buttons_pressed & 0x100) {
                 aieditor->mode_selection_36930 = reinterpret_cast<EditorNamedEntry *>(creatureEditor_GetNearest(0));
@@ -1440,19 +1441,19 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                 if (next != nullptr) {
                     aieditor->current_path = reinterpret_cast<EDAIPATH_s *>(next->path);
                     edcamSetPos(&next->position);
+                    next = creatureEditor_Current();
                     aieditorsettings.current_path_type = next->character_type;
                     aieditor_SetCurrentScript(next->script_name,
                                               reinterpret_cast<const AIEditorScriptSelection *>(next));
                 }
             } else if ((pad->digital_buttons & 0x100) == 0) {
                 EDAIPATHCHECK_s *check = reinterpret_cast<EDAIPATHCHECK_s *>(reinterpret_cast<u8 *>(aieditor) + 0x48);
-                i32 angle = aieditorsettings.area_rotation;
                 bool rotate = false;
                 if (pad->digital_buttons & 0x2000) {
                     rotate = true;
                     CreatureEditorRecord *hover = *reinterpret_cast<CreatureEditorRecord **>(aieditor->unknown_3692c);
                     if (selected != nullptr && selected == hover)
-                        angle = selected->angle;
+                        aieditorsettings.area_rotation = selected->angle;
                     i32 &step = *reinterpret_cast<i32 *>(aieditor->unknown_36934);
                     if (pad->digital_buttons_pressed & 0x8000)
                         step = 0x14;
@@ -1460,12 +1461,12 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                         step += 0x14;
                     if (step > 600)
                         step = 600;
-                    angle = NuAngAdd(angle, step);
+                    aieditorsettings.area_rotation = NuAngAdd(aieditorsettings.area_rotation, step);
                 } else if (pad->digital_buttons & 0x8000) {
                     rotate = true;
                     CreatureEditorRecord *hover = *reinterpret_cast<CreatureEditorRecord **>(aieditor->unknown_3692c);
                     if (selected != nullptr && selected == hover)
-                        angle = selected->angle;
+                        aieditorsettings.area_rotation = selected->angle;
                     i32 &step = *reinterpret_cast<i32 *>(aieditor->unknown_36934);
                     if (pad->digital_buttons_pressed & 0x2000)
                         step = 0x14;
@@ -1473,26 +1474,29 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                         step += 0x14;
                     if (step > 600)
                         step = 600;
-                    angle = NuAngSub(angle, step);
+                    aieditorsettings.area_rotation = NuAngSub(aieditorsettings.area_rotation, step);
                 } else if (pad->digital_buttons & 0x4000) {
                     rotate = true;
-                    const i32 relative = NuAngSub(angle, check->angle);
+                    const i32 relative = NuAngSub(aieditorsettings.area_rotation, check->angle);
                     i32 quarter_turns = relative / 0x4000;
                     if (relative % 0x4000 > 0x2000)
                         ++quarter_turns;
                     else if (relative % 0x4000 < -0x2000)
                         --quarter_turns;
-                    angle = NuAngAdd(quarter_turns << 14, check->angle);
+                    aieditorsettings.area_rotation =
+                        NuAngAdd(quarter_turns << 14,
+                                 reinterpret_cast<EDAIPATHCHECK_s *>(reinterpret_cast<u8 *>(aieditor) + 0x48)->angle);
                 }
                 if (rotate) {
-                    aieditorsettings.area_rotation = angle;
+                    selected = creatureEditor_Current();
                     CreatureEditorRecord *hover = *reinterpret_cast<CreatureEditorRecord **>(aieditor->unknown_3692c);
                     if (selected != nullptr && selected == hover) {
-                        selected->angle = angle;
+                        selected->angle = aieditorsettings.area_rotation;
                         check = reinterpret_cast<EDAIPATHCHECK_s *>(selected->path_check);
                         check->angle = NuAngSub(
-                            angle, reinterpret_cast<EDAIPATHCHECK_s *>(reinterpret_cast<u8 *>(aieditor) + 0x48)->angle);
-                        creatureEditor_Updated(reinterpret_cast<EDCREATURE_s *>(selected));
+                            aieditorsettings.area_rotation,
+                            reinterpret_cast<EDAIPATHCHECK_s *>(reinterpret_cast<u8 *>(aieditor) + 0x48)->angle);
+                        creatureEditor_Updated(reinterpret_cast<EDCREATURE_s *>(creatureEditor_Current()));
                     }
                 }
             }
@@ -1537,12 +1541,14 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                 if (suffix != nullptr)
                     *suffix = 0;
                 base_name[12] = 0;
-                set = previous->set;
+                set = creatureEditor_Current()->set;
             }
 
+            AIEDITOR_RENDER_STATE *context = aieditor;
             CreatureEditorRecord *created = static_cast<CreatureEditorRecord *>(CreateCreature(
                 aieditorsettings.current_path_type, &aieditor->camera_position, aieditorsettings.area_rotation));
-            aieditor->mode_selection_36930 = reinterpret_cast<EditorNamedEntry *>(created);
+            context->mode_selection_36930 = reinterpret_cast<EditorNamedEntry *>(created);
+            created = creatureEditor_Current();
             if (created != nullptr) {
                 char name[0x20];
                 for (i32 number = 1;; ++number) {
@@ -1558,17 +1564,18 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                     if (!in_use)
                         break;
                 }
-                strcpy(created->name, name);
+                strcpy(creatureEditor_Current()->name, name);
                 if (aieditorsettings.current_script_name[0] != 0)
-                    strcpy(created->script_name, aieditorsettings.current_script_name);
+                    strcpy(creatureEditor_Current()->script_name, aieditorsettings.current_script_name);
+                created = creatureEditor_Current();
                 memcpy(created->script_params, aieditorsettings.current_script_params, sizeof(created->script_params));
                 created->flags = (created->flags & ~0x1eu) | aieditorsettings.current_script_flags;
                 created->path = aieditor->current_path;
                 memcpy(created->path_check, reinterpret_cast<u8 *>(aieditor) + 0x48, sizeof(created->path_check));
                 reinterpret_cast<EDAIPATHCHECK_s *>(created->path_check)->angle =
                     NuAngSub(created->angle, *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(aieditor) + 0x60));
-                created->set = set;
-                creatureEditor_Updated(reinterpret_cast<EDCREATURE_s *>(created));
+                creatureEditor_Current()->set = set;
+                creatureEditor_Updated(reinterpret_cast<EDCREATURE_s *>(creatureEditor_Current()));
             }
         }
     }

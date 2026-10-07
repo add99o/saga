@@ -261,8 +261,7 @@ char *GameObj_GetName(i32 model, GameObject_s *object, char *buffer) {
         }
         if (index == -1)
             return TTab[CDataList[model].name_id];
-        NuStrCpy(buffer,
-                 Game.customizer[index].name);
+        NuStrCpy(buffer, Game.customizer[index].name);
         i32 i = 14;
         while (i >= 0 && buffer[i] == ' ') {
             buffer[i] = '\0';

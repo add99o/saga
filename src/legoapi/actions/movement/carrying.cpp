@@ -413,7 +413,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                 }
             }
             object->context_animation_timer -= FRAMETIME;
-            if (!(object->context_animation_timer > 0.0f)) {
+            if (object->context_animation_timer <= 0.0f) {
                 object->field_0x7a3 = 2;
                 object->context_animation = LEGOACT_SUPERCARRY_IDLE;
                 if ((object->context_flags & 0x40) == 0)
@@ -574,7 +574,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
                 event = marker >= 1.0f && *frame >= marker;
             }
             object->context_animation_timer -= FRAMETIME;
-            if (!(object->context_animation_timer > 0.0f)) {
+            if (object->context_animation_timer <= 0.0f) {
                 if ((object->context_flags & 0x40) == 0)
                     event = true;
                 else
@@ -626,7 +626,7 @@ void SuperCarry_MoveCode(WORLDINFO_s *world, GameObject_s *object) {
             object->context_animation_timer += FRAMETIME;
             if (object->context_animation_timer >= object->airborne_action_duration)
                 object->context_variant_flags = static_cast<i8>(object->context_variant_flags | 0x80);
-            if (object->context_animation_timer < 0.1f || object->apiobj.field_0x27d == 0)
+            if (!(object->context_animation_timer >= 0.1f) || object->apiobj.field_0x27d == 0)
                 return;
             if (object->context_variant_flags < 0) {
                 object->field_0x7a3 = 7;

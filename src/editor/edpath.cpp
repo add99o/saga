@@ -218,14 +218,16 @@ static void pathEditorDrawPath(EDAIPATH_s *path, i32 path_index) {
     u8 drawn_connections[255][32];
     NURND_VERTEX3D vertices[2];
     memset(drawn_connections, 0, sizeof(drawn_connections));
-    i32 solid = aieditorsettings.solid_path_display &&
-                ((i16)aieditorsettings.current_mode == AIEDITOR_PATHS || (i16)aieditorsettings.current_mode == AIEDITOR_CREATURES || (i16)aieditorsettings.current_mode == AIEDITOR_LOCATORS);
+    i32 solid = aieditorsettings.solid_path_display && ((i16)aieditorsettings.current_mode == AIEDITOR_PATHS ||
+                                                        (i16)aieditorsettings.current_mode == AIEDITOR_CREATURES ||
+                                                        (i16)aieditorsettings.current_mode == AIEDITOR_LOCATORS);
     u32 active_route = 0;
     if ((i16)aieditorsettings.current_mode == AIEDITOR_ROUTES) {
         EDAIPATH_s *selected = aieditor->current_path;
         active_route = selected->current_route != nullptr ? 1ULL << (selected->current_route - selected->routes) : 1;
     }
-    u32 colour = path == aieditor->current_path ? 0xffffffff : AISysGetPathColour(path_index % AISysGetPathColourCount());
+    u32 colour =
+        path == aieditor->current_path ? 0xffffffff : AISysGetPathColour(path_index % AISysGetPathColourCount());
     if (path == nullptr) {
         return;
     }
@@ -1728,30 +1730,30 @@ void pathEditor_Enter(void) {
         free_other_slot = 7;                                                                                           \
         goto free_slots_found;                                                                                         \
     }
-                        if (node->connections[0].node == nullptr) {
-                            FIND_FREE_OTHER(0)
-                        }
-                        if (node->connections[1].node == nullptr) {
-                            FIND_FREE_OTHER(1)
-                        }
-                        if (node->connections[2].node == nullptr) {
-                            FIND_FREE_OTHER(2)
-                        }
-                        if (node->connections[3].node == nullptr) {
-                            FIND_FREE_OTHER(3)
-                        }
-                        if (node->connections[4].node == nullptr) {
-                            FIND_FREE_OTHER(4)
-                        }
-                        if (node->connections[5].node == nullptr) {
-                            FIND_FREE_OTHER(5)
-                        }
-                        if (node->connections[6].node == nullptr) {
-                            FIND_FREE_OTHER(6)
-                        }
-                        if (node->connections[7].node == nullptr) {
-                            FIND_FREE_OTHER(7)
-                        }
+                            if (node->connections[0].node == nullptr) {
+                                FIND_FREE_OTHER(0)
+                            }
+                            if (node->connections[1].node == nullptr) {
+                                FIND_FREE_OTHER(1)
+                            }
+                            if (node->connections[2].node == nullptr) {
+                                FIND_FREE_OTHER(2)
+                            }
+                            if (node->connections[3].node == nullptr) {
+                                FIND_FREE_OTHER(3)
+                            }
+                            if (node->connections[4].node == nullptr) {
+                                FIND_FREE_OTHER(4)
+                            }
+                            if (node->connections[5].node == nullptr) {
+                                FIND_FREE_OTHER(5)
+                            }
+                            if (node->connections[6].node == nullptr) {
+                                FIND_FREE_OTHER(6)
+                            }
+                            if (node->connections[7].node == nullptr) {
+                                FIND_FREE_OTHER(7)
+                            }
 #undef FIND_FREE_OTHER
                             continue;
                         free_slots_found:

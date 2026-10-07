@@ -254,6 +254,18 @@ void (*Collection_GetSelectingPlayerIDsFn)(i16 *);
 void DrawCharIcon(i32, f32, f32, f32, f32, i32, f32, f32, i32, nuhspecial_s *);
 extern FadeSystem FadeSys;
 
+static inline u32 Collection_NeighbourFlags(i32 col, i32 row, i32 sx, i32 sy) {
+    if (sx == -1 || sy == -1)
+        return 0;
+    if ((col == sx && (row == sy - 1 || row == sy + 1)) || (row == sy && (col == sx - 1 || col == sx + 1)))
+        return 1;
+    if ((col == sx - 1 || col == sx + 1) && (row == sy - 1 || row == sy + 1))
+        return 2;
+    if ((col == sx && (row == sy - 2 || row == sy + 2)) || (row == sy && (col == sx - 2 || col == sx + 2)))
+        return 4;
+    return 0;
+}
+
 void Collection_Draw(COLLECTION_s *collection, float x, float y, float scale, APICHARACTERMODELLIST_s *models,
                      float alpha, i32 hide_selected) {
     const f32 base_dy = COLLECTION_DY;
@@ -263,13 +275,13 @@ void Collection_Draw(COLLECTION_s *collection, float x, float y, float scale, AP
     collection_draw_IsValidFn = NULL;
     if (collection->list == NULL || FadeSys.fade > 0.0f)
         return;
-    const u32 count = collection->count_y;
-    const u32 columns = collection->count_x;
+    const i32 count = collection->count_y;
+    const i32 columns = collection->count_x;
     if (count == 0 || columns == 0)
         return;
     f32 dx = COLLECTION_DX * scale;
     f32 size = COLLECTION_ICONSIZE * scale;
-    const u32 rows = count / columns + (count % columns != 0);
+    const i32 rows = count / columns + (count % columns != 0);
     if (Game_OptionsSave != NULL && Game_OptionsSave->field11_0xb != 0) {
         dx *= 0.75f;
         size *= 0.875f;
@@ -281,9 +293,9 @@ void Collection_Draw(COLLECTION_s *collection, float x, float y, float scale, AP
         Collection_GetSelectingPlayerIDsFn(ids);
         if (ids[0] != -1 || ids[1] != -1) {
             i32 found = 0;
-            for (u32 row = 0; row < rows; ++row)
-                for (u32 col = 0; col < columns; ++col) {
-                    const u32 index = row * columns + col;
+            for (i32 row = 0; row < rows; ++row)
+                for (i32 col = 0; col < columns; ++col) {
+                    const i32 index = row * columns + col;
                     if (found != 2 && index < count &&
                         (collection->list[index].id == ids[0] || collection->list[index].id == ids[1])) {
                         selected_x[found] = col;
@@ -297,10 +309,11 @@ void Collection_Draw(COLLECTION_s *collection, float x, float y, float scale, AP
     if (alpha > 1.0f)
         alpha = 1.0f;
     f32 py = y - static_cast<i32>(rows - 1) * dy * 0.5f;
-    for (u32 row = 0; row < rows; ++row) {
-        f32 px = x - static_cast<i32>(columns - 1) * dx * 0.5f;
-        for (u32 col = 0; col < columns; ++col, px += dx) {
-            const u32 index = row * columns + col;
+    const f32 start_x = x - static_cast<i32>(columns - 1) * dx * 0.5f;
+    for (i32 row = 0; row < rows; ++row) {
+        f32 px = start_x;
+        for (i32 col = 0; col < columns; ++col, px += dx) {
+            const i32 index = row * columns + col;
             if (index >= count)
                 continue;
             COLLECTID *entry = &collection->list[index];
@@ -332,19 +345,8 @@ void Collection_Draw(COLLECTION_s *collection, float x, float y, float scale, AP
             opacity *= alpha;
             if (!(opacity > 0.0f))
                 continue;
-            u32 neighbours = 0;
-            for (i32 player = 0; player < 2; ++player) {
-                if (selected_x[player] == -1 || selected_y[player] == -1)
-                    continue;
-                const i32 ax = abs(static_cast<i32>(col) - selected_x[player]);
-                const i32 ay = abs(static_cast<i32>(row) - selected_y[player]);
-                if ((ax == 0 && ay == 1) || (ax == 1 && ay == 0))
-                    neighbours |= 1;
-                else if (ax == 1 && ay == 1)
-                    neighbours |= 2;
-                else if ((ax == 0 && ay == 2) || (ax == 2 && ay == 0))
-                    neighbours |= 4;
-            }
+            const u32 neighbours = Collection_NeighbourFlags(col, row, selected_x[0], selected_y[0]) |
+                                   Collection_NeighbourFlags(col, row, selected_x[1], selected_y[1]);
             if ((neighbours & 1) != 0)
                 opacity *= 0.333f;
             else if ((neighbours & 2) != 0)
@@ -399,10 +401,12 @@ i32 Collection_GetIDList(COLLECTION_s *collection, u32 model_flag_mask, u32 requ
         }
         ++result_count;
 
-        if (first_id != NULL && *first_id == -1) {
-            *first_id = id;
-        } else if (first_id != NULL && second_id != NULL && *second_id == -1) {
-            *second_id = id;
+        if (first_id != NULL) {
+            if (*first_id == -1) {
+                *first_id = id;
+            } else if (second_id != NULL && *second_id == -1) {
+                *second_id = id;
+            }
         }
     }
 
@@ -425,55 +429,59 @@ void Collection_CreateCustom(char *name, i16 *id_list, COLLECTION_s *collection,
                              u32 excluded_model_flags, u32 required_game_flags, i32 require_buyable, i32 columns,
                              VARIPTR *buffer, VARIPTR *, i32 use_all_characters, f32 scale) {
     collection->count_x = static_cast<u16>(columns);
-    collection->count_y = 0;
-    collection->field_8 = id_list;
     collection->field_c = name;
+    collection->field_8 = id_list;
+    collection->list = reinterpret_cast<COLLECTID *>(ALIGN(buffer->addr, 4));
     collection->field_10 = scale;
-
-    buffer->addr = ALIGN(buffer->addr, 4);
-    collection->list = reinterpret_cast<COLLECTID *>(buffer->void_ptr);
+    collection->count_y = 0;
 
     if (use_all_characters == 0) {
-        for (i32 index = 0; index < CollectCount; ++index) {
-            COLLECTID &source = CollectList[index];
-            const i32 id = source.id;
-            if (id < 0) {
-                continue;
+        if (CollectCount > 0) {
+            COLLECTID *const end = CollectList + CollectCount;
+            for (COLLECTID *current = CollectList; current != end; ++current) {
+                COLLECTID &source = *current;
+                const i32 id = source.id;
+                if (id < 0) {
+                    continue;
+                }
+                if (excluded_model_flags != 0 && (apicharsys->char_data[id].model_flags & excluded_model_flags) != 0) {
+                    continue;
+                }
+                if (require_buyable != 0 && source.can_buy == 0) {
+                    continue;
+                }
+                if (required_game_flags != 0 &&
+                    (GCDataList[id].flags_090 & required_game_flags) != required_game_flags) {
+                    continue;
+                }
+                if (required_model_flags != 0 &&
+                    (CDataList[id].model_flags & required_model_flags) != required_model_flags) {
+                    continue;
+                }
+                collection->list[collection->count_y] = source;
+                ++collection->count_y;
             }
-            if (excluded_model_flags != 0 && (apicharsys->char_data[id].model_flags & excluded_model_flags) != 0) {
-                continue;
-            }
-            if (require_buyable != 0 && source.can_buy == 0) {
-                continue;
-            }
-            if (required_game_flags != 0 && (GCDataList[id].flags_090 & required_game_flags) != required_game_flags) {
-                continue;
-            }
-            if (required_model_flags != 0 &&
-                (CDataList[id].model_flags & required_model_flags) != required_model_flags) {
-                continue;
-            }
-            collection->list[collection->count_y++] = source;
         }
     } else {
         for (i32 id = 0; id < CHARCOUNT; ++id) {
-            if (required_model_flags != 0 &&
-                (CDataList[id].model_flags & required_model_flags) != required_model_flags) {
-                continue;
-            }
             if (excluded_model_flags != 0 && (apicharsys->char_data[id].model_flags & excluded_model_flags) != 0) {
                 continue;
             }
             if (required_game_flags != 0 && (GCDataList[id].flags_090 & required_game_flags) != required_game_flags) {
                 continue;
             }
-            COLLECTID &entry = collection->list[collection->count_y++];
+            if (required_model_flags != 0 &&
+                (CDataList[id].model_flags & required_model_flags) != required_model_flags) {
+                continue;
+            }
+            COLLECTID &entry = collection->list[collection->count_y];
             memset(&entry, 0, sizeof(entry));
-            entry.id = static_cast<i16>(id);
+            collection->list[collection->count_y].id = static_cast<i16>(id);
+            ++collection->count_y;
         }
     }
 
-    buffer->addr += static_cast<usize>(collection->count_y) * sizeof(COLLECTID);
+    buffer->void_ptr = collection->list + collection->count_y;
 }
 
 COLLECTID *CollectIDUnlocked(i32 id) {
@@ -731,16 +739,15 @@ void ReCalculateCompletionPoints() {
         }
     }
 
-    for (i32 index = 0; index < AREACOUNT; ++index) {
-        AREADATA *area = &ADataList[index];
-        AREASAVE_s *save = &Game.area_save[index];
-        const u16 flags = area->flags;
+    AREADATA *area = ADataList;
+    AREASAVE_s *save = Game.area_save;
+    for (i32 index = 0; index < AREACOUNT; ++index, ++area, ++save) {
         if (area == HUB_ADATA ||
-            (flags & (AREAFLAG_ENDING_AREA | AREAFLAG_TEST_AREA | AREAFLAG_NO_COMPLETION_POINTS)) != 0) {
+            (area->flags & (AREAFLAG_ENDING_AREA | AREAFLAG_TEST_AREA | AREAFLAG_NO_COMPLETION_POINTS)) != 0) {
             continue;
         }
 
-        if ((flags & 0x100) != 0) {
+        if ((area->flags & 0x100) != 0) {
             CompletionPointInfo_ReCalculate[1] += POINTS_PER_SUPERBONUSCOMPLETE;
             if (save->area_complete != 0) {
                 AddToCompletionPoints(POINTS_PER_SUPERBONUSCOMPLETE);
@@ -751,7 +758,7 @@ void ReCalculateCompletionPoints() {
             continue;
         }
 
-        if ((flags & AREAFLAG_BONUS_AREA) != 0) {
+        if ((area->flags & AREAFLAG_BONUS_AREA) != 0) {
             CompletionPointInfo_ReCalculate[1] += POINTS_PER_TIMETRIAL;
             if (save->area_complete != 0 || save->challenge_trial_time < static_cast<f32>(area->challenge_trial_time)) {
                 AddToCompletionPoints(POINTS_PER_TIMETRIAL);
@@ -763,13 +770,13 @@ void ReCalculateCompletionPoints() {
         CompletionPointInfo_ReCalculate[1] += POINTS_PER_STORY;
         if (save->area_complete != 0) {
             AddToCompletionPoints(POINTS_PER_STORY);
-            if ((flags & AREAFLAG_NO_GOLDBRICK) == 0) {
+            if ((area->flags & AREAFLAG_NO_GOLDBRICK) == 0) {
                 AddToGoldBricks();
             }
         }
 
-        if ((flags & AREAFLAG_MINIKIT) == 0) {
-            if ((flags & AREAFLAG_TRUE_JEDI) != 0 &&
+        if ((area->flags & AREAFLAG_MINIKIT) == 0) {
+            if ((area->flags & AREAFLAG_TRUE_JEDI) != 0 &&
                 (save->true_hero_complete[0] != 0 || save->true_hero_complete[1] != 0)) {
                 AddToCompletionPoints(POINTS_PER_TRUEJEDI);
                 AddToGoldBricks();
@@ -783,20 +790,23 @@ void ReCalculateCompletionPoints() {
             AddToGoldBricks();
         }
 
-        CompletionPointInfo_ReCalculate[1] += POINTS_PER_TRUEJEDI;
-        if (save->true_hero_complete[0] != 0) {
-            AddToCompletionPoints(POINTS_PER_TRUEJEDI);
-            AddToGoldBricks();
-        }
         if (BOTHTRUEJEDIGOLDBRICKS != 0) {
+            CompletionPointInfo_ReCalculate[1] += POINTS_PER_TRUEJEDI;
+            if (save->true_hero_complete[0] != 0) {
+                AddToCompletionPoints(POINTS_PER_TRUEJEDI);
+                AddToGoldBricks();
+            }
             CompletionPointInfo_ReCalculate[1] += POINTS_PER_TRUEJEDI;
             if (save->true_hero_complete[1] != 0) {
                 AddToCompletionPoints(POINTS_PER_TRUEJEDI);
                 AddToGoldBricks();
             }
-        } else if (save->true_hero_complete[0] == 0 && save->true_hero_complete[1] != 0) {
-            AddToCompletionPoints(POINTS_PER_TRUEJEDI);
-            AddToGoldBricks();
+        } else {
+            CompletionPointInfo_ReCalculate[1] += POINTS_PER_TRUEJEDI;
+            if (save->true_hero_complete[0] != 0 || save->true_hero_complete[1] != 0) {
+                AddToCompletionPoints(POINTS_PER_TRUEJEDI);
+                AddToGoldBricks();
+            }
         }
 
         CompletionPointInfo_ReCalculate[1] += POINTS_PER_REDBRICK;

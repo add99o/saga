@@ -2276,11 +2276,10 @@ NUVEC TerrainSkin(PLATSKININFO *info, nuvec_s *position, float weight, i32 mode)
 }
 void DerotateMovementVector() {
     TerI->movement_yaw = static_cast<f32>(NuAtan2DA(TerI->movement.x, TerI->movement.z));
-    const f32 horizontal_length =
-        NuFsqrt(TerI->movement.x * TerI->movement.x + TerI->movement.z * TerI->movement.z);
+    const f32 horizontal_length = NuFsqrt(TerI->movement.x * TerI->movement.x + TerI->movement.z * TerI->movement.z);
     TerI->movement_pitch = static_cast<f32>(NuAtan2DA(-TerI->movement.y, horizontal_length));
     TerI->movement_length = NuFsqrt(TerI->movement.x * TerI->movement.x + TerI->movement.y * TerI->movement.y +
-                                  TerI->movement.z * TerI->movement.z);
+                                    TerI->movement.z * TerI->movement.z);
 }
 
 void RotateVec(NUVEC *source, NUVEC *destination) {
@@ -5807,8 +5806,8 @@ void NewScanRot(nuvec_s *position, i32 terrain_mask) {
             f32 local_min_z = min_z - group.origin.z, local_max_z = max_z - group.origin.z;
             for (i32 i = 0; i < count; ++i) {
                 TERRAIN_SHAPE *shape = shapes[i];
-                if (!(local_max_x >= shape->min_x && shape->max_x > local_min_x &&
-                      local_max_z >= shape->min_z && shape->max_z > local_min_z))
+                if (!(local_max_x >= shape->min_x && shape->max_x > local_min_x && local_max_z >= shape->min_z &&
+                      shape->max_z > local_min_z))
                     continue;
                 if (shape->material[1] != 0 && (shape->material[1] & terrain_mask) == 0)
                     continue;

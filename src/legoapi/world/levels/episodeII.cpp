@@ -1816,8 +1816,7 @@ void JediB_Update(WORLDINFO_s *world) {
                             id = (chosen & 1) != 0 ? id_DROIDEKA : id_SUPERBATTLEDROID;
                         }
                         for (;;) {
-                            if (jedi_b.baddies[index].in_wave == 0 &&
-                                jedi_b.baddies[index].random_type != 0 &&
+                            if (jedi_b.baddies[index].in_wave == 0 && jedi_b.baddies[index].random_type != 0 &&
                                 jedi_b.baddies[index].id != id) {
                                 break;
                             }
@@ -2036,11 +2035,10 @@ void JediB_Update(WORLDINFO_s *world) {
                     continue;
                 }
             }
-        } else if (baddie->released == 0 &&
-                   (OnOrInsidePlane(&baddie->position, &PlayPlane[1].point, &PlayPlane[1].normal, NULL, 1.5f, NULL) !=
-                        0 ||
-                    OnOrInsidePlane(&baddie->position, &PlayPlane[2].point, &PlayPlane[2].normal, NULL, 1.5f, NULL) !=
-                        0)) {
+        } else if (baddie->released == 0 && (OnOrInsidePlane(&baddie->position, &PlayPlane[1].point,
+                                                             &PlayPlane[1].normal, NULL, 1.5f, NULL) != 0 ||
+                                             OnOrInsidePlane(&baddie->position, &PlayPlane[2].point,
+                                                             &PlayPlane[2].normal, NULL, 1.5f, NULL) != 0)) {
             object = baddie->object;
         } else {
             // OnOrInsidePlane takes the slot position by non-const pointer, so

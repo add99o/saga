@@ -418,10 +418,7 @@ static i32 cbSortSeg(void const *left, void const *right) {
     return 0;
 }
 
-NuNetEmu::NuNetEmu() : raw_stats("EmuRaw"), packet_stats("EmuPack") {
-    field_04 = 0;
-    field_08 = 0;
-    field_0c = 0;
+NuNetEmu::NuNetEmu() : field_04(NULL), field_08(NULL), field_0c(0), raw_stats("EmuRaw"), packet_stats("EmuPack") {
     field_10 = 0;
     field_14 = 0;
     field_18 = 0;
@@ -481,16 +478,22 @@ i32 NuNetEmu::SendTo(void *data, i32 size, nunetaddr_s *address, i32) {
     }
 
     if (field_24 == 1) {
-        if (field_34 > NuRandFloat()) {
-            return 0;
+        f32 random = NuRandFloat();
+        if (field_34 > random) {
+            return size;
         }
     } else if (field_24 == 2) {
-        if (field_30 == 0 && field_34 > NuRandFloat()) {
-            field_30 = field_28 + static_cast<i32>(NuRandFloat() * static_cast<f32>(field_2c - field_28));
+        if (field_30 == 0) {
+            f32 random = NuRandFloat();
+            if (field_34 > random) {
+                f32 range = static_cast<f32>(field_2c - field_28);
+                f32 random = NuRandFloat();
+                field_30 = static_cast<i32>(random * range) + field_28;
+            }
         }
         if (field_30 > 0) {
             field_30--;
-            return 0;
+            return size;
         }
     }
 
@@ -503,8 +506,9 @@ i32 NuNetEmu::SendTo(void *data, i32 size, nunetaddr_s *address, i32) {
         packet = new (MemoryManagerAllocPool(&theMemoryManager, sizeof(EmuPacket), 1)) EmuPacket(address);
         u32 now = UtilGetFrameStartTime();
         if (field_18 > 0) {
-            packet->send_time =
-                now + field_14 + static_cast<i32>(NuRandFloat() * static_cast<f32>(field_18 - field_14));
+            f32 range = static_cast<f32>(field_18 - field_14);
+            f32 random = NuRandFloat();
+            packet->send_time = now + (static_cast<u32>(static_cast<i32>(random * range)) + static_cast<u32>(field_14));
         } else {
             packet->send_time = 0;
         }
@@ -589,8 +593,9 @@ i32 NuNetEmu::SplitSendPacket(NuNetEmu::EmuPacket *packet) {
     EmuPacket *second = new (MemoryManagerAllocPool(&theMemoryManager, sizeof(EmuPacket), 1))
         EmuPacket(reinterpret_cast<nunetaddr_s *>(&packet->address));
 
+    EmuPacket *packets[2] = {first, second};
     for (u32 i = 0; i < segment_count; i++) {
-        EmuPacket *destination = second->payload_size < first->payload_size ? second : first;
+        EmuPacket *destination = packets[second->payload_size < first->payload_size];
         memmove(destination->payload + destination->payload_size, packet->payload + segments[i].offset,
                 segments[i].size);
         destination->payload_size += segments[i].size;
@@ -710,7 +715,7 @@ void NuDynamicLight::addShadowCasterScene(nugscn_s *scene) {
                 f32 sx = set.capsule_end.x - set.capsule_center.x;
                 f32 sy = set.capsule_end.y - set.capsule_center.y;
                 f32 sz = set.capsule_end.z - set.capsule_center.z;
-                f32 length = sx * sx + sy * sy + sz * sz;
+                f32 length = sy * sy + sx * sx + sz * sz;
                 f32 radius = set.capsule_radius + box.first_w;
                 f32 ox = box.first.x - set.capsule_center.x;
                 f32 oy = box.first.y - set.capsule_center.y;
@@ -831,7 +836,8 @@ NuDynamicLight *NuDynamicLight::clone(variptr_u *arena, variptr_u) {
         CloneLightVector(destination.capsule_center, source.capsule_center);
         CloneLightVector(destination.capsule_end, source.capsule_end);
         destination.capsule_radius = source.capsule_radius;
-        memcpy(destination.display_lists, source.display_lists, sizeof(source.display_lists));
+        destination.display_lists[0] = source.display_lists[0];
+        destination.display_lists[1] = source.display_lists[1];
         {
             nurndrstate_s *first = source.render_states[0];
             nurndrstate_s *second = source.render_states[1];

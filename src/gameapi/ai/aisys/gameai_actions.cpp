@@ -91,7 +91,8 @@ static i32 Action_FollowCharacter(AISYS_s *system, AISCRIPTPROCESS_s *processor,
     }
     APIOBJECT *target = static_cast<APIOBJECT *>(processor->action_data_3);
     if (target != NULL) {
-        FollowAPIObject(&packet->owner->apiobj, target, processor->action_data_1, packet->movement_instruction_parameter);
+        FollowAPIObject(&packet->owner->apiobj, target, processor->action_data_1,
+                        packet->movement_instruction_parameter);
     }
     return 0;
 }

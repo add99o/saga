@@ -522,6 +522,7 @@ void MenuDrawExtras(MENU_s *menu) {
             snprintf(text, sizeof(text), "%s: %s", name != NULL ? name : "", value);
         }
 
+        dme_sy = menu->item_scale;
         if (cheat > 7) {
             dme_rgb = 1;
         }
@@ -537,7 +538,6 @@ void MenuDrawExtras(MENU_s *menu) {
             dme_align = PauseMenus_Align;
             menu->draw_x = PauseMenus_X;
         }
-        dme_sy = menu->item_scale;
         DrawMenuEntryEx(menu, text, static_cast<u8>(static_cast<i32>(static_cast<f32>(MenuA) * alpha)));
     }
 }
@@ -1208,10 +1208,10 @@ void MenuUpdateMissions(MENU_s *menu) {
 collected_input:
     if (menu->input_activity) {
         if (menu->confirm_pressed) {
-            if (hub_mission == menu->selected_row)
+            if (hub_mission == menu->selected_column)
                 start = 1;
             else
-                hub_mission = menu->selected_row;
+                hub_mission = menu->selected_column;
         }
         if (menu->cancel_pressed)
             cancel = 1;
@@ -1250,7 +1250,8 @@ collected_input:
     if (MissionSys != NULL) {
         for (i32 i = 0; i < MissionSys->count; ++i)
             MissionIconScale[i] = SeekValF(MissionIconScale[i], i == hub_mission ? 1.0f : 0.0f, 5.0f);
-        for (i32 i = 0; i < MissionSys->count; ++i) {
+        const u8 *mission_count = &MissionSys->count;
+        for (i32 i = 0; i < *mission_count; ++i) {
             f32 x = 0.0f;
             if (i < hub_mission)
                 x = -0.035f - (hub_mission - i) * 0.12f;
@@ -1736,8 +1737,38 @@ void MenuEnterAutoSaveWarning(MENU_s *) {
     memcard_autosavedisabled = 0;
 }
 
-void MenuUpdateAutoSaveCancel(MENU_s *) {
-    STUBBED();
+extern f32 memcard_autosavecanceldelay;
+void MenuUpdateAutoSaveCancel(MENU_s *menu) {
+    static bool firstTimeIn = true;
+    if (MenuASCancelFinished != 0) {
+        MenuASCancelFinished = 0;
+        BackupMenu();
+    } else {
+        switch (memcard_savefailed) {
+            default: {
+                if (firstTimeIn) {
+                    firstTimeIn = false;
+                    memcard_autosavecanceldelay = 5.0f;
+                    g_enableButtonPrompts = 0;
+                } else if (!(memcard_autosavecanceldelay > 0.0f)) {
+                    g_enableButtonPrompts = 1;
+                    NewMenu(1000, -1, -1);
+                    MenuASCancelFinished = 1;
+                    firstTimeIn = true;
+                    memcard_autosavecanceldelay = 5.0f;
+                    goto check_input;
+                }
+                break;
+            }
+            case 0:
+            check_input:
+                if (menu->confirm_pressed != 0 || menu->cancel_pressed != 0) {
+                    MenuASCancelFinished = 1;
+                    MenuSFX = MENUSFX_MENUSELECT;
+                }
+                break;
+        }
+    }
 }
 
 void MenuUpdateNotEnoughSpace(MENU_s *menu) {

@@ -588,8 +588,7 @@ extern "C" void GenericDebinfoDmaTypeUpdate(debinftype *effect) {
                     width = effect->width_keys[i].value;
                 else
                     width = effect->width_keys[i].value +
-                            (elapsed / duration) *
-                                (effect->width_keys[i + 1].value - effect->width_keys[i].value);
+                            (elapsed / duration) * (effect->width_keys[i + 1].value - effect->width_keys[i].value);
                 break;
             }
         }
@@ -601,8 +600,7 @@ extern "C" void GenericDebinfoDmaTypeUpdate(debinftype *effect) {
                     height = effect->height_keys[i].value;
                 else
                     height = effect->height_keys[i].value +
-                             (elapsed / duration) *
-                                 (effect->height_keys[i + 1].value - effect->height_keys[i].value);
+                             (elapsed / duration) * (effect->height_keys[i + 1].value - effect->height_keys[i].value);
                 break;
             }
         }
@@ -613,23 +611,20 @@ extern "C" void GenericDebinfoDmaTypeUpdate(debinftype *effect) {
                 if (elapsed == 0.0f)
                     rotation = effect->rotation_keys[i].value;
                 else
-                    rotation = effect->rotation_keys[i].value +
-                               (elapsed / duration) *
-                                   (effect->rotation_keys[i + 1].value - effect->rotation_keys[i].value);
+                    rotation =
+                        effect->rotation_keys[i].value +
+                        (elapsed / duration) * (effect->rotation_keys[i + 1].value - effect->rotation_keys[i].value);
                 break;
             }
         }
         wave_x = effect->jib_x_amplitude * NU_SIN_LUT(65536.0f * (effect->jib_x_frequency * time));
         wave_y = effect->jib_y_amplitude * NU_SIN_LUT(65536.0f * (effect->jib_y_frequency * time));
         debris_particle_frame_s &frame = effect->native_data->frames[frame_index];
-        position_x = -(width / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) -
-                     (height / 4.0f) * NU_SIN_LUT(rotation) + wave_x;
-        position_y = (width / 4.0f) * NU_SIN_LUT(rotation) -
-                     (height / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) + wave_y;
-        texture_x = (width / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) -
-                    (height / 4.0f) * NU_SIN_LUT(rotation) + wave_x;
-        texture_y = -(width / 4.0f) * NU_SIN_LUT(rotation) -
-                    (height / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) + wave_y;
+        position_x =
+            -(width / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) - (height / 4.0f) * NU_SIN_LUT(rotation) + wave_x;
+        position_y = (width / 4.0f) * NU_SIN_LUT(rotation) - (height / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) + wave_y;
+        texture_x = (width / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) - (height / 4.0f) * NU_SIN_LUT(rotation) + wave_x;
+        texture_y = -(width / 4.0f) * NU_SIN_LUT(rotation) - (height / 4.0f) * NU_SIN_LUT(rotation + 16384.0f) + wave_y;
         edge_x = (height / 2.0f) * NU_SIN_LUT(rotation);
         edge_y = (height / 2.0f) * NU_SIN_LUT(rotation + 16384.0f);
         frame.position.x = position_x / 2048.0f;
@@ -680,8 +675,7 @@ extern "C" void GenericDebinfoDmaTypeUpdate(debinftype *effect) {
                     alpha = effect->alpha_keys[i].value;
                 else
                     alpha = effect->alpha_keys[i].value +
-                            (elapsed / duration) *
-                                (effect->alpha_keys[i + 1].value - effect->alpha_keys[i].value);
+                            (elapsed / duration) * (effect->alpha_keys[i + 1].value - effect->alpha_keys[i].value);
                 break;
             }
         }

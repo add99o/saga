@@ -816,15 +816,16 @@ void AIMoveToDestination(AISYS_s *system, AIPACKET_s *packet, APIOBJECT_s *objec
                 }
                 if ((connection->traversal_flags[packet->path_info.direction] & 0x40000000) == 0) {
                     {
-                        f32 candidate =
-                            destination_distances[0] != FLT_MAX &&
-                                    endpoint_distances[packet->path_info.direction == 0] != FLT_MAX
-                                ? AIPathNodeDistanceToPathNode(
-                                      packet->path_info.path, connection->node_indices[packet->path_info.direction == 0],
-                                      destination_connection->node_indices[0], packet->current_route, 0)
-                                : FLT_MAX;
+                        f32 candidate = destination_distances[0] != FLT_MAX &&
+                                                endpoint_distances[packet->path_info.direction == 0] != FLT_MAX
+                                            ? AIPathNodeDistanceToPathNode(
+                                                  packet->path_info.path,
+                                                  connection->node_indices[packet->path_info.direction == 0],
+                                                  destination_connection->node_indices[0], packet->current_route, 0)
+                                            : FLT_MAX;
                         if (candidate != FLT_MAX) {
-                            candidate += endpoint_distances[packet->path_info.direction == 0] + destination_distances[0];
+                            candidate +=
+                                endpoint_distances[packet->path_info.direction == 0] + destination_distances[0];
                         }
                         if (candidate < best_distance) {
                             best_distance = candidate;
@@ -834,15 +835,16 @@ void AIMoveToDestination(AISYS_s *system, AIPACKET_s *packet, APIOBJECT_s *objec
                         }
                     }
                     {
-                        f32 candidate =
-                            destination_distances[1] != FLT_MAX &&
-                                    endpoint_distances[packet->path_info.direction == 0] != FLT_MAX
-                                ? AIPathNodeDistanceToPathNode(
-                                      packet->path_info.path, connection->node_indices[packet->path_info.direction == 0],
-                                      destination_connection->node_indices[1], packet->current_route, 0)
-                                : FLT_MAX;
+                        f32 candidate = destination_distances[1] != FLT_MAX &&
+                                                endpoint_distances[packet->path_info.direction == 0] != FLT_MAX
+                                            ? AIPathNodeDistanceToPathNode(
+                                                  packet->path_info.path,
+                                                  connection->node_indices[packet->path_info.direction == 0],
+                                                  destination_connection->node_indices[1], packet->current_route, 0)
+                                            : FLT_MAX;
                         if (candidate != FLT_MAX) {
-                            candidate += endpoint_distances[packet->path_info.direction == 0] + destination_distances[1];
+                            candidate +=
+                                endpoint_distances[packet->path_info.direction == 0] + destination_distances[1];
                         }
                         if (candidate < best_distance) {
                             best_distance = candidate;

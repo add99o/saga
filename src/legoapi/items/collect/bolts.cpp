@@ -345,8 +345,7 @@ void Bolt_Shoot(GameObject_s *object, i32 type_id, i32 fire_flags) {
             GameObject_s *target = object->script_fire_target;
             velocity = &target->apiobj.velocity;
             target_position = intercept_position = &target->apiobj.collision_position;
-            if ((object->apiobj.character_data->model_flags & 0x2000) == 0 &&
-                (object->apiobj.field_0x1f4 & 1) != 0) {
+            if ((object->apiobj.character_data->model_flags & 0x2000) == 0 && (object->apiobj.field_0x1f4 & 1) != 0) {
                 adjusted_position = target->apiobj.collision_position;
                 adjusted_position.y += Bolt_ObjTargetPosYAdjust(target);
                 target_position = &adjusted_position;
@@ -861,9 +860,10 @@ void Bolt_HitGameObjectRC(NetMessage &message) {
     NewRumble(object->pad_gamepad->pad, 0.5f, 0);
     if (((bolt->flags & 0x100) == 0 || deflect) &&
         ((CInfo[object->character_context].flags & 0x4000000) != 0 ||
-         ((CInfo[object->character_context].flags & 0x8000000) != 0 && (object->jump_flags & 2) != 0) ||
-         deflect || (CInfo[object->character_context].flags & 0x800000) != 0 ||
-         ((CInfo[object->character_context].flags & 0x1000000) != 0 && (object->jump_flags & 1) != 0) || CannotKill(object))) {
+         ((CInfo[object->character_context].flags & 0x8000000) != 0 && (object->jump_flags & 2) != 0) || deflect ||
+         (CInfo[object->character_context].flags & 0x800000) != 0 ||
+         ((CInfo[object->character_context].flags & 0x1000000) != 0 && (object->jump_flags & 1) != 0) ||
+         CannotKill(object))) {
         BoltSys->debris(bolt, points, hit, &object->apiobj.velocity, 1);
         if (LEGOCONTEXT_HOLD != -1 && object->character_context == LEGOCONTEXT_HOLD)
             NewBlockAction(object);
@@ -906,10 +906,12 @@ void Bolt_HitGameObjectRC(NetMessage &message) {
         if (reflected_bolt != NULL)
             reflected_bolt->flags |= 0x10000000;
     } else {
-        if (
-            object->field_0xd24 == 1.0f || ((object->apiobj.character_data->game_character->flags_094[3] & 4) != 0 && VehicleArea != 0 && BonusArea != 0) ||
+        if (object->field_0xd24 == 1.0f ||
+            ((object->apiobj.character_data->game_character->flags_094[3] & 4) != 0 && VehicleArea != 0 &&
+             BonusArea != 0) ||
             (object->current_hp == 0 && (object->apiobj.character_data->model_flags & 0x2000) != 0) ||
-            ((object->apiobj.flags_low & 0x80) != 0 && (object->apiobj.character_data->game_character->flags_090 & 0x40) != 0 &&
+            ((object->apiobj.flags_low & 0x80) != 0 &&
+             (object->apiobj.character_data->game_character->flags_090 & 0x40) != 0 &&
              (bolt->owner == NULL || (bolt->owner->apiobj.character_data->game_character->flags_090 & 0x40) == 0)) ||
             ((object->apiobj.character_data->model_flags & 0x20000000) != 0 && object->field_0xcc0 == NULL)) {
             if ((bolt->flags & 0x4000000) != 0) {
@@ -1581,11 +1583,10 @@ void FindAnglesZX(NUVEC *, u16 *, u16 *);
 
 static inline i32 Bolt_HitScenery(BOLT_s *bolt, NUVEC *points, u8 *processed, WORLDINFO_s *world) {
     if (GizmoSys_BoltHit(world->gizmo_sys, world, bolt, points, &bolt->bounds_min, &bolt->bounds_max,
-                       bolt->collision_radius, processed))
+                         bolt->collision_radius, processed))
         return 1;
-    if (GizmoBlowUp_Hit(bolt->owner, (bolt->flags & 0x200) ? &points[1] : points,
-                        (bolt->flags & 0x200) ? 1 : 3, bolt->collision_radius, &bolt->bounds_min,
-                        &bolt->bounds_max, bolt, 1, processed)) {
+    if (GizmoBlowUp_Hit(bolt->owner, (bolt->flags & 0x200) ? &points[1] : points, (bolt->flags & 0x200) ? 1 : 3,
+                        bolt->collision_radius, &bolt->bounds_min, &bolt->bounds_max, bolt, 1, processed)) {
         BoltSys->debris(bolt, points, -1, NULL, 0);
         if (bolt->owner != NULL)
             NewRumble(bolt->owner->pad_gamepad->pad, 0.6f, 0);
@@ -1593,8 +1594,8 @@ static inline i32 Bolt_HitScenery(BOLT_s *bolt, NUVEC *points, u8 *processed, WO
         Bolt_PlayHitSfx(bolt);
         return 1;
     }
-    return Bolt_HitParts(bolt, points, &bolt->bounds_min, &bolt->bounds_max,
-                         bolt->collision_radius, Bolt_HitPartMode(bolt)) != NULL;
+    return Bolt_HitParts(bolt, points, &bolt->bounds_min, &bolt->bounds_max, bolt->collision_radius,
+                         Bolt_HitPartMode(bolt)) != NULL;
 }
 
 void Bolts_Update(WORLDINFO_s *world) {
@@ -1694,13 +1695,12 @@ void Bolts_Update(WORLDINFO_s *world) {
             Bolt_End(bolt, 1);
             if ((bolt->flags & 0x10000) != 0)
                 continue;
-            if (Bolt_HitGameObjects(bolt, points, &bolt->bounds_min, &bolt->bounds_max,
-                                    bolt->collision_radius, NULL) != 0)
+            if (Bolt_HitGameObjects(bolt, points, &bolt->bounds_min, &bolt->bounds_max, bolt->collision_radius, NULL) !=
+                0)
                 continue;
             i32 handled = 0;
-            if ((bolt->flags & 0x13) != 0 ||
-                (bolt->owner != NULL &&
-                 ((bolt->owner->field_0xefb & 0x10) != 0 || static_cast<u8>(bolt->owner->use_action) == 5))) {
+            if ((bolt->flags & 0x13) != 0 || (bolt->owner != NULL && ((bolt->owner->field_0xefb & 0x10) != 0 ||
+                                                                      static_cast<u8>(bolt->owner->use_action) == 5))) {
                 if (bolt->hit_platform != -1) {
                     if (Bolt_HitPlatFn == NULL || !Bolt_HitPlatFn(bolt))
                         Bolt_HitPlat(bolt, processed, world);

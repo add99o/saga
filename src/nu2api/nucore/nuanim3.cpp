@@ -892,12 +892,12 @@ extern "C" i32 ANI_SimpleAni3PlayerV4Joint(ani3_animheader_s *anim, f32 frame, n
                     group_values[0] = group_values[1] = group_values[2] = 0.0f;
                 }
             } else {
-                group_values[0] = DecodeAni4Quat3Scalar(anim, key_stride, constants, group_types[0], quarter, fraction, keys,
-                                                       scale_min);
-                group_values[1] = DecodeAni4Quat3Scalar(anim, key_stride, constants, group_types[1], quarter, fraction, keys,
-                                                       scale_min);
-                group_values[2] = DecodeAni4Quat3Scalar(anim, key_stride, constants, group_types[2], quarter, fraction, keys,
-                                                       scale_min);
+                group_values[0] = DecodeAni4Quat3Scalar(anim, key_stride, constants, group_types[0], quarter, fraction,
+                                                        keys, scale_min);
+                group_values[1] = DecodeAni4Quat3Scalar(anim, key_stride, constants, group_types[1], quarter, fraction,
+                                                        keys, scale_min);
+                group_values[2] = DecodeAni4Quat3Scalar(anim, key_stride, constants, group_types[2], quarter, fraction,
+                                                        keys, scale_min);
             }
 
             group_values += 4;
@@ -1351,7 +1351,8 @@ extern "C" i32 ANI_SimpleAni3PlayerV4Joint_Blend(ani3_animheader_s *anim, f32 fr
 
         for (i32 group = 0; group < 3; ++group) {
             if ((flags & CurveGroupMasks[group]) != 0) {
-                f32 decoded = DecodeAni4Quat3Scalar(anim, key_stride, constants, curve_types[0], quarter, fraction, keys, scale_min);
+                f32 decoded = DecodeAni4Quat3Scalar(anim, key_stride, constants, curve_types[0], quarter, fraction,
+                                                    keys, scale_min);
                 f32 delta = decoded - group_values[0];
                 if (group == 1) {
                     delta = WrapAni4BlendRotation(delta);
@@ -1361,7 +1362,8 @@ extern "C" i32 ANI_SimpleAni3PlayerV4Joint_Blend(ani3_animheader_s *anim, f32 fr
                 }
                 group_values[0] += delta * blend;
 
-                decoded = DecodeAni4Quat3Scalar(anim, key_stride, constants, curve_types[1], quarter, fraction, keys, scale_min);
+                decoded = DecodeAni4Quat3Scalar(anim, key_stride, constants, curve_types[1], quarter, fraction, keys,
+                                                scale_min);
                 delta = decoded - group_values[1];
                 if (group == 1) {
                     delta = WrapAni4BlendRotation(delta);
@@ -1371,7 +1373,8 @@ extern "C" i32 ANI_SimpleAni3PlayerV4Joint_Blend(ani3_animheader_s *anim, f32 fr
                 }
                 group_values[1] += delta * blend;
 
-                decoded = DecodeAni4Quat3Scalar(anim, key_stride, constants, curve_types[2], quarter, fraction, keys, scale_min);
+                decoded = DecodeAni4Quat3Scalar(anim, key_stride, constants, curve_types[2], quarter, fraction, keys,
+                                                scale_min);
                 delta = decoded - group_values[2];
                 if (group == 1) {
                     delta = WrapAni4BlendRotation(delta);
@@ -1482,18 +1485,18 @@ extern "C" void ANI_Ani3ExtractAllNodeCurves(ani3_animheader_s *anim, float fram
         u16 type = types[curve];
         if (curve_mask != NULL && *curve_mask != curve) {
             switch (type) {
-            case 7:
-                keys += 8;
-                ++scale_min;
-                break;
-            case 6:
-                keys += 4;
-                ++scale_min;
-                break;
-            case 8:
-            case 10:
-                keys += 4;
-                break;
+                case 7:
+                    keys += 8;
+                    ++scale_min;
+                    break;
+                case 6:
+                    keys += 4;
+                    ++scale_min;
+                    break;
+                case 8:
+                case 10:
+                    keys += 4;
+                    break;
             }
             continue;
         }
@@ -1503,56 +1506,58 @@ extern "C" void ANI_Ani3ExtractAllNodeCurves(ani3_animheader_s *anim, float fram
 
         float key_fraction = (force_zero[curve] & 1) != 0 ? 0.0f : fraction;
         switch (type) {
-        case 7:
-            *values = CalcValue1648(reinterpret_cast<char *>(keys), quarter, stride, key_fraction, scale_min);
-            keys += 8;
-            ++scale_min;
-            break;
-        case 8:
-            *values = static_cast<float>(constants[keys[quarter]]);
-            keys += 4;
-            break;
-        case 10: {
-            u32 index = keys[quarter];
-            keys += 4;
-            const u32 packed = static_cast<u32>(static_cast<i32>(constants[index + 1])) |
-                               (static_cast<u32>(static_cast<i32>(constants[index])) << 16);
-            float value;
-            memcpy(&value, &packed, sizeof(value));
-            *values = value;
-            break;
-        }
-        case 6: {
-            u32 first = *reinterpret_cast<u32 *>(keys);
-            i32 first_value = first & 0xff;
-            u32 tangents = first >> 8;
-            u32 next = *reinterpret_cast<u32 *>(keys + stride);
-            i32 next_value = next & 0xff;
-            float tangent0 = static_cast<float>((tangents >> quarter_shift) & 0x3f) * 0.01587302f;
-            if (quarter != 3) {
-                float tangent1 = static_cast<float>((tangents >> (next_quarter_shift & 0x1f)) & 0x3f) * 0.01587302f;
-                float packed_value =
-                    (static_cast<float>(next_value) - static_cast<float>(first_value)) *
-                        ((tangent1 - tangent0) * key_fraction + tangent0) + static_cast<float>(first_value);
-                *values = packed_value * scale_min->scale + scale_min->minimum;
-            } else {
-                float interpolated = (static_cast<float>(next_value) - static_cast<float>(first_value)) * tangent0 +
-                                     static_cast<float>(first_value);
-                float tangent1 = static_cast<float>((next >> 8) & 0x3f) * 0.01587302f;
-                float after = static_cast<float>(static_cast<i32>(keys[stride * 2]));
-                float packed_value =
-                    (((after - static_cast<float>(next_value)) * tangent1 + static_cast<float>(next_value)) -
-                     interpolated) * key_fraction + interpolated;
-                *values = packed_value * scale_min->scale + scale_min->minimum;
+            case 7:
+                *values = CalcValue1648(reinterpret_cast<char *>(keys), quarter, stride, key_fraction, scale_min);
+                keys += 8;
+                ++scale_min;
+                break;
+            case 8:
+                *values = static_cast<float>(constants[keys[quarter]]);
+                keys += 4;
+                break;
+            case 10: {
+                u32 index = keys[quarter];
+                keys += 4;
+                const u32 packed = static_cast<u32>(static_cast<i32>(constants[index + 1])) |
+                                   (static_cast<u32>(static_cast<i32>(constants[index])) << 16);
+                float value;
+                memcpy(&value, &packed, sizeof(value));
+                *values = value;
+                break;
             }
-            keys += 4;
-            ++scale_min;
-            break;
-        }
-        default:
-            u16 constant = constant_values[constant_offset + type];
-            *values = static_cast<float>(constant) * anim->scale + anim->minimum;
-            break;
+            case 6: {
+                u32 first = *reinterpret_cast<u32 *>(keys);
+                i32 first_value = first & 0xff;
+                u32 tangents = first >> 8;
+                u32 next = *reinterpret_cast<u32 *>(keys + stride);
+                i32 next_value = next & 0xff;
+                float tangent0 = static_cast<float>((tangents >> quarter_shift) & 0x3f) * 0.01587302f;
+                if (quarter != 3) {
+                    float tangent1 = static_cast<float>((tangents >> (next_quarter_shift & 0x1f)) & 0x3f) * 0.01587302f;
+                    float packed_value = (static_cast<float>(next_value) - static_cast<float>(first_value)) *
+                                             ((tangent1 - tangent0) * key_fraction + tangent0) +
+                                         static_cast<float>(first_value);
+                    *values = packed_value * scale_min->scale + scale_min->minimum;
+                } else {
+                    float interpolated = (static_cast<float>(next_value) - static_cast<float>(first_value)) * tangent0 +
+                                         static_cast<float>(first_value);
+                    float tangent1 = static_cast<float>((next >> 8) & 0x3f) * 0.01587302f;
+                    float after = static_cast<float>(static_cast<i32>(keys[stride * 2]));
+                    float packed_value =
+                        (((after - static_cast<float>(next_value)) * tangent1 + static_cast<float>(next_value)) -
+                         interpolated) *
+                            key_fraction +
+                        interpolated;
+                    *values = packed_value * scale_min->scale + scale_min->minimum;
+                }
+                keys += 4;
+                ++scale_min;
+                break;
+            }
+            default:
+                u16 constant = constant_values[constant_offset + type];
+                *values = static_cast<float>(constant) * anim->scale + anim->minimum;
+                break;
         }
     }
 }

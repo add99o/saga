@@ -91,104 +91,86 @@ enum CHARACTER_ANIMATION : i16 {
 };
 
 static void MoveAnim_Check(GameObject_s *object) {
-    if (GetAnimBlendMode() == 1) {
+    if (GetAnimBlendMode() == 1)
         return;
-    }
-
     ANIMPACKET_s &packet = object->apiobj.anim_packet;
     i16 requested = packet.requested_animation;
     const i16 previous = packet.previous_animation;
-
-    if (object->released_movement_animation != -1) {
-        object->movement_animation_hold_timer = 0.1f;
-        object->held_movement_animation = -1;
-    } else {
-        if (requested == previous) {
-            object->movement_animation_hold_timer = 0.1f;
-            object->held_movement_animation = -1;
-            object->movement_animation_release_timer = 0.1f;
-            object->released_movement_animation = -1;
+    if (object->released_movement_animation == -1)
+        goto check_hold;
+reset_hold:
+    object->movement_animation_hold_timer = 0.1f;
+    object->held_movement_animation = -1;
+check_release:
+    requested = packet.requested_animation;
+    {
+        const u32 requested_flags = ActionInfo[requested].flags;
+        if (requested == previous || (requested_flags & 7) == 0 ||
+            (previous != CHARACTER_ANIMATION_ALT_IDLE && previous != CHARACTER_ANIMATION_IDLE) ||
+            (requested_flags & 4) != 0)
+            goto reset_release;
+        if (object->released_movement_animation != -1) {
+            object->movement_animation_release_timer -= FRAMETIME;
+            if (object->movement_animation_release_timer <= 0.0f)
+                object->movement_animation_release_timer = -1.0f;
+            else
+                packet.requested_animation = object->released_movement_animation;
             return;
         }
-
+        object->movement_animation_hold_timer = 0.1f;
+        if (packet.blending == 0 && (requested_flags & 3) != 0) {
+            packet.requested_animation = previous;
+            object->released_movement_animation = previous;
+        }
+        return;
+    }
+reset_release:
+    object->movement_animation_release_timer = 0.1f;
+    object->released_movement_animation = -1;
+    return;
+check_hold:
+    if (requested == previous)
+        goto reset_hold;
+    {
         const u32 requested_flags = ActionInfo[requested].flags;
         if (((requested_flags & 7) == 0 && requested != CHARACTER_ANIMATION_ALT_IDLE &&
              requested != CHARACTER_ANIMATION_IDLE) ||
-            (ActionInfo[previous].flags & 7) == 0 || (requested_flags & 4) != 0) {
-            object->movement_animation_hold_timer = 0.1f;
-            object->held_movement_animation = -1;
-            object->movement_animation_release_timer = 0.1f;
-            object->released_movement_animation = -1;
-            return;
-        }
-
-        if (object->held_movement_animation != -1) {
-            object->movement_animation_hold_timer -= FRAMETIME;
-            if (object->movement_animation_hold_timer > 0.0f) {
-                packet.requested_animation = object->held_movement_animation;
-                object->movement_animation_release_timer = 0.1f;
-                object->released_movement_animation = -1;
-                return;
-            }
+            (ActionInfo[previous].flags & 7) == 0 || (requested_flags & 4) != 0)
+            goto reset_hold;
+    }
+    if (object->held_movement_animation != -1) {
+        object->movement_animation_hold_timer -= FRAMETIME;
+        if (object->movement_animation_hold_timer <= 0.0f) {
             object->held_movement_animation = -1;
         } else {
-            object->movement_animation_hold_timer = 0.1f;
-            if (packet.blending == 0) {
-                bool retain_previous = false;
-                if (previous == CHARACTER_ANIMATION_RUN) {
-                    retain_previous = requested == CHARACTER_ANIMATION_WALK ||
-                                      requested == CHARACTER_ANIMATION_TIPTOE || requested == CHARACTER_ANIMATION_IDLE;
-                } else if (previous == CHARACTER_ANIMATION_SABER_RUN) {
-                    const GAMECHARACTERDATA *game_character =
-                        static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-                    const i16 alternate_idle =
-                        game_character->field275_0x116 != 0
-                            ? CHARACTER_ANIMATION_ALT_IDLE
-                            : static_cast<i16>((object->apiobj.character_data->model_flags & 0x80) != 0 ? 118 : 25);
-                    retain_previous = requested == CHARACTER_ANIMATION_SABER_TIPTOE ||
-                                      requested == CHARACTER_ANIMATION_SABER_WALK || requested == alternate_idle;
-                }
-
-                if (retain_previous) {
-                    packet.requested_animation = previous;
-                    object->held_movement_animation = previous;
-                    object->movement_animation_release_timer = 0.1f;
-                    object->released_movement_animation = -1;
-                    return;
-                }
+            packet.requested_animation = object->held_movement_animation;
+            goto reset_release;
+        }
+    } else {
+        object->movement_animation_hold_timer = 0.1f;
+        if (packet.blending == 0) {
+            bool retain_previous = false;
+            if (previous == CHARACTER_ANIMATION_RUN) {
+                retain_previous = requested == CHARACTER_ANIMATION_WALK || requested == CHARACTER_ANIMATION_TIPTOE ||
+                                  requested == CHARACTER_ANIMATION_IDLE;
+            } else if (previous == CHARACTER_ANIMATION_SABER_RUN) {
+                const GAMECHARACTERDATA *game_character =
+                    static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
+                const i16 alternate_idle =
+                    game_character->field275_0x116 != 0
+                        ? CHARACTER_ANIMATION_ALT_IDLE
+                        : static_cast<i16>((object->apiobj.character_data->model_flags & 0x80) != 0 ? 118 : 25);
+                retain_previous = requested == CHARACTER_ANIMATION_SABER_TIPTOE ||
+                                  requested == CHARACTER_ANIMATION_SABER_WALK || requested == alternate_idle;
             }
-
-            object->movement_animation_release_timer = 0.1f;
-            object->released_movement_animation = -1;
-            return;
+            if (retain_previous) {
+                packet.requested_animation = previous;
+                object->held_movement_animation = previous;
+                goto reset_release;
+            }
         }
     }
-
-    requested = packet.requested_animation;
-    const u32 requested_flags = ActionInfo[requested].flags;
-    if (requested == previous || (requested_flags & 7) == 0 ||
-        (previous != CHARACTER_ANIMATION_ALT_IDLE && previous != CHARACTER_ANIMATION_IDLE) ||
-        (requested_flags & 4) != 0) {
-        object->movement_animation_release_timer = 0.1f;
-        object->released_movement_animation = -1;
-        return;
-    }
-
-    if (object->released_movement_animation != -1) {
-        object->movement_animation_release_timer -= FRAMETIME;
-        if (object->movement_animation_release_timer <= 0.0f) {
-            object->movement_animation_release_timer = -1.0f;
-        } else {
-            packet.requested_animation = object->released_movement_animation;
-        }
-        return;
-    }
-
-    object->movement_animation_hold_timer = 0.1f;
-    if (packet.blending == 0 && (requested_flags & 3) != 0) {
-        packet.requested_animation = previous;
-        object->released_movement_animation = previous;
-    }
+    goto check_release;
 }
 
 static void JumpAnimCode(GameObject_s *object) {
@@ -322,17 +304,18 @@ void Animate_ATAT(GameObject_s *object) {
     }
 }
 
+static inline i16 JediWeaponIdle(GameObject_s *object) {
+    if (((object->field_0xe22 & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION) != 0 || object->field_0xe32 == 1) &&
+        object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL)
+        return CHARACTER_ANIMATION_ALT_WEAPON_IDLE;
+    return CHARACTER_ANIMATION_WEAPON_IDLE;
+}
+
 void Animate_JEDI(GameObject_s *object) {
     ANIMPACKET_s &packet = object->apiobj.anim_packet;
-    bool check_movement_animation = false;
 
     if ((object->field_0xe23 & GAMEOBJECT_E23_FLAG_FORCE_WEAPON_IDLE) != 0) {
-        if (((object->field_0xe22 & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION) != 0 || object->field_0xe32 == 1) &&
-            object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL) {
-            packet.requested_animation = CHARACTER_ANIMATION_ALT_WEAPON_IDLE;
-        } else {
-            packet.requested_animation = CHARACTER_ANIMATION_WEAPON_IDLE;
-        }
+        packet.requested_animation = JediWeaponIdle(object);
     } else if ((CInfo[object->character_context].flags & CHARACTER_CONTEXT_INFO_FLAG_OWNS_ANIMATION) != 0) {
         packet.requested_animation = object->context_animation;
     } else {
@@ -364,12 +347,7 @@ void Animate_JEDI(GameObject_s *object) {
             packet.requested_animation = CHARACTER_ANIMATION_FALL;
         } else if (object->field_0x7a5 == CHARACTER_CONTEXT_FORCE_PUSH) {
             if ((object->action_flags & GAMEOBJECT_ACTION_FLAG_FORCE_PUSH_WEAPON_IDLE_MASK) != 0) {
-                if (((object->field_0xe22 & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION) != 0 || object->field_0xe32 == 1) &&
-                    object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL) {
-                    packet.requested_animation = CHARACTER_ANIMATION_ALT_WEAPON_IDLE;
-                } else {
-                    packet.requested_animation = CHARACTER_ANIMATION_WEAPON_IDLE;
-                }
+                packet.requested_animation = JediWeaponIdle(object);
             } else {
                 packet.requested_animation =
                     object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL
@@ -379,12 +357,7 @@ void Animate_JEDI(GameObject_s *object) {
         } else if (object->field_0x7a5 == CHARACTER_CONTEXT_FORCE_DEFLECT ||
                    object->field_0x7a5 == CHARACTER_CONTEXT_FORCE_THROW ||
                    object->field_0x7a5 == CHARACTER_CONTEXT_FORCE) {
-            if (((object->field_0xe22 & GAMEOBJECT_E22_FLAG_WEAPON_ANIMATION) != 0 || object->field_0xe32 == 1) &&
-                object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_ALT_WEAPON_IDLE] != NULL) {
-                packet.requested_animation = CHARACTER_ANIMATION_ALT_WEAPON_IDLE;
-            } else {
-                packet.requested_animation = CHARACTER_ANIMATION_WEAPON_IDLE;
-            }
+            packet.requested_animation = JediWeaponIdle(object);
         } else if (packet.requested_animation != CHARACTER_ANIMATION_FALL) {
             GAMEPAD_s *pad = object->pad_gamepad;
             if ((pad->allocated_5a & GAMEPAD_RUNTIME_SUPPRESS_MOVEMENT) == 0 && pad->input_magnitude > 0.0f) {
@@ -404,8 +377,7 @@ void Animate_JEDI(GameObject_s *object) {
             }
         }
 
-        if (UsingExtraActionsFn != NULL && UsingExtraActionsFn(object) != 0 &&
-            packet.requested_animation <= CHARACTER_ANIMATION_FALL) {
+        if (UsingExtraActionsFn != NULL && UsingExtraActionsFn(object) != 0) {
             switch (packet.requested_animation) {
                 case CHARACTER_ANIMATION_WALK:
                     packet.requested_animation = CHARACTER_ANIMATION_EXTRA_WALK;
@@ -426,10 +398,6 @@ void Animate_JEDI(GameObject_s *object) {
                     break;
             }
         }
-        check_movement_animation = true;
-    }
-
-    if (check_movement_animation) {
         MoveAnim_Check(object);
     }
     UpdateCharacterIdle(object);
@@ -461,85 +429,85 @@ void Animate_JEDI(GameObject_s *object) {
 
 static void MoveAnim_Manage(GameObject_s *object, f32 movement_speed, i32 allow_tiptoe, i32 weapon_variant) {
     GAMECHARACTERDATA *game_character = static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-    CHARACTERMODEL_s *model = object->apiobj.character_model;
-
-    const f32 walk_run_threshold = (game_character->walk_speed + game_character->run_speed) * 0.5f;
-    const bool use_weapon_locomotion =
-        weapon_variant != 0 && (object->weapon_scale == 0.0f || object->weapon_scale_state == WEAPON_SCALE_EXTENDING);
 
     CHARACTER_ANIMATION animation;
     if (allow_tiptoe != 0 && movement_speed <= (game_character->tiptoe_speed + game_character->walk_speed) * 0.5f) {
-        animation = use_weapon_locomotion && model->model_data_b[CHARACTER_ANIMATION_SABER_TIPTOE] != NULL
-                        ? CHARACTER_ANIMATION_SABER_TIPTOE
-                        : CHARACTER_ANIMATION_TIPTOE;
-    } else if (movement_speed <= walk_run_threshold) {
-        if (use_weapon_locomotion && model->model_data_b[CHARACTER_ANIMATION_SABER_WALK] != NULL) {
-            animation = CHARACTER_ANIMATION_SABER_WALK;
-        } else if (model->model_data_b[CHARACTER_ANIMATION_BACKWARDS] != NULL &&
+        object->apiobj.anim_packet.requested_animation = animation =
+            weapon_variant != 0 &&
+                    (object->weapon_scale == 1.0f || object->weapon_scale_state == WEAPON_SCALE_EXTENDING) &&
+                    object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_SABER_TIPTOE] != NULL
+                ? CHARACTER_ANIMATION_SABER_TIPTOE
+                : CHARACTER_ANIMATION_TIPTOE;
+    } else if (movement_speed <= (game_character->walk_speed + game_character->run_speed) * 0.5f) {
+        if (weapon_variant != 0 &&
+            (object->weapon_scale == 1.0f || object->weapon_scale_state == WEAPON_SCALE_EXTENDING) &&
+            object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_SABER_WALK] != NULL) {
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_SABER_WALK;
+        } else if (object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_BACKWARDS] != NULL &&
                    (object->field_0xefd & GAMEOBJECT_MOVEMENT_FLAG_BACKWARDS) != 0) {
-            animation = CHARACTER_ANIMATION_BACKWARDS;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_BACKWARDS;
         } else {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         }
     } else {
-        animation = use_weapon_locomotion && model->model_data_b[CHARACTER_ANIMATION_SABER_RUN] != NULL
-                        ? CHARACTER_ANIMATION_SABER_RUN
-                        : CHARACTER_ANIMATION_RUN;
+        object->apiobj.anim_packet.requested_animation = animation =
+            weapon_variant != 0 &&
+                    (object->weapon_scale == 1.0f || object->weapon_scale_state == WEAPON_SCALE_EXTENDING) &&
+                    object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_SABER_RUN] != NULL
+                ? CHARACTER_ANIMATION_SABER_RUN
+                : CHARACTER_ANIMATION_RUN;
     }
-    object->apiobj.anim_packet.requested_animation = animation;
 
     const SUIT_s *suit = static_cast<const SUIT_s *>(object->suit);
     if (suit != NULL && (suit->store_flag & SUIT_STORE_FLAG_EXTRA_MOVEMENT_ANIMATIONS) != 0 &&
         (object->movement_context_state & 0x00ffff00) != 0x00054300) {
-        if (animation == CHARACTER_ANIMATION_TIPTOE && model->model_data_b[CHARACTER_ANIMATION_SUIT_TIPTOE] != NULL) {
-            animation = CHARACTER_ANIMATION_SUIT_TIPTOE;
+        if (animation == CHARACTER_ANIMATION_TIPTOE &&
+            object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_SUIT_TIPTOE] != NULL) {
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_SUIT_TIPTOE;
         } else if (animation == CHARACTER_ANIMATION_WALK &&
-                   model->model_data_b[CHARACTER_ANIMATION_SUIT_WALK] != NULL) {
-            animation = CHARACTER_ANIMATION_SUIT_WALK;
-        } else if (animation == CHARACTER_ANIMATION_RUN && model->model_data_b[CHARACTER_ANIMATION_SUIT_RUN] != NULL) {
-            animation = CHARACTER_ANIMATION_SUIT_RUN;
+                   object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_SUIT_WALK] != NULL) {
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_SUIT_WALK;
+        } else if (animation == CHARACTER_ANIMATION_RUN &&
+                   object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_SUIT_RUN] != NULL) {
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_SUIT_RUN;
         }
-        object->apiobj.anim_packet.requested_animation = animation;
     }
 
     // The target applies this bounded fallback exactly three times. Keeping
     // the passes explicit preserves its finite walk/run alternation when a
     // model supplies none of the ordinary locomotion clips.
-    if (model->model_data_b[animation] == NULL) {
+    if (object->apiobj.character_model->model_data_b[animation] == NULL) {
         if (animation == CHARACTER_ANIMATION_TIPTOE) {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         } else if (animation == CHARACTER_ANIMATION_WALK) {
-            animation = CHARACTER_ANIMATION_RUN;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_RUN;
         } else if (animation == CHARACTER_ANIMATION_RUN) {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         } else {
             return;
         }
-        object->apiobj.anim_packet.requested_animation = animation;
     }
-    if (model->model_data_b[animation] == NULL) {
+    if (object->apiobj.character_model->model_data_b[animation] == NULL) {
         if (animation == CHARACTER_ANIMATION_TIPTOE) {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         } else if (animation == CHARACTER_ANIMATION_WALK) {
-            animation = CHARACTER_ANIMATION_RUN;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_RUN;
         } else if (animation == CHARACTER_ANIMATION_RUN) {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         } else {
             return;
         }
-        object->apiobj.anim_packet.requested_animation = animation;
     }
-    if (model->model_data_b[animation] == NULL) {
+    if (object->apiobj.character_model->model_data_b[animation] == NULL) {
         if (animation == CHARACTER_ANIMATION_TIPTOE) {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         } else if (animation == CHARACTER_ANIMATION_WALK) {
-            animation = CHARACTER_ANIMATION_RUN;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_RUN;
         } else if (animation == CHARACTER_ANIMATION_RUN) {
-            animation = CHARACTER_ANIMATION_WALK;
+            object->apiobj.anim_packet.requested_animation = animation = CHARACTER_ANIMATION_WALK;
         } else {
             return;
         }
-        object->apiobj.anim_packet.requested_animation = animation;
     }
 }
 
@@ -619,22 +587,16 @@ void Animate_BEAST(GameObject_s *object) {
         packet.requested_animation = object->context_animation;
     } else {
         packet.requested_animation = CHARACTER_ANIMATION_FALL;
-        if (object->character_context != CHARACTER_CONTEXT_DOOMED) {
-            const bool has_fall = object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] != NULL;
-            bool use_default_idle = object->apiobj.field_0x27d != 0;
-            if (!use_default_idle) {
-                if (object->ground_contact_grace_timer > 0.0f || !has_fall ||
-                    (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
-                     object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
-                    use_default_idle =
-                        !(static_cast<const GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24)
-                              ->field_0x28 > 0.0f) ||
-                        !has_fall;
-                }
-            }
-            if (use_default_idle) {
-                packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
-            }
+        if (object->character_context != CHARACTER_CONTEXT_DOOMED &&
+            (object->apiobj.field_0x27d != 0 ||
+             ((object->ground_contact_grace_timer > 0.0f ||
+               object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL ||
+               (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
+                object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) &&
+              !(static_cast<const GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24)->field_0x28 >
+                    0.0f &&
+                object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] != NULL)))) {
+            packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
         }
 
         if (UseFallAnim(object)) {
@@ -644,17 +606,19 @@ void Animate_BEAST(GameObject_s *object) {
                    pad->input_magnitude > 0.0f) {
             const bool has_walk = object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_WALK] != NULL;
             const bool has_run = object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_RUN] != NULL;
-            if (has_run && has_walk) {
+            if (!has_run) {
+                if (has_walk) {
+                    packet.requested_animation = CHARACTER_ANIMATION_WALK;
+                }
+            } else if (!has_walk) {
+                packet.requested_animation = CHARACTER_ANIMATION_RUN;
+            } else {
                 const GAMECHARACTERDATA *character =
                     static_cast<const GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
                 const f32 threshold = (character->walk_speed + character->run_speed) * 0.5f;
                 packet.requested_animation = threshold >= object->pad_gamepad->input_magnitude
                                                  ? CHARACTER_ANIMATION_WALK
                                                  : CHARACTER_ANIMATION_RUN;
-            } else if (has_run) {
-                packet.requested_animation = CHARACTER_ANIMATION_RUN;
-            } else if (has_walk) {
-                packet.requested_animation = CHARACTER_ANIMATION_WALK;
             }
             if (packet.requested_animation == CHARACTER_ANIMATION_WALK && (object->field_0xe24 & 1) != 0) {
                 packet.requested_animation = CHARACTER_ANIMATION_SABER_WALK;
@@ -898,7 +862,7 @@ void Animate_DROIDEKA(GameObject_s *object) {
             } else if (object->ground_contact_grace_timer > 0.0f) {
                 const GAMECHARACTERDATA *game_character =
                     static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-                if (game_character->field_0x28 <= 0.0f ||
+                if (!(game_character->field_0x28 > 0.0f) ||
                     object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL) {
                     packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
                 }
@@ -907,7 +871,7 @@ void Animate_DROIDEKA(GameObject_s *object) {
                         object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
                 const GAMECHARACTERDATA *game_character =
                     static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-                if (game_character->field_0x28 <= 0.0f ||
+                if (!(game_character->field_0x28 > 0.0f) ||
                     object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL) {
                     packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
                 }
@@ -920,7 +884,7 @@ void Animate_DROIDEKA(GameObject_s *object) {
                    object->pad_gamepad->input_magnitude > 0.0f) {
             const GAMECHARACTERDATA *game_character = GetGameCharacterData(object);
             const f32 walk_threshold = (game_character->tiptoe_speed + game_character->walk_speed) * 0.5f;
-            packet.requested_animation = object->pad_gamepad->input_magnitude > walk_threshold
+            packet.requested_animation = !(object->pad_gamepad->input_magnitude <= walk_threshold)
                                              ? CHARACTER_ANIMATION_WALK
                                              : CHARACTER_ANIMATION_TIPTOE;
         }
@@ -1194,26 +1158,15 @@ void Animate_CHARACTER(GameObject_s *object) {
     } else {
         packet.requested_animation = CHARACTER_ANIMATION_FALL;
 
-        if (object->character_context != CHARACTER_CONTEXT_DOOMED) {
-            bool use_default_idle = object->apiobj.field_0x27d != 0;
-            if (!use_default_idle) {
-                const bool has_fall_animation =
-                    object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] != NULL;
-                if (object->ground_contact_grace_timer > 0.0f) {
-                    const GAMECHARACTERDATA *game_character =
-                        static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-                    use_default_idle = game_character->field_0x28 <= 0.0f || !has_fall_animation;
-                } else if (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
-                           object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f) {
-                    const GAMECHARACTERDATA *game_character = object->apiobj.character_data->game_character;
-                    use_default_idle = game_character->field_0x28 <= 0.0f || !has_fall_animation;
-                } else if (!has_fall_animation) {
-                    use_default_idle = true;
-                }
-            }
-            if (use_default_idle) {
-                packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
-            }
+        if (object->character_context != CHARACTER_CONTEXT_DOOMED &&
+            (object->apiobj.field_0x27d != 0 ||
+             ((object->ground_contact_grace_timer > 0.0f ||
+               object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL ||
+               (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
+                object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) &&
+              (!(object->apiobj.character_data->game_character->field_0x28 > 0.0f) ||
+               object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL)))) {
+            packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
         }
 
         if (object->character_context == CHARACTER_CONTEXT_JUMP) {
@@ -1648,14 +1601,10 @@ void Animate_SUPERBATTLEDROID(GameObject_s *object) {
             bool use_default_idle = object->apiobj.field_0x27d != 0;
             if (!use_default_idle) {
                 const bool has_fall = object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] != NULL;
-                if (object->ground_contact_grace_timer > 0.0f) {
-                    const GAMECHARACTERDATA *game_character = GetGameCharacterData(object);
-                    use_default_idle = game_character->field_0x28 <= 0.0f || !has_fall;
-                } else if (!has_fall) {
-                    use_default_idle = true;
-                } else if (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
-                           object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f) {
-                    use_default_idle = true;
+                if (object->ground_contact_grace_timer > 0.0f || !has_fall ||
+                    (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
+                     object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
+                    use_default_idle = !(GetGameCharacterData(object)->field_0x28 > 0.0f) || !has_fall;
                 }
             }
             if (use_default_idle) {
@@ -1672,7 +1621,7 @@ void Animate_SUPERBATTLEDROID(GameObject_s *object) {
             if ((object->pad_gamepad->allocated_5a & GAMEPAD_RUNTIME_SUPPRESS_MOVEMENT) == 0 &&
                 object->pad_gamepad->input_magnitude > 0.0f) {
                 const f32 run_threshold = (game_character->walk_speed + game_character->run_speed) * 0.5f;
-                if (object->pad_gamepad->input_magnitude > run_threshold) {
+                if (!(object->pad_gamepad->input_magnitude <= run_threshold)) {
                     packet.requested_animation = weapon_out ? CHARACTER_ANIMATION_SABER_RUN : CHARACTER_ANIMATION_RUN;
                 } else {
                     packet.requested_animation = weapon_out ? CHARACTER_ANIMATION_SABER_WALK : CHARACTER_ANIMATION_WALK;
@@ -1777,27 +1726,59 @@ i32 GameAnimSet_GetAveragePos(GAMEANIMSET_s *set, NUVEC *position, i32 frame_sel
     if (position == NULL || set == NULL || set->object_count == 0 || set->objects == NULL)
         return 0;
     i32 count = 0;
-    for (GAMEANIMOBJ_s *object = set->objects; object != NULL; object = object->next) {
-        if ((object->flags & 1) != 0)
-            continue;
-        if (object->instance_animation != NULL) {
-            if (include_animated == 0)
-                continue;
-            f32 frame;
-            if (frame_selection == 0)
-                frame = object->start_frame;
-            else if (frame_selection == 1)
-                frame = object->end_frame;
-            else
-                frame = object->instance_animation->ltime;
-            NUMTX matrix;
-            EvalAnim(&object->special, frame, &matrix, 1);
-            NuVecAdd(&sum, &sum, NUMTX_GET_ROW_VEC(&matrix, 3));
-            ++count;
-        } else if (include_static != 0) {
-            NuVecAdd(&sum, &sum, NuSpecialGetDrawPos(&object->special));
-            ++count;
+    NUMTX matrix;
+    GAMEANIMOBJ_s *object = set->objects;
+    if (include_static == 0) {
+        if (include_animated == 0) {
+            do {
+                object = object->next;
+            } while (object != NULL);
+            return 0;
         }
+        do {
+            if ((object->flags & 1) == 0 && object->instance_animation != NULL) {
+                f32 frame;
+                if (frame_selection == 0)
+                    frame = object->start_frame;
+                else if (frame_selection == 1)
+                    frame = object->end_frame;
+                else
+                    frame = object->instance_animation->ltime;
+                EvalAnim(&object->special, frame, &matrix, 1);
+                ++count;
+                NuVecAdd(&sum, &sum, NUMTX_GET_ROW_VEC(&matrix, 3));
+            }
+            object = object->next;
+        } while (object != NULL);
+    } else if (include_animated == 0) {
+        do {
+            if ((object->flags & 1) == 0 && object->instance_animation == NULL) {
+                NuVecAdd(&sum, &sum, NuSpecialGetDrawPos(&object->special));
+                ++count;
+            }
+            object = object->next;
+        } while (object != NULL);
+    } else {
+        do {
+            if ((object->flags & 1) == 0) {
+                if (object->instance_animation == NULL) {
+                    NuVecAdd(&sum, &sum, NuSpecialGetDrawPos(&object->special));
+                    ++count;
+                } else {
+                    f32 frame;
+                    if (frame_selection == 0)
+                        frame = object->start_frame;
+                    else if (frame_selection == 1)
+                        frame = object->end_frame;
+                    else
+                        frame = object->instance_animation->ltime;
+                    EvalAnim(&object->special, frame, &matrix, 1);
+                    ++count;
+                    NuVecAdd(&sum, &sum, NUMTX_GET_ROW_VEC(&matrix, 3));
+                }
+            }
+            object = object->next;
+        } while (object != NULL);
     }
     if (count == 0)
         return 0;
@@ -2209,15 +2190,15 @@ extern "C" {
     i32 StateAnimEvaluate(StateAnim *state, u8 *index, u8 *value, f32 frame) {
         u8 next = *index;
         if (next < state->count) {
-            bool changed = false;
+            i32 changed = 0;
             do {
-                if (frame < state->times[next]) {
+                if (!(frame >= state->times[next])) {
                     if (changed) {
                         return 1;
                     }
                     break;
                 }
-                changed = true;
+                changed = 1;
                 *value = state->values[next];
                 next = static_cast<u8>(*index + 1);
                 *index = next;
@@ -2232,13 +2213,14 @@ extern "C" {
             return 0;
         }
         do {
-            if (state->times[next - 1] <= frame) {
+            if (!(state->times[next - 1] > frame)) {
                 return changed;
             }
             next--;
             *index = next;
             *value = next == 0 ? state->values[0] : state->values[next - 1];
             changed = 1;
+            next = *index;
         } while (next != 0);
         return 1;
     }

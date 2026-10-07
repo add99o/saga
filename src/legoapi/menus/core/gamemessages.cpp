@@ -107,15 +107,15 @@ GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
     for (i32 count = 128; count != 0; --count) {
         slot = reinterpret_cast<GAME_MESSAGE_DATA *>(&GameMessage[index]);
         if (slot->active == 0) {
-            slot_index = index;
-            break;
+            GameMessageIndex = index;
+            goto initialise_slot;
         }
 
         if ((slot->flags & 0x1000) == 0) {
             f32 value;
             if (slot->field_0xfa != 0) {
                 value = 1.0f;
-            } else if (slot->duration == 0.0f || slot->elapsed == 0.0f) {
+            } else if ((slot->elapsed == 0.0f) | (slot->duration == 0.0f)) {
                 value = 0.0f;
             } else {
                 value = slot->elapsed / slot->duration;
@@ -146,6 +146,7 @@ GAMEMESSAGE_s *AddGameMsg(ADDGAMEMSG *message) {
         }
     }
 
+initialise_slot:
     slot->text = NULL;
     i32 text_index = 0;
     if (message->special != NULL) {

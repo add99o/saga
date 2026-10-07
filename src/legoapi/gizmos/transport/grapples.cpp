@@ -779,8 +779,9 @@ void Grapple_MoveCode(GameObject_s *object) {
 #define GRAPPLE_CURRENT (static_cast<GRAPPLE *>(object->field_0x788))
 #define GRAPPLE_QUANTIZE(angle)                                                                                        \
     do {                                                                                                               \
-        const i32 difference = RotDiff((angle), static_cast<u16>(GRAPPLE_CURRENT->y_rotation + 0x4000));               \
-        (angle) = static_cast<u16>(GRAPPLE_CURRENT->y_rotation + (abs(difference) <= 0x4000 ? 0x4000 : 0xc000));       \
+        GRAPPLE *const quantize_grapple = GRAPPLE_CURRENT;                                                             \
+        const i32 difference = RotDiff((angle), static_cast<u16>(quantize_grapple->y_rotation + 0x4000));              \
+        (angle) = static_cast<u16>(quantize_grapple->y_rotation + (abs(difference) <= 0x4000 ? 0x4000 : 0xc000));      \
     } while (0)
 #define GRAPPLE_MAXIMUM_LENGTH(result)                                                                                 \
     do {                                                                                                               \
@@ -974,8 +975,8 @@ void Grapple_MoveCode(GameObject_s *object) {
                     object->apiobj.movement_facing_angle +=
                         static_cast<i32>(static_cast<u16>(Grapple_RopeSwingRotate) * FRAMETIME);
             }
-            if (object->field_0x768 > 0.0f || GRAPPLE_CURRENT->has_terrain_platform != 0 ||
-                GRAPPLE_CURRENT->retain_attachment != 0 || (GRAPPLE_CURRENT->flags & GRAPPLE_FLAG_DISABLED) != 0)
+            if (!(object->field_0x768 <= 0.0f) || GRAPPLE_CURRENT->has_terrain_platform != 0 ||
+                (GRAPPLE_CURRENT->flags & GRAPPLE_FLAG_DISABLED) != 0)
                 object->airborne_action_duration = 0.0f;
             else {
                 object->airborne_action_duration += FRAMETIME;
@@ -1006,7 +1007,7 @@ void Grapple_MoveCode(GameObject_s *object) {
                 }
                 f32 maximum_length;
                 GRAPPLE_MAXIMUM_LENGTH(maximum_length);
-                if (maximum_length <= object->field_0x768) {
+                if (!(maximum_length > object->field_0x768)) {
                     object->field_0xe24 |= 0x80;
                     object->context_animation = LEGOACT_GRAPPLE_IDLE;
                 } else {
@@ -1067,9 +1068,10 @@ void Grapple_MoveCode(GameObject_s *object) {
                 angle = NuAtan2D(object->apiobj.velocity.x, object->apiobj.velocity.z);
             if (GrappleSwingMode == 1)
                 GRAPPLE_QUANTIZE(angle);
-            if ((GrappleSwingMode == 0 && abs(RotDiff(angle, input_angle)) < 0x4000) ||
-                (GrappleSwingMode != 0 && swing)) {
-                object->grapple_swing_degrees = MIN(60, object->grapple_swing_degrees + 10);
+            const i32 swing_mode = GrappleSwingMode;
+            if ((swing_mode == 0 && abs(RotDiff(angle, input_angle)) < 0x4000) || (swing_mode != 0 && swing)) {
+                const u8 increased_degrees = static_cast<u8>(object->grapple_swing_degrees + 10);
+                object->grapple_swing_degrees = increased_degrees <= 60 ? increased_degrees : 60;
                 return;
             }
             change = -20;

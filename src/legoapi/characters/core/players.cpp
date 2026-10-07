@@ -281,12 +281,10 @@ void Players_InitPositions(WORLDINFO *world) {
             i32 r = qrand() / (i32)(0xffff / nc + 1);
             PlayerStart[0].pos = (NUVEC *)&A->positions[12 * r];
             NUVEC *target = (NUVEC *)&A->positions[12 * r + 3];
-            PlayerStart[0].angle = NuAtan2D(target->x - PlayerStart[0].pos->x,
-                                          target->z - PlayerStart[0].pos->z);
+            PlayerStart[0].angle = NuAtan2D(target->x - PlayerStart[0].pos->x, target->z - PlayerStart[0].pos->z);
             PlayerStart[1].pos = (NUVEC *)&A->positions[12 * r + 6];
             target = (NUVEC *)&A->positions[12 * r + 9];
-            PlayerStart[1].angle = NuAtan2D(target->x - PlayerStart[0].pos->x,
-                                          target->z - PlayerStart[1].pos->z);
+            PlayerStart[1].angle = NuAtan2D(target->x - PlayerStart[0].pos->x, target->z - PlayerStart[1].pos->z);
         }
     }
 
@@ -1153,8 +1151,7 @@ void Player_ToggleCharacter(GameObject_s *object, i32 direction, i32 sound) {
             }
         }
         return;
-    next_character:
-        ;
+    next_character:;
     } while (attempts <= apicharsys->loaded_model_count && id != object->id);
 }
 
@@ -1695,14 +1692,14 @@ void SetToLastSafePos(GameObject_s *object) {
 
 i32 AvailableToPlayer(u32 character_flags, i32 weapon_action, i32 context, i32 require_all) {
     GameObject_s *object;
-#define CHECK_AVAILABLE_PLAYER(index, predicate) \
+#define CHECK_AVAILABLE_PLAYER(index, predicate)                                                                       \
     ((object = Player[index]) != NULL && object->apiobj.character_data != NULL && (predicate))
-#define CHECK_AVAILABLE_PLAYERS(predicate) \
-    if (CHECK_AVAILABLE_PLAYER(0, predicate) || CHECK_AVAILABLE_PLAYER(1, predicate) || \
-        CHECK_AVAILABLE_PLAYER(2, predicate) || CHECK_AVAILABLE_PLAYER(3, predicate) || \
-        CHECK_AVAILABLE_PLAYER(4, predicate) || CHECK_AVAILABLE_PLAYER(5, predicate) || \
-        CHECK_AVAILABLE_PLAYER(6, predicate) || CHECK_AVAILABLE_PLAYER(7, predicate)) \
-        return 1
+#define CHECK_AVAILABLE_PLAYERS(predicate)                                                                             \
+    if (CHECK_AVAILABLE_PLAYER(0, predicate) || CHECK_AVAILABLE_PLAYER(1, predicate) ||                                \
+        CHECK_AVAILABLE_PLAYER(2, predicate) || CHECK_AVAILABLE_PLAYER(3, predicate) ||                                \
+        CHECK_AVAILABLE_PLAYER(4, predicate) || CHECK_AVAILABLE_PLAYER(5, predicate) ||                                \
+        CHECK_AVAILABLE_PLAYER(6, predicate) || CHECK_AVAILABLE_PLAYER(7, predicate))                                  \
+    return 1
 #define PLAYER_HAS_FLAGS ((object->apiobj.character_data->model_flags & character_flags) == character_flags)
 #define PLAYER_HAS_WEAPON                                                                                              \
     (static_cast<i8>(object->apiobj.character_data->game_character->uses_weapon_action) == weapon_action)
@@ -1932,8 +1929,7 @@ u32 AdjustLayerBits(u32 mask, GameObject_s *object) {
         if ((CharacterCustomiser->pieces[static_cast<u16>(Game.customizer[0].pieces[5])].layer_flags & 0x40) == 0)
             mask |= cape;
     } else if (CharacterCustomiser != NULL && object->id == CharacterCustomiser->character_ids[1]) {
-        if ((CharacterCustomiser->pieces[static_cast<u16>(Game.customizer[1].pieces[5])].layer_flags & 0x40) ==
-            0)
+        if ((CharacterCustomiser->pieces[static_cast<u16>(Game.customizer[1].pieces[5])].layer_flags & 0x40) == 0)
             mask |= cape;
     } else if (object->id == id_CHEWBACCA) {
         if (Cheat_IsOn(4) != 0)

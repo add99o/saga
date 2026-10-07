@@ -37,11 +37,14 @@ void SkinPlatform(terrsitu_s *terrain_group, unsigned char *buffer, PLATSKININFO
         TERRAIN_SHAPE *destination = reinterpret_cast<TERRAIN_SHAPE *>(output + 1);
         f32 min_x = 123456792.0f, min_z = 123456792.0f;
         f32 max_x = -123456792.0f, max_z = -123456792.0f;
-        for (i32 i = 0; i < input->shape_count; ++i, ++source, ++destination) {
+        TERRAIN_SHAPE *const first_shape = source;
+        const i32 shape_count = input->shape_count;
+        TERRAIN_SHAPE *const end_shape = shape_count > 0 ? source + shape_count : source;
+        for (; source != end_shape; ++source, ++destination) {
             i32 last_vertex = source->normals[1].y > 65535.0f ? 2 : 3;
             memcpy(destination, source, sizeof(TERRAIN_SHAPE));
-            NUVEC minimum = {123456792.0f, 123456792.0f, 123456792.0f};
-            NUVEC maximum = {-123456792.0f, -123456792.0f, -123456792.0f};
+            f32 shape_min_x = 123456792.0f, shape_min_y = 123456792.0f, shape_min_z = 123456792.0f;
+            f32 shape_max_x = -123456792.0f, shape_max_y = -123456792.0f, shape_max_z = -123456792.0f;
             for (i32 vertex = last_vertex; vertex >= 0; --vertex) {
                 i32 source_vertex = SkinFlipTab[vertex + info->mirrored * 4];
                 NUVEC &v = destination->vectors[vertex];
@@ -53,40 +56,53 @@ void SkinPlatform(terrsitu_s *terrain_group, unsigned char *buffer, PLATSKININFO
                 max_x = MAX(v.x, max_x);
                 min_z = MIN(v.z, min_z);
                 max_z = MAX(v.z, max_z);
-                minimum.x = MIN(v.x, minimum.x);
-                minimum.y = MIN(v.y, minimum.y);
-                minimum.z = MIN(v.z, minimum.z);
-                maximum.x = MAX(v.x, maximum.x);
-                maximum.y = MAX(v.y, maximum.y);
-                maximum.z = MAX(v.z, maximum.z);
+                shape_min_x = MIN(v.x, shape_min_x);
+                shape_min_y = MIN(v.y, shape_min_y);
+                shape_min_z = MIN(v.z, shape_min_z);
+                shape_max_x = MAX(v.x, shape_max_x);
+                shape_max_y = MAX(v.y, shape_max_y);
+                shape_max_z = MAX(v.z, shape_max_z);
             }
-            destination->min_x = minimum.x - 0.05f;
-            destination->min_y = minimum.y - 0.05f;
-            destination->min_z = minimum.z - 0.05f;
-            destination->max_x = maximum.x + 0.05f;
-            destination->max_y = maximum.y + 0.05f;
-            destination->max_z = maximum.z + 0.05f;
-            for (i32 normal = source->normals[1].y < 65535.0f ? 1 : 0; normal >= 0; --normal) {
-                i32 origin = normal != 0 ? 3 : 0;
-                i32 first = normal != 0 ? 1 : 2;
-                i32 second = normal != 0 ? 2 : 1;
+            destination->min_x = shape_min_x - 0.05f;
+            destination->min_y = shape_min_y - 0.05f;
+            destination->min_z = shape_min_z - 0.05f;
+            destination->max_x = shape_max_x + 0.05f;
+            destination->max_y = shape_max_y + 0.05f;
+            destination->max_z = shape_max_z + 0.05f;
+            if (source->normals[1].y < 65535.0f) {
                 NUVEC a, b;
-                a.x = destination->vectors[first].x - destination->vectors[origin].x;
-                a.y = destination->vectors[first].y - destination->vectors[origin].y;
-                a.z = destination->vectors[first].z - destination->vectors[origin].z;
-                b.x = destination->vectors[second].x - destination->vectors[origin].x;
-                b.y = destination->vectors[second].y - destination->vectors[origin].y;
-                b.z = destination->vectors[second].z - destination->vectors[origin].z;
-                NUVEC &n = destination->normals[normal];
+                a.x = destination->vectors[1].x - destination->vectors[3].x;
+                a.y = destination->vectors[1].y - destination->vectors[3].y;
+                a.z = destination->vectors[1].z - destination->vectors[3].z;
+                b.x = destination->vectors[2].x - destination->vectors[3].x;
+                b.y = destination->vectors[2].y - destination->vectors[3].y;
+                b.z = destination->vectors[2].z - destination->vectors[3].z;
+                NUVEC &n = destination->normals[1];
                 n = TerCrossProduct(&a, &b);
                 f32 length = NuFsqrt((n.x * n.x + n.y * n.y) + n.z * n.z);
                 f32 inverse = length == 0.0f ? 0.0f : 1.0f / length;
                 n.x *= inverse;
                 n.y *= inverse;
-                n.z *= inverse;
+                n.z = inverse * n.z;
+            }
+            {
+                NUVEC a, b;
+                a.x = destination->vectors[2].x - destination->vectors[0].x;
+                a.y = destination->vectors[2].y - destination->vectors[0].y;
+                a.z = destination->vectors[2].z - destination->vectors[0].z;
+                b.x = destination->vectors[1].x - destination->vectors[0].x;
+                b.y = destination->vectors[1].y - destination->vectors[0].y;
+                b.z = destination->vectors[1].z - destination->vectors[0].z;
+                NUVEC &n = destination->normals[0];
+                n = TerCrossProduct(&a, &b);
+                f32 length = NuFsqrt((n.x * n.x + n.y * n.y) + n.z * n.z);
+                f32 inverse = length == 0.0f ? 0.0f : 1.0f / length;
+                n.x *= inverse;
+                n.y *= inverse;
+                n.z = inverse * n.z;
             }
         }
-        if (input->shape_count > 0) {
+        if (source != first_shape) {
             min_x -= 0.05f;
             min_z -= 0.05f;
             max_x += 0.05f;

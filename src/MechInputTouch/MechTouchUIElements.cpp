@@ -259,16 +259,17 @@ MechTouchUICharIcon::MechTouchUICharIcon(MechTouchUIPartySelector &party, VuVec 
 
 void MechTouchUICharIcon::Process(float) {
     if (selector->icon_count == 1) {
-        position.z = 10.0f;
+        radius_x = 10.0f;
     }
 
-    const bool is_hovered = hovered != 0;
+    u8 is_hovered = hovered != 0;
     if (is_hovered && field_0x46 == 0) {
         PlaySfx(const_cast<char *>("LegoClicks2"), NULL);
+        is_hovered = hovered;
     }
     field_0x46 = is_hovered;
 
-    if (alpha_duration >= 0.0f && alpha_elapsed < alpha_duration + alpha_delay) {
+    if (!(alpha_duration < 0.0f) && !(alpha_elapsed >= alpha_duration + alpha_delay)) {
         alpha_elapsed += FRAMETIME;
         if (alpha_elapsed > alpha_duration + alpha_delay) {
             alpha_elapsed = alpha_duration + alpha_delay;
@@ -330,7 +331,6 @@ void MechTouchUICharIcon::SetupDisabled() {
         GameObject_s *target = Player[i];
         if (target != NULL && target->id == character_id) {
             disabled = !TouchHacks::CanTagTo(*player, *target);
-            return;
         }
     }
 }
@@ -432,22 +432,23 @@ void MechTouchUITagButton::Process(float dt) {
     }
 
     if (second_fade.IsActive()) {
-        timer = GiveUpTime - dt;
-        if (timer <= 0.0f) {
-            FadeOut();
-        }
-        if (on_click != NULL) {
-            field_0xbc -= dt;
-            if (field_0xbc < 0.0f) {
-                --tag_state;
-                field_0xbc = 0.75f;
-                timer_animation.from = 0.0f;
-                timer_animation.to = 32768.0f;
-                timer_animation.elapsed = 0.0f;
-                timer_animation.duration = 0.5f;
-                timer_animation.delay = 0.0f;
-                *timer_animation.target = 0.0f;
-            }
+        timer = GiveUpTime;
+    }
+    timer -= dt;
+    if (timer <= 0.0f) {
+        FadeOut();
+    }
+    if (on_click != NULL) {
+        field_0xbc -= dt;
+        if (field_0xbc < 0.0f) {
+            --tag_state;
+            field_0xbc = 0.75f;
+            timer_animation.from = 0.0f;
+            timer_animation.to = 32768.0f;
+            timer_animation.elapsed = 0.0f;
+            timer_animation.duration = 0.5f;
+            timer_animation.delay = 0.0f;
+            *timer_animation.target = 0.0f;
         }
     }
 
@@ -474,8 +475,10 @@ void MechTouchUITagButton::Process(float dt) {
 
     const f32 lower = TagButtonSize - 1.0f;
     const f32 upper = 1.0f - TagButtonSize;
-    position.x = screen_position.x < lower ? lower : (screen_position.x > upper ? upper : screen_position.x);
-    position.y = screen_position.y < lower ? lower : (screen_position.y > upper ? upper : screen_position.y);
+    const f32 clipped_x = upper > screen_position.x ? screen_position.x : upper;
+    const f32 clipped_y = upper > screen_position.y ? screen_position.y : upper;
+    position.x = lower > clipped_x ? lower : clipped_x;
+    position.y = lower > clipped_y ? lower : clipped_y;
 }
 
 void MechTouchUITagButton::Render() {
@@ -488,25 +491,24 @@ void MechTouchUITagButton::Render() {
         return;
     }
 
-    f32 circle_radius = radius_x * RadMult;
-    f32 icon_radius = TagButtonSize;
-    if (hovered != 0) {
-        circle_radius *= 1.3f;
-        icon_radius *= 1.3f;
-    } else {
-        f32 pulse = (1.0f + NuTrigTable[(static_cast<i32>(timer_animation.value) >> 1) & 0x7fff]) * 0.5f;
-        pulse = pulse * (tag_state > 0 ? 0.7f : 0.35f) + 0.9f;
-        circle_radius *= pulse;
-        icon_radius *= pulse;
+    const f32 circle_x = (position.x + 1.0f) * 0.5f;
+    const f32 circle_y = (1.0f - position.y) * 0.5f;
+    f32 pulse = 1.3f;
+    if (hovered == 0) {
+        pulse = (1.0f + NuTrigTable[(static_cast<i32>(timer_animation.value) >> 1) & 0x7fff]) * 0.5f;
+        pulse = pulse * (static_cast<i8>(tag_state) > 0 ? 0.7f : 0.35f) + 0.9f;
     }
-
-    DrawCharIcon(target->id, position.x, position.y, position.z, icon_radius, 0xa6, first_fade.value,
+    const f32 circle_radius = radius_x * RadMult * pulse;
+    DrawCharIcon(target->id, position.x, position.y, position.z, TagButtonSize * pulse, 0xa6, first_fade.value,
                  hover_animation.value * first_fade.value, 1, NULL);
 
-    const i32 colour = (static_cast<i32>(first_fade.value * size_animation.value * 128.0f) << 24) | 0x808080;
-    RndrUnfilledCircle((position.x + 1.0f) * 0.5f, (1.0f - position.y) * 0.5f, circle_radius, BorderWidth,
-                       GetAspectRatio(), colour, second_fade.value, position.z + 0.002f,
-                       MechSystems::Get()->tag_hold_background_material);
+    numtl_s *material = MechSystems::Get()->tag_hold_background_material;
+    const f32 circle_alpha = second_fade.value;
+    const f32 depth = 0.002f + position.z;
+    const f32 colour_alpha = first_fade.value * size_animation.value * 128.0f;
+    const f32 aspect = GetAspectRatio();
+    const i32 colour = (static_cast<i32>(colour_alpha) << 24) | 0x808080;
+    RndrUnfilledCircle(circle_x, circle_y, circle_radius, BorderWidth, aspect, colour, circle_alpha, depth, material);
 }
 
 MechTouchUITagButton::~MechTouchUITagButton() {
@@ -543,8 +545,10 @@ void MechTouchUITexButton::Process(float) {
         scale_elapsed += frame_time;
         if (scale_elapsed > scale_duration + scale_delay)
             scale_elapsed = scale_duration + scale_delay;
-        if (scale_elapsed >= scale_delay)
+        if (scale_elapsed >= scale_delay) {
             *scale_target = ((scale_elapsed - scale_delay) / scale_duration) * (scale_to - scale_from) + scale_from;
+            frame_time = FRAMETIME;
+        }
     }
     if (!(alpha_duration < 0.0f) && !(alpha_elapsed >= alpha_duration + alpha_delay)) {
         alpha_elapsed += frame_time;
@@ -721,7 +725,7 @@ void MechTouchUIPlayerButton::SetupTargetIds() {
     i32 target_count = 0;
     for (i32 i = 0; i < 8; ++i) {
         GameObject_s *player = Player[i];
-        if (player != NULL && (static_cast<u16>(player->apiobj.object_flags) & 0x1001) == 0x1001) {
+        if (player != NULL && (static_cast<u16>(player->apiobj.field_0x1f8) & 0x1001) == 0x1001) {
             target_ids[target_count++] = player->id;
         }
     }
@@ -814,6 +818,7 @@ void MechTouchUIPlayerButton::TriggerTagNext() {
         }
     }
 
+    GameObject_s *source = player;
     i32 current_index = -1;
     for (i32 index = 0; index < 32; ++index) {
         if (target_ids[index] >= 0 && target_ids[index] == player->id) {
@@ -836,8 +841,7 @@ void MechTouchUIPlayerButton::TriggerTagNext() {
                 if (target == NULL || target->id != target_ids[index] || !TouchHacks::CanTagTo(*player, *target)) {
                     continue;
                 }
-                GameObject_s *source = player;
-                if (TagCode(source, target, 0, 0, 1) == 1) {
+                if (TagCode(player, target, 0, 0, 1) == 1) {
                     GameAudio_PlaySfx(0x21, NULL, 0, 0);
                     Tag_NewTransfer(source, target);
                 }
@@ -848,6 +852,9 @@ void MechTouchUIPlayerButton::TriggerTagNext() {
             return;
         }
         ++index;
+        if (index == current_index) {
+            return;
+        }
     }
 }
 
@@ -893,16 +900,20 @@ MechTouchUIPartySelector::MechTouchUIPartySelector(MechTouchUIPlayerButton &butt
     : icon_count(0), player_button(&button), field_0x88(0) {
     memset(icons, 0, sizeof(icons));
 
+    Cleanup();
+    const VuVec button_position = button.position;
+    const f32 button_bottom = button.position.y - button.radius_y;
     const bool small_screen = NuIOS_IsSmallScreen() != 0;
     const f32 gap = small_screen ? 0.11f : 0.06f;
     const f32 scale = small_screen ? 0.16f : 0.15f;
     const i32 icons_per_row = small_screen ? 5 : 7;
-    const f32 first_y = button.position.y - button.radius_y - gap * 2.0f;
-    f32 x = button.position.x;
+    const f32 first_y = (button_bottom - gap) - gap;
+    f32 x = button_position.x;
     f32 y = first_y;
     f32 delay = 0.0f;
     f32 delay_step = 0.03f;
     i32 column = 0;
+    i32 icon_index = 0;
 
     for (i32 target_index = 0; target_index < 32; ++target_index) {
         if (target_ids[target_index] < 0 || player == NULL) {
@@ -912,21 +923,22 @@ MechTouchUIPartySelector::MechTouchUIPartySelector(MechTouchUIPlayerButton &butt
             ++icon_count;
         }
 
-        VuVec position(x, y, button.position.z, button.position.w);
-        MechTouchUICharIcon *icon = new MechTouchUICharIcon(*this, position, target_ids[target_index], scale);
-        icons[target_index] = icon;
+        MechTouchUICharIcon *icon = new MechTouchUICharIcon(*this, ::VuVec_Zero, target_ids[target_index], scale);
+        icons[icon_index] = icon;
         icon->on_release = MechTouchUIPartySelector_OnRelease_Callback;
         icon->owner = button.owner;
+        icon->position = VuVec(x, y, button_position.z, button_position.w);
         icon->SetupDisabled();
+        icon = icons[icon_index];
         icon->alpha_end = icon->disabled != 0 ? 0.3f : 1.0f;
         icon->alpha_delay = delay;
         icon->alpha_start = 0.0f;
         icon->alpha_elapsed = 0.0f;
         icon->alpha_duration = 0.3f;
         *icon->alpha_target = 0.0f;
-        MechSystems::Get()->TouchUI().AddUIElement(*icon);
-
         ++column;
+        MechSystems::Get()->TouchUI().AddUIElement(*icon);
+        ++icon_index;
         if (column >= icons_per_row) {
             column = 0;
             x += GetAspectRatio() * (scale + gap);

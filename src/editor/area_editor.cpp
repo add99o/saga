@@ -321,9 +321,10 @@ static EDAIAREA_s *areaEditorFindHover() {
                 best_distance = distance;
             }
         } else {
+            difference.y = height;
             NuVecRotateY(&difference, &difference, -area->rotation);
-            if (difference.x < area->size.x && difference.x > -area->size.x && difference.z < area->size.z &&
-                difference.z > -area->size.z && height < area->size.y && height > -2.0f) {
+            if (difference.x < area->size.x && difference.y < area->size.y && difference.z < area->size.z &&
+                difference.x > -area->size.x && difference.y > -2.0f && difference.z > -area->size.z) {
                 nearest = area;
                 best_distance = distance;
             }
@@ -333,26 +334,31 @@ static EDAIAREA_s *areaEditorFindHover() {
 }
 
 static EDAIAREA_s *areaEditorCreateArea() {
+    AIEDITOR_RENDER_STATE *context = aieditor;
     EDAIAREA_s *previous = area_selected();
+    u8 flags = previous != NULL ? previous->flags : 0;
+    i32 rotation = aieditorsettings.area_rotation;
     EDAIAREA_s *area = reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetHead(area_free_list()));
     if (area == NULL) {
-        area_selected() = NULL;
+        *reinterpret_cast<EDAIAREA_s **>(reinterpret_cast<u8 *>(context) + 0x37a48) = NULL;
         return NULL;
     }
     NuLinkedListRemove(area_free_list(), &area->link);
     NuLinkedListAppend(area_list(), &area->link);
-    area->position = aieditor->camera_position;
-    area->rotation = static_cast<i16>(aieditorsettings.area_rotation);
+    area->position = context->camera_position;
+    area->rotation = static_cast<i16>(rotation);
+    area->flags = flags;
+    *reinterpret_cast<EDAIAREA_s **>(reinterpret_cast<u8 *>(context) + 0x37a48) = area;
+    area = area_selected();
+    if (area == NULL)
+        return NULL;
     if (previous != NULL) {
         area->size = previous->size;
-        area->flags = previous->flags;
     } else {
         area->size.x = 1.0f;
         area->size.y = 1.0f;
         area->size.z = 1.0f;
-        area->flags = 0;
     }
-    area_selected() = area;
     char name[16];
     i32 suffix = 0;
     for (;;) {
@@ -380,35 +386,39 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
     u32 buttons;
     u32 pressed;
     if ((pad->digital_buttons & 0x40) != 0) {
-        bool selected_hover_on_press = false;
-        if ((pad->digital_buttons_pressed & 0x40) != 0) {
-            if (area_hovered() != NULL) {
+        if (area_hovered() != NULL) {
+            if ((pad->digital_buttons_pressed & 0x40) != 0) {
                 area_selected() = area_hovered();
                 aieditorsettings.area_rotation = area_selected()->rotation;
                 edcamSetPos(&area_selected()->position);
-                selected_hover_on_press = true;
             } else {
-                areaEditorCreateArea();
-            }
-        }
-        EDAIAREA_s *selected = area_selected();
-        if (selected != NULL && area_hovered() != NULL) {
-            if (!selected_hover_on_press) {
+                EDAIAREA_s *selected = area_selected();
+                if (selected == NULL)
+                    return NULL;
                 selected->position = aieditor->camera_position;
             }
+            EDAIAREA_s *selected = area_selected();
+            if (selected == NULL)
+                return NULL;
             u32 buttons = pad->digital_buttons;
-            if (buttons & 0x2000) {
-                selected->size.x *= 1.01f;
-            } else if (buttons & 0x8000) {
-                selected->size.x *= 0.99f;
-            }
             if ((selected->flags & 1) != 0) {
+                if (buttons & 0x2000)
+                    selected->size.x *= 1.01f;
+                else if (buttons & 0x8000)
+                    selected->size.x *= 0.99f;
                 selected->size.z = selected->size.x;
-            } else if (buttons & 0x1000) {
-                selected->size.z *= 1.01f;
-            } else if (buttons & 0x4000) {
-                selected->size.z *= 0.99f;
+            } else {
+                if (buttons & 0x2000)
+                    selected->size.x *= 1.01f;
+                else if (buttons & 0x8000)
+                    selected->size.x *= 0.99f;
+                if (buttons & 0x1000)
+                    selected->size.z *= 1.01f;
+                else if (buttons & 0x4000)
+                    selected->size.z *= 0.99f;
             }
+        } else if ((pad->digital_buttons_pressed & 0x40) != 0) {
+            areaEditorCreateArea();
         }
         goto process_done;
     }
@@ -419,6 +429,7 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
         goto process_done;
     }
     if ((pad->digital_buttons_pressed & 0x100) != 0) {
+        EDAIAREA_s *&selection = area_selected();
         EDAIAREA_s *nearest = NULL;
         f32 distance = 3.402823466e38f;
         for (EDAIAREA_s *area = area_head(); area != NULL; area = area_next(area)) {
@@ -429,7 +440,8 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
             nearest = area;
             distance = current;
         }
-        area_selected() = nearest;
+        selection = nearest;
+        nearest = area_selected();
         if (nearest != NULL) {
             edcamSetPos(&nearest->position);
         }
@@ -455,6 +467,7 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
             }
             aieditorsettings.area_rotation = NuAngAdd(aieditorsettings.area_rotation, area_rotation_step());
         }
+        selected = area_selected();
         if (selected != NULL && selected == area_hovered()) {
             selected->rotation = static_cast<i16>(aieditorsettings.area_rotation);
         }
@@ -469,21 +482,25 @@ eduimenu_s *areaEditor_Process(nupad_s *pad) {
     if ((buttons & 0x100) != 0 && (pressed & 0x0a) != 0) {
         EDAIAREA_s *next = NULL;
         if (pressed & 0x08) {
-            next = area_selected() == NULL
-                       ? area_head()
-                       : reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetNext(area_list(), &area_selected()->link));
-            if (next == NULL) {
-                next = area_head();
+            if (area_selected() != NULL) {
+                EDAIAREA_s *&selection = area_selected();
+                selection = reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetNext(area_list(), &selection->link));
+            }
+            if (area_selected() == NULL) {
+                EDAIAREA_s *&selection = area_selected();
+                selection = area_head();
             }
         } else if (pressed & 0x02) {
-            next = area_selected() == NULL
-                       ? reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetTail(area_list()))
-                       : reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetPrev(area_list(), &area_selected()->link));
-            if (next == NULL) {
-                next = reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetTail(area_list()));
+            if (area_selected() != NULL) {
+                EDAIAREA_s *&selection = area_selected();
+                selection = reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetPrev(area_list(), &selection->link));
+            }
+            if (area_selected() == NULL) {
+                EDAIAREA_s *&selection = area_selected();
+                selection = reinterpret_cast<EDAIAREA_s *>(NuLinkedListGetTail(area_list()));
             }
         }
-        area_selected() = next;
+        next = area_selected();
         if (next != NULL) {
             edcamSetPos(&next->position);
         }

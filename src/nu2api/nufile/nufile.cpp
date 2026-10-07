@@ -1075,8 +1075,8 @@ NUDATHDR *NuDatOpenEx(char *filepath, VARIPTR *buf, i32 *_unused, i16 mode) {
 
         for (n = 0; n < hdr->tree_node_count; n++) {
             _unused4 = 0;
-            hdr->file_tree[n].name = reinterpret_cast<char *>(
-                reinterpret_cast<usize>(hdr->file_tree[n].name) + (reinterpret_cast<usize>(hdr->leaf_names) - _unused4));
+            hdr->file_tree[n].name = reinterpret_cast<char *>(reinterpret_cast<usize>(hdr->file_tree[n].name) +
+                                                              (reinterpret_cast<usize>(hdr->leaf_names) - _unused4));
         }
 
         hdr->file_tree[0].name = NULL;

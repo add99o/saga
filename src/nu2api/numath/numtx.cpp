@@ -61,7 +61,7 @@ void NuMtxSetRotationX(NUMTX *m, NUANG a) {
     m->m33 = 1.0f;
 }
 
-NU_MTX_SET_ROTATION_Y_IMPL(NuMtxSetRotationY,)
+NU_MTX_SET_ROTATION_Y_IMPL(NuMtxSetRotationY, )
 
 void NuMtxSetRotationZ(NUMTX *m, NUANG a) {
     m->m00 = m->m11 = NU_COS_LUT(a);
@@ -210,7 +210,7 @@ void NuMtxPreScaleX(NUMTX *m, f32 ScaleX) {
     m->m02 = m->m02 * ScaleX;
 }
 
-NU_MTX_ROTATE_X_IMPL(NuMtxRotateX,)
+NU_MTX_ROTATE_X_IMPL(NuMtxRotateX, )
 
 void NuMtxPreRotateX(NUMTX *m, NUANG a) {
     f32 cosx = NU_COS_LUT(a);
@@ -227,7 +227,7 @@ void NuMtxPreRotateX(NUMTX *m, NUANG a) {
     m->m22 = m->m22 * cosx - sinx * m12;
 }
 
-NU_MTX_ROTATE_Y_IMPL(NuMtxRotateY,)
+NU_MTX_ROTATE_Y_IMPL(NuMtxRotateY, )
 
 void NuMtxPreRotateY(NUMTX *m, NUANG a) {
     f32 cosx = NU_COS_LUT(a);
@@ -244,7 +244,7 @@ void NuMtxPreRotateY(NUMTX *m, NUANG a) {
     m->m22 = sinx * m02 + m->m22 * cosx;
 }
 
-NU_MTX_ROTATE_Z_IMPL(NuMtxRotateZ,)
+NU_MTX_ROTATE_Z_IMPL(NuMtxRotateZ, )
 
 void NuMtxPreRotateZ(NUMTX *m, NUANG a) {
     f32 cosx = NU_COS_LUT(a);

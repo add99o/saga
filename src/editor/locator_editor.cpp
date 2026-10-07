@@ -495,8 +495,10 @@ extern "C" {
             locator = (EDLOCATOR_s *)NuLinkedListGetNext(&(*state)->locators, &locator->link);
         }
         if ((*state)->current_locator_set != nullptr) {
-            for (i32 index = 0; index < 64 && (*state)->current_locator_set->locators[index] != nullptr; ++index) {
+            for (i32 index = 0; index < 64; ++index) {
                 locator = (*state)->current_locator_set->locators[index];
+                if (locator == nullptr)
+                    break;
                 i32 colour;
                 if (locator == (*state)->current_locator) {
                     colour = locator == (*state)->nearest_locator ? 0xff0000ff : 0x800000ff;
@@ -714,8 +716,9 @@ extern "C" {
                              locator->first_node->radius * (1.0f - locator->path_fraction);
                 }
                 locator->position = locator->first_node->position;
-                direction.x = -direction.x * radius;
-                direction.z *= radius;
+                f32 normalized_x = direction.x;
+                direction.x = direction.z * radius;
+                direction.z = -normalized_x * radius;
                 NuVecScale(&movement, &difference, locator->path_fraction);
                 NuVecAdd(&locator->position, &locator->position, &movement);
                 NuVecScale(&movement, &direction, locator->path_width);
@@ -773,18 +776,19 @@ void locatorEditor_Enter(void) {
             }
         }
     }
-    if ((*state)->current_locator_set != nullptr) {
-        strcpy(aieditorsettings.current_route_name, (*state)->current_locator_set->name);
+    AIEDITOR_RENDER_STATE *context = *state;
+    if (context->current_locator_set != nullptr) {
+        strcpy(aieditorsettings.current_route_name, context->current_locator_set->name);
     }
     if (aieditorsettings.current_route_name[0] == 0) {
-        (*state)->current_locator_set = nullptr;
+        context->current_locator_set = nullptr;
         return;
     }
-    EDLOCATORSET_s *set = (EDLOCATORSET_s *)NuLinkedListGetHead(&(*state)->locator_sets);
+    EDLOCATORSET_s *set = (EDLOCATORSET_s *)NuLinkedListGetHead(&context->locator_sets);
     while (set != nullptr && NuStrICmp(aieditorsettings.current_route_name, set->name) != 0) {
         set = (EDLOCATORSET_s *)NuLinkedListGetNext(&(*state)->locator_sets, &set->link);
     }
-    (*state)->current_locator_set = set;
+    context->current_locator_set = set;
 }
 
 void locatorEditor_Render(i32 x, i32 y, float x_scale, float y_scale) {
@@ -831,8 +835,8 @@ void locatorEditor_Render(i32 x, i32 y, float x_scale, float y_scale) {
     EDLOCATORSET_s *set = aieditor->current_locator_set;
     if (set != nullptr && set->locators[0] != nullptr) {
         NUVEC previous = set->locators[0]->position;
-        for (i32 index = 1; index < 64 && set->locators[index] != nullptr; ++index) {
-            NUVEC current = set->locators[index]->position;
+        for (i32 index = 1; index <= 64 && set->locators[index - 1] != nullptr; ++index) {
+            NUVEC current = set->locators[index - 1]->position;
             if (index != 1) {
                 NURND_VERTEX3D vertices[2] = {};
                 vertices[0].colour = 0x32323232;
@@ -956,14 +960,18 @@ process_buttons:
             if (suffix != nullptr) {
                 *suffix = 0;
             }
+            AIEDITOR_RENDER_STATE *context = aieditor;
+            i32 direction = aieditorsettings.area_rotation;
+            previous = context->current_locator;
             EDLOCATOR_s *locator = (EDLOCATOR_s *)NuLinkedListGetHead(&aieditor->free_locators);
             if (locator != nullptr) {
                 NuLinkedListRemove(&aieditor->free_locators, &locator->link);
                 NuLinkedListAppend(&aieditor->locators, &locator->link);
-                locator->position = aieditor->camera_position;
-                locator->direction = aieditorsettings.area_rotation;
+                locator->position = context->camera_position;
+                locator->direction = direction;
             }
-            aieditor->current_locator = locator;
+            context->current_locator = locator;
+            locator = aieditor->current_locator;
             if (locator != nullptr) {
                 char name[16];
                 i32 index = 0;
@@ -975,10 +983,12 @@ process_buttons:
                         other = (EDLOCATOR_s *)NuLinkedListGetNext(&aieditor->locators, &other->link);
                     }
                 } while (other != nullptr);
-                strcpy(locator->name, name);
+                strcpy(aieditor->current_locator->name, name);
+                locator = aieditor->current_locator;
                 memcpy(locator->path_check, reinterpret_cast<u8 *>(aieditor) + 0x48, 0x1c);
                 locator->path_angle = NuAngSub(locator->direction, locator->path_angle);
                 if (aieditor->current_locator_set != nullptr) {
+                    locator = aieditor->current_locator;
                     EDLOCATOR_s *before = previous != locator ? previous : nullptr;
                     AddLocatorToSet(aieditor->current_locator_set, locator, before);
                 }
@@ -1092,7 +1102,14 @@ process_buttons:
         } else if (remainder < -0x2000) {
             --quadrant;
         }
-        aieditorsettings.area_rotation = NuAngAdd(path_angle, quadrant << 14);
+        aieditorsettings.area_rotation =
+            NuAngAdd(quadrant << 14, *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(aieditor) + 0x60));
+        if (aieditor->current_locator != nullptr && aieditor->current_locator == aieditor->nearest_locator) {
+            aieditor->current_locator->direction = aieditorsettings.area_rotation;
+            aieditor->current_locator->path_angle =
+                NuAngSub(aieditor->current_locator->direction,
+                         *reinterpret_cast<i32 *>(reinterpret_cast<u8 *>(aieditor) + 0x60));
+        }
     } else if ((pad->digital_buttons & 0x20) != 0 && aieditor->current_locator_set != nullptr &&
                (pad->digital_buttons_pressed & 0x20) != 0 && aieditor->nearest_locator != nullptr) {
         EDLOCATORSET_s *set = aieditor->current_locator_set;

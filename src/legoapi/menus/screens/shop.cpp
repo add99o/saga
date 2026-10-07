@@ -1190,7 +1190,8 @@ i32 CodeMenu(MENU_s *) {
             } else {
                 codevalid = 1;
                 if (i < charcheatix) {
-                    if (Game_CharacterSave && !(Game_CharacterSave[static_cast<u16>(CharItems[i].item_id)] & SAVE_CHARACTER_UNLOCKED)) {
+                    if (Game_CharacterSave &&
+                        !(Game_CharacterSave[static_cast<u16>(CharItems[i].item_id)] & SAVE_CHARACTER_UNLOCKED)) {
                         Game_CharacterSave[static_cast<u16>(CharItems[i].item_id)] |= SAVE_CHARACTER_UNLOCKED;
                         AddToCompletionPoints(POINTS_PER_CHARACTER);
                         PlaySfx("Shop_BuyCheat", &SubShelfPos[3]);
@@ -1866,7 +1867,8 @@ static void Shop_DrawCharacter(shopitem_s *item, NUVEC *position, f32 scale_valu
     i32 top_shelf_character = 0;
     if (item == &TopShelf[1]) {
         top_shelf_character = 1;
-        item = &CharItems[static_cast<i32>(NuFmod(GameTimer.time_elapsed, static_cast<f32>(SHOPCHARCOUNT) * 0.2f) / 0.2f)];
+        item =
+            &CharItems[static_cast<i32>(NuFmod(GameTimer.time_elapsed, static_cast<f32>(SHOPCHARCOUNT) * 0.2f) / 0.2f)];
     }
 
     const i32 character_id = static_cast<u16>(item->item_id);
@@ -1917,8 +1919,7 @@ void DrawTopShelf(i32) {
 
     Shop_DrawCharacter(&TopShelf[1], &ShelfPos[1], topscale[1] * alpha_scale, toppush[1] + 0.0f, 0, shelfang, 0);
 
-    DrawItem(&TopShelf[2].special, &ShelfPos[2], topscale[2] * alpha_scale, 1.0f, toppush[2] + 0.005f, 0,
-             shelfang, 0);
+    DrawItem(&TopShelf[2].special, &ShelfPos[2], topscale[2] * alpha_scale, 1.0f, toppush[2] + 0.005f, 0, shelfang, 0);
 
     if (SHOPGOLDBRICKS > 0) {
         const f32 ypush = toppush[4];

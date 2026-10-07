@@ -199,7 +199,8 @@ static i32 CutScene_Start(WORLDINFO_s *world, CUTINFO *cut, i32) {
     } else {
         PauseGameAudio(0);
         SetLinkedCutSceneMusic(static_cast<instNUGCUTSCENE_s *>(cut->instance),
-                               cut->linked_audio == 0 ? MUSIC_PLAYBACK_DUAL_STREAM : MUSIC_PLAYBACK_DUAL_STREAM_PENDING);
+                               cut->linked_audio == 0 ? MUSIC_PLAYBACK_DUAL_STREAM
+                                                      : MUSIC_PLAYBACK_DUAL_STREAM_PENDING);
         static_cast<instNUGCUTSCENE_s *>(cut->instance)->rate = cut->frames_per_second * FRAMETIME;
         if ((cut->flags & 1) != 0) {
             CutSceneWaiting = 0;
@@ -1733,9 +1734,10 @@ NUGCUTSCENE_s *RelocateCutScene(NUGCUTSCENE_s *source, variptr_u *buffer) {
             cutscene->rigid_system =
                 reinterpret_cast<NUGCUTRIGIDSYS_s *>(reinterpret_cast<isize>(cutscene->rigid_system) + data_delta);
             NUGCUTRIGIDSYS_s *system = cutscene->rigid_system;
-            system->rigids = system->rigids != NULL
-                                 ? reinterpret_cast<NUGCUTRIGID_s *>(reinterpret_cast<isize>(system->rigids) + data_delta)
-                                 : NULL;
+            system->rigids =
+                system->rigids != NULL
+                    ? reinterpret_cast<NUGCUTRIGID_s *>(reinterpret_cast<isize>(system->rigids) + data_delta)
+                    : NULL;
             if (system->rigids != NULL) {
                 for (i32 i = 0; i < system->count; ++i) {
                     NUGCUTRIGID_s *rigid = &system->rigids[i];
@@ -1743,7 +1745,8 @@ NUGCUTSCENE_s *RelocateCutScene(NUGCUTSCENE_s *source, variptr_u *buffer) {
                         rigid->name = reinterpret_cast<char *>(reinterpret_cast<isize>(rigid->name) + data_delta);
                     }
                     if (rigid->animation != NULL) {
-                        rigid->animation = static_cast<nuanimdata2_s *>(NuAnimData2FixPtrs(rigid->animation, delta, 1, 0));
+                        rigid->animation =
+                            static_cast<nuanimdata2_s *>(NuAnimData2FixPtrs(rigid->animation, delta, 1, 0));
                     }
                     rigid->state_animation = StateAnimFixPtrs(rigid->state_animation, delta);
                 }
@@ -1763,7 +1766,8 @@ NUGCUTSCENE_s *RelocateCutScene(NUGCUTSCENE_s *source, variptr_u *buffer) {
                 for (i32 i = 0; i < system->character_count; ++i) {
                     NUGCUTCHAR_s *character = &system->characters[i];
                     if (character->name != NULL) {
-                        character->name = reinterpret_cast<char *>(reinterpret_cast<isize>(character->name) + data_delta);
+                        character->name =
+                            reinterpret_cast<char *>(reinterpret_cast<isize>(character->name) + data_delta);
                     }
                     if (character->animation != NULL) {
                         character->animation =
@@ -1806,9 +1810,10 @@ NUGCUTSCENE_s *RelocateCutScene(NUGCUTSCENE_s *source, variptr_u *buffer) {
             if (system->events != NULL) {
                 for (i32 i = 0; i < system->event_count; ++i) {
                     NUGCUTTRIGGEREVENT_s *event = &system->events[i];
-                    event->field_04 = event->field_04 != NULL
-                                          ? reinterpret_cast<void *>(reinterpret_cast<isize>(event->field_04) + data_delta)
-                                          : NULL;
+                    event->field_04 =
+                        event->field_04 != NULL
+                            ? reinterpret_cast<void *>(reinterpret_cast<isize>(event->field_04) + data_delta)
+                            : NULL;
                     event->state_animation = StateAnimFixPtrs(event->state_animation, delta);
                 }
             }

@@ -66,9 +66,8 @@ void Cheats_SetFlags() {
         f32 powerup_time = Cheat_PowerUpTime;
         i32 vehicle_area = VehicleArea;
         for (i32 i = 0; i < count; i++) {
-            if (cheats[i].enabled ||
-                (ONEPLAYERPOWERUPS == 0 && powerup_time > 0.0009765625f &&
-                 (cheats[i].flag & (vehicle_area ? 0x20000 : 0x10000)))) {
+            if (cheats[i].enabled || (ONEPLAYERPOWERUPS == 0 && powerup_time > 0.0009765625f &&
+                                      (cheats[i].flag & (vehicle_area ? 0x20000 : 0x10000)))) {
                 flags |= cheats[i].flag;
             }
         }

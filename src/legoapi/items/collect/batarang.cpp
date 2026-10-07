@@ -118,8 +118,8 @@ static i32 Batarang_FindTarget(WORLDINFO_s *world, GameObject_s *object, i32 aut
     GameObject_s *nearest_object = NULL;
     f32 nearest_distance = 16.0f;
     GameObject_s *first_object = NULL;
-    for (i32 i = 0; i < HIGHGAMEOBJECT; ++i) {
-        GameObject_s *candidate = &Obj[i];
+    GameObject_s *candidate = Obj;
+    for (i32 i = 0; i < HIGHGAMEOBJECT; ++i, ++candidate) {
         const i8 context = candidate->character_context;
         if ((candidate->apiobj.object_flags & 0x1001) != 0x1001 || candidate->apiobj.field_0x287 != 0 ||
             (CInfo[context].flags & 0x8000) != 0 || candidate->apiobj.model_draw_result == 0 || candidate == object ||
@@ -195,10 +195,11 @@ static i32 Batarang_FindTarget(WORLDINFO_s *world, GameObject_s *object, i32 aut
         }
     }
     GIZMOBLOWUP_s *nearest_blowup = NULL;
-    GIZMOBLOWUP_s *first_blowup = NULL;
+    GIZMOBLOWUP_s *blowup = NULL;
     nearest_distance = 16.0f;
-    for (i32 i = 0; i < world->gizmo_blowup_count; ++i) {
-        GIZMOBLOWUP_s *candidate = &world->gizmo_blowups[i];
+    GIZMOBLOWUP_s *candidate_blowup = world->gizmo_blowups;
+    for (i32 i = 0; i < world->gizmo_blowup_count; ++i, ++candidate_blowup) {
+        GIZMOBLOWUP_s *candidate = candidate_blowup;
         if ((candidate->status_flags & 0x80c001) != 0x80c000 || (candidate->draw_flags & 1) == 0 ||
             ((candidate->draw_flags & 0x20) != 0 && ShadowMode == 0)) {
             continue;
@@ -220,7 +221,7 @@ static i32 Batarang_FindTarget(WORLDINFO_s *world, GameObject_s *object, i32 aut
             }
             if (NuVecDistSqr(&candidate->mid_position, &object->apiobj.collision_position, &delta) <
                 selected_distance) {
-                first_blowup = candidate;
+                blowup = candidate;
                 break;
             }
         } else {
@@ -234,8 +235,9 @@ static i32 Batarang_FindTarget(WORLDINFO_s *world, GameObject_s *object, i32 aut
             }
         }
     }
-    GIZMOBLOWUP_s *blowup =
-        nearest_blowup != NULL && nearest_distance < selected_distance ? nearest_blowup : first_blowup;
+    if (nearest_blowup != NULL && nearest_distance < selected_distance) {
+        blowup = nearest_blowup;
+    }
     i16 platform = -1;
     if (blowup != NULL) {
         selected_position = blowup->mid_position;
@@ -536,6 +538,8 @@ void Batarangs_Update() {
             continue;
         }
         batarang->flight_time += FRAMETIME;
+        if (!(batarang->flight_time < 2.0f) && batarang->flight_time > 4.0f)
+            batarang->flight_time = 4.0f;
         if (!Batarang_SeekToTarget(batarang)) {
             continue;
         }
@@ -544,6 +548,7 @@ void Batarangs_Update() {
             GameObject_s *owner = batarang->owner;
             owner->hold_timer = 0.0f;
             NewBuzzFrames(owner->pad_gamepad->pad, 1, 0);
+            owner = batarang->owner;
             if ((owner->pad_gamepad->buttons_held & GAMEPAD_ACTION) != 0) {
                 Batarang_StartTargetting(owner);
             } else if (owner->pad_gamepad->input_magnitude == 0.0f && owner->character_context == -1 &&
@@ -649,16 +654,17 @@ void Batarang_MoveCode(GameObject_s *object) {
             StartJump(object, 0);
             return;
         }
-        if ((object->pad_gamepad->buttons_held & GAMEPAD_ACTION) != 0 || !(object->context_animation_timer >= 0.3f)) {
+        if ((object->pad_gamepad->buttons_held & GAMEPAD_ACTION) != 0 || object->context_animation_timer < 0.3f) {
             if (object->apiobj.character_model->model_data_b[object->context_animation] == NULL ||
                 AnimPlaying(&object->apiobj.anim_packet, object->context_animation, 1, 0) != NULL) {
                 GAMEPAD_s *pad = object->pad_gamepad;
                 object->context_animation_timer += FRAMETIME;
                 f32 x = pad->input_direction_z * 1.25f;
                 f32 y = 1.25f * pad->input_direction_x;
-                if (!(object->context_animation_timer >= 0.25f)) {
-                    x = x * object->context_animation_timer * 4.0f;
-                    y = y * object->context_animation_timer * 4.0f;
+                if (object->context_animation_timer < 0.25f) {
+                    const f32 ramp = object->context_animation_timer * 4.0f;
+                    x *= ramp;
+                    y *= ramp;
                 }
                 BATARANG_s *aim = static_cast<BATARANG_s *>(object->batarang);
                 aim->sight_velocity.x = SeekValF(aim->sight_velocity.x, x, 10.0f);

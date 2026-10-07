@@ -7,7 +7,7 @@ i32 unref(unsigned char *source, unsigned char *destination) {
     for (;;) {
         const i32 control = *source;
         if ((control & 0x80) == 0) {
-            const i32 offset_byte = source[1];
+            const u8 offset_byte = source[1];
             source += 2;
             const i32 literal_count = control & 3;
             for (i32 i = 0; i < literal_count; ++i)
@@ -15,30 +15,33 @@ i32 unref(unsigned char *source, unsigned char *destination) {
             unsigned char *match = destination - (((control & 0x60) << 3) + offset_byte + 1);
             const i32 length = ((control & 0x1c) >> 2) + 3;
             for (i32 i = 0; i < length; ++i)
-                *destination++ = *match++;
+                destination[i] = match[i];
+            destination += length;
         } else if ((control & 0x40) == 0) {
-            const i32 first = source[1];
-            const i32 second = source[2];
+            const u8 first = source[1];
+            const u8 second = source[2];
             source += 3;
             const i32 literal_count = first >> 6;
             for (i32 i = 0; i < literal_count; ++i)
                 *destination++ = *source++;
             unsigned char *match = destination - (((first & 0x3f) << 8) + second + 1);
             const i32 length = (control & 0x3f) + 4;
-            for (i32 i = 0; i < length; ++i)
-                *destination++ = *match++;
+            for (u32 i = 0; i < static_cast<u32>(length); ++i)
+                destination[i] = match[i];
+            destination += length;
         } else if ((control & 0x20) == 0) {
-            const i32 first = source[1];
-            const i32 second = source[2];
-            const i32 third = source[3];
+            const u8 first = source[1];
+            const u8 second = source[2];
+            const u8 third = source[3];
             source += 4;
             const i32 literal_count = control & 3;
             for (i32 i = 0; i < literal_count; ++i)
                 *destination++ = *source++;
             unsigned char *match = destination - (((control & 0x10) << 12) + (first << 8) + second + 1);
             const i32 length = ((control & 0x0c) << 6) + third + 5;
-            for (i32 i = 0; i < length; ++i)
-                *destination++ = *match++;
+            for (u32 i = 0; i < static_cast<u32>(length); ++i)
+                destination[i] = match[i];
+            destination += length;
         } else {
             ++source;
             i32 literal_count = ((control & 0x1f) << 2) + 4;

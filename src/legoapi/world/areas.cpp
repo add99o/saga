@@ -71,15 +71,22 @@ void Areas_OpenAll(i32 mode) {
 
     for (area_index = 0; area_index < AREACOUNT; area_index++) {
         if ((ADataList[area_index].flags & AREAFLAG_MINIKIT) != 0) {
-            if ((ADataList[area_index].episode_index == AREA_EPISODE_II && !Store_IsPackUnlocked(STORE_PACK_EPISODE_II)) ||
-                (ADataList[area_index].episode_index == AREA_EPISODE_III && !Store_IsPackUnlocked(STORE_PACK_EPISODE_III)) ||
-                (ADataList[area_index].episode_index == AREA_EPISODE_IV && !Store_IsPackUnlocked(STORE_PACK_EPISODE_IV)) ||
-                (ADataList[area_index].episode_index == AREA_EPISODE_V && !Store_IsPackUnlocked(STORE_PACK_EPISODE_V)) ||
-                (ADataList[area_index].episode_index == AREA_EPISODE_VI && !Store_IsPackUnlocked(STORE_PACK_EPISODE_VI))) {
+            if ((ADataList[area_index].episode_index == AREA_EPISODE_II &&
+                 !Store_IsPackUnlocked(STORE_PACK_EPISODE_II)) ||
+                (ADataList[area_index].episode_index == AREA_EPISODE_III &&
+                 !Store_IsPackUnlocked(STORE_PACK_EPISODE_III)) ||
+                (ADataList[area_index].episode_index == AREA_EPISODE_IV &&
+                 !Store_IsPackUnlocked(STORE_PACK_EPISODE_IV)) ||
+                (ADataList[area_index].episode_index == AREA_EPISODE_V &&
+                 !Store_IsPackUnlocked(STORE_PACK_EPISODE_V)) ||
+                (ADataList[area_index].episode_index == AREA_EPISODE_VI &&
+                 !Store_IsPackUnlocked(STORE_PACK_EPISODE_VI))) {
                 continue;
             }
-        } else if ((ADataList[area_index].flags & (AREAFLAG_VEHICLE_AREA | AREAFLAG_SUPER_BONUS_AREA)) == AREAFLAG_BONUS_AREA &&
-                   ADataList[area_index].episode_index != AREA_EPISODE_NONE && !Store_IsPackUnlocked(STORE_PACK_ARCADE)) {
+        } else if ((ADataList[area_index].flags & (AREAFLAG_VEHICLE_AREA | AREAFLAG_SUPER_BONUS_AREA)) ==
+                       AREAFLAG_BONUS_AREA &&
+                   ADataList[area_index].episode_index != AREA_EPISODE_NONE &&
+                   !Store_IsPackUnlocked(STORE_PACK_ARCADE)) {
             continue;
         }
 
@@ -530,8 +537,8 @@ void SuperCounter_ActivateGizmoPickup(GIZMO_s *gizmo, GIZMOPICKUP_s *gizmo_picku
             } else {
                 message_position = &gizmo_pickup->position;
             }
-            AddGameMsgCount(message_position, counter->collected_count, counter->pickup_count, counter->red, counter->green,
-                            counter->blue, 0.75f);
+            AddGameMsgCount(message_position, counter->collected_count, counter->pickup_count, counter->red,
+                            counter->green, counter->blue, 0.75f);
             GameAudio_PlaySfx(0x53, NULL, 0, 0);
         }
     }

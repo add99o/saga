@@ -279,8 +279,8 @@ extern "C" {
                  shared != nullptr;
                  shared = (EDAISHAREDPATHNODE_s *)NuLinkedListGetNext(&aieditor->shared_path_nodes, &shared->link)) {
                 AIPATHSPECIALROUTE_s *route = &system->special_routes[shared->runtime_index];
-                route->paths = (AIPATH_s **)AISysBufferAlloc(
-                    &scratch, scratch_limit, shared->reference_count * sizeof(AIPATH_s));
+                route->paths =
+                    (AIPATH_s **)AISysBufferAlloc(&scratch, scratch_limit, shared->reference_count * sizeof(AIPATH_s));
                 memset(route->paths, 0, shared->reference_count * sizeof(AIPATH_s));
             }
         }
@@ -381,8 +381,10 @@ extern "C" {
                                             AIPATHCNX_s *connection = other_runtime->connections[reverse];
                                             if (connection->node_indices[1] == node->index) {
                                                 runtime->connections[next] = connection;
-                                                runtime->connections[next]->traversal_flags[1] = editor_connection->flags;
-                                                runtime->connections[next]->original_traversal_flags[1] = editor_connection->flags;
+                                                runtime->connections[next]->traversal_flags[1] =
+                                                    editor_connection->flags;
+                                                runtime->connections[next]->original_traversal_flags[1] =
+                                                    editor_connection->flags;
                                                 break;
                                             }
                                         }

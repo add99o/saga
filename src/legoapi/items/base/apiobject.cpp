@@ -698,20 +698,19 @@ extern "C" {
     }
 
     void APIObjectVelocities(GameObject_s *object) {
-        APIOBJECT &api = object->apiobj;
-        if (api.velocity.x == 0.0f && api.velocity.z == 0.0f) {
-            api.horizontal_velocity_magnitude = 0.0f;
-            api.velocity_magnitude = NuFabs(api.velocity.y);
-            return;
-        }
-
-        const f32 horizontal_squared = api.velocity.x * api.velocity.x + api.velocity.z * api.velocity.z;
-        api.horizontal_velocity_magnitude = NuFsqrt(horizontal_squared);
-
-        if (api.velocity.y == 0.0f) {
-            api.velocity_magnitude = api.horizontal_velocity_magnitude;
+        if (object->apiobj.velocity.x != 0.0f || object->apiobj.velocity.z != 0.0f) {
+            f32 horizontal_squared = object->apiobj.velocity.x * object->apiobj.velocity.x +
+                                     object->apiobj.velocity.z * object->apiobj.velocity.z;
+            object->apiobj.horizontal_velocity_magnitude = NuFsqrt(horizontal_squared);
+            if (object->apiobj.velocity.y != 0.0f) {
+                object->apiobj.velocity_magnitude =
+                    NuFsqrt(object->apiobj.velocity.y * object->apiobj.velocity.y + horizontal_squared);
+            } else {
+                object->apiobj.velocity_magnitude = object->apiobj.horizontal_velocity_magnitude;
+            }
         } else {
-            api.velocity_magnitude = NuFsqrt(api.velocity.y * api.velocity.y + horizontal_squared);
+            object->apiobj.horizontal_velocity_magnitude = 0.0f;
+            object->apiobj.velocity_magnitude = NuFabs(object->apiobj.velocity.y);
         }
     }
 
@@ -719,8 +718,8 @@ extern "C" {
                              i32 extra_capacity, CHARACTERDATA *cdata_list, APICHARACTERLIGHTFN set_creature_lights) {
         (void)buf_end;
 
+        apicharsys = reinterpret_cast<APICHARACTERSYS *>(ALIGN(buf->addr, 0x10));
         buf->addr = ALIGN(buf->addr, 0x10);
-        apicharsys = (APICHARACTERSYS *)buf->void_ptr;
         buf->addr += sizeof(*apicharsys);
         memset(apicharsys, 0, sizeof(*apicharsys));
 
@@ -729,45 +728,44 @@ extern "C" {
         apicharsys->model_id_capacity = model_id_capacity;
         apicharsys->animation_capacity = extra_capacity;
 
-        if (model_capacity != 0) {
+        if (apicharsys->model_capacity != 0) {
+            apicharsys->models = reinterpret_cast<APICHARACTERMODEL *>(ALIGN(buf->addr, 4));
             buf->addr = ALIGN(buf->addr, 4);
-            apicharsys->models = (APICHARACTERMODEL *)buf->void_ptr;
-            buf->addr += (usize)model_capacity * sizeof(*apicharsys->models);
-            memset(apicharsys->models, 0, (usize)model_capacity * sizeof(*apicharsys->models));
+            buf->addr += (usize)apicharsys->model_capacity * sizeof(*apicharsys->models);
+            memset(apicharsys->models, 0, (usize)apicharsys->model_capacity * sizeof(*apicharsys->models));
 
-            for (i32 i = 0; i < model_capacity; i++) {
+            for (i32 i = 0; i < apicharsys->model_capacity; i++) {
                 APICHARACTERMODEL *model = &apicharsys->models[i];
-                if (model_id_capacity != 0) {
-                    usize table_size = (usize)model_id_capacity * sizeof(void *);
-
+                if (apicharsys->model_id_capacity != 0) {
+                    model->model_data_a = reinterpret_cast<void **>(ALIGN(buf->addr, 4));
                     buf->addr = ALIGN(buf->addr, 4);
-                    model->model_data_a = (void **)buf->void_ptr;
-                    buf->addr += table_size;
+                    buf->addr += static_cast<usize>(apicharsys->model_id_capacity) * sizeof(void *);
 
+                    model->model_data_b = reinterpret_cast<void **>(ALIGN(buf->addr, 4));
                     buf->addr = ALIGN(buf->addr, 4);
-                    model->model_data_b = (void **)buf->void_ptr;
-                    buf->addr += table_size;
+                    buf->addr += static_cast<usize>(apicharsys->model_id_capacity) * sizeof(void *);
 
+                    model->model_data_c = reinterpret_cast<void **>(ALIGN(buf->addr, 4));
                     buf->addr = ALIGN(buf->addr, 4);
-                    model->model_data_c = (void **)buf->void_ptr;
-                    buf->addr += table_size;
+                    buf->addr += static_cast<usize>(apicharsys->model_id_capacity) * sizeof(void *);
                 }
                 APICharacterModelReset(model);
             }
         }
 
-        if (char_count != 0) {
+        if (apicharsys->character_count != 0) {
+            apicharsys->playermodelids = reinterpret_cast<i16 *>(ALIGN(buf->addr, 4));
             buf->addr = ALIGN(buf->addr, 4);
-            apicharsys->playermodelids = buf->i16_ptr;
-            buf->addr += (usize)char_count * sizeof(*apicharsys->playermodelids);
-            memset(apicharsys->playermodelids, 0, (usize)char_count * sizeof(*apicharsys->playermodelids));
+            buf->addr += (usize)apicharsys->character_count * sizeof(*apicharsys->playermodelids);
+            memset(apicharsys->playermodelids, 0,
+                   (usize)apicharsys->character_count * sizeof(*apicharsys->playermodelids));
         }
 
-        if (extra_capacity != 0) {
+        if (apicharsys->animation_capacity != 0) {
+            apicharsys->animations = reinterpret_cast<ANIMLIST_s *>(ALIGN(buf->addr, 4));
             buf->addr = ALIGN(buf->addr, 4);
-            apicharsys->animations = (ANIMLIST_s *)buf->void_ptr;
-            buf->addr += (usize)extra_capacity * sizeof(*apicharsys->animations);
-            memset(apicharsys->animations, 0, (usize)extra_capacity * sizeof(*apicharsys->animations));
+            buf->addr += (usize)apicharsys->animation_capacity * sizeof(*apicharsys->animations);
+            memset(apicharsys->animations, 0, (usize)apicharsys->animation_capacity * sizeof(*apicharsys->animations));
         }
 
         apicharsys->char_data = cdata_list;
@@ -1366,61 +1364,36 @@ extern "C" {
 static f32 UpdateAnimTimer(CHARACTERMODEL_s *model, ANIMPACKET_s *packet, i16 animation, f32 time, f32 frame_step,
                            f32 movement_speed, i32 report_events, char *reversed, i32 backwards,
                            f32 backwards_multiplier) {
-    CHARACTERANIM_s *animation_info = static_cast<CHARACTERANIM_s *>(model->model_data_a[animation]);
-
-    f32 rate = animation_info->playback_rate;
-    if (animation_info->movement_speed > 0.0f) {
-        rate *= movement_speed / animation_info->movement_speed;
-        if (rate >= 0.0f) {
-            if (animation_info->movement_rate_cap > 0.0f && rate > animation_info->movement_rate_cap) {
-                rate = animation_info->movement_rate_cap;
+    i32 looped = 0;
+    f32 rate = static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->playback_rate;
+    f32 reference_speed = static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->movement_speed;
+    if (reference_speed > 0.0f) {
+        rate *= movement_speed / reference_speed;
+        const f32 rate_cap = static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->movement_rate_cap;
+        if (rate < 0.0f) {
+            if (rate_cap < 0.0f && rate < rate_cap) {
+                rate = rate_cap;
             }
-        } else if (animation_info->movement_rate_cap < 0.0f && rate < animation_info->movement_rate_cap) {
-            rate = animation_info->movement_rate_cap;
+        } else if (rate_cap > 0.0f && rate > rate_cap) {
+            rate = rate_cap;
         }
     }
     if (*reversed != 0) {
-        frame_step = -(frame_step * backwards_multiplier);
+        rate *= -(frame_step * backwards_multiplier) / 30.0f;
+    } else {
+        rate *= frame_step / 30.0f;
     }
-
-    const f32 delta = rate * (frame_step / 30.0f);
-    time += delta;
+    time += rate;
     const f32 end_frame = NuAnimEndFrame(model->model_data_b[animation]);
-    bool looped = false;
 
     // Original 0x3ce29f only enters reverse playback for an ordered negative delta.
-    if (!(delta < 0.0f)) {
-        if (time > end_frame) {
-            if ((animation_info->flags & CHARACTER_ANIMATION_FLAG_SYNCHRONISED) == 0) {
-                time = end_frame;
-                if (report_events) {
-                    packet->flags |= ANIMPACKET_FLAG_FINISHED;
-                }
-            } else {
-                if (end_frame > 1.0f) {
-                    while (time > end_frame) {
-                        time -= end_frame - 1.0f;
-                    }
-                } else {
-                    time = 1.0f;
-                }
-                if (report_events) {
-                    packet->flags |= ANIMPACKET_FLAG_LOOPED;
-                }
-                looped = true;
-            }
-        }
-    } else {
+    if (rate < 0.0f) {
         if (report_events) {
             packet->flags |= ANIMPACKET_FLAG_PLAYING_REVERSED;
         }
         if (time < 1.0f) {
-            if ((animation_info->flags & CHARACTER_ANIMATION_FLAG_SYNCHRONISED) == 0) {
-                time = 1.0f;
-                if (report_events) {
-                    packet->flags |= ANIMPACKET_FLAG_FINISHED;
-                }
-            } else {
+            if ((static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->flags &
+                 CHARACTER_ANIMATION_FLAG_SYNCHRONISED) != 0) {
                 if (end_frame > 1.0f) {
                     while (time < 1.0f) {
                         time += end_frame - 1.0f;
@@ -1431,18 +1404,45 @@ static f32 UpdateAnimTimer(CHARACTERMODEL_s *model, ANIMPACKET_s *packet, i16 an
                 if (report_events) {
                     packet->flags |= ANIMPACKET_FLAG_LOOPED;
                 }
-                looped = true;
+                looped = 1;
+            } else {
+                time = 1.0f;
+                if (report_events) {
+                    packet->flags |= ANIMPACKET_FLAG_FINISHED;
+                }
+            }
+        }
+    } else {
+        if (time > end_frame) {
+            if ((static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->flags &
+                 CHARACTER_ANIMATION_FLAG_SYNCHRONISED) != 0) {
+                if (end_frame > 1.0f) {
+                    while (time > end_frame) {
+                        time -= end_frame - 1.0f;
+                    }
+                } else {
+                    time = 1.0f;
+                }
+                if (report_events) {
+                    packet->flags |= ANIMPACKET_FLAG_LOOPED;
+                }
+                looped = 1;
+            } else {
+                time = end_frame;
+                if (report_events) {
+                    packet->flags |= ANIMPACKET_FLAG_FINISHED;
+                }
             }
         }
     }
 
     if (looped) {
-        if (*reversed == 0) {
-            if (backwards && (animation_info->flags & CHARACTER_ANIMATION_FLAG_REVERSE_WITH_MOVEMENT) != 0) {
-                *reversed = 1;
-            }
-        } else if (!backwards) {
+        if (*reversed != 0 && backwards == 0) {
             *reversed = 0;
+        } else if (*reversed == 0 && backwards != 0 &&
+                   (static_cast<CHARACTERANIM_s *>(model->model_data_a[animation])->flags &
+                    CHARACTER_ANIMATION_FLAG_REVERSE_WITH_MOVEMENT) != 0) {
+            *reversed = 1;
         }
     }
     return time;
@@ -1540,12 +1540,12 @@ extern "C" {
             if (packet->previous_animation != -1 && packet->requested_animation != -1 &&
                 model->model_data_b[packet->previous_animation] != NULL &&
                 model->model_data_b[packet->requested_animation] != NULL) {
-                CHARACTERANIM_s *source_info =
-                    static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->previous_animation]);
-                CHARACTERANIM_s *target_info =
-                    static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->requested_animation]);
-                if (source_info != NULL && target_info != NULL && source_info->blend_out_time > blend_step &&
-                    target_info->blend_in_time > blend_step) {
+                if (static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->previous_animation]) != NULL &&
+                    static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->requested_animation]) != NULL &&
+                    static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->previous_animation])->blend_out_time >
+                        blend_step &&
+                    static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->requested_animation])->blend_in_time >
+                        blend_step) {
                     packet->blending = 1;
                     packet->blend_animation_a = packet->previous_animation;
                     packet->blend_source_reversed = static_cast<u8>(interrupted_reversed);
@@ -1555,19 +1555,27 @@ extern "C" {
                     }
                     packet->blend_source_reversed = packet->current_reversed;
 
-                    const bool synchronised = (source_info->flags & CHARACTER_ANIMATION_FLAG_SYNCHRONISED) != 0 &&
-                                              (target_info->flags & CHARACTER_ANIMATION_FLAG_SYNCHRONISED) != 0 &&
-                                              source_info->playback_rate == target_info->playback_rate &&
-                                              NuAnimEndFrame(model->model_data_b[packet->blend_animation_a]) ==
-                                                  NuAnimEndFrame(model->model_data_b[packet->blend_animation_b]);
-                    if (synchronised) {
+                    // End-frame callbacks can change the animation entries and packet indices.
+                    if ((static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_a])->flags &
+                         CHARACTER_ANIMATION_FLAG_SYNCHRONISED) != 0 &&
+                        (static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_b])->flags &
+                         CHARACTER_ANIMATION_FLAG_SYNCHRONISED) != 0 &&
+                        static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_a])->playback_rate ==
+                            static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_b])
+                                ->playback_rate &&
+                        NuAnimEndFrame(model->model_data_b[packet->blend_animation_a]) ==
+                            NuAnimEndFrame(model->model_data_b[packet->blend_animation_b])) {
                         packet->blend_target_time = packet->blend_source_time;
                         packet->blend_target_reversed =
-                            backwards != 0 && (target_info->flags & CHARACTER_ANIMATION_FLAG_REVERSE_WITH_MOVEMENT) != 0
+                            backwards != 0 && model->model_data_b[packet->blend_animation_b] != NULL &&
+                                    (static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_b])
+                                         ->flags &
+                                     CHARACTER_ANIMATION_FLAG_REVERSE_WITH_MOVEMENT) != 0
                                 ? 1
                                 : 0;
-                    } else if (backwards != 0 &&
-                               (target_info->flags & CHARACTER_ANIMATION_FLAG_REVERSE_WITH_MOVEMENT) != 0) {
+                    } else if (backwards != 0 && model->model_data_b[packet->blend_animation_b] != NULL &&
+                               (static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_b])->flags &
+                                CHARACTER_ANIMATION_FLAG_REVERSE_WITH_MOVEMENT) != 0) {
                         packet->blend_target_reversed = 1;
                         packet->blend_target_time = NuAnimEndFrame(model->model_data_b[packet->blend_animation_b]);
                     } else {
@@ -1575,9 +1583,13 @@ extern "C" {
                         packet->blend_target_time = 1.0f;
                     }
                     packet->blend_elapsed = 0.0f;
-                    packet->blend_duration = target_info->blend_in_time;
-                    if (packet->blend_duration > source_info->blend_out_time) {
-                        packet->blend_duration = source_info->blend_out_time;
+                    packet->blend_duration =
+                        static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_b])->blend_in_time;
+                    if (static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_a])->blend_out_time <
+                        packet->blend_duration) {
+                        packet->blend_duration =
+                            static_cast<CHARACTERANIM_s *>(model->model_data_a[packet->blend_animation_a])
+                                ->blend_out_time;
                     }
                     packet->flags |= ANIMPACKET_FLAG_ANIMATION_CHANGED;
                     goto update_timers;
@@ -1826,102 +1838,160 @@ extern "C" {
         RootFnEx(matrix, data, source_root, target_root, root_delta, blend, 1);
     }
 
+    static void NuVecClear(NUVEC *vector) {
+        vector->x = vector->y = vector->z = 0.0f;
+    }
+
     void BlendRootFn(NUMTX *matrix, void *data, NUVEC *source_root, NUVEC *target_root, NUVEC *root_delta, f32 blend) {
         APIOBJECT *object = static_cast<APIOBJECT *>(data);
-        CHARACTERANIM_s *source_animation = static_cast<CHARACTERANIM_s *>(
-            object->character_model->model_data_a[object->anim_packet.blend_animation_a]);
-        CHARACTERANIM_s *target_animation = static_cast<CHARACTERANIM_s *>(
-            object->character_model->model_data_a[object->anim_packet.blend_animation_b]);
 
-        NUVEC source_motion;
-        NUVEC target_motion;
-        NUVEC source_position;
-        NUVEC target_position;
+        // Animation callbacks can change the model or packet; read their current animation entries.
+        NUVEC root_offsets[2];
+        NUVEC root_motion[2];
+        NUVEC root_position[2];
 
-        if ((source_animation->flags & CHARACTER_ANIMATION_FLAG_ROOT_MOTION) != 0) {
+        if ((static_cast<CHARACTERANIM_s *>(
+                 object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                 ->flags &
+             CHARACTER_ANIMATION_FLAG_ROOT_MOTION) != 0) {
             if (object->previous_animation_root_time > object->anim_packet.blend_source_time ||
-                object->previous_animation_root_info != source_animation) {
+                static_cast<CHARACTERANIM_s *>(
+                    object->character_model->model_data_a[object->anim_packet.blend_animation_a]) !=
+                    object->previous_animation_root_info) {
                 object->previous_animation_root = *source_root;
-                object->previous_animation_root_info = source_animation;
+                object->previous_animation_root_info = static_cast<CHARACTERANIM_s *>(
+                    object->character_model->model_data_a[object->anim_packet.blend_animation_a]);
             }
 
-            source_motion.x = source_root->x - object->previous_animation_root.x;
-            source_motion.y = (source_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0
-                                  ? source_root->y - object->previous_animation_root.y
-                                  : 0.0f;
-            source_motion.z = source_root->z - object->previous_animation_root.z;
+            root_motion[0].x = source_root->x - object->previous_animation_root.x;
+            if ((static_cast<CHARACTERANIM_s *>(
+                     object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                     ->flags &
+                 CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0) {
+                root_motion[0].y = source_root->y - object->previous_animation_root.y;
+            } else {
+                root_motion[0].y = 0.0f;
+            }
+            root_motion[0].z = source_root->z - object->previous_animation_root.z;
             object->previous_animation_root = *source_root;
 
-            source_position.x = 0.0f;
-            source_position.y =
-                (source_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0 ? 0.0f : source_root->y;
-            source_position.z = 0.0f;
+            root_position[0].x = 0.0f;
+            if ((static_cast<CHARACTERANIM_s *>(
+                     object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                     ->flags &
+                 CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0) {
+                root_position[0].y = 0.0f;
+            } else {
+                root_position[0].y = source_root->y;
+            }
+            root_position[0].z = 0.0f;
             object->previous_animation_root_time = object->anim_packet.blend_source_time;
         } else {
-            source_motion.x = 0.0f;
-            source_motion.y = 0.0f;
-            source_motion.z = 0.0f;
-            source_position = *source_root;
+            NuVecClear(&root_motion[0]);
+            root_position[0] = *source_root;
             object->previous_animation_root_time = FLT_MAX;
         }
 
-        NUVEC source_offset = source_animation->root_translation;
+        root_offsets[0].x =
+            static_cast<CHARACTERANIM_s *>(object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                ->root_translation.x;
+        root_offsets[0].y =
+            static_cast<CHARACTERANIM_s *>(object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                ->root_translation.y;
+        root_offsets[0].z =
+            static_cast<CHARACTERANIM_s *>(object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                ->root_translation.z;
 
-        if ((target_animation->flags & CHARACTER_ANIMATION_FLAG_ROOT_MOTION) != 0) {
+        if ((static_cast<CHARACTERANIM_s *>(
+                 object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                 ->flags &
+             CHARACTER_ANIMATION_FLAG_ROOT_MOTION) != 0) {
             if (object->previous_blend_target_root_time > object->anim_packet.blend_target_time ||
-                object->previous_blend_target_root_info != target_animation) {
+                static_cast<CHARACTERANIM_s *>(
+                    object->character_model->model_data_a[object->anim_packet.blend_animation_b]) !=
+                    object->previous_blend_target_root_info) {
                 object->previous_blend_target_root = *target_root;
-                object->previous_blend_target_root_info = target_animation;
+                object->previous_blend_target_root_info = static_cast<CHARACTERANIM_s *>(
+                    object->character_model->model_data_a[object->anim_packet.blend_animation_b]);
             }
 
-            target_motion.x = target_root->x - object->previous_blend_target_root.x;
-            target_motion.y = (target_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0
-                                  ? target_root->y - object->previous_blend_target_root.y
-                                  : 0.0f;
-            target_motion.z = target_root->z - object->previous_blend_target_root.z;
+            root_motion[1].x = target_root->x - object->previous_blend_target_root.x;
+            if ((static_cast<CHARACTERANIM_s *>(
+                     object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                     ->flags &
+                 CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0) {
+                root_motion[1].y = target_root->y - object->previous_blend_target_root.y;
+            } else {
+                root_motion[1].y = 0.0f;
+            }
+            root_motion[1].z = target_root->z - object->previous_blend_target_root.z;
             object->previous_blend_target_root = *target_root;
 
-            target_position.x = 0.0f;
-            target_position.y =
-                (target_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0 ? 0.0f : target_root->y;
-            target_position.z = 0.0f;
+            root_position[1].x = 0.0f;
+            if ((static_cast<CHARACTERANIM_s *>(
+                     object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                     ->flags &
+                 CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0) {
+                root_position[1].y = 0.0f;
+            } else {
+                root_position[1].y = target_root->y;
+            }
+            root_position[1].z = 0.0f;
             object->previous_blend_target_root_time = object->anim_packet.blend_target_time;
         } else {
-            target_motion.x = 0.0f;
-            target_motion.y = 0.0f;
-            target_motion.z = 0.0f;
-            target_position = *target_root;
+            NuVecClear(&root_motion[1]);
+            root_position[1] = *target_root;
             object->previous_blend_target_root_time = FLT_MAX;
         }
 
-        NUVEC target_offset = target_animation->root_translation;
-        NuVecLerp(NUMTX_GET_ROW_VEC(matrix, 3), &source_position, &target_position, blend);
+        root_offsets[1].x =
+            static_cast<CHARACTERANIM_s *>(object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                ->root_translation.x;
+        root_offsets[1].y =
+            static_cast<CHARACTERANIM_s *>(object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                ->root_translation.y;
+        root_offsets[1].z =
+            static_cast<CHARACTERANIM_s *>(object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                ->root_translation.z;
+
+        NuVecLerp(NUMTX_GET_ROW_VEC(matrix, 3), &root_position[1], &root_position[0], blend);
 
         NUVEC blended_offset;
-        NuVecLerp(&blended_offset, &source_offset, &target_offset, blend);
+        NuVecLerp(&blended_offset, &root_offsets[1], &root_offsets[0], blend);
         root_delta->x += blended_offset.x;
         root_delta->y += blended_offset.y;
         root_delta->z += blended_offset.z;
         NuMtxTranslate(matrix, root_delta);
 
-        NuVecMtxRotate(&source_motion, &source_motion, &object->field_0xb8);
-        if ((source_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) == 0) {
-            source_motion.y = 0.0f;
+        NuVecMtxRotate(&root_motion[0], &root_motion[0], &object->field_0xb8);
+        if ((static_cast<CHARACTERANIM_s *>(
+                 object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                 ->flags &
+             CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) == 0) {
+            root_motion[0].y = 0.0f;
         }
-        NuVecMtxRotate(&target_motion, &target_motion, &object->field_0xb8);
-        if ((target_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) == 0) {
-            target_motion.y = 0.0f;
+        NuVecMtxRotate(&root_motion[1], &root_motion[1], &object->field_0xb8);
+        if ((static_cast<CHARACTERANIM_s *>(
+                 object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                 ->flags &
+             CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) == 0) {
+            root_motion[1].y = 0.0f;
         }
-        NuVecLerp(&object->animation_root_delta, &source_motion, &target_motion, blend);
+        NuVecLerp(&object->animation_root_delta, &root_motion[1], &root_motion[0], blend);
 
-        const f32 root_motion_epsilon = 1.0e-11f;
-        if (((source_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0 ||
-             (target_animation->flags & CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0) &&
+        if (((static_cast<CHARACTERANIM_s *>(
+                  object->character_model->model_data_a[object->anim_packet.blend_animation_a])
+                  ->flags &
+              CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0 ||
+             (static_cast<CHARACTERANIM_s *>(
+                  object->character_model->model_data_a[object->anim_packet.blend_animation_b])
+                  ->flags &
+              CHARACTER_ANIMATION_FLAG_VERTICAL_ROOT_MOTION) != 0) &&
             object->animation_root_delta.y == 0.0f) {
-            object->animation_root_delta.y = root_motion_epsilon;
+            object->animation_root_delta.y = 1.0e-11f;
         } else if (object->animation_root_delta.x == 0.0f && object->animation_root_delta.y == 0.0f &&
                    object->animation_root_delta.z == 0.0f) {
-            object->animation_root_delta.x = root_motion_epsilon;
+            object->animation_root_delta.x = 1.0e-11f;
         }
     }
 
@@ -1952,46 +2022,51 @@ extern "C" {
         return -1;
     }
 
+    extern i32 EDPP_MAX_TYPES;
+
     APIDEBRISSYS_s *InitGameDebris(VARIPTR *cursor, VARIPTR end, i32 count, i32 flags, char **names, char page) {
         (void)end;
         if (cursor->addr == 0) {
             return NULL;
         }
 
-        APIDEBRISSYS_s *sys = BUFFER_ALLOC_T(cursor, APIDEBRISSYS_s);
-        sys->named_count = flags;
-        sys->capacity = count;
-        sys->entries = BUFFER_ALLOC_ARRAY(cursor, count, GAMEDEBRISENTRY_s);
+        APIDEBRISSYS_s *sys = reinterpret_cast<APIDEBRISSYS_s *>(ALIGN(cursor->addr, 0x10));
+        cursor->addr = ALIGN(cursor->addr, 0x10);
+        cursor->addr += sizeof(*sys);
+        if (sys != NULL) {
+            memset(sys, 0, sizeof(*sys));
+            sys->capacity = count;
+            sys->named_count = flags;
+            sys->entries = reinterpret_cast<GAMEDEBRISENTRY_s *>(ALIGN(cursor->addr, 0x10));
+            cursor->addr = ALIGN(cursor->addr, 0x10);
+            cursor->addr += static_cast<usize>(count) * sizeof(*sys->entries);
+            if (sys->entries != NULL) {
+                memset(sys->entries, 0xff, static_cast<usize>(count) * sizeof(*sys->entries));
 
-        memset(sys->entries, 0xff, static_cast<usize>(count) * sizeof(*sys->entries));
-
-        // Seed the named entries from the debris_name table.
-        for (i32 i = 0; i < sys->named_count; i++) {
-            GAMEDEBRISENTRY_s &entry = sys->entries[i];
-            NuStrCpy(entry.name, names[i]);
-            entry.effect = LookupDebrisEffectPage(entry.name, page);
-        }
-
-        // The original appends the currently registered page effects after
-        // the fixed debris_name set.  effecttypes[0] is reserved, and the
-        // pointer table is append-only while pages are loaded.
-        i32 i = sys->named_count;
-        for (i32 j = 1; i < sys->capacity && j < edpp_types_used; j++) {
-            debinftype *effect = debtab != NULL ? debtab[j] : NULL;
-            if (effect == NULL) {
-                break;
+                i32 i;
+                for (i = 0; i < sys->named_count; i++) {
+                    NuStrCpy(sys->entries[i].name, names[i]);
+                    sys->entries[i].effect = -1;
+                    sys->entries[i].effect = LookupDebrisEffectPage(sys->entries[i].name, page);
+                }
+                for (i32 j = 1; i < sys->capacity && j < EDPP_MAX_TYPES; j++) {
+                    if (debtab == NULL) {
+                        break;
+                    }
+                    sys->entries[i].effect = -1;
+                    if (debtab[j] != NULL) {
+                        NuStrCpy(sys->entries[i].name, debtab[j]->name);
+                        sys->entries[i].effect = LookupDebrisEffectPageOnly(sys->entries[i].name, page);
+                        i++;
+                    }
+                }
+                for (; i < sys->capacity; i++) {
+                    sys->entries[i].effect = -1;
+                }
+                return sys;
             }
-            GAMEDEBRISENTRY_s &entry = sys->entries[i];
-            NuStrCpy(entry.name, effect->name);
-            entry.effect = LookupDebrisEffectPageOnly(entry.name, page);
-            i++;
         }
-
-        for (; i < sys->capacity; i++) {
-            sys->entries[i].effect = -1;
-        }
-
-        return sys;
+        return NULL;
     }
 
     i32 AddGameDebris(APIDEBRISSYS_s *system, i32 type, NUVEC *position) {
@@ -2087,50 +2162,49 @@ extern "C" {
             return;
         }
 
-        for (CHARACTER_EFFECT_s *effect = effects; effect->character_id != -1; ++effect) {
-            if (effect->character_id != model->model_id || effect->action_id != animation_id) {
+        for (; effects->character_id != -1; ++effects) {
+            if (effects->character_id != model->model_id || effects->action_id != animation_id) {
                 continue;
             }
 
-            const u32 flags = effect->flags;
             if (object != NULL) {
-                APIOBJECT *api = &object->apiobj;
-                if ((flags & 0x400) != 0 && api->field_0x27c == -1) {
+                if ((effects->flags & 0x400) != 0 && object->apiobj.field_0x27c == -1) {
                     continue;
                 }
-                if ((flags & 0x10) != 0 && (api->field_0x27d & 2) == 0) {
+                if ((effects->flags & 0x10) != 0 && (object->apiobj.field_0x27d & 2) == 0) {
                     continue;
                 }
-                if ((flags & 0x40) != 0 && api->is_underwater != 0) {
+                if ((effects->flags & 0x40) != 0 && object->apiobj.is_underwater != 0) {
                     continue;
                 }
-                if ((flags & 0x20) != 0 && api->is_underwater == 0) {
+                if ((effects->flags & 0x20) != 0 && object->apiobj.is_underwater == 0) {
                     continue;
                 }
-                if ((flags & 0x80) != 0 && api->intersects_water == 0) {
+                if ((effects->flags & 0x80) != 0 && object->apiobj.intersects_water == 0) {
                     continue;
                 }
-                if ((flags & 0x03000000) != 0 && (api->model_draw_result == 0 || (api->field_0x27d & 2) == 0)) {
+                if ((effects->flags & 0x03000000) != 0 &&
+                    (object->apiobj.model_draw_result == 0 || (object->apiobj.field_0x27d & 2) == 0)) {
                     continue;
                 }
-            } else if ((flags & 0x03000000) != 0) {
+            } else if ((effects->flags & 0x03000000) != 0) {
                 continue;
             }
 
             i32 active = 0;
-            if ((flags & 0x4) != 0) {
+            if ((effects->flags & 0x4) != 0) {
                 active = 1;
-            } else if ((flags & 0x8) != 0) {
-                if (effect->frame_2 > 1.0f && effect->frame_1 > effect->frame_2) {
-                    active = animation_time >= effect->frame_1 || animation_time <= effect->frame_2;
+            } else if ((effects->flags & 0x8) != 0) {
+                if (effects->frame_2 > 1.0f && effects->frame_1 > effects->frame_2) {
+                    active = animation_time >= effects->frame_1 || animation_time <= effects->frame_2;
                 } else {
-                    active = animation_time >= effect->frame_1 &&
-                             (effect->frame_2 <= 1.0f ||
-                              (effect->frame_2 > effect->frame_1 && animation_time <= effect->frame_2));
+                    active = animation_time >= effects->frame_1 &&
+                             (effects->frame_2 <= 1.0f ||
+                              (effects->frame_2 > effects->frame_1 && animation_time <= effects->frame_2));
                 }
             } else {
                 for (i32 event = 0; event <= 1; ++event) {
-                    const f32 event_time = event == 0 ? effect->frame_1 : effect->frame_2;
+                    const f32 event_time = event == 0 ? effects->frame_1 : effects->frame_2;
                     if (event_time <= 1.0f) {
                         continue;
                     }
@@ -2164,21 +2238,21 @@ extern "C" {
             i32 locator_count = 0;
             i32 position_count = 0;
             for (i32 locator = 0; locator < 16; ++locator) {
-                if ((effect->locators & (1 << locator)) == 0 || model->points_of_interest[locator] == NULL) {
+                if ((effects->locators & (1 << locator)) == 0 || model->points_of_interest[locator] == NULL) {
                     continue;
                 }
                 locator_indices[locator_count] = locator;
                 locator_positions[locator_count] = *NUMTX_GET_ROW_VEC(&locator_matrices[locator], 3);
-                if (locator_count == 0 || (flags & 0x800) != 0) {
-                    NuVecAdd(&position, &position, &locator_positions[locator_count]);
+                if (locator_count == 0 || (effects->flags & 0x800) != 0) {
+                    NuVecAdd(&position, &position, NUMTX_GET_ROW_VEC(&locator_matrices[locator], 3));
                 }
                 ++locator_count;
             }
-            if (locator_count > 0 && (flags & 0x800) != 0) {
+            if (locator_count > 0 && (effects->flags & 0x800) != 0) {
                 NuVecScale(&position, &position, 1.0f / static_cast<f32>(locator_count));
             }
             position_count = locator_count;
-            if ((flags & 0x1000) != 0 && object != NULL) {
+            if ((effects->flags & 0x1000) != 0 && object != NULL) {
                 position.x = object->apiobj.position.x;
                 position.y = object->apiobj.collision_min.y;
                 position.z = object->apiobj.position.z;
@@ -2190,105 +2264,140 @@ extern "C" {
                     locator_positions[0] = object->apiobj.position;
                     position = locator_positions[0];
                     position_count = 1;
-                    if ((flags & 0x2000) != 0 && object->apiobj.field_0x218 != 2000000.0f) {
+                    if ((effects->flags & 0x2000) != 0 && object->apiobj.field_0x218 != 2000000.0f) {
                         position.y = object->apiobj.field_0x218;
-                    } else if ((flags & 0x4000) != 0 && object->apiobj.water_height != 2000000.0f) {
+                    } else if ((effects->flags & 0x4000) != 0 && object->apiobj.water_height != 2000000.0f) {
                         position.y = object->apiobj.water_height;
                     }
-                } else if ((flags & 0x2000) != 0 && object->apiobj.field_0x218 != 2000000.0f) {
+                } else if ((effects->flags & 0x2000) != 0 && object->apiobj.field_0x218 != 2000000.0f) {
                     for (i32 i = 0; i < locator_count; ++i) {
                         locator_positions[i].y = object->apiobj.field_0x218;
                     }
-                } else if ((flags & 0x4000) != 0 && object->apiobj.water_height != 2000000.0f) {
+                } else if ((effects->flags & 0x4000) != 0 && object->apiobj.water_height != 2000000.0f) {
                     for (i32 i = 0; i < locator_count; ++i) {
                         locator_positions[i].y = object->apiobj.water_height;
                     }
                 }
             }
 
-            if (footprint_callback != NULL && locator_count == 0 && (flags & 0x03000000) != 0) {
-                footprint_callback(&object->apiobj.position, object, flags & 0x01000000, 1);
-            } else if (footprint_callback != NULL && position_count > 0 && (flags & 0x03000000) != 0) {
+            if (footprint_callback != NULL && locator_count == 0 && (effects->flags & 0x03000000) != 0) {
+                footprint_callback(&object->apiobj.position, object, effects->flags & 0x01000000, 1);
+            } else if (footprint_callback != NULL && position_count > 0 && (effects->flags & 0x03000000) != 0) {
                 for (i32 i = 0; i < locator_count; ++i) {
                     const i32 locator = locator_indices[i];
                     if (object->apiobj.character_model->points_of_interest[locator] != NULL) {
-                        footprint_callback(&locator_matrices[locator], object, flags & 0x01000000, 0);
+                        footprint_callback(&locator_matrices[locator], object, effects->flags & 0x01000000, 0);
                     }
                 }
             }
 
             if (object != NULL) {
-                object->apiobj.field_0x285 |= effect->bits_on;
-                object->apiobj.field_0x285 &= ~effect->bits_off;
+                if (effects->bits_on != 0) {
+                    object->apiobj.field_0x285 |= effects->bits_on;
+                }
+                if (effects->bits_off != 0) {
+                    object->apiobj.field_0x285 &= ~effects->bits_off;
+                }
             }
             if (position_count > 0 && object != NULL &&
-                (((flags & 0x40) != 0 && object->apiobj.is_underwater != 0) ||
-                 ((flags & 0x20) != 0 && object->apiobj.is_underwater == 0))) {
+                (((effects->flags & 0x40) != 0 && object->apiobj.is_underwater != 0) ||
+                 ((effects->flags & 0x20) != 0 && object->apiobj.is_underwater == 0))) {
                 continue;
             }
 
-            bool speed_rejected = false;
-            if (object != NULL) {
-                if ((flags & 0x100000) != 0) {
-                    speed_rejected = effect->minimum > object->apiobj.velocity_magnitude;
-                } else if ((flags & 0x40000) != 0) {
-                    speed_rejected = effect->minimum > object->apiobj.horizontal_velocity_magnitude;
-                }
-                if ((flags & 0x200000) != 0) {
-                    speed_rejected |= object->apiobj.velocity_magnitude > effect->maximum;
-                } else if ((flags & 0x80000) != 0) {
-                    speed_rejected |= object->apiobj.horizontal_velocity_magnitude > effect->maximum;
-                }
-            }
-
-            if (!speed_rejected && position_count > 0 && effect->debris_id != -1 &&
-                effect->debris_id < debris_sys->capacity) {
-                if ((flags & 1) != 0) {
-                    i32 count = effect->particle_rate > 0.0f
-                                    ? ((flags & 0x800000) != 0 ? ParticlesPerSecond(effect->particle_rate, frame_time)
-                                                               : ParticlesPerFrame(effect->particle_rate, frame_time))
-                                    : effect->particle_count;
-                    if (count < 0) {
-                        count = 1;
+            do {
+                if (object != NULL) {
+                    if ((effects->flags & 0x100000) != 0) {
+                        if (effects->minimum > object->apiobj.velocity_magnitude) {
+                            break;
+                        }
+                    } else if ((effects->flags & 0x40000) != 0) {
+                        if (effects->minimum > object->apiobj.horizontal_velocity_magnitude) {
+                            break;
+                        }
                     }
-                    if (count > 0 && (effect->random == 0 || (NuRandInt() >> 16) <= (effect->random << 8))) {
-                        if ((flags & 0x1000) != 0 || (flags & 0x800) != 0 || locator_count == 0) {
-                            if ((flags & 0x400000) != 0 && object != NULL) {
-                                AddGameDebrisMom(debris_sys, effect->debris_id, &position, count,
-                                                 &object->apiobj.velocity);
-                            } else {
-                                AddGameDebrisRot(debris_sys, effect->debris_id, &position, count, 0, 0);
-                            }
-                        } else {
-                            for (i32 i = 0; i < locator_count; ++i) {
-                                if ((flags & 0x400000) != 0 && object != NULL) {
-                                    NUVEC velocity;
-                                    NuVecSub(&velocity, &object->apiobj.position, &object->apiobj.start_position);
-                                    NuVecScale(&velocity, &velocity, 1.0f / frame_time);
-                                    AddGameDebrisMom(debris_sys, effect->debris_id, &locator_positions[i], count,
-                                                     &velocity);
-                                } else if ((flags & 0x4000000) != 0) {
-                                    AddGameDebrisMtx(debris_sys, effect->debris_id, &locator_positions[i], count,
-                                                     &locator_matrices[i]);
+                    if ((effects->flags & 0x200000) != 0) {
+                        if (object->apiobj.velocity_magnitude > effects->maximum) {
+                            break;
+                        }
+                    } else if ((effects->flags & 0x80000) != 0) {
+                        if (object->apiobj.horizontal_velocity_magnitude > effects->maximum) {
+                            break;
+                        }
+                    }
+                }
+
+                if (position_count > 0 && effects->debris_id != -1 && effects->debris_id < debris_sys->capacity) {
+                    if ((effects->flags & 1) != 0) {
+                        i32 count = effects->particle_rate > 0.0f
+                                        ? ((effects->flags & 0x800000) != 0
+                                               ? ParticlesPerSecond(effects->particle_rate, frame_time)
+                                               : ParticlesPerFrame(effects->particle_rate, frame_time))
+                                        : effects->particle_count;
+                        if (count < 0) {
+                            count = 1;
+                        }
+                        if (count > 0 && (effects->random == 0 || (NuRandInt() >> 16) <= (effects->random << 8))) {
+                            if ((effects->flags & 0x1000) != 0) {
+                                if ((effects->flags & 0x400000) != 0 && object != NULL) {
+                                    AddGameDebrisMom(debris_sys, effects->debris_id, &position, count,
+                                                     &object->apiobj.velocity);
                                 } else {
-                                    AddGameDebrisRot(debris_sys, effect->debris_id, &locator_positions[i], count, 0, 0);
+                                    AddGameDebrisRot(debris_sys, effects->debris_id, &position, count, 0, 0);
+                                }
+                            } else {
+                                u16 y_rotation = 0;
+                                u16 z_rotation = y_rotation;
+                                if ((effects->flags & 0x800) != 0) {
+                                    if ((effects->flags & 0x400000) != 0 && object != NULL) {
+                                        AddGameDebrisMom(debris_sys, effects->debris_id, &position, count,
+                                                         &object->apiobj.velocity);
+                                    } else {
+                                        AddGameDebrisRot(debris_sys, effects->debris_id, &position, count, z_rotation,
+                                                         y_rotation);
+                                    }
+                                } else if (locator_count != 0) {
+                                    for (i32 i = 0; i < locator_count; ++i) {
+                                        if ((effects->flags & 0x400000) != 0 && object != NULL) {
+                                            NUVEC velocity;
+                                            NuVecSub(&velocity, &object->apiobj.position,
+                                                     &object->apiobj.start_position);
+                                            NuVecScale(&velocity, &velocity, 1.0f / frame_time);
+                                            AddGameDebrisMom(debris_sys, effects->debris_id, &locator_positions[i],
+                                                             count, &velocity);
+                                        } else if ((effects->flags & 0x4000000) != 0) {
+                                            AddGameDebrisMtx(debris_sys, effects->debris_id, &locator_positions[i],
+                                                             count, &locator_matrices[i]);
+                                        } else {
+                                            AddGameDebrisRot(debris_sys, effects->debris_id, &locator_positions[i],
+                                                             count, z_rotation, y_rotation);
+                                        }
+                                    }
+                                } else {
+                                    if ((effects->flags & 0x400000) != 0 && object != NULL) {
+                                        AddGameDebrisMom(debris_sys, effects->debris_id, &position, count,
+                                                         &object->apiobj.velocity);
+                                    } else {
+                                        AddGameDebrisRot(debris_sys, effects->debris_id, &position, count, z_rotation,
+                                                         y_rotation);
+                                    }
                                 }
                             }
                         }
+                    } else if ((effects->flags & 0x1000) != 0 || (effects->flags & 0x800) != 0) {
+                        AddGameDebris(debris_sys, effects->debris_id, &position);
+                    } else if (locator_count != 0) {
+                        for (i32 i = 0; i < position_count; ++i) {
+                            AddGameDebris(debris_sys, effects->debris_id, &locator_positions[i]);
+                        }
+                    } else {
+                        AddGameDebris(debris_sys, effects->debris_id, &position);
                     }
-                } else if ((flags & 0x1000) != 0 || (flags & 0x800) != 0) {
-                    AddGameDebris(debris_sys, effect->debris_id, &position);
-                } else if (locator_count != 0) {
-                    for (i32 i = 0; i < position_count; ++i) {
-                        AddGameDebris(debris_sys, effect->debris_id, &locator_positions[i]);
-                    }
-                } else {
-                    AddGameDebris(debris_sys, effect->debris_id, &position);
                 }
-            }
-            if (APIObjPlaySfxByIdFn != NULL && object != NULL && effect->sound_id != -1) {
-                APIObjPlaySfxByIdFn(effect->sound_id,
-                                    (flags & 0x8000) != 0 ? &object->apiobj.collision_position : NULL);
+            } while (0);
+            if (APIObjPlaySfxByIdFn != NULL && object != NULL && effects->sound_id != -1) {
+                APIObjPlaySfxByIdFn(effects->sound_id,
+                                    (effects->flags & 0x8000) != 0 ? &object->apiobj.collision_position : NULL);
             }
         }
     }

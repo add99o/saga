@@ -1,5 +1,7 @@
 #include "decomp.h"
 #include "gameapi/gui/apimenu_internal.h"
+#include "legoapi/characters/core/character.h"
+#include "legoapi/characters/core/customiser.h"
 #include "legoapi/core/input/gamepads.h"
 #include "legoapi/core/input/timer.h"
 #include "legoapi/menus/core/text.h"
@@ -32,6 +34,8 @@ extern i16 tGERMAN;
 extern i16 tITALIAN;
 extern i16 tSPANISH;
 extern i16 tDANISH;
+extern i16 tPLAYER1, tPLAYER2, tIOSAUTOSAVEWARNING, tLOADING, tSAVING;
+extern char *apitxt_AUTOSAVE_WARNING, *apitxt_LOADING, *apitxt_SAVING;
 char *txt_NULL = const_cast<char *>("?");
 char *apitxt_ENGLISH = const_cast<char *>("English");
 char *apitxt_FRENCH = const_cast<char *>("Fran\xc3\xa7"
@@ -62,6 +66,7 @@ char *Text_GetLanguagePath(i32 language);
 void Text_LoadAndFixUpStrings(unsigned char *filename, unsigned char **buffer, char **table, i32 count);
 void IntroText_SetTextID(i32 id);
 void Text_InsertCommasIntoNumber(char *number, char *text, i32 length);
+void Text_DecodeButtons(char *source, char *destination);
 void GameDrawMenuEntry(MENU *menu, char *text);
 extern "C" void BackupMenu(void);
 extern "C" {
@@ -112,12 +117,16 @@ void Text_MakeTime(float time, i32 show_hours, i32 show_minutes, i32 show_centis
     }
 
     i32 seconds;
-    if (show_minutes != 0 || show_centiseconds != 0) {
+    if (show_hours != 0 || show_minutes != 0) {
         seconds = static_cast<i32>(NuFmod(time, 60.0f));
     } else {
         seconds = static_cast<i32>(time);
     }
     const i32 centiseconds = static_cast<i32>(NuFmod(time, 1.0f) * 100.0f);
+
+    if (text == nullptr) {
+        return;
+    }
 
     if (show_hours != 0) {
         if (show_centiseconds != 0) {
@@ -260,8 +269,8 @@ void TextCrawl_Draw(float dt, i32 paragraphs, float alpha, char *text) {
     if (paragraphs == 0 && QFont3DTime >= 55.0f) {
         colour_scale = 1.0f - (QFont3DTime - 55.0f) / 5.0f;
     }
-    const u32 colour =
-        (static_cast<u32>(128.0f * colour_scale * alpha) << 24) | (static_cast<u32>(111.0f * colour_scale) << 8) | 0xff;
+    const u32 colour = (static_cast<u32>(static_cast<i32>(128.0f * colour_scale * alpha)) << 24) |
+                       ((static_cast<u32>(static_cast<i32>(111.0f * colour_scale)) & 0xff) << 8) | 0xff;
     NuQFntSetColour(QFont3DZ, colour);
 
     f32 y = QFont3DTime * 0.4f - 4.5f;
@@ -316,9 +325,9 @@ void TextCrawl_Draw(float dt, i32 paragraphs, float alpha, char *text) {
                 break;
             }
             Text3DStringEncode(paragraph, encoded);
-            y += NuQFntPrintJustifiedW(QFont3DZ, encoded, -3.5f, y, 0.0f, x_scale, y_scale, 7.0f, 1.3f, colour,
-                                       &matrix) +
-                 NuQFntHeight(QFont3DZ);
+            y +=
+                NuQFntPrintJustifiedW(QFont3DZ, encoded, -3.5f, y, 0.0f, x_scale, y_scale, 7.0f, 1.3f, colour, &matrix);
+            y += NuQFntHeight(QFont3DZ);
         }
     }
     NuQFntPopPrintMode();
@@ -358,7 +367,7 @@ void Text_InitTable(TEXTENTRY *entry, i32 first, i32 last) {
             if (index >= first && index <= last) {
                 entry->value = index;
                 *entry->text_id = index;
-                Text_StringBits[index >> 5] |= 1U << (index & 0x1f);
+                Text_StringBits[index / 32] |= 1U << (index & 0x1f);
             } else {
                 entry->value = 0;
                 *entry->text_id = 0;
@@ -382,11 +391,13 @@ void Text_MakeScore(u32 score, char *text) {
     Text_InsertCommasIntoNumber(first, text, static_cast<i32>(end - first));
 }
 extern i16 tALONGTIMEAGO;
-void Text_LoadStrings(variptr_u *buf, variptr_u *) {
+void Text_LoadStrings(variptr_u *buf, variptr_u *buf_end) {
     unsigned char *string_buffer = buf->u8_ptr;
     char language[32];
     char path[256];
 
+    TextRegisterButtonMapFn(Text_DecodeButtons);
+    TextRegisterPulseTimerFn(TextPulseTimer);
     NuStrCpy(language, Text_GetLanguagePath(Text_Language));
     NuStrCpy(path, "stuff\\text\\");
     NuStrCat(path, language);
@@ -394,6 +405,16 @@ void Text_LoadStrings(variptr_u *buf, variptr_u *) {
     Text_LoadAndFixUpStrings(reinterpret_cast<unsigned char *>(path), &string_buffer, TTab, 0x70d);
     IntroText_SetTextID(tALONGTIMEAGO);
     buf->addr = ALIGN(reinterpret_cast<usize>(string_buffer), 4);
+    if (TTab[tPLAYER1] != NULL)
+        NuStrCpy(Game.customizer[0].name, TTab[tPLAYER1]);
+    if (TTab[tPLAYER2] != NULL)
+        NuStrCpy(Game.customizer[1].name, TTab[tPLAYER2]);
+    FinishWeirdoNames(-1);
+    Customiser_InitNames(CharacterCustomiser);
+    MenuLoadTechnicalStrings(const_cast<char *>("stuff\\text\\trc.csv"), language, buf, *buf_end);
+    apitxt_AUTOSAVE_WARNING = TTab[tIOSAUTOSAVEWARNING];
+    apitxt_LOADING = TTab[tLOADING];
+    apitxt_SAVING = TTab[tSAVING];
 }
 void Text_SetLanguage(i32 language) {
     if (language == -1) {
@@ -689,14 +710,14 @@ void Text_LoadAndFixUpStrings(unsigned char *filename, unsigned char **buffer, c
                 if (index <= 0 || index >= count)
                     continue;
                 NuFParGetWord(parser);
-                char *word = parser->word_buf;
-                if (NuStrICmp(word, "360") == 0 || NuStrICmp(word, "gc") == 0 || NuStrICmp(word, "ps2") == 0 ||
-                    NuStrICmp(word, "ps3") == 0 || NuStrICmp(word, "psp") == 0 || NuStrICmp(word, "pc") == 0 ||
-                    NuStrICmp(word, "wii") == 0 || NuStrICmp(word, "xbox") == 0)
+                if (NuStrICmp(parser->word_buf, "360") == 0 || NuStrICmp(parser->word_buf, "gc") == 0 ||
+                    NuStrICmp(parser->word_buf, "ps2") == 0 || NuStrICmp(parser->word_buf, "ps3") == 0 ||
+                    NuStrICmp(parser->word_buf, "psp") == 0 || NuStrICmp(parser->word_buf, "pc") == 0 ||
+                    NuStrICmp(parser->word_buf, "wii") == 0 || NuStrICmp(parser->word_buf, "xbox") == 0)
                     continue;
-                i32 length = NuStrLen(word);
+                i32 length = NuStrLen(parser->word_buf);
                 table[index] = reinterpret_cast<char *>(out);
-                NuStrCpy(reinterpret_cast<char *>(out), word);
+                NuStrCpy(reinterpret_cast<char *>(out), parser->word_buf);
                 out += length + 1;
             }
         } else {
@@ -705,11 +726,12 @@ void Text_LoadAndFixUpStrings(unsigned char *filename, unsigned char **buffer, c
                 if (index <= 0 || index >= count)
                     continue;
                 NuFParGetWord(parser);
-                char *word = parser->word_buf;
-                if (NuStrICmp(word, "360") == 0 || NuStrICmp(word, "gc") == 0 || NuStrICmp(word, "ps2") == 0 ||
-                    NuStrICmp(word, "ps3") == 0 || NuStrICmp(word, "psp") == 0 || NuStrICmp(word, "pc") == 0 ||
-                    NuStrICmp(word, "wii") == 0 || NuStrICmp(word, "xbox") == 0)
+                if (NuStrICmp(parser->word_buf, "360") == 0 || NuStrICmp(parser->word_buf, "gc") == 0 ||
+                    NuStrICmp(parser->word_buf, "ps2") == 0 || NuStrICmp(parser->word_buf, "ps3") == 0 ||
+                    NuStrICmp(parser->word_buf, "psp") == 0 || NuStrICmp(parser->word_buf, "pc") == 0 ||
+                    NuStrICmp(parser->word_buf, "wii") == 0 || NuStrICmp(parser->word_buf, "xbox") == 0)
                     continue;
+                char *word = parser->word_buf;
                 i32 length = NuStrLen(word);
                 if (length <= 0)
                     continue;
@@ -732,8 +754,8 @@ i32 Text_GetMaxOverallStrings() {
     return Text_MaxStrings_Overall;
 }
 void Text_LocaliseDecimalPoint(char *text) {
-    if ((Text_Language >= 2 && Text_Language <= 5) || Text_Language == 6 || Text_Language == 7 || Text_Language == 8 ||
-        Text_Language == 12 || Text_Language == 16) {
+    if ((Text_Language >= 2 && Text_Language <= 5) || Text_Language == 8 || Text_Language == 6 || Text_Language == 16 ||
+        Text_Language == 7 || Text_Language == 12) {
         while (*text != '\0') {
             if (*text == '.') {
                 *text = ',';
@@ -1421,7 +1443,7 @@ extern "C" {
                 unsigned char *output = is_button ? buttons : normal;
                 i32 &count = is_button ? button_count : normal_count;
                 output[count++] = decoded[i++];
-                while ((decoded[i] & 0xc0) == 0x80)
+                while (static_cast<u8>(decoded[i] - 0x80) <= 0x3f)
                     output[count++] = decoded[i++];
             }
             buttons[button_count] = normal[normal_count] = 0;
@@ -1514,7 +1536,7 @@ extern "C" {
                 button_font = false;
             }
             fragment[count++] = decoded[i++];
-            while ((decoded[i] & 0xc0) == 0x80)
+            while (static_cast<u8>(decoded[i] - 0x80) <= 0x3f)
                 fragment[count++] = decoded[i++];
         }
         if (count != 0) {
@@ -1636,8 +1658,13 @@ void MenuDrawViewTextStrings(MENU_s *menu) {
         dme_align = 0;
         GameDrawMenuEntry(menu, const_cast<char *>(" "));
 
-        const f32 y = menu->draw_y - menu->centre_offset;
-        if (MenuStopDraw != 0 || y < -1.25f || y >= 1.25f) {
+        const f32 draw_y = menu->draw_y;
+        const f32 centre_offset = menu->centre_offset;
+        if (MenuStopDraw != 0) {
+            continue;
+        }
+        const f32 y = draw_y - centre_offset;
+        if (!(y >= -1.25f && y < 1.25f)) {
             continue;
         }
 

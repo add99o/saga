@@ -2675,7 +2675,8 @@ __used__ static i32 Action_GoToOrigin(AISYS *sys, AISCRIPTPROCESS *processor, AI
         f32 max_time = 0.0f;
         if (param_count != 0) {
             for (i32 index = 0; index < param_count; ++index) {
-                if (AIActionParseSpeedFn != NULL && AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0) {
+                if (AIActionParseSpeedFn != NULL &&
+                    AIActionParseSpeedFn(params[index], &packet->goal_speed_mode) != 0) {
                     continue;
                 }
                 char *value = NuStrIStr(params[index], "waittime");
@@ -6682,7 +6683,7 @@ __used__ static i32 Action_CreateCreatures(AISYS *sys, AISCRIPTPROCESS *processo
                     f32 dx = current_zipup->hook_origin.x - attached_zipup->lower_position.x;
                     f32 dz = current_zipup->hook_origin.z - attached_zipup->lower_position.z;
                     i32 angle = NuAtan2D(current_zipup->hook_origin.y - attached_zipup->lower_position.y,
-                                        NuFsqrt(dx * dx + dz * dz));
+                                         NuFsqrt(dx * dx + dz * dz));
                     i32 rotation = 0x4000 - (angle < 0 ? -angle : angle);
                     if (angle < 0)
                         rotation = -rotation;

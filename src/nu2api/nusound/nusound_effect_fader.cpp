@@ -54,8 +54,8 @@ void NuSoundEffectFader::Process(float frametime) {
         target_weight = progress;
         start_weight = 1.0f - progress;
     } else if (curve.type == 1) {
-        target_weight = NuSound.CalculateCrossfadeHeight(
-            *static_cast<const NuSoundSystem::CurveData *>(curve.data), progress);
+        target_weight =
+            NuSound.CalculateCrossfadeHeight(*static_cast<const NuSoundSystem::CurveData *>(curve.data), progress);
         start_weight = 1.0f - target_weight;
     }
 
@@ -75,19 +75,19 @@ void NuSoundEffectFader::ProcessVoice(NuSoundVoice *voice, float) {
     }
 
     switch (finish_state) {
-    case FinishState::PAUSE:
-        voice->Pause();
-        break;
-    case FinishState::CALLBACK:
-        if (callback != NULL) {
-            callback->OnFinished();
-        }
-        break;
-    case FinishState::STOP:
-        voice->Stop(true);
-        break;
-    default:
-        break;
+        case FinishState::PAUSE:
+            voice->Pause();
+            break;
+        case FinishState::CALLBACK:
+            if (callback != NULL) {
+                callback->OnFinished();
+            }
+            break;
+        case FinishState::STOP:
+            voice->Stop(true);
+            break;
+        default:
+            break;
     }
     finished = false;
 }
