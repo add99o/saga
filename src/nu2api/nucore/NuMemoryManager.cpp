@@ -318,7 +318,7 @@ void NuMemoryManager::ConvertToUsedBlock(FreeHeader *header, u32 alignment, u32 
         debug->category = category;
         debug->flags.alloc_flags = flags;
         debug->flags.ctx_id = static_cast<u16>(this->cur_ctx->id);
-        debug->flags.unknown = debug->flags.ctx_id;
+        debug->flags.unknown = 0;
 
         this->stats.bytes_alloc_by_category[category] += BLOCK_SIZE(header->block_header.value);
 
@@ -1758,8 +1758,10 @@ void NuMemoryManager::SortLargeBin(u32 index) {
         ++count;
     }
     sentinel->next = SortLargeBinSegment(first, count);
-    for (FreeHeader *node = sentinel; node->next != NULL; node = node->next) {
-        node->next->prev = node;
+    FreeHeader *previous = NULL;
+    for (FreeHeader *node = sentinel; node != NULL; node = node->next) {
+        node->prev = previous;
+        previous = node;
     }
 }
 
@@ -1771,13 +1773,16 @@ NuMemoryManager::FreeHeader *NuMemoryManager::SortLargeBinSegment(FreeHeader *he
     u32 left_count = count / 2;
     u32 right_count = count - left_count;
     FreeHeader *left_end = head;
-    FreeHeader *right = NULL;
-    for (u32 i = 0; i < left_count; ++i) {
+    FreeHeader *right;
+    u32 i = 0;
+    do {
         right = left_end->next;
-        if (i + 1 < left_count) {
-            left_end = right;
+        ++i;
+        if (i >= left_count) {
+            break;
         }
-    }
+        left_end = right;
+    } while (true);
     left_end->next = NULL;
     FreeHeader *sorted_left = SortLargeBinSegment(head, left_count);
     FreeHeader *sorted_right = SortLargeBinSegment(right, right_count);
@@ -1834,7 +1839,7 @@ void NuMemoryManager::ValidateBlockDeferredContent(NuMemoryManager::Header *head
         --tag;
     u32 count = tag > 29 ? payload_size - 6 : payload_size - 5;
     count >>= 2;
-    if (tag == 29)
+    if (count == 0)
         return;
 
     u32 i = 0;
@@ -1881,8 +1886,8 @@ i32 NuMemoryManager::_MultiBlockAlloc(u32 size, u32 alignment, u32 count, void *
     if (allocation == NULL)
         return 0;
 
-    Header *header = reinterpret_cast<Header *>(reinterpret_cast<u8 *>(allocation) - m_headerSize);
     pthread_mutex_lock(&mutex);
+    Header *header = reinterpret_cast<Header *>(reinterpret_cast<u8 *>(allocation) - m_headerSize);
     u32 remaining = BLOCK_SIZE(header->value);
     for (u32 i = 0; i < count; ++i) {
         u32 block_size;

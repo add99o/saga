@@ -26,6 +26,7 @@
 #include "nu2api/nu3d/nurndr.h"
 #include "nu2api/numath/nufloat.h"
 #include "nu2api/numath/nuquat.h"
+#include "nu2api/numath/nuvec4.h"
 #include "nu2api/numath/nurand.h"
 #include "nu2api/numath/nutrig.h"
 #include "nu2api/numusic/sfx.h"
@@ -174,36 +175,34 @@ check_hold:
 }
 
 static void JumpAnimCode(GameObject_s *object) {
-    if (object->context_variant_flags >= 0) {
-        ANIMPACKET_s *packet = &object->apiobj.anim_packet;
-        packet->requested_animation = object->context_animation;
-        const u8 state = object->action_movement_state;
-        if (object->context_animation != 0x49 && (state == 6 || state < 2 || state == 7 || state == 9)) {
-            if (packet->blending == 0 && object->context_animation == packet->animation_index &&
-                (packet->flags & 1) != 0) {
-                object->airborne_input_timer += FRAMETIME;
-                if (object->airborne_input_timer >= 0.1f &&
-                    (object->nearby_floor_distance == 2000000.0f || object->nearby_floor_distance > 0.35f)) {
-                    object->context_variant_flags |= 0x80;
-                }
-            } else {
-                object->airborne_input_timer = 0.0f;
-            }
+    if (object->context_variant_flags < 0) {
+        void **animations = object->apiobj.character_model->model_data_b;
+        if (object->action_movement_state == PLAYER_JUMP_MOVEMENT_COMBAT_ROLL &&
+            animations[PLAYER_JUMP_ACTION_COMBAT_ROLL_FALL] != NULL) {
+            object->apiobj.anim_packet.requested_animation = PLAYER_JUMP_ACTION_COMBAT_ROLL_FALL;
+            return;
         }
+        if (animations[PLAYER_JUMP_ACTION_FALL] != NULL) {
+            object->apiobj.anim_packet.requested_animation = PLAYER_JUMP_ACTION_FALL;
+            return;
+        }
+        object->apiobj.anim_packet.requested_animation = object->context_animation;
         return;
     }
-
-    void **animations = object->apiobj.character_model->model_data_b;
-    if (object->action_movement_state == PLAYER_JUMP_MOVEMENT_COMBAT_ROLL &&
-        animations[PLAYER_JUMP_ACTION_COMBAT_ROLL_FALL] != NULL) {
-        object->apiobj.anim_packet.requested_animation = PLAYER_JUMP_ACTION_COMBAT_ROLL_FALL;
-        return;
+    ANIMPACKET_s *packet = &object->apiobj.anim_packet;
+    packet->requested_animation = object->context_animation;
+    const u8 state = object->action_movement_state;
+    if (object->context_animation != 0x49 && (state == 6 || state < 2 || state == 7 || state == 9)) {
+        if (packet->blending == 0 && object->context_animation == packet->animation_index && (packet->flags & 1) != 0) {
+            object->airborne_input_timer += FRAMETIME;
+            if (object->airborne_input_timer >= 0.1f &&
+                (object->nearby_floor_distance == 2000000.0f || object->nearby_floor_distance > 0.35f)) {
+                object->context_variant_flags |= 0x80;
+            }
+        } else {
+            object->airborne_input_timer = 0.0f;
+        }
     }
-    if (animations[PLAYER_JUMP_ACTION_FALL] != NULL) {
-        object->apiobj.anim_packet.requested_animation = PLAYER_JUMP_ACTION_FALL;
-        return;
-    }
-    object->apiobj.anim_packet.requested_animation = object->context_animation;
 }
 
 static CHARACTERANIM_s *GetAnimationInfo(const CHARACTERMODEL_s *model, i32 animation) {
@@ -282,7 +281,7 @@ void Animate_ATAT(GameObject_s *object) {
         packet.requested_animation = object->context_animation;
     } else {
         packet.requested_animation = CHARACTER_ANIMATION_IDLE;
-        if (static_cast<i16>(object->apiobj.field_0x1f8) < 0 &&
+        if (static_cast<i8>(object->apiobj.field_0x1f8) < 0 &&
             object->apiobj.character_model->model_data_b[15] != NULL) {
             packet.requested_animation = 15;
         }
@@ -297,10 +296,10 @@ void Animate_ATAT(GameObject_s *object) {
     }
 
     const i32 turn = RotDiff(object->previous_movement_angle, object->apiobj.field_0x276);
-    if (turn > 0 && object->apiobj.character_model->model_data_b[79] != NULL) {
-        packet.requested_animation = 79;
-    } else if (turn < 0 && object->apiobj.character_model->model_data_b[38] != NULL) {
+    if (turn < 0 && object->apiobj.character_model->model_data_b[38] != NULL) {
         packet.requested_animation = 38;
+    } else if (turn > 0 && object->apiobj.character_model->model_data_b[79] != NULL) {
+        packet.requested_animation = 79;
     }
 }
 
@@ -1085,14 +1084,8 @@ void Animate_ASTROMECH(GameObject_s *object) {
             if (object->character_context != CHARACTER_CONTEXT_DOOMED) {
                 if (object->apiobj.field_0x27d != 0) {
                     packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
-                } else if (object->ground_contact_grace_timer > 0.0f) {
-                    const GAMECHARACTERDATA *game_character =
-                        static_cast<GAMECHARACTERDATA *>(object->apiobj.character_data->field11_0x24);
-                    if (!(game_character->field_0x28 > 0.0f) ||
-                        object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL) {
-                        packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
-                    }
-                } else if (object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL ||
+                } else if (object->ground_contact_grace_timer > 0.0f ||
+                           object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL ||
                            (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
                             object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
                     const GAMECHARACTERDATA *game_character =
@@ -1136,7 +1129,7 @@ void Animate_CHARACTER(GameObject_s *object) {
         packet.requested_animation = CHARACTER_ANIMATION_IDLE;
         if (object->pad_gamepad->input_magnitude > 0.0f && object->apiobj.character_model->model_data_b[0] != NULL) {
             packet.requested_animation = CHARACTER_ANIMATION_WALK;
-        } else if (object->apiobj.character_model->model_data_b[15] != NULL && !(hub_jabbaawake <= 0.0f)) {
+        } else if (object->apiobj.character_model->model_data_b[15] != NULL && hub_jabbaawake > 0.0f) {
             packet.requested_animation = 15;
         }
         return;
@@ -1348,20 +1341,22 @@ void Animate_BATTLEDROID(GameObject_s *object) {
         }
     } else {
         packet.requested_animation = CHARACTER_ANIMATION_FALL;
-        if (object->character_context != CHARACTER_CONTEXT_DOOMED) {
-            bool use_default_idle = object->apiobj.field_0x27d != 0;
-            if (!use_default_idle) {
-                const bool has_fall = object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] != NULL;
-                if (object->ground_contact_grace_timer > 0.0f || !has_fall ||
-                    (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
-                     object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
-                    use_default_idle = GetGameCharacterData(object)->field_0x28 <= 0.0f || !has_fall;
-                }
-            }
-            if (use_default_idle) {
-                packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
-            }
+        if (object->character_context == CHARACTER_CONTEXT_DOOMED)
+            goto choose_movement;
+        if (object->apiobj.field_0x27d != 0)
+            goto default_idle;
+        if (object->ground_contact_grace_timer > 0.0f ||
+            object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL ||
+            (object->fall_animation_timer < 0.2f && object->nearby_floor_distance != 2000000.0f &&
+             object->nearby_floor_distance < 0.25f && object->apiobj.velocity.y < 0.0f)) {
+            if (!(GetGameCharacterData(object)->field_0x28 > 0.0f) ||
+                object->apiobj.character_model->model_data_b[CHARACTER_ANIMATION_FALL] == NULL)
+                goto default_idle;
         }
+        goto choose_movement;
+    default_idle:
+        packet.requested_animation = static_cast<i16>(GetDefaultIdle(object));
+    choose_movement:
 
         if (UseFallAnim(object)) {
             packet.requested_animation = CHARACTER_ANIMATION_FALL;
@@ -2028,11 +2023,12 @@ i32 GameAnimSet_GetCentreAndRadius(GAMEANIMSET_s *set, NUVEC *centre, f32 *radiu
             EvalAnim(&object->special, frame, &matrix, 1);
         }
 
-        NUVEC object_centre;
+        NUVEC4 object_centre;
         f32 object_radius;
-        NuSpecialGetRadius(&object->special, &object_centre, &object_radius);
+        NuSpecialGetRadius(&object->special, reinterpret_cast<NUVEC *>(&object_centre), &object_radius);
         object_radius *= 0.75f;
-        NuVecMtxTransform(&object_centre, &object_centre, &matrix);
+        object_centre.w = 1.0f;
+        NuVec4MtxTransformVU0(&object_centre, &object_centre, &matrix);
 
         const NUVEC object_minimum = {
             object_centre.x - object_radius,
@@ -2069,14 +2065,15 @@ i32 GameAnimSet_GetCentreAndRadius(GAMEANIMSET_s *set, NUVEC *centre, f32 *radiu
         return 0;
     }
 
-    centre->x = (minimum.x + maximum.x) * 0.5f;
-    centre->y = (minimum.y + maximum.y) * 0.5f;
-    centre->z = (minimum.z + maximum.z) * 0.5f;
+    centre->x = (maximum.x + minimum.x) * 0.5f;
+    centre->y = (maximum.y + minimum.y) * 0.5f;
+    centre->z = (maximum.z + minimum.z) * 0.5f;
     if (radius != NULL) {
         const f32 half_x = (maximum.x - minimum.x) * 0.5f;
         const f32 half_y = (maximum.y - minimum.y) * 0.5f;
         const f32 half_z = (maximum.z - minimum.z) * 0.5f;
-        *radius = NuFsqrt(half_x * half_x + half_y * half_y + half_z * half_z);
+        *radius = half_x * half_x + half_y * half_y + half_z * half_z;
+        *radius = NuFsqrt(*radius);
     }
     return 1;
 }

@@ -51,10 +51,11 @@ void CurrentStart(GameObject_s *object, i32 require_twist_level, i32 use_socket_
     if (object->field_0x661 == 0xff || world->sock_sys == NULL)
         return;
 
-    SOCK &socket = world->sock_sys->sock[static_cast<i8>(object->field_0x661)];
-    if (socket.current_speed == 0.0f || (require_twist_level == 0 && TwistLevel(world->current_level) == 0))
+    if (world->sock_sys->sock[static_cast<i8>(object->field_0x661)].current_speed == 0.0f ||
+        (require_twist_level == 0 && TwistLevel(world->current_level) == 0))
         return;
 
+    SOCK &socket = world->sock_sys->sock[static_cast<i8>(object->field_0x661)];
     NUVEC current = {0.0f, 0.0f, socket.current_speed};
     *reinterpret_cast<f32 *>(&object->field_0xc3c) = socket.current_speed;
     const f32 multiplier =
@@ -147,8 +148,8 @@ void DoInput(WORLDINFO_s *world) {
         if (Paused == 0) {
             if (GameMenu[GameMenuLevel].menu == -1 && CutSceneWaiting == 0) {
                 if ((CUTSTOPGAME == 0 || CutScene_IsSkippable(static_cast<CUTINFO *>(CutStopInfo))) &&
-                    MiniCutCam == 0 && memcard_autosavestarted == 0 && memcard_autosavepostdelay <= 0.0f &&
-                    memcard_autosavepredelay <= 0.0f && GameTimer.update_count != 0) {
+                    MiniCutCam == 0 && memcard_autosavestarted == 0 && !(memcard_autosavepostdelay > 0.0f) &&
+                    !(memcard_autosavepredelay > 0.0f) && GameTimer.update_count != 0) {
                     PauseGame(static_cast<i32>(player->pad_gamepad - GamePad));
                     player_state_changed = 1;
                     continue;

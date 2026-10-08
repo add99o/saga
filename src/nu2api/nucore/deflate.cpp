@@ -172,10 +172,10 @@ static void FillBits(DEFLATECONTEXT *ctx) {
         i32 symbol;                                                                                                    \
                                                                                                                        \
         if (ctx->num_bits_available < 0x10) {                                                                          \
-            FillBits(ctx);                                                                                             \
+            PEEKBITS(ctx, 0x10);                                                                                       \
         }                                                                                                              \
                                                                                                                        \
-        u32 bits = ctx->bit_buffer & ((1 << 0x10) - 1);                                                                \
+        u32 bits = ctx->bit_buffer;                                                                                    \
                                                                                                                        \
         u32 lookupIndex = (tree).fast_lookup[bits & 0x1ff];                                                            \
                                                                                                                        \
@@ -365,7 +365,7 @@ i32 DecompressHuffmanTrees(DEFLATECONTEXT *ctx) {
     u8 allCodeLengths[288 + 32 + 137];
 
     i32 i = 0;
-    while (i < hlit + hdist) {
+    do {
         i32 symbol = READHUFFMANSYMBOL(ctx, ctx->temp_code_length);
 
         if (symbol < 16) {
@@ -383,7 +383,7 @@ i32 DecompressHuffmanTrees(DEFLATECONTEXT *ctx) {
             memset(allCodeLengths + i, 0, symbol);
             i += symbol;
         }
-    }
+    } while (i < hlit + hdist);
 
     if (!BuildHuffmanTree(&ctx->length_tree, allCodeLengths, hlit)) {
         LOG_WARN("failed to build length huffman tree");

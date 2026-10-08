@@ -670,10 +670,13 @@ void DebrisDrawCalculateClipBoxes(debinftype *effect, debkeydatatype_s *key) {
     extent.y = (extent.y + padding) + 0.2f;
     extent.z = (extent.z + padding) + 0.2f;
     NUVEC minimum = {-extent.x, -extent.y, -extent.z};
-    if (effect->field_0a0 > 0.0f)
-        extent.y += (effect->field_0a0 * lifetime) * lifetime;
-    else if (effect->field_0a0 < 0.0f)
-        minimum.y = (effect->field_0a0 * lifetime) * lifetime - extent.y;
+    if (effect->field_0a0 > 0.0f) {
+        f32 gravity_lifetime = effect->particle_lifetime;
+        extent.y += (effect->field_0a0 * gravity_lifetime) * gravity_lifetime;
+    } else if (effect->field_0a0 < 0.0f) {
+        f32 gravity_lifetime = effect->particle_lifetime;
+        minimum.y = (effect->field_0a0 * gravity_lifetime) * gravity_lifetime - extent.y;
+    }
     f32 horizontal = extent.x > extent.z ? extent.x : extent.z;
     f32 radius;
     if (extent.y > -minimum.y)
@@ -939,10 +942,20 @@ extern "C" {
         DebMat[4] = CreateCopyMat(DebMat[0], 0, 1, 1, 1);
         DebMat[5] = CreateCopyMat(DebMat[0], 0, 2, 1, 1);
         DebMat[6] = CreateCopyMat(DebMat[0], 0, 0, 0, 1);
-        for (i32 i = 0; i <= 6; ++i) {
-            DebMat[i]->shader_desc.vtx_desc.unknown_2_16 = 1;
-            DebMat[i]->tex_id = texture_id;
-        }
+        DebMat[0]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[1]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[2]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[3]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[4]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[5]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[6]->shader_desc.vtx_desc.unknown_2_16 = 1;
+        DebMat[6]->tex_id = texture_id;
+        DebMat[5]->tex_id = texture_id;
+        DebMat[4]->tex_id = texture_id;
+        DebMat[3]->tex_id = texture_id;
+        DebMat[2]->tex_id = texture_id;
+        DebMat[1]->tex_id = texture_id;
+        DebMat[0]->tex_id = texture_id;
 
         DebMat[7] = NuMtlCreateEx3D(1, 2);
         NUMTL *glass = DebMat[7];
@@ -960,8 +973,7 @@ extern "C" {
         glass->attribs.z_mode = 1;
         glass->attribs.unknown_2_1_2 = 2;
         glass->attribs.unknown_2_4 = 1;
-        glass->attribs.alpha_fail |= 2;
-        glass->attribs.uv_mode = 0;
+        glass->attribs.alpha_fail = 1;
         glass->sort_pri = 128;
         glass->particle_type_tag = -105;
         NuMtlUpdate(glass);
@@ -1105,14 +1117,15 @@ extern "C" void DebrisStartOffsetEx(debkeydatatype_s *key, f32 offset) {
     }
     const i16 effect_index = key->effect_index;
     debinftype *effect = debtab[effect_index];
+    // This routine uses the emission fields at offsets 0x1c, 0x20, 0x24 and 0x28.
     f32 now = effect->time_group == 4 ? panelglobaltime : globaltime;
     f32 start;
     f32 period;
-    if (effect->emission_period_random == 0.0f && effect->emission_pause_random == 0.0f) {
-        const f32 interval = effect->emission_period + effect->emission_pause;
+    if (effect->emission_pause == 0.0f && effect->start_offset_random == 0.0f) {
+        const f32 interval = effect->emission_period_random + effect->emission_pause_random;
         start = static_cast<f32>(static_cast<i32>(now / interval)) * interval;
-        if (effect->generator_type == 7 && effect->emission_pause == 0.0f) {
-            const f32 frames = offset * 60.0f;
+        if (effect->generator_type == 7 && effect->emission_pause_random == 0.0f) {
+            const f32 frames = static_cast<f32>(static_cast<i32>(offset * 60.0f));
             key->emitter_rotation_x = static_cast<i16>(static_cast<i32>(effect->field_050 * frames));
             key->emitter_rotation_y = static_cast<i16>(static_cast<i32>(effect->field_054 * frames));
         } else {
@@ -1123,13 +1136,15 @@ extern "C" void DebrisStartOffsetEx(debkeydatatype_s *key, f32 offset) {
         while (now < start) {
             start -= interval;
         }
+        key->emission_time = start;
     } else {
         start = now;
         key->emission_time = start;
     }
-    period = effect->emission_period;
+    period = start + effect->emission_period_random;
+    const f32 random = NuRandFloatSeeded(&debrisseed);
     key->previous_emission_time = -10.0f;
-    key->field_1e4 = NuRandFloatSeeded(&debrisseed) * effect->emission_period_random + start + period;
+    key->field_1e4 = random * effect->emission_pause + period;
 }
 
 void DebrisProcessGeneration() {
@@ -1375,18 +1390,18 @@ extern "C" {
             NUMTX matrix;
             NUVEC position;
             if (key != NULL) {
-                bool assigned = (effect->particle_keys[0] != -1 && &debkeydata[effect->particle_keys[0]] == key) ||
-                                (effect->particle_keys[1] != -1 && &debkeydata[effect->particle_keys[1]] == key) ||
-                                (effect->particle_keys[2] != -1 && &debkeydata[effect->particle_keys[2]] == key) ||
-                                (effect->particle_keys[3] != -1 && &debkeydata[effect->particle_keys[3]] == key) ||
-                                (effect->particle_keys[4] != -1 && &debkeydata[effect->particle_keys[4]] == key) ||
-                                (effect->particle_keys[5] != -1 && &debkeydata[effect->particle_keys[5]] == key) ||
-                                (effect->particle_keys[6] != -1 && &debkeydata[effect->particle_keys[6]] == key) ||
-                                (effect->particle_keys[7] != -1 && &debkeydata[effect->particle_keys[7]] == key);
-                bool visible = true;
+                i32 assigned = (effect->particle_keys[0] != -1 && &debkeydata[effect->particle_keys[0]] == key) ||
+                               (effect->particle_keys[1] != -1 && &debkeydata[effect->particle_keys[1]] == key) ||
+                               (effect->particle_keys[2] != -1 && &debkeydata[effect->particle_keys[2]] == key) ||
+                               (effect->particle_keys[3] != -1 && &debkeydata[effect->particle_keys[3]] == key) ||
+                               (effect->particle_keys[4] != -1 && &debkeydata[effect->particle_keys[4]] == key) ||
+                               (effect->particle_keys[5] != -1 && &debkeydata[effect->particle_keys[5]] == key) ||
+                               (effect->particle_keys[6] != -1 && &debkeydata[effect->particle_keys[6]] == key) ||
+                               (effect->particle_keys[7] != -1 && &debkeydata[effect->particle_keys[7]] == key);
+                i32 visible = 1;
                 if (!assigned && effect->sound_range > 0.0f && effect->use_explicit_clip_box == 0 &&
                     key->cutoff_distance > effect->sound_range)
-                    visible = false;
+                    visible = 0;
                 if (key->field_2f7 == 0)
                     continue;
                 if (visible && pass != 4 && effect->generator_type == 0 && effect->use_explicit_clip_box == 0 &&

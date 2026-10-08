@@ -135,7 +135,8 @@ i32 SpecialSfxLoad(char *path, WORLDINFO_s *world) {
         NuSpecialFind(world->current_gscn, &entry->special, name, 1);
         entry->event_count = EdFileReadChar();
         if (version == 2) {
-            entry->flags = (entry->flags & 0xf0) | (EdFileReadChar() & 0xf);
+            const i32 flags = EdFileReadChar();
+            entry->flags = (entry->flags & 0xf0) | (flags & 0xf);
         }
         world->special_sfx_count++;
     }
@@ -149,7 +150,8 @@ i32 SpecialSfxLoad(char *path, WORLDINFO_s *world) {
             name[length] = '\0';
             event->sfx_id = static_cast<i16>(GetSfxId(name));
             event->flags = static_cast<u8>(EdFileReadChar());
-            event->flags = (event->flags & ~2u) | ((IsSfxLooping(event->sfx_id) & 1) << 1);
+            const i32 looping = IsSfxLooping(event->sfx_id);
+            event->flags = (event->flags & ~2u) | ((looping & 1) << 1);
             event->trigger_frame = EdFileReadFloat();
             event->previous_frame = EdFileReadFloat();
             world->special_sfx_event_count++;
@@ -157,11 +159,33 @@ i32 SpecialSfxLoad(char *path, WORLDINFO_s *world) {
     }
 
     event = world->special_sfx_events;
-    for (i32 i = 0; i < world->special_sfx_count; i++) {
-        specialsfx_s *entry = &world->special_sfx[i];
-        entry->events = event;
-        for (i32 j = 0; j < entry->event_count; j++, event++) {
-            event->next = (j + 1 < entry->event_count) ? event + 1 : NULL;
+    if (world->special_sfx_count > 0) {
+        SPECIALSFXEVENT_s *event_end = event + world->special_sfx_event_count;
+        specialsfx_s *entry = world->special_sfx;
+        specialsfx_s *entry_end = entry + world->special_sfx_count;
+        while (entry < entry_end) {
+            SPECIALSFXEVENT_s *next = event == event_end
+                                          ? NULL
+                                          : reinterpret_cast<SPECIALSFXEVENT_s *>(reinterpret_cast<uintptr_t>(event) +
+                                                                                  sizeof(SPECIALSFXEVENT_s));
+            entry->events = event;
+            if (entry->event_count > 1) {
+                SPECIALSFXEVENT_s *previous = event;
+                for (i32 j = 0; j < entry->event_count - 1; ++j) {
+                    previous->next = next;
+                    event = reinterpret_cast<SPECIALSFXEVENT_s *>(reinterpret_cast<uintptr_t>(next) +
+                                                                  sizeof(SPECIALSFXEVENT_s));
+                    previous = next;
+                    next = event;
+                }
+                if (previous != NULL)
+                    previous->next = NULL;
+            } else {
+                if (event != NULL)
+                    event->next = NULL;
+                event = next;
+            }
+            ++entry;
         }
     }
 
@@ -286,7 +310,7 @@ void UpdateSpecialSfx(WORLDINFO_s *world) {
                     if (trigger <= frame && frame <= previous) {
                         play = true;
                     }
-                } else if (direction == 1 && (flags & 8) != 0 && frame <= trigger && trigger <= previous) {
+                } else if (direction == 1 && (flags & 8) != 0 && frame <= trigger && frame >= previous) {
                     play = true;
                 }
             } else if ((flags & 0xc) == 0xc) {
@@ -431,8 +455,18 @@ void FileLoadSingleEffectType(debinftype *effect, i32 version, char category) {
         effect->emitter_velocity.x = effect->emitter_velocity.y = effect->emitter_velocity.z = 0.0f;
     }
 
-    for (usize i = 0; i < sizeof(effect->fields_070) / sizeof(f32); ++i)
-        reinterpret_cast<f32 *>(effect->fields_070)[i] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[0] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[1] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[2] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[3] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[4] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[5] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[6] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[7] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[8] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[9] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[10] = EdFileReadFloat();
+    reinterpret_cast<f32 *>(effect->fields_070)[11] = EdFileReadFloat();
     effect->field_0a0 = EdFileReadFloat();
     effect->particle_lifetime = EdFileReadFloat();
     effect->field_0a8 = EdFileReadShort();
@@ -573,8 +607,18 @@ void FileLoadSingleEffectType(debinftype *effect, i32 version, char category) {
                 effect->sound_data[i * 3 + 2] = 0;
             }
         } else {
-            for (i32 i = 0; i < 12; ++i)
-                effect->sound_data[i] = EdFileReadInt();
+            effect->sound_data[0] = EdFileReadInt();
+            effect->sound_data[1] = EdFileReadInt();
+            effect->sound_data[2] = EdFileReadInt();
+            effect->sound_data[3] = EdFileReadInt();
+            effect->sound_data[4] = EdFileReadInt();
+            effect->sound_data[5] = EdFileReadInt();
+            effect->sound_data[6] = EdFileReadInt();
+            effect->sound_data[7] = EdFileReadInt();
+            effect->sound_data[8] = EdFileReadInt();
+            effect->sound_data[9] = EdFileReadInt();
+            effect->sound_data[10] = EdFileReadInt();
+            effect->sound_data[11] = EdFileReadInt();
         }
     } else {
         const i32 stored_sound_count = EdFileReadInt();
@@ -582,13 +626,14 @@ void FileLoadSingleEffectType(debinftype *effect, i32 version, char category) {
         for (i32 i = 0; i < sound_count; ++i) {
             char sound_name[16];
             EdFileRead(sound_name, sizeof(sound_name));
-            const i32 sound_id = GetSfxIdN(sound_name, sizeof(sound_name));
-            const i32 first = EdFileReadInt();
-            const i32 second = EdFileReadInt();
             if (i < 4) {
-                effect->sound_data[i * 3] = sound_id;
-                effect->sound_data[i * 3 + 1] = first;
-                effect->sound_data[i * 3 + 2] = second;
+                effect->sound_data[i * 3] = GetSfxIdN(sound_name, sizeof(sound_name));
+                effect->sound_data[i * 3 + 1] = EdFileReadInt();
+                effect->sound_data[i * 3 + 2] = EdFileReadInt();
+            } else {
+                GetSfxIdN(sound_name, sizeof(sound_name));
+                EdFileReadInt();
+                EdFileReadInt();
             }
         }
         for (i32 i = MIN(sound_count, 4); i < 4; ++i)

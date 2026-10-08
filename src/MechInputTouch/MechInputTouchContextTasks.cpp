@@ -202,6 +202,10 @@ bool MechTouchTaskGoTo::UpdateTarget(MechObjectInterface &object) {
 }
 
 MechTouchTaskGoTo::~MechTouchTaskGoTo() {
+    if (move_to_marker.Get() != NULL) {
+        move_to_marker.Get()->FadeOut();
+        move_to_marker = NuMechPtr<MoveToMarker, 4>();
+    }
 }
 
 MechTouchTaskJump::MechTouchTaskJump(MechInputTouchGestureBasedController &owner, JumpTriggerPacket const &packet,
@@ -408,12 +412,14 @@ bool MechTouchTaskAttack::Update() {
     GameObject_s *object = Player[controller->player_id];
     if (object != NULL && target.Get() != NULL) {
         MechObjectInterface *opponent = target.Get();
-        const NUVEC origin = object->apiobj.position;
+        const f32 origin_z = object->apiobj.position.z;
+        const f32 origin_y = object->apiobj.position.y;
+        const f32 origin_x = object->apiobj.position.x;
         VuVec delta;
         opponent->GetPos(delta, -1);
-        delta.x -= origin.x;
-        delta.y -= origin.y;
-        delta.z -= origin.z;
+        delta.y -= origin_y;
+        delta.x -= origin_x;
+        delta.z -= origin_z;
         const f32 distance_squared = delta.x * delta.x + delta.z * delta.z;
         const f32 radius = opponent->GetRadius();
         bool nearby = false;
@@ -526,8 +532,8 @@ bool MechTouchTaskBuildIt::Update() {
     room = buildit->built_object_count;
     VuVec position;
     target.Get()->GetPos(position, buildit->built_object_count);
-    position.x -= player->apiobj.position.x;
     position.y -= player->apiobj.position.y;
+    position.x -= player->apiobj.position.x;
     position.z -= player->apiobj.position.z;
     const f32 distance_squared = position.x * position.x + position.y * position.y + position.z * position.z;
     if (distance_squared < 4.0f) {
@@ -641,7 +647,20 @@ bool MechTouchTaskPullLever::Update() {
         f32 nearest_distance;
         if (Lever_FindNearest(WORLD, &player->apiobj.lower_position, player, &nearest_distance) == lever) {
             player->apiobj.movement_facing_angle = NuAtan2D(position.x, position.z);
-            Lever_StartPull(player, lever);
+            player->character_context = 0x4a;
+            player->field_0x788 = lever;
+            player->context_animation = 0x5d;
+            player->context_animation_timer = 0.0f;
+            player->field_0x768 = 0.0f;
+            GameObject_s *animation_object = player;
+            animation_object->airborne_action_duration = AnimDuration(animation_object->id, 0x5d, 0.0f, 0.0f, 1);
+            if (player->airborne_action_duration <= 0.0f)
+                player->airborne_action_duration = 1.0f;
+            player->context_flags &= ~0x40;
+            player->apiobj.movement_facing_angle = static_cast<LEVER_s *>(player->field_0x788)->y_rotation;
+            static_cast<LEVER_s *>(player->field_0x788)->interacting = 1;
+            static_cast<LEVER_s *>(player->field_0x788)->pull_progress = 0.0f;
+            static_cast<LEVER_s *>(player->field_0x788)->auto_reset_timer = 0.0f;
         }
     } else if (MechTouchTaskGoTo::Update()) {
         return true;

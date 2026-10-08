@@ -136,11 +136,25 @@ SAGA_HOST_WEAK void InitStillRender(variptr_u *, variptr_u) {
 
     pause_rt = NuTexGenTexture(&nativePauseTex);
     nativePauseTex.ref_count = 1;
-    memset(nativePauseTex.checksum, 0, sizeof(nativePauseTex.checksum));
+    // Retail writes each checksum byte (48c587..48c60c); image_data and size retain their initialized state.
+    nativePauseTex.checksum[0] = 0;
+    nativePauseTex.checksum[1] = 0;
+    nativePauseTex.checksum[2] = 0;
+    nativePauseTex.checksum[3] = 0;
+    nativePauseTex.checksum[4] = 0;
+    nativePauseTex.checksum[5] = 0;
+    nativePauseTex.checksum[6] = 0;
+    nativePauseTex.checksum[7] = 0;
+    nativePauseTex.checksum[8] = 0;
+    nativePauseTex.checksum[9] = 0;
+    nativePauseTex.checksum[10] = 0;
+    nativePauseTex.checksum[11] = 0;
+    nativePauseTex.checksum[12] = 0;
+    nativePauseTex.checksum[13] = 0;
+    nativePauseTex.checksum[14] = 0;
+    nativePauseTex.checksum[15] = 0;
     nativePauseTex.width = g_backingWidth;
     nativePauseTex.height = g_backingHeight;
-    nativePauseTex.image_data = NULL;
-    nativePauseTex.size = 0;
 
     BeginCriticalSectionGL("i:/SagaTouch-Android_9176564/legoapi.saga/screen.cpp", 0x561);
     glGenTextures(1, &nativePauseTex.platform.gl_tex);
@@ -166,7 +180,7 @@ SAGA_HOST_WEAK void InitStillRender(variptr_u *, variptr_u) {
     pause_rndr_mtl->tex_id = static_cast<i16>(pause_rt);
     pause_rndr_mtl->shader_desc.diffuse_color[0] = -1;
     pause_rndr_mtl->shader_desc.unknown_a8 = 1;
-    pause_rndr_mtl->shader_desc.vtx_desc.flags |= 0x40800;
+    pause_rndr_mtl->shader_desc.vtx_desc.flags = (pause_rndr_mtl->shader_desc.vtx_desc.flags & ~0x3800u) | 0x40800u;
     NuMtlUpdate(pause_rndr_mtl);
     pause_rndr_on = 0;
 }
@@ -174,7 +188,6 @@ SAGA_HOST_WEAK void InitStillRender(variptr_u *, variptr_u) {
 void DrawPauseScreenWipe() {
     NuRndrBeginScene(-1);
 
-    const f32 fade = FadeSys.fade;
     i32 x = 0;
     i32 y = 0;
     i32 width = 0x2800;
@@ -187,6 +200,7 @@ void DrawPauseScreenWipe() {
 
     if ((FadeSys.direction & 3) != 0) {
         if ((FadeSys.direction & 1) == 0) {
+            const f32 fade = FadeSys.fade;
             width = static_cast<i32>(fade * 10240.0f);
             colours[0] = 0x80808080u;
             colours[1] = 0x00808080u;
@@ -195,6 +209,7 @@ void DrawPauseScreenWipe() {
             NuRndrGradRectUV2di(width, 0, 0x400, 0xe00, fade, 1.0f, fade + 0.1f, 0.0f, colours, pause_rndr_mtl);
             u1 = fade;
         } else {
+            const f32 fade = FadeSys.fade;
             u0 = 1.0f - fade;
             x = static_cast<i32>(u0 * 10240.0f);
             width = 0x2800 - x;
@@ -206,6 +221,7 @@ void DrawPauseScreenWipe() {
         }
     } else if ((FadeSys.direction & 0xc) != 0) {
         if ((FadeSys.direction & 4) == 0) {
+            const f32 fade = FadeSys.fade;
             height = static_cast<i32>(fade * 3584.0f);
             colours[0] = 0x80808080u;
             colours[1] = 0x80808080u;
@@ -215,6 +231,7 @@ void DrawPauseScreenWipe() {
                                 pause_rndr_mtl);
             v1 = 1.0f - fade;
         } else {
+            const f32 fade = FadeSys.fade;
             const f32 edge = 1.0f - fade;
             y = static_cast<i32>(edge * 3584.0f);
             height = 0xe00 - y;
@@ -256,7 +273,7 @@ void DrawStillScreen(i32 clear) {
     if (clear != 0) {
         NuRndrClear(0x500, 0, 1.0f);
     }
-    if (MainRenderTime >= 1.0f) {
+    if (!(MainRenderTime < 1.0f)) {
         NuRndrRectUV2di(0, 0, 0x2800, 0xe00, 0.0f, 1.0f, 1.0f, 0.0f, 0x80808080u, pause_rndr_mtl);
     } else {
         const u32 colour = (static_cast<i32>(MainRenderTime * 128.0f) << 24) | 0x00808080u;

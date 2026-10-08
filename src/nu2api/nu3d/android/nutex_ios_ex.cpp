@@ -715,6 +715,7 @@ load_android_texture:
 GLuint NuIOS_CreateGLTexFromHash(u32 hash) {
     char filename[0x10c];
     GLuint texture = 0;
+    const char *extension;
 
     g_textureHash = hash;
     comeFromHash = 1;
@@ -737,8 +738,11 @@ GLuint NuIOS_CreateGLTexFromHash(u32 hash) {
             }
             break;
         case ANDROID_S3TC_PLATFORM:
+            extension = "S3TC";
+            goto load_dds_format;
         case ANDROID_ETC1_PLATFORM: {
-            const char *extension = NuPlatform::Get()->GetCurrentPlatform() == ANDROID_S3TC_PLATFORM ? "S3TC" : "ETC1";
+            extension = "ETC1";
+        load_dds_format:
             snprintf(filename, sizeof(filename), "SHAREDTEXTURES/0X%08X.%s", hash, extension);
             texture = NuIOS_CreateGLTexFromPlatfomSpecificFile(filename);
             if (texture == 0) {
@@ -766,8 +770,6 @@ i32 GetMipOffset(i32 width, i32 height, NUTEXFORMAT format, i32 depth, bool isCu
                  i32 targetSlice) {
     i32 totalOffset = 0;
     i32 currentSlice = 0;
-    i32 mipLimit;
-    i32 sliceLimit;
     bool isAuto;
 
     if (depth == 0) {
@@ -777,14 +779,8 @@ i32 GetMipOffset(i32 width, i32 height, NUTEXFORMAT format, i32 depth, bool isCu
     isAuto = targetMip < 0 && targetSlice < 0;
 
     if (isAuto != 0) {
-        sliceLimit = 5;
-        mipLimit = mips;
-        if (!isCubemap) {
-            sliceLimit = depth;
-        }
-    } else {
-        mipLimit = targetMip;
-        sliceLimit = targetSlice;
+        targetSlice = isCubemap ? 5 : depth;
+        targetMip = mips;
     }
 
     bool isCompressed;
@@ -806,7 +802,7 @@ i32 GetMipOffset(i32 width, i32 height, NUTEXFORMAT format, i32 depth, bool isCu
     }
 
     while (true) {
-        i32 innerMipLimit = mipLimit;
+        i32 innerMipLimit = targetMip;
 
         if (isCubemap && (currentSlice < targetSlice)) {
             innerMipLimit = mips;
@@ -854,7 +850,7 @@ i32 GetMipOffset(i32 width, i32 height, NUTEXFORMAT format, i32 depth, bool isCu
             m++;
         }
 
-        if (!isCubemap || (currentSlice == sliceLimit)) {
+        if (!isCubemap || (currentSlice == targetSlice)) {
             break;
         }
 

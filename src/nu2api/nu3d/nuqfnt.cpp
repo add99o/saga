@@ -592,6 +592,8 @@ NUQFNT *NuQFntReadBuffer(VARIPTR *font, VARIPTR *buf, VARIPTR buf_end) {
     texture.addr = ((usize *)base.void_ptr)[2];
     texture_size = relocation_table.addr - texture.addr;
     relocation_table_end = relocation_entry.addr - base.addr;
+    const i32 texture_offset = texture.addr - base.addr;
+    const i32 relocation_offset = relocation_table.addr - base.addr;
     gl_texture = NuIOS_CreateGLTexFromPlatformInMemory(texture.void_ptr, &width, &height, false);
     if (g_buttonsFont != 0) {
         width /= 2;
@@ -599,8 +601,13 @@ NUQFNT *NuQFntReadBuffer(VARIPTR *font, VARIPTR *buf, VARIPTR buf_end) {
     }
 
     g_buttonsFont = 0;
-    memmove(texture.void_ptr, relocation_table.void_ptr, relocation_table_end - (relocation_table.addr - base.addr));
-    *(i32 *)base.void_ptr = texture.addr - base.addr;
+    base = *font;
+    texture.addr = base.addr + texture_offset;
+    relocation_table.addr = base.addr + relocation_offset;
+    memmove(texture.void_ptr, relocation_table.void_ptr, relocation_table_end - relocation_offset);
+    base = *font;
+    *(i32 *)base.void_ptr = texture_offset;
+    texture.addr = base.addr + texture_offset;
 
     if (relocation_count != 0) {
         relocation_table.addr = texture.addr;
@@ -618,7 +625,7 @@ NUQFNT *NuQFntReadBuffer(VARIPTR *font, VARIPTR *buf, VARIPTR buf_end) {
 
     buf->addr -= texture_size;
     memset(buf->void_ptr, 0, texture_size);
-    result = *(VUFNT **)NuPtrBlockFix(base.void_ptr);
+    result = *(VUFNT **)NuPtrBlockFix(font->void_ptr);
 
     native_texture = (NUNATIVETEX *)ALIGN(buf->addr, 4);
     buf->addr = (usize)(native_texture + 1);
@@ -789,9 +796,9 @@ f32 NuQFntPrintJustifiedRSW(RNDRSTREAM *stream, void *font_ptr, u16 *text, f32 x
                             f32 width, f32 line_spacing, u32 colour, NUMTX *mtx) {
     VUFNT *font = static_cast<VUFNT *>(font_ptr);
     f32 saved_space_width = nuqfnt_space_width;
-    f32 space_width = saved_space_width == 0.0f ? font->space_width : saved_space_width;
-    f32 saved_ic_gap = font->ic_gap;
     u16 encoded_space[2] = {0x20, 0};
+    f32 saved_ic_gap = font->ic_gap;
+    f32 space_width = saved_space_width == 0.0f ? font->space_width : saved_space_width;
 
     NuQFntSetColourRS(stream, font, colour);
     NuQFntSetScaleRS(stream, font, sx, sy);
@@ -1086,7 +1093,8 @@ void NuQFntPrintCharW(NUQFNT *font, u16 *text, u32 flags) {
                 }
                 f32 left = x;
                 if ((flags & 1) != 0 && static_cast<u16>(character - 0x30) <= 9) {
-                    VUFNTCHAR *zero = &vufnt->glyphs[static_cast<i16>(NuQFntEncodeUnicodeChar(font, 0x30))];
+                    const i16 zero_code = static_cast<i16>(NuQFntEncodeUnicodeChar(font, 0x30));
+                    VUFNTCHAR *zero = &vufnt->glyphs[zero_code];
                     f32 digit_width = zero->width * *vufnt->x_scale;
                     left = (digit_width - glyph_width) + x;
                     advance = digit_width;

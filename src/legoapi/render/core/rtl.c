@@ -941,15 +941,15 @@ static void rtlApplySetScaleLoop(void *set, rtlidata_s *lighting_data, NUVEC *po
                                 if (light->intensity > 16.0f) {
                                     lighting_data->field_134.x +=
                                         static_cast<f32>(static_cast<i32>(light->intensity) & 15) *
-                                        NU_SIN_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength *
+                                        (NU_SIN_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength) *
                                         rtlwob;
                                     lighting_data->field_134.y +=
                                         static_cast<f32>(static_cast<i32>(light->intensity) & 15) *
-                                        NU_COS_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength *
+                                        (NU_COS_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength) *
                                         rtlwob;
                                     lighting_data->field_134.z +=
                                         static_cast<f32>(static_cast<i32>(light->intensity) & 15) *
-                                        NU_COS_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength *
+                                        (NU_COS_LUT((static_cast<i32>(light->intensity) >> 4) * rtltimer1) * strength) *
                                         rtlwob;
                                 }
                             }
@@ -3621,10 +3621,10 @@ extern "C" void edrtlDrawLight(i32 index) {
 }
 
 extern "C" void edrtlDrawLightEx(i32 index, i32 style) {
-    u32 colour = (static_cast<i32>(curr_set->lights[index].colour.x * 255.0f) & 0xffu) |
-                 ((static_cast<i32>(curr_set->lights[index].colour.z * 255.0f) & 0xffu) << 16) | 0x80000000u |
-                 ((static_cast<i32>(curr_set->lights[index].colour.y * 255.0f) & 0xffu) << 8);
-    u32 inner_colour = colour, outer_colour = colour;
+    u32 colour = ((static_cast<i32>(curr_set->lights[index].colour.z * 255.0f) & 0xffu) << 16) | 0x80000000u |
+                 ((static_cast<u32>(static_cast<i32>(curr_set->lights[index].colour.y * 255.0f)) << 8) & 0xffffu) |
+                 (static_cast<i32>(curr_set->lights[index].colour.x * 255.0f) & 0xffu);
+    u32 outer_colour = colour, inner_colour = outer_colour;
     if (style == 1)
         inner_colour = ~colour;
     if (style == 2)

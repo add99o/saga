@@ -787,17 +787,20 @@ int GizSpinner_Update(GIZSPINNER_s *spinner) {
     }
 
     if ((spinner->state_flags & SPINNER_STATE_NO_CHARACTER_DEFLECTION) == 0) {
-        for (i32 index = 0; index < HIGHGAMEOBJECT; ++index) {
-            GameObject_s *object = &Obj[index];
+        const f32 collision_x = spinner->position.x;
+        const f32 collision_z = spinner->position.z;
+        const f32 collision_radius = spinner->field_0x09c;
+        GameObject_s *object = Obj;
+        for (i32 index = 0; index < HIGHGAMEOBJECT; ++index, ++object) {
             APIOBJECT_s *api = &object->apiobj;
             if ((api->field_0x1f8 & (APIOBJECT_FLAG_IN_USE | APIOBJECT_FLAG_CHARACTER)) !=
                     (APIOBJECT_FLAG_IN_USE | APIOBJECT_FLAG_CHARACTER) ||
                 api->field_0x287 != 0 || (object->field_0xe20 & GAMEOBJECT_E20_FLAG_MOVEMENT_DISABLED) != 0 ||
                 (CInfo[static_cast<i8>(object->character_context)].flags & 0x40008000) != 0 ||
-                spinner->position.x - spinner->field_0x09c > api->collision_max.x ||
-                api->collision_min.x > spinner->position.x + spinner->field_0x09c ||
-                spinner->position.z - spinner->field_0x09c > api->collision_max.z ||
-                api->collision_min.z > spinner->position.z + spinner->field_0x09c) {
+                collision_x - collision_radius > api->collision_max.x ||
+                api->collision_min.x > collision_x + collision_radius ||
+                collision_z - collision_radius > api->collision_max.z ||
+                api->collision_min.z > collision_z + collision_radius) {
                 continue;
             }
 
@@ -937,14 +940,14 @@ void GizSpinners_Update(void *world_ptr, void *, float) {
         GIZSPINNER_s *spinner = &world->spinners[index];
         if ((spinner->flags & GIZSPINNER_FLAG_VALID) == 0)
             continue;
-        const NUANG arm_angle = spinner->type == 0 ? 0 : static_cast<NUANG>(0x10000 / spinner->type);
+        const NUANG arm_angle = spinner->type == 0 ? 0 : static_cast<u16>(0x10000 / spinner->type);
         NUMTX matrix;
         NuMtxSetRotationY(&matrix, 0);
         NuMtxRotateY(&matrix, spinner->rotation + spinner->initial_rotation);
         NuMtxTranslate(&matrix, &spinner->position);
         spinner->matrix = matrix;
         i32 angle = 0;
-        const i32 arm_count = spinner->type < 8 ? spinner->type : 8;
+        i32 arm_count = spinner->type < 8 ? spinner->type : 8;
         for (i32 arm = 0; arm < arm_count; ++arm) {
             NuMtxSetRotationY(&matrix, 0);
             NuMtxRotateY(&matrix, spinner->rotation + spinner->initial_rotation);
@@ -952,6 +955,7 @@ void GizSpinners_Update(void *world_ptr, void *, float) {
             NuMtxTranslate(&matrix, &spinner->position);
             spinner->arms[arm].matrix = matrix;
             angle += arm_angle;
+            arm_count = spinner->type < 8 ? spinner->type : 8;
         }
         if (GameAnimSet_GetVisibility(spinner->anim_set) == GAMEANIMSET_VISIBILITY_NONE)
             spinner->flags |= SPINNER_RUNTIME_ANIMATION_HIDDEN;
@@ -962,9 +966,8 @@ void GizSpinners_Update(void *world_ptr, void *, float) {
             if ((spinner->flags & GIZSPINNER_FLAG_HIDE_BASE) == 0 && qrand() < 0x800 && WORLD != NULL &&
                 WORLD->debris_sys != NULL && WORLD->debris_sys->entries != NULL) {
                 NUVEC position = {spinner->position.x, spinner->position.y + 0.3f, spinner->position.z};
-                const i32 effects[2] = {GizSpinnerGDeb_Fail[0], GizSpinnerGDeb_Fail[2]};
                 for (i32 effect = 0; effect < 2; ++effect) {
-                    const i32 id = effects[effect];
+                    const i32 id = GizSpinnerGDeb_Fail[effect == 0 ? 0 : 2];
                     if (id >= 0 && id < WORLD->debris_sys->named_count)
                         AddVariableShotDebrisEffect(WORLD->debris_sys->entries[id].effect, &position, 2, 0, 0);
                 }

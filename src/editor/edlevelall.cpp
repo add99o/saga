@@ -304,7 +304,7 @@ i32 ClassEditor::CreateObject(ClassObject &source) {
         return 0;
 
     created.object = object;
-    if (ed_class->flags & 0x04000000) {
+    if (source.ed_class->flags & 0x04000000) {
         i32 flags = 0x04000000;
         if (created.reference == NULL || !created.reference->SetAttributeData(object, 1, EdType_Int, &flags, 0)) {
             EdMember member;
@@ -313,10 +313,11 @@ i32 ClassEditor::CreateObject(ClassObject &source) {
         }
     } else {
         ed_class->CopyObject(object, source.object);
+        interface = created.ed_class->interface;
         interface->vtable->construct(interface, object, source.object);
     }
     InitialiseObject(created);
-    theRegistry.NotifyCreateObject(object, ed_class, NULL, 0, 0, 0);
+    theRegistry.NotifyCreateObject(created.object, created.ed_class, NULL, 0, 0, 0);
     SelectObject(created, 0);
     return 1;
 }
@@ -329,7 +330,7 @@ i32 ClassEditor::CreateObject(EdClass *ed_class) {
         return 0;
     ClassObject created = {ed_class, object, NULL};
     InitialiseObject(created);
-    theRegistry.NotifyCreateObject(object, ed_class, NULL, 0, 0, 0);
+    theRegistry.NotifyCreateObject(created.object, created.ed_class, NULL, 0, 0, 0);
     SelectObject(created, 0);
     return 1;
 }
@@ -2163,11 +2164,11 @@ i32 LevelEditor::Load(char *filename, variptr_u *buffer, variptr_u *buffer_end, 
     }
 
     i32 result = -1;
-    void *file_data = editor_buffer_cursor.void_ptr;
+    void *file_data = scratch.position->void_ptr;
     i32 file_size = NuFileLoadBuffer(save_filename, file_data, scratch.remaining);
     if (file_size > 0) {
-        if (static_cast<u32>(file_size) < editor_buffer_end.addr - editor_buffer_cursor.addr) {
-            editor_buffer_cursor.addr += file_size;
+        if (static_cast<u32>(file_size) < scratch.end->addr - scratch.position->addr) {
+            scratch.position->addr += file_size;
             scratch.used += file_size;
             scratch.remaining -= file_size;
         }
@@ -2896,9 +2897,9 @@ void PropertyTool::Render() {
 }
 
 void PropertyTool::RenderMenu(PropertyMenu *property_menu) {
+    eduimenu_s *menu = property_menu->menu;
     if (property_menu->order == -1)
         AutoLocateMenu(property_menu);
-    eduimenu_s *menu = property_menu->menu;
     VuVec start __attribute__((aligned(16)));
     VuVec end __attribute__((aligned(16)));
     NuCameraCalcRay((static_cast<f32>(menu->x) + static_cast<f32>(menu->width) * 0.5f) / 640.0f,

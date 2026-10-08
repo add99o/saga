@@ -835,7 +835,7 @@ static __used__ void creatureEditor_cbSelectTriggerArea(eduimenu_s *parent, edui
     i32 index = 0;
     NULISTHDR *list = creatureEditor_AreaList();
     for (NULISTLNK *link = NuLinkedListGetHead(list); link != nullptr;
-         link = NuLinkedListGetNext(list, link), ++index) {
+         link = NuLinkedListGetNext(creatureEditor_AreaList(), link), ++index) {
         if (creatureEditor_Current()->trigger_area == link) {
             eduiMenuAddItem(menu, eduiItemCheckCreate(index, attr, 1, 1, creatureEditor_cbSetTriggerArea,
                                                       reinterpret_cast<char *>(link) + 8));
@@ -1203,15 +1203,13 @@ extern "C" {
     }
 
     __attribute__((optimize("O2", "omit-frame-pointer"))) void creatureEditor_PathDeleted(EDAIPATH_s *path) {
-        NULISTHDR *list = &aieditor->creatures;
-        NULISTHDR *free_list = reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x3691c);
-        for (NULISTLNK *link = NuLinkedListGetHead(list); link != nullptr;) {
-            NULISTLNK *next = NuLinkedListGetNext(list, link);
+        for (NULISTLNK *link = NuLinkedListGetHead(&aieditor->creatures); link != nullptr;) {
+            NULISTLNK *next = NuLinkedListGetNext(&aieditor->creatures, link);
             CreatureEditorRecord *record = reinterpret_cast<CreatureEditorRecord *>(link);
             if (record->path == path) {
-                NuLinkedListRemove(list, link);
+                NuLinkedListRemove(&aieditor->creatures, link);
                 memset(record, 0, sizeof(*record));
-                NuLinkedListAppend(free_list, link);
+                NuLinkedListAppend(reinterpret_cast<NULISTHDR *>(reinterpret_cast<u8 *>(aieditor) + 0x3691c), link);
                 if (aieditor->mode_selection_36930 == reinterpret_cast<EditorNamedEntry *>(record)) {
                     aieditor->mode_selection_36930 = nullptr;
                 }
@@ -1243,7 +1241,8 @@ extern "C" {
     __attribute__((optimize("O2", "omit-frame-pointer"), force_align_arg_pointer)) void
     creatureEditor_PathNodeMoved(EDAIPATHNODE_s *node) {
         NULISTHDR *list = &aieditor->creatures;
-        for (NULISTLNK *link = NuLinkedListGetHead(list); link != nullptr; link = NuLinkedListGetNext(list, link)) {
+        for (NULISTLNK *link = NuLinkedListGetHead(list); link != nullptr;
+             link = NuLinkedListGetNext(&aieditor->creatures, link)) {
             CreatureEditorRecord *record = reinterpret_cast<CreatureEditorRecord *>(link);
             EDAIPATHCHECK_s *check = reinterpret_cast<EDAIPATHCHECK_s *>(reinterpret_cast<u8 *>(record) + 0x38);
             if (check->first != node && check->second != node)
@@ -1347,7 +1346,7 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
             eduiMenuAddItem(menu, eduiItemSelCreate(1, attr, 0, 0, creatureEditor_cbScriptParams,
                                                     const_cast<char *>("Script Params")));
             eduiMenuAddItem(menu, eduiItemSliderCreateInt(1, attr, 0, creatureEditor_cb_assigntoset, 0,
-                                                          aisys_maxnumcreaturesets, creature->set,
+                                                          aisys_maxnumcreaturesets, creatureEditor_Current()->set,
                                                           const_cast<char *>("Assigned To Set")));
             eduiMenuAddItem(menu, eduiItemSelCreate(1, attr, 0, 0, creatureEditor_cbRenameCreatureMenu,
                                                     const_cast<char *>("Rename Creature")));
@@ -1359,9 +1358,10 @@ __attribute__((optimize("O2"))) eduimenu_s *creatureEditor_Process(nupad_s *pad)
                 menu, eduiItemSelCreate(1, attr, 0, 0, creatureEditor_cbGroupMenu, const_cast<char *>("Group Values")));
             eduiMenuAddItem(
                 menu, eduiItemSelCreate(1, attr, 0, 0, creatureEditor_cbVisionMenu, const_cast<char *>("Vision")));
-            eduiMenuAddItem(menu, eduiItemToggleCreate(1, attr, creature->flags & 1, 1, creatureEditor_cbFlagsToggle,
+            eduiMenuAddItem(menu, eduiItemToggleCreate(1, attr, creatureEditor_Current()->flags & 1, 1,
+                                                       creatureEditor_cbFlagsToggle,
                                                        const_cast<char *>("Ignore Wall Splines")));
-            eduiMenuAddItem(menu, eduiItemToggleCreate(0x20, attr, (creature->flags >> 5) & 1, 2,
+            eduiMenuAddItem(menu, eduiItemToggleCreate(0x20, attr, (creatureEditor_Current()->flags >> 5) & 1, 2,
                                                        creatureEditor_cbFlagsToggle,
                                                        const_cast<char *>("Not On LowEnd Device")));
         }
